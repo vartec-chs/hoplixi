@@ -51,9 +51,18 @@ InputDecoration primaryInputDecoration(
       borderRadius: defaultBorderRadiusValue,
       borderSide: const BorderSide(color: Colors.transparent, width: 0),
     ),
+    disabledBorder: UnderlineInputBorder(
+      borderRadius: defaultBorderRadiusValue,
+      borderSide: const BorderSide(color: Colors.transparent, width: 0),
+    ),
+
     focusedBorder: UnderlineInputBorder(
       borderRadius: defaultBorderRadiusValue,
       borderSide: const BorderSide(color: Colors.transparent, width: 0),
+    ),
+    helperStyle: TextStyle(
+      fontSize: 12,
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
     ),
   );
 }
@@ -351,48 +360,45 @@ class PrimaryTextFormField extends StatelessWidget {
   }
 }
 
-// TextFormField(
-//                         decoration: InputDecoration(
-//                           labelText: 'Text Field',
-//                           border: UnderlineInputBorder(
-//                             borderRadius: defaultBorderRadiusValue,
-//                             borderSide: BorderSide(
-//                               color: Colors.transparent,
-//                               width: 0,
-//                             ),
-//                           ),
-//                           filled: true,
-//                           errorBorder: UnderlineInputBorder(
-//                             borderRadius: defaultBorderRadiusValue,
-//                             borderSide: BorderSide(
-//                               color: Theme.of(context).colorScheme.error,
-//                               width: 0,
-//                             ),
-//                           ),
+class PasswordField extends StatefulWidget {
+  final String label;
+  final TextEditingController? controller;
+  final String? Function(String?)? validator;
 
-//                           floatingLabelBehavior: FloatingLabelBehavior.auto,
-//                           floatingLabelAlignment: FloatingLabelAlignment.start,
+  const PasswordField({
+    Key? key,
+    required this.label,
+    this.controller,
+    this.validator,
+  }) : super(key: key);
 
-//                           floatingLabelStyle: TextStyle(fontSize: 16),
+  @override
+  _PasswordFieldState createState() => _PasswordFieldState();
+}
 
-//                           // contentPadding: const EdgeInsets.symmetric(
-//                           //   vertical: 1,
-//                           //   horizontal: 12,
-//                           // ),
-//                           fillColor: Theme.of(context).colorScheme.secondary,
-//                           enabledBorder: UnderlineInputBorder(
-//                             borderRadius: defaultBorderRadiusValue,
-//                             borderSide: BorderSide(
-//                               color: Colors.transparent,
-//                               width: 0,
-//                             ),
-//                           ),
-//                           focusedBorder: UnderlineInputBorder(
-//                             borderRadius: defaultBorderRadiusValue,
-//                             borderSide: BorderSide(
-//                               color: Colors.transparent,
-//                               width: 0,
-//                             ),
-//                           ),
-//                         ),
-//                       ),
+class _PasswordFieldState extends State<PasswordField> {
+  bool _obscureText = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: widget.controller,
+      obscureText: _obscureText,
+      validator: widget.validator,
+      decoration: primaryInputDecoration(context, labelText: widget.label)
+          .copyWith(
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureText ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscureText = !_obscureText;
+                });
+              },
+            ),
+            prefixIcon: const Icon(Icons.lock),
+          ),
+    );
+  }
+}

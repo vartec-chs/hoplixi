@@ -40,22 +40,29 @@ class HomeScreen extends StatelessWidget {
                   spacing: 2,
 
                   children: [
-                    ActionButton(
-                      onPressed: () {},
-                      isWidthFull: true,
-                      height: 60,
-                      child: const Text('Открыть хранилище'),
-                      icon: const Icon(Icons.file_open_sharp, size: 32),
-                      backgroundColor: theme.colorScheme.primary,
+                    SizedBox(
+                      width: double.infinity,
+                      child: SmoothButton(
+                        onPressed: () {
+                          context.go(AppRoutes.openStore);
+                        },
+
+                        label: 'Открыть хранилище',
+                        icon: const Icon(Icons.file_open_sharp, size: 32),
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    ActionButton(
-                      onPressed: () {},
-                      isWidthFull: true,
-                      height: 60,
-                      child: const Text('Создать хранилище'),
-                      icon: const Icon(Icons.add_box, size: 32),
-                      backgroundColor: Colors.pinkAccent,
+                    SizedBox(
+                      width: double.infinity,
+
+                      child: SmoothButton(
+                        onPressed: () {
+                          context.go(AppRoutes.createStore);
+                        },
+                        type: SmoothButtonType.outlined,
+                        label: 'Создать хранилище',
+                        icon: const Icon(Icons.add_box, size: 32),
+                      ),
                     ),
                   ],
                 ),
@@ -81,6 +88,7 @@ class ActionButton extends StatelessWidget {
     required this.child,
     this.icon,
     this.backgroundColor,
+    this.borderColor,
     this.width = 150,
 
     this.height = 150,
@@ -98,6 +106,7 @@ class ActionButton extends StatelessWidget {
   final double width;
   final double height;
   final bool isWidthFull;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -106,9 +115,14 @@ class ActionButton extends StatelessWidget {
       height: height,
       child: FilledButton(
         onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
+        style: FilledButton.styleFrom(
           padding: EdgeInsets.zero, // убирает лишние отступы
-          backgroundColor: backgroundColor,
+          backgroundColor: backgroundColor ?? Colors.transparent,
+          textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(borderRadius),
+            side: BorderSide(color: borderColor ?? Colors.transparent),
+          ),
         ),
         child: Center(
           child: icon != null
