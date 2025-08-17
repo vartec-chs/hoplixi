@@ -40,29 +40,26 @@ class HomeScreen extends StatelessWidget {
                   spacing: 2,
 
                   children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: SmoothButton(
-                        onPressed: () {
-                          context.go(AppRoutes.openStore);
-                        },
+                    SmoothButton(
+                      onPressed: () {
+                        context.go(AppRoutes.openStore);
+                      },
+                      isFullWidth: true,
 
-                        label: 'Открыть хранилище',
-                        icon: const Icon(Icons.file_open_sharp, size: 32),
-                      ),
+                      label: 'Открыть хранилище',
+                      icon: const Icon(Icons.file_open_sharp, size: 32),
                     ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
 
-                      child: SmoothButton(
-                        onPressed: () {
-                          context.go(AppRoutes.createStore);
-                        },
-                        type: SmoothButtonType.outlined,
-                        label: 'Создать хранилище',
-                        icon: const Icon(Icons.add_box, size: 32),
-                      ),
+                    const SizedBox(height: 16),
+
+                    SmoothButton(
+                      onPressed: () {
+                        context.go(AppRoutes.createStore);
+                      },
+                      isFullWidth: true,
+                      type: SmoothButtonType.outlined,
+                      label: 'Создать хранилище',
+                      icon: const Icon(Icons.add_box, size: 32),
                     ),
                   ],
                 ),

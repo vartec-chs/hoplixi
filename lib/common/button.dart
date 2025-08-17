@@ -21,6 +21,7 @@ class SmoothButton extends StatelessWidget {
   final String label;
   final bool loading;
   final bool bold;
+  final bool isFullWidth;
 
   const SmoothButton({
     super.key,
@@ -37,6 +38,7 @@ class SmoothButton extends StatelessWidget {
     this.iconPosition = SmoothButtonIconPosition.start,
     this.loading = false,
     this.bold = false,
+    this.isFullWidth = false,
   });
 
   double get _fontSize {
@@ -102,8 +104,7 @@ class SmoothButton extends StatelessWidget {
     return textWidget;
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildButton() {
     final buttonChild = _buildChild();
 
     final effectiveStyle = (style ?? ButtonStyle()).copyWith(
@@ -155,5 +156,12 @@ class SmoothButton extends StatelessWidget {
           child: buttonChild,
         );
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return isFullWidth
+        ? SizedBox(width: double.infinity, child: _buildButton())
+        : _buildButton();
   }
 }
