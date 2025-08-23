@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/constants/responsive_constants.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 
 // import 'package:hoplixi/core/theme/theme.dart';
 import 'package:hoplixi/core/theme_old/theme_provider.dart';
@@ -17,14 +18,46 @@ class App extends ConsumerStatefulWidget {
   ConsumerState<App> createState() => _AppState();
 }
 
-class _AppState extends ConsumerState<App> {
+class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    // Добавляем наблюдатель жизненного цикла
+    WidgetsBinding.instance.addObserver(this);
     // Инициализируем ScaffoldMessengerManager
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessengerManager.initializeApp();
     });
+  }
+
+  @override
+  void dispose() {
+    // Удаляем наблюдатель жизненного цикла
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        logInfo("Приложение стало активным");
+        break;
+      case AppLifecycleState.paused:
+        logInfo("Приложение приостановлено");
+        break;
+      case AppLifecycleState.detached:
+        logInfo("Приложение отключено");
+        break;
+      case AppLifecycleState.inactive:
+        logInfo("Приложение неактивно");
+        break;
+      case AppLifecycleState.hidden:
+        logInfo("Приложение скрыто");
+        break;
+    }
   }
 
   @override

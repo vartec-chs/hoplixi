@@ -15,8 +15,8 @@ abstract final class ComponentThemes {
 
   /// Базовые подтемы для светлой темы
   static const FlexSubThemesData lightSubThemes = FlexSubThemesData(
-    interactionEffects: true,
-    tintedDisabledControls: true,
+    // interactionEffects: true,
+    // tintedDisabledControls: true,
     useM2StyleDividerInM3: true,
     defaultRadius: defaultBorderRadius,
     switchSchemeColor: SchemeColor.primary,
@@ -37,12 +37,13 @@ abstract final class ComponentThemes {
     searchBarRadius: defaultBorderRadius,
     searchViewRadius: defaultBorderRadius,
     navigationRailUseIndicator: true,
+    adaptiveAppBarScrollUnderOff: FlexAdaptive.all(),
   );
 
   /// Базовые подтемы для тёмной темы
   static const FlexSubThemesData darkSubThemes = FlexSubThemesData(
-    interactionEffects: true,
-    tintedDisabledControls: true,
+    // interactionEffects: true,
+    // tintedDisabledControls: true,
     blendOnColors: true,
     useM2StyleDividerInM3: true,
     defaultRadius: defaultBorderRadius,
@@ -64,6 +65,7 @@ abstract final class ComponentThemes {
     searchBarRadius: defaultBorderRadius,
     searchViewRadius: defaultBorderRadius,
     navigationRailUseIndicator: true,
+    adaptiveAppBarScrollUnderOff: FlexAdaptive.all(),
   );
 }
 

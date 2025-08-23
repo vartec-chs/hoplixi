@@ -7,10 +7,12 @@ import 'button_themes.dart';
 import 'colors.dart';
 import 'component_themes.dart';
 
+final visualDensity = VisualDensity.comfortable;
+
 abstract final class AppTheme {
-  static ThemeData _withRubik(ThemeData theme) {
+  static ThemeData _withNunito(ThemeData theme) {
     return theme.copyWith(
-      textTheme: GoogleFonts.rubikTextTheme(theme.textTheme),
+      textTheme: GoogleFonts.nunitoTextTheme(theme.textTheme),
     );
   }
 
@@ -21,13 +23,14 @@ abstract final class AppTheme {
       useMaterial3ErrorColors: true,
       swapLegacyOnMaterial3: true,
       subThemesData: ComponentThemes.lightSubThemes,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
+      visualDensity: visualDensity,
       cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
       useMaterial3: true,
       transparentStatusBar: true,
+      fontFamily: GoogleFonts.nunito().fontFamily,
     );
 
-    return _withRubik(
+    return _withNunito(
       base.copyWith(
         elevatedButtonTheme: ButtonThemes.adaptiveElevatedButtonTheme(
           context,
@@ -55,13 +58,16 @@ abstract final class AppTheme {
       swapLegacyOnMaterial3: true,
       surfaceTint: AppColors.darkSurfaceTint,
       subThemesData: ComponentThemes.darkSubThemes,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
+      visualDensity: visualDensity,
       cupertinoOverrideTheme: const CupertinoThemeData(applyThemeToAll: true),
       useMaterial3: true,
       transparentStatusBar: true,
+      fontFamily: GoogleFonts.nunito().fontFamily,
+      
+
     );
 
-    return _withRubik(
+    return _withNunito(
       base.copyWith(
         elevatedButtonTheme: ButtonThemes.adaptiveElevatedButtonTheme(
           context,
