@@ -62,8 +62,9 @@ class ScaffoldMessengerManager {
     if (queueManager != null) _queueManager = queueManager;
     if (snackBarBuilder != null) _snackBarBuilder = snackBarBuilder;
     if (bannerBuilder != null) _bannerBuilder = bannerBuilder;
-    if (defaultAnimationConfig != null)
+    if (defaultAnimationConfig != null) {
       _defaultAnimationConfig = defaultAnimationConfig;
+    }
   }
 
   /// Получение текущего контекста

@@ -38,7 +38,7 @@ final List<GoRoute> appRoutes = [
 
 class SplashScreen extends StatelessWidget {
   final String? title;
-  const SplashScreen({Key? key, this.title}) : super(key: key);
+  const SplashScreen({super.key, this.title});
 
   @override
   Widget build(BuildContext context) {

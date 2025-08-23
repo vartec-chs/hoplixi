@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 
 class TestScaffoldMessengerScreen extends StatefulWidget {
-  const TestScaffoldMessengerScreen({Key? key}) : super(key: key);
+  const TestScaffoldMessengerScreen({super.key});
 
   @override
   State<TestScaffoldMessengerScreen> createState() =>

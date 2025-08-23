@@ -26,7 +26,7 @@ abstract final class ButtonThemes {
   ) {
     return ElevatedButtonThemeData(
       style: baseTheme.elevatedButtonTheme.style?.copyWith(
-        padding: MaterialStateProperty.all(_adaptivePadding(context)),
+        padding: WidgetStateProperty.all(_adaptivePadding(context)),
       ),
     );
   }
@@ -38,7 +38,7 @@ abstract final class ButtonThemes {
   ) {
     return FilledButtonThemeData(
       style: baseTheme.filledButtonTheme.style?.copyWith(
-        padding: MaterialStateProperty.all(_adaptivePadding(context)),
+        padding: WidgetStateProperty.all(_adaptivePadding(context)),
       ),
     );
   }
@@ -50,7 +50,7 @@ abstract final class ButtonThemes {
   ) {
     return OutlinedButtonThemeData(
       style: baseTheme.outlinedButtonTheme.style?.copyWith(
-        padding: MaterialStateProperty.all(_adaptivePadding(context)),
+        padding: WidgetStateProperty.all(_adaptivePadding(context)),
       ),
     );
   }
@@ -62,7 +62,7 @@ abstract final class ButtonThemes {
   ) {
     return TextButtonThemeData(
       style: baseTheme.textButtonTheme.style?.copyWith(
-        padding: MaterialStateProperty.all(_adaptivePadding(context)),
+        padding: WidgetStateProperty.all(_adaptivePadding(context)),
       ),
     );
   }

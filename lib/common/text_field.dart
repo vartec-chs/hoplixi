@@ -105,7 +105,7 @@ class PrimaryTextField extends StatelessWidget {
   final bool expands;
 
   const PrimaryTextField({
-    Key? key,
+    super.key,
     this.label,
     this.controller,
     this.obscureText = false,
@@ -140,7 +140,7 @@ class PrimaryTextField extends StatelessWidget {
     this.scrollPhysics,
     this.scrollPadding = const EdgeInsets.all(20.0),
     this.expands = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -250,7 +250,7 @@ class PrimaryTextFormField extends StatelessWidget {
   final String? initialValue;
 
   const PrimaryTextFormField({
-    Key? key,
+    super.key,
     this.label,
     this.controller,
     this.validator,
@@ -289,7 +289,7 @@ class PrimaryTextFormField extends StatelessWidget {
     this.expands = false,
     this.autovalidateMode,
     this.initialValue,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -366,11 +366,11 @@ class PasswordField extends StatefulWidget {
   final String? Function(String?)? validator;
 
   const PasswordField({
-    Key? key,
+    super.key,
     required this.label,
     this.controller,
     this.validator,
-  }) : super(key: key);
+  });
 
   @override
   _PasswordFieldState createState() => _PasswordFieldState();

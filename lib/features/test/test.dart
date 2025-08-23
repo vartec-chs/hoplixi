@@ -4,7 +4,7 @@ import 'package:hoplixi/features/test/widgets/test_scaffold_messenger.dart';
 import 'package:hoplixi/router/router_provider.dart';
 
 class TestScreen extends StatelessWidget {
-  const TestScreen({Key? key}) : super(key: key);
+  const TestScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

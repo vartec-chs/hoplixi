@@ -53,7 +53,7 @@ class PreInitializationExample {
 
 /// Виджет для демонстрации работы с отложенными сообщениями
 class PreInitializationDemoWidget extends StatefulWidget {
-  const PreInitializationDemoWidget({Key? key}) : super(key: key);
+  const PreInitializationDemoWidget({super.key});
 
   @override
   State<PreInitializationDemoWidget> createState() =>

@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/core/theme_old/colors/colors_dark.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
-import 'package:hoplixi/core/constants/responsive_constants.dart';
-import 'package:hoplixi/core/theme/component_themes.dart';
-import 'package:hoplixi/core/theme/constants.dart';
 import 'package:hoplixi/router/routes_path.dart';
-import 'package:hoplixi/core/theme/theme.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -91,8 +86,8 @@ class ActionButton extends StatelessWidget {
     this.height = 150,
     this.borderRadius = 12,
     this.isWidthFull = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   final VoidCallback onPressed;
   final Widget child;

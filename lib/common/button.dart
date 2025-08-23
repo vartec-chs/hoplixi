@@ -108,7 +108,7 @@ class SmoothButton extends StatelessWidget {
     final buttonChild = _buildChild();
 
     final effectiveStyle = (style ?? ButtonStyle()).copyWith(
-      padding: MaterialStateProperty.all(_padding),
+      padding: WidgetStateProperty.all(_padding),
     );
 
     switch (type) {
