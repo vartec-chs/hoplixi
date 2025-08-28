@@ -1,4 +1,6 @@
 import 'package:hoplixi/encrypted_database/dto/db_dto.dart';
+import 'package:hoplixi/core/errors/index.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 
 import 'db_state.dart';
 import 'encrypted_database_manager.dart';
@@ -6,8 +8,13 @@ import 'package:riverpod/riverpod.dart';
 
 final databaseManagerProvider = Provider<EncryptedDatabaseManager>((ref) {
   final manager = EncryptedDatabaseManager();
+
   // Cleanup on dispose
   ref.onDispose(() {
+    logInfo(
+      'Освобождение ресурсов databaseManagerProvider',
+      tag: 'DatabaseProviders',
+    );
     manager.dispose();
   });
 
@@ -30,8 +37,20 @@ class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
       state = state.copyWith(error: null);
       final newState = await _manager.createDatabase(dto);
       state = newState;
+      logInfo(
+        'База данных успешно создана через провайдер',
+        tag: 'DatabaseStateNotifier',
+        data: {'name': dto.name, 'path': newState.path},
+      );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      final errorMessage = ErrorHandler.getUserFriendlyMessage(e);
+      logError(
+        'Ошибка создания базы данных через провайдер',
+        error: e,
+        tag: 'DatabaseStateNotifier',
+        data: {'name': dto.name},
+      );
+      state = state.copyWith(error: errorMessage);
     }
   }
 
@@ -40,8 +59,20 @@ class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
       state = state.copyWith(error: null);
       final newState = await _manager.openDatabase(dto);
       state = newState;
+      logInfo(
+        'База данных успешно открыта через провайдер',
+        tag: 'DatabaseStateNotifier',
+        data: {'path': dto.path, 'name': newState.name},
+      );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      final errorMessage = ErrorHandler.getUserFriendlyMessage(e);
+      logError(
+        'Ошибка открытия базы данных через провайдер',
+        error: e,
+        tag: 'DatabaseStateNotifier',
+        data: {'path': dto.path},
+      );
+      state = state.copyWith(error: errorMessage);
     }
   }
 
@@ -50,46 +81,37 @@ class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
       state = state.copyWith(error: null);
       final newState = await _manager.closeDatabase();
       state = newState;
+      logInfo(
+        'База данных успешно закрыта через провайдер',
+        tag: 'DatabaseStateNotifier',
+      );
     } catch (e) {
-      state = state.copyWith(error: e.toString());
+      final errorMessage = ErrorHandler.getUserFriendlyMessage(e);
+      logError(
+        'Ошибка закрытия базы данных через провайдер',
+        error: e,
+        tag: 'DatabaseStateNotifier',
+      );
+      state = state.copyWith(error: errorMessage);
     }
   }
 
-  // Future<void> lockDatabase() async {
-  //   try {
-  //     state = state.copyWith(error: null);
-  //     final newState = await _manager.lockDatabase();
-  //     state = newState;
-  //   } catch (e) {
-  //     state = state.copyWith(error: e.toString());
-  //   }
-  // }
-
-  // Future<void> unlockDatabase(String password) async {
-  //   try {
-  //     state = state.copyWith(error: null);
-  //     final newState = await _manager.unlockDatabase(password);
-  //     state = newState;
-  //   } catch (e) {
-  //     state = state.copyWith(error: e.toString());
-  //   }
-  // }
-
   Future<String?> pickDatabaseFile() async {
-    return await _manager.pickDatabaseFile();
+    try {
+      final result = await _manager.pickDatabaseFile();
+      logInfo(
+        'Файл базы данных выбран через провайдер',
+        tag: 'DatabaseStateNotifier',
+        data: {'selected': result != null, 'path': result},
+      );
+      return result;
+    } catch (e) {
+      logError(
+        'Ошибка выбора файла базы данных через провайдер',
+        error: e,
+        tag: 'DatabaseStateNotifier',
+      );
+      return null;
+    }
   }
-
-  // Future<Map<String, dynamic>> getHealthInfo() async {
-  //   return await _manager.getHealthInfo();
-  // }
-
-  // Future<List<String>> repairStorage() async {
-  //   try {
-  //     state = state.copyWith(error: null);
-  //     return await _manager.repairStorage();
-  //   } catch (e) {
-  //     state = state.copyWith(error: e.toString());
-  //     return ['Repair failed: $e'];
-  //   }
-  // }
 }

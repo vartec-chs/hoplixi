@@ -1,13 +1,8 @@
-import 'dart:io';
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
 import 'package:hoplixi/encrypted_database/dao/categories_dao.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'tables/categories.dart';
 import 'tables/database_meta.dart';
-import 'package:path/path.dart' as p;
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
-import 'dart:typed_data';
 
 part 'encrypted_database.g.dart';
 
@@ -31,16 +26,60 @@ class EncryptedDatabase extends _$EncryptedDatabase {
   }
 
   Future<void> updateModificationTime() async {
-    await update(
-      databaseMeta,
-    ).write(DatabaseMetaCompanion(modifiedAt: Value(DateTime.now())));
+    logDebug(
+      'Обновление времени модификации базы данных',
+      tag: 'EncryptedDatabase',
+    );
+    try {
+      await update(
+        databaseMeta,
+      ).write(DatabaseMetaCompanion(modifiedAt: Value(DateTime.now())));
+      logDebug(
+        'Время модификации базы данных обновлено',
+        tag: 'EncryptedDatabase',
+      );
+    } catch (e) {
+      logError(
+        'Ошибка обновления времени модификации',
+        error: e,
+        tag: 'EncryptedDatabase',
+      );
+      rethrow;
+    }
   }
 
   Future<DatabaseMetaData> getDatabaseMeta() async {
-    return await select(databaseMeta).getSingle();
+    logDebug('Получение метаданных базы данных', tag: 'EncryptedDatabase');
+    try {
+      final meta = await select(databaseMeta).getSingle();
+      logDebug(
+        'Метаданные базы данных получены',
+        tag: 'EncryptedDatabase',
+        data: {'name': meta.name},
+      );
+      return meta;
+    } catch (e) {
+      logError(
+        'Ошибка получения метаданных базы данных',
+        error: e,
+        tag: 'EncryptedDatabase',
+      );
+      rethrow;
+    }
   }
 
   Future<void> closeDatabase() async {
-    await close();
+    logInfo('Закрытие базы данных', tag: 'EncryptedDatabase');
+    try {
+      await close();
+      logInfo('База данных закрыта', tag: 'EncryptedDatabase');
+    } catch (e) {
+      logError(
+        'Ошибка закрытия базы данных',
+        error: e,
+        tag: 'EncryptedDatabase',
+      );
+      rethrow;
+    }
   }
 }

@@ -1,5 +1,7 @@
 import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
 import 'package:hoplixi/core/secure_storage/secure_storage_models.dart';
+import 'package:hoplixi/core/errors/index.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:path/path.dart' as p;
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
@@ -26,54 +28,91 @@ class DatabaseHistoryService {
     bool saveMasterPassword = false,
     bool isFavorite = false,
   }) async {
-    try {
-      final databaseId = generateDatabaseId(path);
+    const String operation = 'recordDatabaseAccess';
 
-      // Проверяем, существует ли уже запись
-      final existingEntry = await StorageServiceLocator.getDatabase(databaseId);
+    await ErrorHandler.safeExecute(
+      operation: operation,
+      context: 'DatabaseHistoryService',
+      additionalData: {
+        'path': path,
+        'name': name,
+        'saveMasterPassword': saveMasterPassword,
+      },
+      function: () async {
+        final databaseId = generateDatabaseId(path);
 
-      if (existingEntry != null) {
-        // Обновляем существующую запись
-        final updatedEntry = existingEntry.copyWith(
-          name: name,
-          description: description,
-          lastAccessed: DateTime.now(),
-          masterPassword: saveMasterPassword
-              ? masterPassword
-              : existingEntry.masterPassword,
-          isMasterPasswordSaved:
-              saveMasterPassword || existingEntry.isMasterPasswordSaved,
-          isFavorite: isFavorite || existingEntry.isFavorite,
+        // Проверяем, существует ли уже запись
+        final existingEntry = await StorageServiceLocator.getDatabase(
+          databaseId,
         );
-        await StorageServiceLocator.updateDatabase(updatedEntry);
-      } else {
-        // Создаем новую запись
-        final newEntry = DatabaseEntry(
-          id: databaseId,
-          name: name,
-          path: path,
-          lastAccessed: DateTime.now(),
-          description: description,
-          masterPassword: saveMasterPassword ? masterPassword : null,
-          isMasterPasswordSaved: saveMasterPassword,
-          isFavorite: isFavorite,
-        );
-        await StorageServiceLocator.addDatabase(newEntry);
-      }
-    } catch (e) {
-      // Логируем ошибку, но не прерываем основной процесс
-      print('Ошибка записи информации о базе данных: $e');
-      rethrow;
-    }
+
+        if (existingEntry != null) {
+          logDebug(
+            'Обновление существующей записи в истории',
+            tag: 'DatabaseHistoryService',
+            data: {'id': databaseId, 'name': name},
+          );
+
+          // Обновляем существующую запись
+          final updatedEntry = existingEntry.copyWith(
+            name: name,
+            description: description,
+            lastAccessed: DateTime.now(),
+            masterPassword: saveMasterPassword
+                ? masterPassword
+                : existingEntry.masterPassword,
+            isMasterPasswordSaved:
+                saveMasterPassword || existingEntry.isMasterPasswordSaved,
+            isFavorite: isFavorite || existingEntry.isFavorite,
+          );
+          await StorageServiceLocator.updateDatabase(updatedEntry);
+          logDebug('Запись в истории обновлена', tag: 'DatabaseHistoryService');
+        } else {
+          logDebug(
+            'Создание новой записи в истории',
+            tag: 'DatabaseHistoryService',
+            data: {'id': databaseId, 'name': name},
+          );
+
+          // Создаем новую запись
+          final newEntry = DatabaseEntry(
+            id: databaseId,
+            name: name,
+            path: path,
+            lastAccessed: DateTime.now(),
+            description: description,
+            masterPassword: saveMasterPassword ? masterPassword : null,
+            isMasterPasswordSaved: saveMasterPassword,
+            isFavorite: isFavorite,
+          );
+          await StorageServiceLocator.addDatabase(newEntry);
+          logDebug(
+            'Новая запись добавлена в историю',
+            tag: 'DatabaseHistoryService',
+          );
+        }
+      },
+    );
   }
 
   /// Получает информацию о базе данных по пути
   static Future<DatabaseEntry?> getDatabaseInfo(String path) async {
     try {
       final databaseId = generateDatabaseId(path);
-      return await StorageServiceLocator.getDatabase(databaseId);
+      final result = await StorageServiceLocator.getDatabase(databaseId);
+      logDebug(
+        'Получение информации о базе данных',
+        tag: 'DatabaseHistoryService',
+        data: {'path': path, 'found': result != null},
+      );
+      return result;
     } catch (e) {
-      print('Ошибка получения информации о базе данных: $e');
+      logError(
+        'Ошибка получения информации о базе данных',
+        error: e,
+        tag: 'DatabaseHistoryService',
+        data: {'path': path},
+      );
       return null;
     }
   }
@@ -83,17 +122,36 @@ class DatabaseHistoryService {
     try {
       final databaseId = generateDatabaseId(path);
       await StorageServiceLocator.updateLastAccessed(databaseId);
+      logDebug(
+        'Время последнего доступа обновлено',
+        tag: 'DatabaseHistoryService',
+        data: {'path': path},
+      );
     } catch (e) {
-      print('Ошибка обновления времени доступа: $e');
+      logWarning(
+        'Ошибка обновления времени доступа (не критично)',
+        tag: 'DatabaseHistoryService',
+        data: {'path': path, 'error': e.toString()},
+      );
     }
   }
 
   /// Получает все базы данных из истории
   static Future<List<DatabaseEntry>> getAllDatabases() async {
     try {
-      return await StorageServiceLocator.getAllDatabases();
+      final databases = await StorageServiceLocator.getAllDatabases();
+      logDebug(
+        'Получен список всех баз данных',
+        tag: 'DatabaseHistoryService',
+        data: {'count': databases.length},
+      );
+      return databases;
     } catch (e) {
-      print('Ошибка получения списка баз данных: $e');
+      logError(
+        'Ошибка получения списка баз данных',
+        error: e,
+        tag: 'DatabaseHistoryService',
+      );
       return [];
     }
   }
@@ -104,9 +162,20 @@ class DatabaseHistoryService {
   }) async {
     try {
       final allDatabases = await getAllDatabases();
-      return allDatabases.take(limit).toList();
+      final recent = allDatabases.take(limit).toList();
+      logDebug(
+        'Получен список недавних баз данных',
+        tag: 'DatabaseHistoryService',
+        data: {'requested': limit, 'found': recent.length},
+      );
+      return recent;
     } catch (e) {
-      print('Ошибка получения недавних баз данных: $e');
+      logError(
+        'Ошибка получения недавних баз данных',
+        error: e,
+        tag: 'DatabaseHistoryService',
+        data: {'limit': limit},
+      );
       return [];
     }
   }
@@ -115,9 +184,19 @@ class DatabaseHistoryService {
   static Future<List<DatabaseEntry>> getFavoriteDatabases() async {
     try {
       final allDatabases = await getAllDatabases();
-      return allDatabases.where((db) => db.isFavorite).toList();
+      final favorites = allDatabases.where((db) => db.isFavorite).toList();
+      logDebug(
+        'Получен список избранных баз данных',
+        tag: 'DatabaseHistoryService',
+        data: {'count': favorites.length},
+      );
+      return favorites;
     } catch (e) {
-      print('Ошибка получения избранных баз данных: $e');
+      logError(
+        'Ошибка получения избранных баз данных',
+        error: e,
+        tag: 'DatabaseHistoryService',
+      );
       return [];
     }
   }
@@ -126,15 +205,34 @@ class DatabaseHistoryService {
   static Future<List<DatabaseEntry>> getDatabasesWithSavedPasswords() async {
     try {
       final allDatabases = await getAllDatabases();
-      return allDatabases.where((db) => db.isMasterPasswordSaved).toList();
+      final withPasswords = allDatabases
+          .where((db) => db.isMasterPasswordSaved)
+          .toList();
+      logDebug(
+        'Получен список баз данных с сохраненными паролями',
+        tag: 'DatabaseHistoryService',
+        data: {'count': withPasswords.length},
+      );
+      return withPasswords;
     } catch (e) {
-      print('Ошибка получения баз данных с сохраненными паролями: $e');
+      logError(
+        'Ошибка получения баз данных с сохраненными паролями',
+        error: e,
+        tag: 'DatabaseHistoryService',
+      );
       return [];
     }
   }
 
   /// Устанавливает/снимает отметку "избранное" для базы данных
   static Future<void> setFavorite(String path, bool isFavorite) async {
+    const String operation = 'setFavorite';
+    logInfo(
+      'Установка статуса избранного',
+      tag: 'DatabaseHistoryService',
+      data: {'path': path, 'isFavorite': isFavorite},
+    );
+
     try {
       final databaseId = generateDatabaseId(path);
       final existingEntry = await StorageServiceLocator.getDatabase(databaseId);
@@ -142,12 +240,31 @@ class DatabaseHistoryService {
       if (existingEntry != null) {
         final updatedEntry = existingEntry.copyWith(isFavorite: isFavorite);
         await StorageServiceLocator.updateDatabase(updatedEntry);
+        logDebug('Статус избранного обновлен', tag: 'DatabaseHistoryService');
       } else {
-        throw Exception('База данных не найдена в истории');
+        logError(
+          'База данных не найдена в истории при установке статуса избранного',
+          tag: 'DatabaseHistoryService',
+          data: {'path': path},
+        );
+        throw DatabaseError.databaseNotFound(
+          path: path,
+          message: 'База данных не найдена в истории',
+        );
       }
     } catch (e) {
-      print('Ошибка установки статуса избранного: $e');
-      rethrow;
+      logError(
+        'Ошибка установки статуса избранного',
+        error: e,
+        tag: 'DatabaseHistoryService',
+        data: {'operation': operation, 'path': path},
+      );
+      if (e is DatabaseError) rethrow;
+      throw DatabaseError.operationFailed(
+        operation: operation,
+        details: e.toString(),
+        message: 'Не удалось установить статус избранного',
+      );
     }
   }
 
@@ -159,6 +276,13 @@ class DatabaseHistoryService {
     String path,
     String masterPassword,
   ) async {
+    const String operation = 'saveMasterPassword';
+    logWarning(
+      'Сохранение мастер-пароля (потенциальная угроза безопасности)',
+      tag: 'DatabaseHistoryService',
+      data: {'path': path},
+    );
+
     try {
       final databaseId = generateDatabaseId(path);
       final existingEntry = await StorageServiceLocator.getDatabase(databaseId);
@@ -169,17 +293,43 @@ class DatabaseHistoryService {
           isMasterPasswordSaved: true,
         );
         await StorageServiceLocator.updateDatabase(updatedEntry);
+        logDebug('Мастер-пароль сохранен', tag: 'DatabaseHistoryService');
       } else {
-        throw Exception('База данных не найдена в истории');
+        logError(
+          'База данных не найдена в истории при сохранении пароля',
+          tag: 'DatabaseHistoryService',
+          data: {'path': path},
+        );
+        throw DatabaseError.databaseNotFound(
+          path: path,
+          message: 'База данных не найдена в истории',
+        );
       }
     } catch (e) {
-      print('Ошибка сохранения мастер-пароля: $e');
-      rethrow;
+      logError(
+        'Ошибка сохранения мастер-пароля',
+        error: e,
+        tag: 'DatabaseHistoryService',
+        data: {'operation': operation, 'path': path},
+      );
+      if (e is DatabaseError) rethrow;
+      throw DatabaseError.operationFailed(
+        operation: operation,
+        details: e.toString(),
+        message: 'Не удалось сохранить мастер-пароль',
+      );
     }
   }
 
   /// Удаляет сохраненный мастер-пароль
   static Future<void> removeSavedPassword(String path) async {
+    const String operation = 'removeSavedPassword';
+    logInfo(
+      'Удаление сохраненного мастер-пароля',
+      tag: 'DatabaseHistoryService',
+      data: {'path': path},
+    );
+
     try {
       final databaseId = generateDatabaseId(path);
       final existingEntry = await StorageServiceLocator.getDatabase(databaseId);
@@ -190,12 +340,34 @@ class DatabaseHistoryService {
           isMasterPasswordSaved: false,
         );
         await StorageServiceLocator.updateDatabase(updatedEntry);
+        logDebug(
+          'Сохраненный мастер-пароль удален',
+          tag: 'DatabaseHistoryService',
+        );
       } else {
-        throw Exception('База данных не найдена в истории');
+        logError(
+          'База данных не найдена в истории при удалении пароля',
+          tag: 'DatabaseHistoryService',
+          data: {'path': path},
+        );
+        throw DatabaseError.databaseNotFound(
+          path: path,
+          message: 'База данных не найдена в истории',
+        );
       }
     } catch (e) {
-      print('Ошибка удаления сохраненного мастер-пароля: $e');
-      rethrow;
+      logError(
+        'Ошибка удаления сохраненного мастер-пароля',
+        error: e,
+        tag: 'DatabaseHistoryService',
+        data: {'operation': operation, 'path': path},
+      );
+      if (e is DatabaseError) rethrow;
+      throw DatabaseError.operationFailed(
+        operation: operation,
+        details: e.toString(),
+        message: 'Не удалось удалить сохраненный мастер-пароль',
+      );
     }
   }
 
@@ -277,11 +449,27 @@ class DatabaseHistoryService {
     try {
       final dbInfo = await getDatabaseInfo(path);
       if (dbInfo != null && dbInfo.isMasterPasswordSaved) {
+        logDebug(
+          'Найден сохраненный пароль для автологина',
+          tag: 'DatabaseHistoryService',
+          data: {'path': path},
+        );
         return dbInfo.masterPassword;
+      } else {
+        logDebug(
+          'Сохраненный пароль для автологина не найден',
+          tag: 'DatabaseHistoryService',
+          data: {'path': path, 'hasEntry': dbInfo != null},
+        );
       }
       return null;
     } catch (e) {
-      print('Ошибка при попытке автологина: $e');
+      logError(
+        'Ошибка при попытке автологина',
+        error: e,
+        tag: 'DatabaseHistoryService',
+        data: {'path': path},
+      );
       return null;
     }
   }
