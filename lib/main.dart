@@ -6,8 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app.dart';
-import 'package:hoplixi/core/flutter_secure_storageo_impl.dart';
-// import 'package:hoplixi/core/hive_service.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
@@ -47,8 +45,6 @@ Future<void> main() async {
 
       // Инициализируем хранилище
       await StorageServiceLocator.initializeStorage();
-
-      // HiveService.initialize(appVersion: '1.0.0', secureStorage: secureStorage);
 
       // Handle Flutter errors
       FlutterError.onError = (FlutterErrorDetails details) {

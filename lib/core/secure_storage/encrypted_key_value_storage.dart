@@ -12,12 +12,21 @@ import 'package:pointycastle/export.dart';
 import '../flutter_secure_storageo_impl.dart';
 import 'secure_key_value_storage.dart';
 import 'secure_storage_models.dart';
+import 'key_verification_service.dart';
 
 /// Реализация безопасного key-value хранилища с шифрованием AES-GCM
 /// Предназначена для хранения критически важных данных, включая пароли
+///
+/// СТРАТЕГИЯ ШИФРОВАНИЯ v3.0:
+/// - Файлы хранятся в формате JSON с читаемыми ключами
+/// - Шифруются только значения, ключи остаются в открытом виде
+/// - Это позволяет эффективно работать с индексами и поиском по ключам
+/// - Каждое значение шифруется индивидуально с использованием AES-256-GCM
+/// - Метаданные (версия, временные метки, HMAC) остаются незашифрованными
 class EncryptedKeyValueStorage implements SecureKeyValueStorage {
   final SecureStorage _secureStorage;
   late final Directory _storageDirectory;
+  late final KeyVerificationService _keyVerificationService;
 
   // Кэш для ключей шифрования
   final Map<String, Uint8List> _encryptionKeysCache = {};
@@ -30,8 +39,6 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
   static const int _keyLength = 32; // AES-256
   static const int _ivLength = 12; // GCM IV
   static const int _tagLength = 16; // GCM Tag
-  static const int _saltLength = 32; // Salt для PBKDF2
-  static const int _pbkdf2Iterations = 100000; // Итерации PBKDF2
 
   // Таймер для автоматической очистки кэша
   Timer? _cacheCleanupTimer;
@@ -43,6 +50,11 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
     bool enableCache = true,
   }) : _secureStorage = secureStorage,
        _enableCache = enableCache {
+    // Инициализируем сервис проверки ключей
+    _keyVerificationService = KeyVerificationService(
+      secureStorage: _secureStorage,
+    );
+
     // Автоматическая очистка кэша каждые 5 минут
     if (_enableCache) {
       _cacheCleanupTimer = Timer.periodic(_cacheTimeout, (_) {
@@ -101,19 +113,30 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
     return keyBytes;
   }
 
-  /// Выводит ключ из мастер-пароля с использованием PBKDF2
-  Uint8List _deriveKeyFromPassword(String password, Uint8List salt) {
-    final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
-    pbkdf2.init(Pbkdf2Parameters(salt, _pbkdf2Iterations, _keyLength));
-
-    return pbkdf2.process(Uint8List.fromList(utf8.encode(password)));
-  }
-
   /// Получает ключ шифрования для файла хранилища
   Future<Uint8List> _getEncryptionKey(String storageKey) async {
     // Проверяем кэш
     if (_encryptionKeysCache.containsKey(storageKey)) {
-      return Uint8List.fromList(_encryptionKeysCache[storageKey]!);
+      final cachedKey = _encryptionKeysCache[storageKey]!;
+
+      // Проверяем правильность ключа из кэша
+      try {
+        await _keyVerificationService.validateEncryptionKey(
+          storageKey,
+          cachedKey,
+        );
+      } catch (e) {
+        // Если ключ из кэша неправильный, удаляем его и загружаем заново
+        _encryptionKeysCache.remove(storageKey);
+        // Логируем предупреждение
+        print(
+          'Warning: Cached key validation failed for storage $storageKey, reloading key',
+        );
+      }
+
+      if (_encryptionKeysCache.containsKey(storageKey)) {
+        return Uint8List.fromList(cachedKey);
+      }
     }
 
     final keyName = '${MainConstants.appName}_storage_key_$storageKey';
@@ -127,6 +150,9 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
         encryptionKeyBase64 = base64.encode(newKey);
         await _secureStorage.write(key: keyName, value: encryptionKeyBase64);
 
+        // Регистрируем новый ключ в сервисе проверки
+        await _keyVerificationService.registerEncryptionKey(storageKey, newKey);
+
         // Кэшируем ключ
         _encryptionKeysCache[storageKey] = Uint8List.fromList(newKey);
         return newKey;
@@ -134,10 +160,41 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
 
       final keyBytes = Uint8List.fromList(base64.decode(encryptionKeyBase64));
 
+      // Проверяем правильность загруженного ключа
+      try {
+        await _keyVerificationService.validateEncryptionKey(
+          storageKey,
+          keyBytes,
+        );
+      } catch (e) {
+        // Если ключ неправильный, но это существующее хранилище,
+        // возможно это первый запуск после добавления системы проверки ключей
+        final verificationStatus = await _keyVerificationService
+            .getVerificationStatus(storageKey);
+        if (!verificationStatus.hasSignature) {
+          // Это существующее хранилище без подписи - регистрируем ключ
+          print(
+            'Info: Registering existing storage key for verification: $storageKey',
+          );
+          await _keyVerificationService.registerEncryptionKey(
+            storageKey,
+            keyBytes,
+          );
+        } else {
+          // Ключ действительно неправильный
+          throw ValidationException(
+            'Invalid encryption key detected for storage: $storageKey. '
+            'Key verification failed. This may indicate key corruption or security breach.',
+            e,
+          );
+        }
+      }
+
       // Кэшируем ключ
       _encryptionKeysCache[storageKey] = Uint8List.fromList(keyBytes);
       return keyBytes;
     } catch (e) {
+      if (e is SecureStorageException) rethrow;
       throw EncryptionException(
         'Failed to get encryption key for storage: $storageKey',
         e,
@@ -217,9 +274,69 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
     }
   }
 
+  /// Шифрует только значения в Map, оставляя ключи в открытом виде
+  Future<Map<String, dynamic>> _encryptValues(
+    Map<String, dynamic> data,
+    String storageKey,
+  ) async {
+    final encryptionKey = await _getEncryptionKey(storageKey);
+    final result = <String, dynamic>{};
+
+    for (final entry in data.entries) {
+      if (entry.key.startsWith('_')) {
+        // Метаданные не шифруем
+        result[entry.key] = entry.value;
+      } else {
+        // Шифруем значение
+        final valueJson = jsonEncode(entry.value);
+        final encryptedValue = _encryptData(valueJson, encryptionKey);
+        result[entry.key] = {'_encrypted': true, '_value': encryptedValue};
+      }
+    }
+
+    return result;
+  }
+
+  /// Расшифровывает только значения в Map, оставляя ключи в открытом виде
+  Future<Map<String, dynamic>> _decryptValues(
+    Map<String, dynamic> data,
+    String storageKey,
+  ) async {
+    final encryptionKey = await _getEncryptionKey(storageKey);
+    final result = <String, dynamic>{};
+
+    for (final entry in data.entries) {
+      if (entry.key.startsWith('_')) {
+        // Метаданные не расшифровываем
+        result[entry.key] = entry.value;
+      } else {
+        // Проверяем, зашифровано ли значение
+        if (entry.value is Map<String, dynamic>) {
+          final valueMap = entry.value as Map<String, dynamic>;
+          if (valueMap.containsKey('_encrypted') &&
+              valueMap['_encrypted'] == true &&
+              valueMap.containsKey('_value')) {
+            // Расшифровываем значение
+            final encryptedValue = valueMap['_value'] as String;
+            final decryptedValue = _decryptData(encryptedValue, encryptionKey);
+            result[entry.key] = jsonDecode(decryptedValue);
+          } else {
+            // Значение не зашифровано (старый формат)
+            result[entry.key] = entry.value;
+          }
+        } else {
+          // Значение не зашифровано (старый формат)
+          result[entry.key] = entry.value;
+        }
+      }
+    }
+
+    return result;
+  }
+
   /// Получает путь к файлу хранилища
   String _getStorageFilePath(String storageKey) {
-    return path.join(_storageDirectory.path, '$storageKey.encrypted');
+    return path.join(_storageDirectory.path, '$storageKey.secure.json');
   }
 
   /// Вычисляет HMAC для защиты от модификации данных
@@ -250,6 +367,7 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
   }
 
   /// Загружает данные из файла с проверкой целостности и временных меток
+  /// Новая стратегия: файл хранится в открытом виде JSON, шифруются только значения
   Future<Map<String, dynamic>> _loadStorageFile(String storageKey) async {
     final filePath = _getStorageFilePath(storageKey);
     final file = File(filePath);
@@ -259,15 +377,12 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
     }
 
     try {
-      final encryptedContent = await file.readAsString();
-      if (encryptedContent.isEmpty) {
+      final jsonContent = await file.readAsString();
+      if (jsonContent.isEmpty) {
         return {};
       }
 
-      final encryptionKey = await _getEncryptionKey(storageKey);
-      final decryptedContent = _decryptData(encryptedContent, encryptionKey);
-
-      final jsonData = jsonDecode(decryptedContent) as Map<String, dynamic>;
+      final jsonData = jsonDecode(jsonContent) as Map<String, dynamic>;
 
       // Проверяем метаданные и целостность
       if (jsonData.containsKey('_metadata')) {
@@ -286,9 +401,10 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
           dataWithoutMetadata.remove('_timestamp');
         }
 
-        // Проверяем HMAC
+        // Проверяем HMAC (вычисляется для зашифрованных значений)
         if (jsonData.containsKey('_hmac')) {
           final storedHmac = jsonData['_hmac'] as String;
+          final encryptionKey = await _getEncryptionKey(storageKey);
           final calculatedHmac = _calculateHMAC(
             jsonEncode(dataWithoutMetadata),
             encryptionKey,
@@ -311,10 +427,12 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
           );
         }
 
-        return dataWithoutMetadata;
+        // Расшифровываем значения (ключи остаются в открытом виде)
+        return await _decryptValues(dataWithoutMetadata, storageKey);
       }
 
-      return jsonData;
+      // Для старых файлов без метаданных просто возвращаем как есть
+      return await _decryptValues(jsonData, storageKey);
     } catch (e) {
       if (e is SecureStorageException) rethrow;
       throw FileAccessException('Failed to load storage file: $storageKey', e);
@@ -322,6 +440,7 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
   }
 
   /// Сохраняет данные в файл с метаданными безопасности
+  /// Новая стратегия: файл сохраняется как обычный JSON, шифруются только значения
   Future<void> _saveStorageFile(
     String storageKey,
     Map<String, dynamic> data,
@@ -329,16 +448,20 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
     try {
       final now = DateTime.now();
       final timestamp = _generateTimestamp();
+
+      // Шифруем значения, оставляя ключи в открытом виде
+      final encryptedData = await _encryptValues(data, storageKey);
+
       final checksum = _calculateChecksum(jsonEncode(data));
       final encryptionKey = await _getEncryptionKey(storageKey);
 
-      // Создаем HMAC для защиты от модификации
-      final hmac = _calculateHMAC(jsonEncode(data), encryptionKey);
+      // Создаем HMAC для зашифрованных данных
+      final hmac = _calculateHMAC(jsonEncode(encryptedData), encryptionKey);
 
       // Добавляем метаданные безопасности
-      final dataWithMetadata = Map<String, dynamic>.from(data);
+      final dataWithMetadata = Map<String, dynamic>.from(encryptedData);
       dataWithMetadata['_metadata'] = FileMetadata(
-        version: '2.0', // Увеличиваем версию для новых функций безопасности
+        version: '1.0', // Увеличиваем версию для новой стратегии шифрования
         createdAt: now,
         updatedAt: now,
         checksum: checksum,
@@ -347,16 +470,15 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
       dataWithMetadata['_hmac'] = hmac;
 
       final jsonContent = jsonEncode(dataWithMetadata);
-      final encryptedContent = _encryptData(jsonContent, encryptionKey);
 
       final filePath = _getStorageFilePath(storageKey);
 
       // Атомарная запись файла (сначала во временный файл)
       final tempFile = File('$filePath.tmp');
-      await tempFile.writeAsString(encryptedContent);
+      await tempFile.writeAsString(jsonContent);
       await tempFile.rename(filePath);
 
-      // Обновляем кэш
+      // Обновляем кэш (сохраняем расшифрованные данные)
       if (_enableCache) {
         _dataCache[storageKey] = Map<String, dynamic>.from(data);
       }
@@ -499,6 +621,9 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
       final keyName = '${MainConstants.appName}_storage_key_$storageKey';
       await _secureStorage.delete(key: keyName);
 
+      // Удаляем подпись ключа из сервиса проверки
+      await _keyVerificationService.removeKeySignature(storageKey);
+
       // Очищаем кэш
       if (_encryptionKeysCache.containsKey(storageKey)) {
         final keyData = _encryptionKeysCache[storageKey]!;
@@ -591,12 +716,12 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
       final storageFiles = _storageDirectory
           .listSync()
           .whereType<File>()
-          .where((file) => file.path.endsWith('.encrypted'))
+          .where((file) => file.path.endsWith('.secure.json'))
           .toList();
 
       for (final file in storageFiles) {
         final fileName = path.basenameWithoutExtension(file.path);
-        final storageKey = fileName.replaceAll('.encrypted', '');
+        final storageKey = fileName.replaceAll('.secure', '');
         results[storageKey] = await verifyStorageIntegrity(storageKey);
       }
     } catch (e) {
@@ -632,15 +757,16 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
         throw FileAccessException('Storage file does not exist: $storageKey');
       }
 
-      final encryptedContent = await file.readAsString();
+      final jsonContent = await file.readAsString();
       final metadata = await getStorageMetadata(storageKey);
 
       return {
         'storageKey': storageKey,
-        'encryptedData': encryptedContent,
+        'encryptedData':
+            jsonContent, // Теперь это JSON с зашифрованными значениями
         'metadata': metadata?.toJson(),
         'exportedAt': DateTime.now().toIso8601String(),
-        'version': '2.0',
+        'version': '3.0', // Новая версия стратегии
       };
     } catch (e) {
       throw SecureStorageException(
@@ -670,6 +796,160 @@ class EncryptedKeyValueStorage implements SecureKeyValueStorage {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  /// НОВЫЕ МЕТОДЫ ДЛЯ ПРОВЕРКИ КЛЮЧЕЙ
+
+  /// Проверяет правильность ключа шифрования для хранилища
+  Future<bool> verifyStorageKey(String storageKey) async {
+    try {
+      final encryptionKey = await _getEncryptionKey(storageKey);
+      return await _keyVerificationService.verifyEncryptionKey(
+        storageKey,
+        encryptionKey,
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Получает статус верификации ключа для хранилища
+  Future<KeyVerificationStatus> getKeyVerificationStatus(
+    String storageKey,
+  ) async {
+    try {
+      return await _keyVerificationService.getVerificationStatus(storageKey);
+    } catch (e) {
+      if (e is SecureStorageException) rethrow;
+      throw SecureStorageException(
+        'Failed to get key verification status for storage: $storageKey',
+        e,
+      );
+    }
+  }
+
+  /// Принудительно перерегистрирует ключ для хранилища
+  ///
+  /// ВНИМАНИЕ: Используйте этот метод только если вы уверены, что текущий ключ правильный!
+  /// Этот метод перезаписывает существующую подпись новой.
+  Future<void> reregisterStorageKey(String storageKey) async {
+    try {
+      final encryptionKey = await _getEncryptionKey(storageKey);
+
+      // Удаляем старую подпись
+      await _keyVerificationService.removeKeySignature(storageKey);
+
+      // Создаем новую подпись
+      await _keyVerificationService.registerEncryptionKey(
+        storageKey,
+        encryptionKey,
+      );
+    } catch (e) {
+      if (e is SecureStorageException) rethrow;
+      throw SecureStorageException(
+        'Failed to reregister storage key: $storageKey',
+        e,
+      );
+    }
+  }
+
+  /// Проверяет правильность ключей для всех зарегистрированных хранилищ
+  Future<Map<String, bool>> verifyAllStorageKeys() async {
+    try {
+      final registeredStorages = await _keyVerificationService
+          .getRegisteredStorages();
+      final results = <String, bool>{};
+
+      for (final storageKey in registeredStorages) {
+        results[storageKey] = await verifyStorageKey(storageKey);
+      }
+
+      return results;
+    } catch (e) {
+      if (e is SecureStorageException) rethrow;
+      throw SecureStorageException('Failed to verify all storage keys', e);
+    }
+  }
+
+  /// Получает список всех хранилищ с зарегистрированными ключами
+  Future<List<String>> getRegisteredStorages() async {
+    try {
+      return await _keyVerificationService.getRegisteredStorages();
+    } catch (e) {
+      if (e is SecureStorageException) rethrow;
+      throw SecureStorageException('Failed to get registered storages list', e);
+    }
+  }
+
+  /// Выполняет полную диагностику безопасности всех хранилищ
+  Future<SecurityDiagnostics> performSecurityDiagnostics() async {
+    try {
+      final registeredStorages = await getRegisteredStorages();
+      final keyVerificationResults = await verifyAllStorageKeys();
+      final storageIntegrityResults = await verifyAllStoragesIntegrity();
+      final signatureIntegrityResults = await _keyVerificationService
+          .verifyAllSignatures();
+
+      final issues = <SecurityIssue>[];
+
+      // Проверяем проблемы с ключами
+      for (final entry in keyVerificationResults.entries) {
+        if (!entry.value) {
+          issues.add(
+            SecurityIssue(
+              type: SecurityIssueType.invalidKey,
+              storageKey: entry.key,
+              description:
+                  'Invalid encryption key detected for storage: ${entry.key}',
+              severity: SecurityIssueSeverity.critical,
+            ),
+          );
+        }
+      }
+
+      // Проверяем проблемы с файлами
+      for (final entry in storageIntegrityResults.entries) {
+        if (!entry.value) {
+          issues.add(
+            SecurityIssue(
+              type: SecurityIssueType.corruptedFile,
+              storageKey: entry.key,
+              description:
+                  'Storage file integrity check failed for: ${entry.key}',
+              severity: SecurityIssueSeverity.high,
+            ),
+          );
+        }
+      }
+
+      // Проверяем проблемы с подписями
+      for (final entry in signatureIntegrityResults.entries) {
+        if (!entry.value) {
+          issues.add(
+            SecurityIssue(
+              type: SecurityIssueType.corruptedSignature,
+              storageKey: entry.key,
+              description:
+                  'Key signature is corrupted for storage: ${entry.key}',
+              severity: SecurityIssueSeverity.medium,
+            ),
+          );
+        }
+      }
+
+      return SecurityDiagnostics(
+        totalStorages: registeredStorages.length,
+        validKeys: keyVerificationResults.values.where((v) => v).length,
+        invalidKeys: keyVerificationResults.values.where((v) => !v).length,
+        intactFiles: storageIntegrityResults.values.where((v) => v).length,
+        corruptedFiles: storageIntegrityResults.values.where((v) => !v).length,
+        issues: issues,
+        scanTime: DateTime.now(),
+      );
+    } catch (e) {
+      if (e is SecureStorageException) rethrow;
+      throw SecureStorageException('Failed to perform security diagnostics', e);
     }
   }
 }

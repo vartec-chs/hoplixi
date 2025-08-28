@@ -20,7 +20,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
     observers: [GoTransition.observer, LoggingRouteObserver()],
     redirect: (context, state) async {
-      final initializationAsync = ref.watch(storageInitializationProvider);
+      final initializationAsync = ref.watch(storageInitProvider);
+
       // final prefs = await SharedPreferences.getInstance();
       // final isFirstRun = prefs.getBool('is_first_run') ?? true;
 

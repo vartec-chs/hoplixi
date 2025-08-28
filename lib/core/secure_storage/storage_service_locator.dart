@@ -6,9 +6,8 @@ import '../constants/main_constants.dart';
 
 /// Глобальный провайдер для безопасного хранилища
 final globalSecureStorageProvider = Provider<EncryptedKeyValueStorage>((ref) {
-  final secureStorage = FlutterSecureStorageImpl();
   final storage = EncryptedKeyValueStorage(
-    secureStorage: secureStorage,
+    secureStorage: ref.read(secureStorageProvider),
     appName: MainConstants.appName,
     enableCache: true,
   );

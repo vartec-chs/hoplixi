@@ -284,7 +284,7 @@ as bool,
 /// @nodoc
 mixin _$DatabaseEntry {
 
- String get id; String get name; String get path; DateTime get lastAccessed; String? get description;
+ String get id; String get name; String get path; DateTime get lastAccessed; String? get description; String? get masterPassword; bool get isFavorite; bool get isMasterPasswordSaved;
 /// Create a copy of DatabaseEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -297,16 +297,16 @@ $DatabaseEntryCopyWith<DatabaseEntry> get copyWith => _$DatabaseEntryCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.lastAccessed, lastAccessed) || other.lastAccessed == lastAccessed)&&(identical(other.description, description) || other.description == description));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.lastAccessed, lastAccessed) || other.lastAccessed == lastAccessed)&&(identical(other.description, description) || other.description == description)&&(identical(other.masterPassword, masterPassword) || other.masterPassword == masterPassword)&&(identical(other.isFavorite, isFavorite) || other.isFavorite == isFavorite)&&(identical(other.isMasterPasswordSaved, isMasterPasswordSaved) || other.isMasterPasswordSaved == isMasterPasswordSaved));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,path,lastAccessed,description);
+int get hashCode => Object.hash(runtimeType,id,name,path,lastAccessed,description,masterPassword,isFavorite,isMasterPasswordSaved);
 
 @override
 String toString() {
-  return 'DatabaseEntry(id: $id, name: $name, path: $path, lastAccessed: $lastAccessed, description: $description)';
+  return 'DatabaseEntry(id: $id, name: $name, path: $path, lastAccessed: $lastAccessed, description: $description, masterPassword: $masterPassword, isFavorite: $isFavorite, isMasterPasswordSaved: $isMasterPasswordSaved)';
 }
 
 
@@ -317,7 +317,7 @@ abstract mixin class $DatabaseEntryCopyWith<$Res>  {
   factory $DatabaseEntryCopyWith(DatabaseEntry value, $Res Function(DatabaseEntry) _then) = _$DatabaseEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String path, DateTime lastAccessed, String? description
+ String id, String name, String path, DateTime lastAccessed, String? description, String? masterPassword, bool isFavorite, bool isMasterPasswordSaved
 });
 
 
@@ -334,14 +334,17 @@ class _$DatabaseEntryCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? path = null,Object? lastAccessed = null,Object? description = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? path = null,Object? lastAccessed = null,Object? description = freezed,Object? masterPassword = freezed,Object? isFavorite = null,Object? isMasterPasswordSaved = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,lastAccessed: null == lastAccessed ? _self.lastAccessed : lastAccessed // ignore: cast_nullable_to_non_nullable
 as DateTime,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,masterPassword: freezed == masterPassword ? _self.masterPassword : masterPassword // ignore: cast_nullable_to_non_nullable
+as String?,isFavorite: null == isFavorite ? _self.isFavorite : isFavorite // ignore: cast_nullable_to_non_nullable
+as bool,isMasterPasswordSaved: null == isMasterPasswordSaved ? _self.isMasterPasswordSaved : isMasterPasswordSaved // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -426,10 +429,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String path,  DateTime lastAccessed,  String? description)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String path,  DateTime lastAccessed,  String? description,  String? masterPassword,  bool isFavorite,  bool isMasterPasswordSaved)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DatabaseEntry() when $default != null:
-return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.description);case _:
+return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.description,_that.masterPassword,_that.isFavorite,_that.isMasterPasswordSaved);case _:
   return orElse();
 
 }
@@ -447,10 +450,10 @@ return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.descript
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String path,  DateTime lastAccessed,  String? description)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String path,  DateTime lastAccessed,  String? description,  String? masterPassword,  bool isFavorite,  bool isMasterPasswordSaved)  $default,) {final _that = this;
 switch (_that) {
 case _DatabaseEntry():
-return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.description);case _:
+return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.description,_that.masterPassword,_that.isFavorite,_that.isMasterPasswordSaved);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -467,10 +470,10 @@ return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.descript
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String path,  DateTime lastAccessed,  String? description)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String path,  DateTime lastAccessed,  String? description,  String? masterPassword,  bool isFavorite,  bool isMasterPasswordSaved)?  $default,) {final _that = this;
 switch (_that) {
 case _DatabaseEntry() when $default != null:
-return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.description);case _:
+return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.description,_that.masterPassword,_that.isFavorite,_that.isMasterPasswordSaved);case _:
   return null;
 
 }
@@ -482,7 +485,7 @@ return $default(_that.id,_that.name,_that.path,_that.lastAccessed,_that.descript
 @JsonSerializable()
 
 class _DatabaseEntry implements DatabaseEntry {
-  const _DatabaseEntry({required this.id, required this.name, required this.path, required this.lastAccessed, this.description});
+  const _DatabaseEntry({required this.id, required this.name, required this.path, required this.lastAccessed, this.description, this.masterPassword, this.isFavorite = false, this.isMasterPasswordSaved = false});
   factory _DatabaseEntry.fromJson(Map<String, dynamic> json) => _$DatabaseEntryFromJson(json);
 
 @override final  String id;
@@ -490,6 +493,9 @@ class _DatabaseEntry implements DatabaseEntry {
 @override final  String path;
 @override final  DateTime lastAccessed;
 @override final  String? description;
+@override final  String? masterPassword;
+@override@JsonKey() final  bool isFavorite;
+@override@JsonKey() final  bool isMasterPasswordSaved;
 
 /// Create a copy of DatabaseEntry
 /// with the given fields replaced by the non-null parameter values.
@@ -504,16 +510,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DatabaseEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.lastAccessed, lastAccessed) || other.lastAccessed == lastAccessed)&&(identical(other.description, description) || other.description == description));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DatabaseEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.path, path) || other.path == path)&&(identical(other.lastAccessed, lastAccessed) || other.lastAccessed == lastAccessed)&&(identical(other.description, description) || other.description == description)&&(identical(other.masterPassword, masterPassword) || other.masterPassword == masterPassword)&&(identical(other.isFavorite, isFavorite) || other.isFavorite == isFavorite)&&(identical(other.isMasterPasswordSaved, isMasterPasswordSaved) || other.isMasterPasswordSaved == isMasterPasswordSaved));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,path,lastAccessed,description);
+int get hashCode => Object.hash(runtimeType,id,name,path,lastAccessed,description,masterPassword,isFavorite,isMasterPasswordSaved);
 
 @override
 String toString() {
-  return 'DatabaseEntry(id: $id, name: $name, path: $path, lastAccessed: $lastAccessed, description: $description)';
+  return 'DatabaseEntry(id: $id, name: $name, path: $path, lastAccessed: $lastAccessed, description: $description, masterPassword: $masterPassword, isFavorite: $isFavorite, isMasterPasswordSaved: $isMasterPasswordSaved)';
 }
 
 
@@ -524,7 +530,7 @@ abstract mixin class _$DatabaseEntryCopyWith<$Res> implements $DatabaseEntryCopy
   factory _$DatabaseEntryCopyWith(_DatabaseEntry value, $Res Function(_DatabaseEntry) _then) = __$DatabaseEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String path, DateTime lastAccessed, String? description
+ String id, String name, String path, DateTime lastAccessed, String? description, String? masterPassword, bool isFavorite, bool isMasterPasswordSaved
 });
 
 
@@ -541,14 +547,17 @@ class __$DatabaseEntryCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? path = null,Object? lastAccessed = null,Object? description = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? path = null,Object? lastAccessed = null,Object? description = freezed,Object? masterPassword = freezed,Object? isFavorite = null,Object? isMasterPasswordSaved = null,}) {
   return _then(_DatabaseEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,lastAccessed: null == lastAccessed ? _self.lastAccessed : lastAccessed // ignore: cast_nullable_to_non_nullable
 as DateTime,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,masterPassword: freezed == masterPassword ? _self.masterPassword : masterPassword // ignore: cast_nullable_to_non_nullable
+as String?,isFavorite: null == isFavorite ? _self.isFavorite : isFavorite // ignore: cast_nullable_to_non_nullable
+as bool,isMasterPasswordSaved: null == isMasterPasswordSaved ? _self.isMasterPasswordSaved : isMasterPasswordSaved // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -1113,6 +1122,568 @@ as DateTime,checksum: null == checksum ? _self.checksum : checksum // ignore: ca
 as String,encryptionAlgorithm: null == encryptionAlgorithm ? _self.encryptionAlgorithm : encryptionAlgorithm // ignore: cast_nullable_to_non_nullable
 as String,pbkdf2Iterations: null == pbkdf2Iterations ? _self.pbkdf2Iterations : pbkdf2Iterations // ignore: cast_nullable_to_non_nullable
 as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$SecurityIssue {
+
+ SecurityIssueType get type; String get storageKey; String get description; SecurityIssueSeverity get severity; DateTime? get detectedAt;
+/// Create a copy of SecurityIssue
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SecurityIssueCopyWith<SecurityIssue> get copyWith => _$SecurityIssueCopyWithImpl<SecurityIssue>(this as SecurityIssue, _$identity);
+
+  /// Serializes this SecurityIssue to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SecurityIssue&&(identical(other.type, type) || other.type == type)&&(identical(other.storageKey, storageKey) || other.storageKey == storageKey)&&(identical(other.description, description) || other.description == description)&&(identical(other.severity, severity) || other.severity == severity)&&(identical(other.detectedAt, detectedAt) || other.detectedAt == detectedAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,type,storageKey,description,severity,detectedAt);
+
+@override
+String toString() {
+  return 'SecurityIssue(type: $type, storageKey: $storageKey, description: $description, severity: $severity, detectedAt: $detectedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SecurityIssueCopyWith<$Res>  {
+  factory $SecurityIssueCopyWith(SecurityIssue value, $Res Function(SecurityIssue) _then) = _$SecurityIssueCopyWithImpl;
+@useResult
+$Res call({
+ SecurityIssueType type, String storageKey, String description, SecurityIssueSeverity severity, DateTime? detectedAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$SecurityIssueCopyWithImpl<$Res>
+    implements $SecurityIssueCopyWith<$Res> {
+  _$SecurityIssueCopyWithImpl(this._self, this._then);
+
+  final SecurityIssue _self;
+  final $Res Function(SecurityIssue) _then;
+
+/// Create a copy of SecurityIssue
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? storageKey = null,Object? description = null,Object? severity = null,Object? detectedAt = freezed,}) {
+  return _then(_self.copyWith(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as SecurityIssueType,storageKey: null == storageKey ? _self.storageKey : storageKey // ignore: cast_nullable_to_non_nullable
+as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String,severity: null == severity ? _self.severity : severity // ignore: cast_nullable_to_non_nullable
+as SecurityIssueSeverity,detectedAt: freezed == detectedAt ? _self.detectedAt : detectedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SecurityIssue].
+extension SecurityIssuePatterns on SecurityIssue {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SecurityIssue value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SecurityIssue() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SecurityIssue value)  $default,){
+final _that = this;
+switch (_that) {
+case _SecurityIssue():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SecurityIssue value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SecurityIssue() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( SecurityIssueType type,  String storageKey,  String description,  SecurityIssueSeverity severity,  DateTime? detectedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SecurityIssue() when $default != null:
+return $default(_that.type,_that.storageKey,_that.description,_that.severity,_that.detectedAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( SecurityIssueType type,  String storageKey,  String description,  SecurityIssueSeverity severity,  DateTime? detectedAt)  $default,) {final _that = this;
+switch (_that) {
+case _SecurityIssue():
+return $default(_that.type,_that.storageKey,_that.description,_that.severity,_that.detectedAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( SecurityIssueType type,  String storageKey,  String description,  SecurityIssueSeverity severity,  DateTime? detectedAt)?  $default,) {final _that = this;
+switch (_that) {
+case _SecurityIssue() when $default != null:
+return $default(_that.type,_that.storageKey,_that.description,_that.severity,_that.detectedAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SecurityIssue implements SecurityIssue {
+  const _SecurityIssue({required this.type, required this.storageKey, required this.description, required this.severity, this.detectedAt});
+  factory _SecurityIssue.fromJson(Map<String, dynamic> json) => _$SecurityIssueFromJson(json);
+
+@override final  SecurityIssueType type;
+@override final  String storageKey;
+@override final  String description;
+@override final  SecurityIssueSeverity severity;
+@override final  DateTime? detectedAt;
+
+/// Create a copy of SecurityIssue
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SecurityIssueCopyWith<_SecurityIssue> get copyWith => __$SecurityIssueCopyWithImpl<_SecurityIssue>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SecurityIssueToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SecurityIssue&&(identical(other.type, type) || other.type == type)&&(identical(other.storageKey, storageKey) || other.storageKey == storageKey)&&(identical(other.description, description) || other.description == description)&&(identical(other.severity, severity) || other.severity == severity)&&(identical(other.detectedAt, detectedAt) || other.detectedAt == detectedAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,type,storageKey,description,severity,detectedAt);
+
+@override
+String toString() {
+  return 'SecurityIssue(type: $type, storageKey: $storageKey, description: $description, severity: $severity, detectedAt: $detectedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SecurityIssueCopyWith<$Res> implements $SecurityIssueCopyWith<$Res> {
+  factory _$SecurityIssueCopyWith(_SecurityIssue value, $Res Function(_SecurityIssue) _then) = __$SecurityIssueCopyWithImpl;
+@override @useResult
+$Res call({
+ SecurityIssueType type, String storageKey, String description, SecurityIssueSeverity severity, DateTime? detectedAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$SecurityIssueCopyWithImpl<$Res>
+    implements _$SecurityIssueCopyWith<$Res> {
+  __$SecurityIssueCopyWithImpl(this._self, this._then);
+
+  final _SecurityIssue _self;
+  final $Res Function(_SecurityIssue) _then;
+
+/// Create a copy of SecurityIssue
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? storageKey = null,Object? description = null,Object? severity = null,Object? detectedAt = freezed,}) {
+  return _then(_SecurityIssue(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as SecurityIssueType,storageKey: null == storageKey ? _self.storageKey : storageKey // ignore: cast_nullable_to_non_nullable
+as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String,severity: null == severity ? _self.severity : severity // ignore: cast_nullable_to_non_nullable
+as SecurityIssueSeverity,detectedAt: freezed == detectedAt ? _self.detectedAt : detectedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$SecurityDiagnostics {
+
+ int get totalStorages; int get validKeys; int get invalidKeys; int get intactFiles; int get corruptedFiles; List<SecurityIssue> get issues; DateTime get scanTime;
+/// Create a copy of SecurityDiagnostics
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SecurityDiagnosticsCopyWith<SecurityDiagnostics> get copyWith => _$SecurityDiagnosticsCopyWithImpl<SecurityDiagnostics>(this as SecurityDiagnostics, _$identity);
+
+  /// Serializes this SecurityDiagnostics to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SecurityDiagnostics&&(identical(other.totalStorages, totalStorages) || other.totalStorages == totalStorages)&&(identical(other.validKeys, validKeys) || other.validKeys == validKeys)&&(identical(other.invalidKeys, invalidKeys) || other.invalidKeys == invalidKeys)&&(identical(other.intactFiles, intactFiles) || other.intactFiles == intactFiles)&&(identical(other.corruptedFiles, corruptedFiles) || other.corruptedFiles == corruptedFiles)&&const DeepCollectionEquality().equals(other.issues, issues)&&(identical(other.scanTime, scanTime) || other.scanTime == scanTime));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,totalStorages,validKeys,invalidKeys,intactFiles,corruptedFiles,const DeepCollectionEquality().hash(issues),scanTime);
+
+@override
+String toString() {
+  return 'SecurityDiagnostics(totalStorages: $totalStorages, validKeys: $validKeys, invalidKeys: $invalidKeys, intactFiles: $intactFiles, corruptedFiles: $corruptedFiles, issues: $issues, scanTime: $scanTime)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SecurityDiagnosticsCopyWith<$Res>  {
+  factory $SecurityDiagnosticsCopyWith(SecurityDiagnostics value, $Res Function(SecurityDiagnostics) _then) = _$SecurityDiagnosticsCopyWithImpl;
+@useResult
+$Res call({
+ int totalStorages, int validKeys, int invalidKeys, int intactFiles, int corruptedFiles, List<SecurityIssue> issues, DateTime scanTime
+});
+
+
+
+
+}
+/// @nodoc
+class _$SecurityDiagnosticsCopyWithImpl<$Res>
+    implements $SecurityDiagnosticsCopyWith<$Res> {
+  _$SecurityDiagnosticsCopyWithImpl(this._self, this._then);
+
+  final SecurityDiagnostics _self;
+  final $Res Function(SecurityDiagnostics) _then;
+
+/// Create a copy of SecurityDiagnostics
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? totalStorages = null,Object? validKeys = null,Object? invalidKeys = null,Object? intactFiles = null,Object? corruptedFiles = null,Object? issues = null,Object? scanTime = null,}) {
+  return _then(_self.copyWith(
+totalStorages: null == totalStorages ? _self.totalStorages : totalStorages // ignore: cast_nullable_to_non_nullable
+as int,validKeys: null == validKeys ? _self.validKeys : validKeys // ignore: cast_nullable_to_non_nullable
+as int,invalidKeys: null == invalidKeys ? _self.invalidKeys : invalidKeys // ignore: cast_nullable_to_non_nullable
+as int,intactFiles: null == intactFiles ? _self.intactFiles : intactFiles // ignore: cast_nullable_to_non_nullable
+as int,corruptedFiles: null == corruptedFiles ? _self.corruptedFiles : corruptedFiles // ignore: cast_nullable_to_non_nullable
+as int,issues: null == issues ? _self.issues : issues // ignore: cast_nullable_to_non_nullable
+as List<SecurityIssue>,scanTime: null == scanTime ? _self.scanTime : scanTime // ignore: cast_nullable_to_non_nullable
+as DateTime,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SecurityDiagnostics].
+extension SecurityDiagnosticsPatterns on SecurityDiagnostics {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SecurityDiagnostics value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SecurityDiagnostics() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SecurityDiagnostics value)  $default,){
+final _that = this;
+switch (_that) {
+case _SecurityDiagnostics():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SecurityDiagnostics value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SecurityDiagnostics() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int totalStorages,  int validKeys,  int invalidKeys,  int intactFiles,  int corruptedFiles,  List<SecurityIssue> issues,  DateTime scanTime)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SecurityDiagnostics() when $default != null:
+return $default(_that.totalStorages,_that.validKeys,_that.invalidKeys,_that.intactFiles,_that.corruptedFiles,_that.issues,_that.scanTime);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int totalStorages,  int validKeys,  int invalidKeys,  int intactFiles,  int corruptedFiles,  List<SecurityIssue> issues,  DateTime scanTime)  $default,) {final _that = this;
+switch (_that) {
+case _SecurityDiagnostics():
+return $default(_that.totalStorages,_that.validKeys,_that.invalidKeys,_that.intactFiles,_that.corruptedFiles,_that.issues,_that.scanTime);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int totalStorages,  int validKeys,  int invalidKeys,  int intactFiles,  int corruptedFiles,  List<SecurityIssue> issues,  DateTime scanTime)?  $default,) {final _that = this;
+switch (_that) {
+case _SecurityDiagnostics() when $default != null:
+return $default(_that.totalStorages,_that.validKeys,_that.invalidKeys,_that.intactFiles,_that.corruptedFiles,_that.issues,_that.scanTime);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SecurityDiagnostics implements SecurityDiagnostics {
+  const _SecurityDiagnostics({required this.totalStorages, required this.validKeys, required this.invalidKeys, required this.intactFiles, required this.corruptedFiles, required final  List<SecurityIssue> issues, required this.scanTime}): _issues = issues;
+  factory _SecurityDiagnostics.fromJson(Map<String, dynamic> json) => _$SecurityDiagnosticsFromJson(json);
+
+@override final  int totalStorages;
+@override final  int validKeys;
+@override final  int invalidKeys;
+@override final  int intactFiles;
+@override final  int corruptedFiles;
+ final  List<SecurityIssue> _issues;
+@override List<SecurityIssue> get issues {
+  if (_issues is EqualUnmodifiableListView) return _issues;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_issues);
+}
+
+@override final  DateTime scanTime;
+
+/// Create a copy of SecurityDiagnostics
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SecurityDiagnosticsCopyWith<_SecurityDiagnostics> get copyWith => __$SecurityDiagnosticsCopyWithImpl<_SecurityDiagnostics>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SecurityDiagnosticsToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SecurityDiagnostics&&(identical(other.totalStorages, totalStorages) || other.totalStorages == totalStorages)&&(identical(other.validKeys, validKeys) || other.validKeys == validKeys)&&(identical(other.invalidKeys, invalidKeys) || other.invalidKeys == invalidKeys)&&(identical(other.intactFiles, intactFiles) || other.intactFiles == intactFiles)&&(identical(other.corruptedFiles, corruptedFiles) || other.corruptedFiles == corruptedFiles)&&const DeepCollectionEquality().equals(other._issues, _issues)&&(identical(other.scanTime, scanTime) || other.scanTime == scanTime));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,totalStorages,validKeys,invalidKeys,intactFiles,corruptedFiles,const DeepCollectionEquality().hash(_issues),scanTime);
+
+@override
+String toString() {
+  return 'SecurityDiagnostics(totalStorages: $totalStorages, validKeys: $validKeys, invalidKeys: $invalidKeys, intactFiles: $intactFiles, corruptedFiles: $corruptedFiles, issues: $issues, scanTime: $scanTime)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SecurityDiagnosticsCopyWith<$Res> implements $SecurityDiagnosticsCopyWith<$Res> {
+  factory _$SecurityDiagnosticsCopyWith(_SecurityDiagnostics value, $Res Function(_SecurityDiagnostics) _then) = __$SecurityDiagnosticsCopyWithImpl;
+@override @useResult
+$Res call({
+ int totalStorages, int validKeys, int invalidKeys, int intactFiles, int corruptedFiles, List<SecurityIssue> issues, DateTime scanTime
+});
+
+
+
+
+}
+/// @nodoc
+class __$SecurityDiagnosticsCopyWithImpl<$Res>
+    implements _$SecurityDiagnosticsCopyWith<$Res> {
+  __$SecurityDiagnosticsCopyWithImpl(this._self, this._then);
+
+  final _SecurityDiagnostics _self;
+  final $Res Function(_SecurityDiagnostics) _then;
+
+/// Create a copy of SecurityDiagnostics
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? totalStorages = null,Object? validKeys = null,Object? invalidKeys = null,Object? intactFiles = null,Object? corruptedFiles = null,Object? issues = null,Object? scanTime = null,}) {
+  return _then(_SecurityDiagnostics(
+totalStorages: null == totalStorages ? _self.totalStorages : totalStorages // ignore: cast_nullable_to_non_nullable
+as int,validKeys: null == validKeys ? _self.validKeys : validKeys // ignore: cast_nullable_to_non_nullable
+as int,invalidKeys: null == invalidKeys ? _self.invalidKeys : invalidKeys // ignore: cast_nullable_to_non_nullable
+as int,intactFiles: null == intactFiles ? _self.intactFiles : intactFiles // ignore: cast_nullable_to_non_nullable
+as int,corruptedFiles: null == corruptedFiles ? _self.corruptedFiles : corruptedFiles // ignore: cast_nullable_to_non_nullable
+as int,issues: null == issues ? _self._issues : issues // ignore: cast_nullable_to_non_nullable
+as List<SecurityIssue>,scanTime: null == scanTime ? _self.scanTime : scanTime // ignore: cast_nullable_to_non_nullable
+as DateTime,
   ));
 }
 

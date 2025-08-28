@@ -27,6 +27,9 @@ _DatabaseEntry _$DatabaseEntryFromJson(Map<String, dynamic> json) =>
       path: json['path'] as String,
       lastAccessed: DateTime.parse(json['lastAccessed'] as String),
       description: json['description'] as String?,
+      masterPassword: json['masterPassword'] as String?,
+      isFavorite: json['isFavorite'] as bool? ?? false,
+      isMasterPasswordSaved: json['isMasterPasswordSaved'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$DatabaseEntryToJson(_DatabaseEntry instance) =>
@@ -36,6 +39,9 @@ Map<String, dynamic> _$DatabaseEntryToJson(_DatabaseEntry instance) =>
       'path': instance.path,
       'lastAccessed': instance.lastAccessed.toIso8601String(),
       'description': instance.description,
+      'masterPassword': instance.masterPassword,
+      'isFavorite': instance.isFavorite,
+      'isMasterPasswordSaved': instance.isMasterPasswordSaved,
     };
 
 _AuthSession _$AuthSessionFromJson(Map<String, dynamic> json) => _AuthSession(
@@ -77,3 +83,63 @@ Map<String, dynamic> _$FileMetadataToJson(_FileMetadata instance) =>
       'encryptionAlgorithm': instance.encryptionAlgorithm,
       'pbkdf2Iterations': instance.pbkdf2Iterations,
     };
+
+_SecurityIssue _$SecurityIssueFromJson(Map<String, dynamic> json) =>
+    _SecurityIssue(
+      type: $enumDecode(_$SecurityIssueTypeEnumMap, json['type']),
+      storageKey: json['storageKey'] as String,
+      description: json['description'] as String,
+      severity: $enumDecode(_$SecurityIssueSeverityEnumMap, json['severity']),
+      detectedAt: json['detectedAt'] == null
+          ? null
+          : DateTime.parse(json['detectedAt'] as String),
+    );
+
+Map<String, dynamic> _$SecurityIssueToJson(_SecurityIssue instance) =>
+    <String, dynamic>{
+      'type': _$SecurityIssueTypeEnumMap[instance.type]!,
+      'storageKey': instance.storageKey,
+      'description': instance.description,
+      'severity': _$SecurityIssueSeverityEnumMap[instance.severity]!,
+      'detectedAt': instance.detectedAt?.toIso8601String(),
+    };
+
+const _$SecurityIssueTypeEnumMap = {
+  SecurityIssueType.invalidKey: 'invalidKey',
+  SecurityIssueType.corruptedFile: 'corruptedFile',
+  SecurityIssueType.corruptedSignature: 'corruptedSignature',
+  SecurityIssueType.missingSignature: 'missingSignature',
+  SecurityIssueType.keyMismatch: 'keyMismatch',
+};
+
+const _$SecurityIssueSeverityEnumMap = {
+  SecurityIssueSeverity.low: 'low',
+  SecurityIssueSeverity.medium: 'medium',
+  SecurityIssueSeverity.high: 'high',
+  SecurityIssueSeverity.critical: 'critical',
+};
+
+_SecurityDiagnostics _$SecurityDiagnosticsFromJson(Map<String, dynamic> json) =>
+    _SecurityDiagnostics(
+      totalStorages: (json['totalStorages'] as num).toInt(),
+      validKeys: (json['validKeys'] as num).toInt(),
+      invalidKeys: (json['invalidKeys'] as num).toInt(),
+      intactFiles: (json['intactFiles'] as num).toInt(),
+      corruptedFiles: (json['corruptedFiles'] as num).toInt(),
+      issues: (json['issues'] as List<dynamic>)
+          .map((e) => SecurityIssue.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      scanTime: DateTime.parse(json['scanTime'] as String),
+    );
+
+Map<String, dynamic> _$SecurityDiagnosticsToJson(
+  _SecurityDiagnostics instance,
+) => <String, dynamic>{
+  'totalStorages': instance.totalStorages,
+  'validKeys': instance.validKeys,
+  'invalidKeys': instance.invalidKeys,
+  'intactFiles': instance.intactFiles,
+  'corruptedFiles': instance.corruptedFiles,
+  'issues': instance.issues,
+  'scanTime': instance.scanTime.toIso8601String(),
+};
