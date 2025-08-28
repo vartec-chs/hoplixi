@@ -43,19 +43,19 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
 
     switch (state) {
       case AppLifecycleState.resumed:
-        logInfo("Приложение стало активным");
+        logInfo("AppLifecycleState: resumed");
         break;
       case AppLifecycleState.paused:
-        logInfo("Приложение приостановлено");
+        logInfo("AppLifecycleState: paused");
         break;
       case AppLifecycleState.detached:
-        logInfo("Приложение отключено");
+        logInfo("AppLifecycleState: detached");
         break;
       case AppLifecycleState.inactive:
-        logInfo("Приложение неактивно");
+        logInfo("AppLifecycleState: inactive");
         break;
       case AppLifecycleState.hidden:
-        logInfo("Приложение скрыто");
+        logInfo("AppLifecycleState: hidden");
         break;
     }
   }

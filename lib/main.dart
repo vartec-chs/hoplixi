@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app.dart';
+import 'package:hoplixi/core/flutter_secure_storageo_impl.dart';
+// import 'package:hoplixi/core/hive_service.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
@@ -36,6 +38,8 @@ Future<void> main() async {
           enableCrashReports: true,
         ),
       );
+
+      // HiveService.initialize(appVersion: '1.0.0', secureStorage: secureStorage);
 
       // Handle Flutter errors
       FlutterError.onError = (FlutterErrorDetails details) {

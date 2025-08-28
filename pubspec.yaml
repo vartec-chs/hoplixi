@@ -35,10 +35,6 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
@@ -48,6 +44,8 @@ dev_dependencies:
   go_router: ^16.1.0
   go_transitions: ^0.8.2
   logger: ^2.6.1
+  drift: ^2.28.1
+  sqlcipher_flutter_libs: ^0.6.8
  
   path: ^1.9.1
   path_provider_windows: ^2.3.0
@@ -70,9 +68,25 @@ dev_dependencies:
   crypto: ^3.0.3
 
   shared_preferences: ^2.5.3
+  freezed_annotation: ^3.1.0
+  flutter_secure_storage: ^9.2.4
 
+  file_picker: ^10.3.2
   
   smooth_page_indicator: ^1.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  build_runner: ^2.7.0
+  freezed: ^3.2.0
+  json_serializable: ^6.11.0
+  drift_dev: ^2.28.1
+
+
+
+
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
