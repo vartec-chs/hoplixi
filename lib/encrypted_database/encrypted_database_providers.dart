@@ -4,10 +4,51 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 
 import 'db_state.dart';
 import 'encrypted_database_manager.dart';
+import 'interfaces/database_interfaces.dart';
+import 'services/crypto_service.dart';
+import 'services/database_validation_service.dart';
+import 'services/database_connection_service.dart';
+import 'services/database_history_service.dart';
 import 'package:riverpod/riverpod.dart';
 
-final databaseManagerProvider = Provider<EncryptedDatabaseManager>((ref) {
-  final manager = EncryptedDatabaseManager();
+// === ПРОВАЙДЕРЫ СЕРВИСОВ ===
+
+/// Провайдер криптографического сервиса
+final cryptoServiceProvider = Provider<ICryptoService>((ref) {
+  return CryptoService();
+});
+
+/// Провайдер сервиса валидации
+final validationServiceProvider = Provider<IDatabaseValidationService>((ref) {
+  return DatabaseValidationService();
+});
+
+/// Провайдер сервиса подключения
+final connectionServiceProvider = Provider<IDatabaseConnectionService>((ref) {
+  final cryptoService = ref.read(cryptoServiceProvider);
+  return DatabaseConnectionService(cryptoService: cryptoService);
+});
+
+/// Провайдер сервиса истории
+final historyServiceProvider = Provider<IDatabaseHistoryService>((ref) {
+  return DatabaseHistoryService();
+});
+
+// === ОСНОВНЫЕ ПРОВАЙДЕРЫ ===
+
+/// Провайдер рефакторенного менеджера базы данных
+final databaseManagerProvider = Provider<IEncryptedDatabaseManager>((ref) {
+  final cryptoService = ref.read(cryptoServiceProvider);
+  final validationService = ref.read(validationServiceProvider);
+  final connectionService = ref.read(connectionServiceProvider);
+  final historyService = ref.read(historyServiceProvider);
+
+  final manager = EncryptedDatabaseManager(
+    cryptoService: cryptoService,
+    validationService: validationService,
+    connectionService: connectionService,
+    historyService: historyService,
+  );
 
   // Cleanup on dispose
   ref.onDispose(() {
@@ -21,97 +62,201 @@ final databaseManagerProvider = Provider<EncryptedDatabaseManager>((ref) {
   return manager;
 });
 
+/// Провайдер состояния базы данных (новая версия)
 final databaseStateProvider =
     StateNotifierProvider<DatabaseStateNotifier, DatabaseState>((ref) {
       final manager = ref.read(databaseManagerProvider);
       return DatabaseStateNotifier(manager);
     });
 
+/// Нотификатор состояния базы данных (новая версия)
 class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
-  final EncryptedDatabaseManager _manager;
+  final IEncryptedDatabaseManager _manager;
 
   DatabaseStateNotifier(this._manager) : super(const DatabaseState());
 
+  /// Создает новую базу данных
   Future<void> createDatabase(CreateDatabaseDto dto) async {
     try {
-      state = state.copyWith(error: null);
+      state = state.copyWith(status: DatabaseStatus.loading);
       final newState = await _manager.createDatabase(dto);
       state = newState;
       logInfo(
-        'База данных успешно создана через провайдер',
+        'База данных создана успешно',
         tag: 'DatabaseStateNotifier',
-        data: {'name': dto.name, 'path': newState.path},
+        data: {'name': dto.name},
       );
     } catch (e) {
-      final errorMessage = ErrorHandler.getUserFriendlyMessage(e);
       logError(
-        'Ошибка создания базы данных через провайдер',
+        'Ошибка создания базы данных',
         error: e,
         tag: 'DatabaseStateNotifier',
         data: {'name': dto.name},
       );
-      state = state.copyWith(error: errorMessage);
+      state = DatabaseState(
+        status: DatabaseStatus.error,
+        error: e is DatabaseError ? e.toString() : e.toString(),
+      );
+      rethrow;
     }
   }
 
+  /// Открывает существующую базу данных
   Future<void> openDatabase(OpenDatabaseDto dto) async {
     try {
-      state = state.copyWith(error: null);
+      state = state.copyWith(status: DatabaseStatus.loading);
       final newState = await _manager.openDatabase(dto);
       state = newState;
       logInfo(
-        'База данных успешно открыта через провайдер',
+        'База данных открыта успешно',
         tag: 'DatabaseStateNotifier',
-        data: {'path': dto.path, 'name': newState.name},
+        data: {'path': dto.path},
       );
     } catch (e) {
-      final errorMessage = ErrorHandler.getUserFriendlyMessage(e);
       logError(
-        'Ошибка открытия базы данных через провайдер',
+        'Ошибка открытия базы данных',
         error: e,
         tag: 'DatabaseStateNotifier',
         data: {'path': dto.path},
       );
-      state = state.copyWith(error: errorMessage);
+      state = DatabaseState(
+        status: DatabaseStatus.error,
+        error: e is DatabaseError ? e.toString() : e.toString(),
+      );
+      rethrow;
     }
   }
 
+  /// Закрывает текущую базу данных
   Future<void> closeDatabase() async {
     try {
-      state = state.copyWith(error: null);
       final newState = await _manager.closeDatabase();
       state = newState;
-      logInfo(
-        'База данных успешно закрыта через провайдер',
-        tag: 'DatabaseStateNotifier',
-      );
+      logInfo('База данных закрыта успешно', tag: 'DatabaseStateNotifier');
     } catch (e) {
-      final errorMessage = ErrorHandler.getUserFriendlyMessage(e);
       logError(
-        'Ошибка закрытия базы данных через провайдер',
+        'Ошибка закрытия базы данных',
         error: e,
         tag: 'DatabaseStateNotifier',
       );
-      state = state.copyWith(error: errorMessage);
+      // В случае ошибки закрытия, все равно считаем БД закрытой
+      state = const DatabaseState(status: DatabaseStatus.closed);
     }
   }
 
-  Future<String?> pickDatabaseFile() async {
+  /// Попытка автологина
+  Future<bool> tryAutoLogin(String path) async {
     try {
-      final result = await _manager.pickDatabaseFile();
-      logInfo(
-        'Файл базы данных выбран через провайдер',
-        tag: 'DatabaseStateNotifier',
-        data: {'selected': result != null, 'path': result},
-      );
-      return result;
+      state = state.copyWith(status: DatabaseStatus.loading);
+      final result = await _manager.openWithAutoLogin(path);
+      if (result != null) {
+        state = result;
+        logInfo(
+          'Автологин успешен',
+          tag: 'DatabaseStateNotifier',
+          data: {'path': path},
+        );
+        return true;
+      } else {
+        state = const DatabaseState(status: DatabaseStatus.closed);
+        logDebug(
+          'Автологин не удался',
+          tag: 'DatabaseStateNotifier',
+          data: {'path': path},
+        );
+        return false;
+      }
     } catch (e) {
       logError(
-        'Ошибка выбора файла базы данных через провайдер',
+        'Ошибка автологина',
+        error: e,
+        tag: 'DatabaseStateNotifier',
+        data: {'path': path},
+      );
+      state = DatabaseState(
+        status: DatabaseStatus.error,
+        error: e is DatabaseError ? e.toString() : e.toString(),
+      );
+      return false;
+    }
+  }
+
+  /// Умное открытие базы данных
+  Future<bool> smartOpen(String path, [String? providedPassword]) async {
+    try {
+      state = state.copyWith(status: DatabaseStatus.loading);
+      final result = await _manager.smartOpen(path, providedPassword);
+      if (result != null) {
+        state = result;
+        logInfo(
+          'Умное открытие успешно',
+          tag: 'DatabaseStateNotifier',
+          data: {'path': path},
+        );
+        return true;
+      } else {
+        state = const DatabaseState(status: DatabaseStatus.closed);
+        logDebug(
+          'Умное открытие не удалось',
+          tag: 'DatabaseStateNotifier',
+          data: {'path': path},
+        );
+        return false;
+      }
+    } catch (e) {
+      logError(
+        'Ошибка умного открытия',
+        error: e,
+        tag: 'DatabaseStateNotifier',
+        data: {'path': path},
+      );
+      state = DatabaseState(
+        status: DatabaseStatus.error,
+        error: e is DatabaseError ? e.toString() : e.toString(),
+      );
+      return false;
+    }
+  }
+
+  /// Проверка возможности автологина
+  Future<bool> canAutoLogin(String path) async {
+    try {
+      return await _manager.canAutoLogin(path);
+    } catch (e) {
+      logError(
+        'Ошибка проверки возможности автологина',
+        error: e,
+        tag: 'DatabaseStateNotifier',
+        data: {'path': path},
+      );
+      return false;
+    }
+  }
+
+  /// Выбор файла базы данных
+  Future<String?> pickDatabaseFile() async {
+    try {
+      return await _manager.pickDatabaseFile();
+    } catch (e) {
+      logError(
+        'Ошибка выбора файла базы данных',
         error: e,
         tag: 'DatabaseStateNotifier',
       );
       return null;
     }
+  }
+
+  /// Сброс состояния в начальное
+  void reset() {
+    state = const DatabaseState();
+  }
+
+  /// Установка состояния ошибки
+  void setError(DatabaseError error) {
+    state = DatabaseState(
+      status: DatabaseStatus.error,
+      error: error.toString(),
+    );
   }
 }

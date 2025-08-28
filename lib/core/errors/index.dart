@@ -5,4 +5,3 @@ library errors;
 
 export 'db_errors.dart';
 export 'error_handler.dart';
-export 'error_handling_examples.dart';

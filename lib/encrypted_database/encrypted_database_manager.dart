@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'package:drift/drift.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -8,28 +7,53 @@ import 'package:file_picker/file_picker.dart';
 import 'package:hoplixi/core/errors/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/secure_storage/secure_storage_models.dart';
-import 'crypto_utils.dart';
-import 'database_connection_manager.dart';
-import 'database_validators.dart';
-import 'database_history_service.dart';
+
+import 'interfaces/database_interfaces.dart';
+import 'services/crypto_service.dart';
+import 'services/database_validation_service.dart';
+import 'services/database_connection_service.dart';
+import 'services/database_history_service.dart';
 import 'db_state.dart';
 import 'dto/db_dto.dart';
 import 'encrypted_database.dart';
 
-class EncryptedDatabaseManager {
+/// Рефакторенный менеджер зашифрованных баз данных
+///
+/// Использует Dependency Injection и разделенные сервисы для лучшей
+/// архитектуры и тестируемости
+class EncryptedDatabaseManager implements IEncryptedDatabaseManager {
   EncryptedDatabase? _database;
   Uint8List? _passwordKey;
 
-  EncryptedDatabase? get database => _database;
-  bool get hasOpenDatabase => _database != null;
+  // Зависимости
+  final ICryptoService _cryptoService;
+  final IDatabaseValidationService _validationService;
+  final IDatabaseConnectionService _connectionService;
+  final IDatabaseHistoryService _historyService;
 
   static const String _dbExtension = MainConstants.dbExtension;
+
+  EncryptedDatabaseManager({
+    ICryptoService? cryptoService,
+    IDatabaseValidationService? validationService,
+    IDatabaseConnectionService? connectionService,
+    IDatabaseHistoryService? historyService,
+  }) : _cryptoService = cryptoService ?? CryptoService(),
+       _validationService = validationService ?? DatabaseValidationService(),
+       _connectionService = connectionService ?? DatabaseConnectionService(),
+       _historyService = historyService ?? DatabaseHistoryService();
+
+  @override
+  EncryptedDatabase? get database => _database;
+
+  @override
+  bool get hasOpenDatabase => _database != null;
 
   // === ПРИВАТНЫЕ ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===
 
   /// Очищает чувствительные данные из памяти
   void _clearSensitiveData() {
-    CryptoUtils.clearSensitiveData(_passwordKey);
+    _cryptoService.clearSensitiveData(_passwordKey);
     _passwordKey = null;
   }
 
@@ -57,7 +81,7 @@ class EncryptedDatabaseManager {
       );
     }
 
-    await DatabaseValidators.ensureDirectoryExists(basePath);
+    await _validationService.ensureDirectoryExists(basePath);
     return p.join(basePath, '${dto.name}.$_dbExtension');
   }
 
@@ -68,7 +92,7 @@ class EncryptedDatabaseManager {
     Map<String, String> passwordData,
     String dbPath,
   ) async {
-    _passwordKey = CryptoUtils.deriveKey(
+    _passwordKey = _cryptoService.deriveKey(
       dto.masterPassword,
       passwordData['salt']!,
     );
@@ -90,7 +114,7 @@ class EncryptedDatabaseManager {
     OpenDatabaseDto dto,
     dynamic meta,
   ) async {
-    _passwordKey = CryptoUtils.deriveKey(dto.masterPassword, meta.salt);
+    _passwordKey = _cryptoService.deriveKey(dto.masterPassword, meta.salt);
     _database = database;
 
     // Записываем/обновляем информацию о базе данных в истории
@@ -117,6 +141,39 @@ class EncryptedDatabaseManager {
     }
   }
 
+  /// Записывает информацию о базе данных в историю
+  Future<void> _recordDatabaseEntry({
+    required String path,
+    required String name,
+    String? description,
+    String? masterPassword,
+    bool saveMasterPassword = false,
+  }) async {
+    try {
+      await _historyService.recordDatabaseAccess(
+        path: path,
+        name: name,
+        description: description,
+        masterPassword: masterPassword,
+        saveMasterPassword: saveMasterPassword,
+      );
+      logDebug(
+        'Информация о базе данных записана в историю',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': path, 'name': name},
+      );
+    } catch (e) {
+      logWarning(
+        'Не удалось записать информацию о базе данных в историю (не критично)',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': path, 'error': e.toString()},
+      );
+    }
+  }
+
+  // === ОСНОВНЫЕ МЕТОДЫ ===
+
+  @override
   Future<DatabaseState> createDatabase(CreateDatabaseDto dto) async {
     const String operation = 'createDatabase';
 
@@ -135,23 +192,24 @@ class EncryptedDatabaseManager {
         );
 
         // Валидация параметров
-        DatabaseValidators.validateCreateDatabaseParams(
+        _validationService.validateCreateDatabaseParams(
           name: dto.name,
           masterPassword: dto.masterPassword,
         );
 
         final dbPath = await _prepareDatabasePath(dto);
-        await DatabaseValidators.validateDatabaseCreation(dbPath);
+        await _validationService.validateDatabaseCreation(dbPath);
 
-        final passwordData = CryptoUtils.generatePasswordData(
+        final passwordData = _cryptoService.generatePasswordData(
           dto.masterPassword,
         );
-        final database = await DatabaseConnectionManager.createConnection(
-          path: dbPath,
-          password: dto.masterPassword,
-        );
+        final database = await _connectionService
+            .createConnection<EncryptedDatabase>(
+              path: dbPath,
+              password: dto.masterPassword,
+            );
 
-        await DatabaseConnectionManager.initializeDatabaseMetadata(
+        await _connectionService.initializeDatabaseMetadata(
           database: database,
           name: dto.name,
           description: dto.description ?? '',
@@ -177,6 +235,7 @@ class EncryptedDatabaseManager {
     );
   }
 
+  @override
   Future<DatabaseState> openDatabase(OpenDatabaseDto dto) async {
     const String operation = 'openDatabase';
     logInfo(
@@ -187,26 +246,27 @@ class EncryptedDatabaseManager {
 
     try {
       // Валидация параметров
-      DatabaseValidators.validateOpenDatabaseParams(
+      _validationService.validateOpenDatabaseParams(
         path: dto.path,
         masterPassword: dto.masterPassword,
       );
 
-      await DatabaseValidators.validateDatabaseExists(dto.path);
+      await _validationService.validateDatabaseExists(dto.path);
 
-      final database = await DatabaseConnectionManager.createConnection(
-        path: dto.path,
-        password: dto.masterPassword,
-      );
+      final database = await _connectionService
+          .createConnection<EncryptedDatabase>(
+            path: dto.path,
+            password: dto.masterPassword,
+          );
 
       // Проверяем пароль через верификацию подключения
-      final isValidPassword = await DatabaseConnectionManager.verifyConnection(
+      final isValidPassword = await _connectionService.verifyConnection(
         database: database,
         password: dto.masterPassword,
       );
 
       if (!isValidPassword) {
-        await DatabaseConnectionManager.closeConnection(database);
+        await _connectionService.closeConnection(database);
         throw const DatabaseError.invalidPassword();
       }
 
@@ -243,11 +303,12 @@ class EncryptedDatabaseManager {
     }
   }
 
+  @override
   Future<DatabaseState> closeDatabase() async {
     logInfo('Закрытие базы данных', tag: 'EncryptedDatabaseManager');
 
     try {
-      await DatabaseConnectionManager.closeConnection(_database);
+      await _connectionService.closeConnection(_database);
       _database = null;
       _clearSensitiveData();
 
@@ -268,153 +329,7 @@ class EncryptedDatabaseManager {
     }
   }
 
-  // === МЕТОДЫ ДЛЯ РАБОТЫ С ИСТОРИЕЙ БАЗ ДАННЫХ ===
-
-  /// Записывает информацию о базе данных в историю
-  Future<void> _recordDatabaseEntry({
-    required String path,
-    required String name,
-    String? description,
-    String? masterPassword,
-    bool saveMasterPassword = false,
-  }) async {
-    try {
-      await DatabaseHistoryService.recordDatabaseAccess(
-        path: path,
-        name: name,
-        description: description,
-        masterPassword: masterPassword,
-        saveMasterPassword: saveMasterPassword,
-      );
-      logDebug(
-        'Информация о базе данных записана в историю',
-        tag: 'EncryptedDatabaseManager',
-        data: {'path': path, 'name': name},
-      );
-    } catch (e) {
-      logWarning(
-        'Не удалось записать информацию о базе данных в историю (не критично)',
-        tag: 'EncryptedDatabaseManager',
-        data: {'path': path, 'error': e.toString()},
-      );
-    }
-  }
-
-  /// Обновляет время последнего доступа к базе данных
-  Future<void> updateDatabaseLastAccessed(String path) async {
-    try {
-      await DatabaseHistoryService.updateLastAccessed(path);
-      logDebug(
-        'Время последнего доступа обновлено',
-        tag: 'EncryptedDatabaseManager',
-        data: {'path': path},
-      );
-    } catch (e) {
-      logWarning(
-        'Не удалось обновить время последнего доступа (не критично)',
-        tag: 'EncryptedDatabaseManager',
-        data: {'path': path, 'error': e.toString()},
-      );
-    }
-  }
-
-  /// Получает список всех ранее открытых баз данных
-  Future<List<DatabaseEntry>> getAllDatabases() async {
-    try {
-      final databases = await DatabaseHistoryService.getAllDatabases();
-      logDebug(
-        'Получен список баз данных',
-        tag: 'EncryptedDatabaseManager',
-        data: {'count': databases.length},
-      );
-      return databases;
-    } catch (e) {
-      logError(
-        'Ошибка получения списка баз данных',
-        error: e,
-        tag: 'EncryptedDatabaseManager',
-      );
-      return [];
-    }
-  }
-
-  /// Получает информацию о конкретной базе данных
-  Future<DatabaseEntry?> getDatabaseInfo(String path) async {
-    try {
-      final info = await DatabaseHistoryService.getDatabaseInfo(path);
-      logDebug(
-        'Получена информация о базе данных',
-        tag: 'EncryptedDatabaseManager',
-        data: {'path': path, 'found': info != null},
-      );
-      return info;
-    } catch (e) {
-      logError(
-        'Ошибка получения информации о базе данных',
-        error: e,
-        tag: 'EncryptedDatabaseManager',
-        data: {'path': path},
-      );
-      return null;
-    }
-  }
-
-  /// Удаляет базу данных из истории
-  Future<void> removeDatabaseFromHistory(String path) async {
-    await DatabaseHistoryService.removeFromHistory(path);
-  }
-
-  /// Очищает всю историю баз данных
-  Future<void> clearDatabaseHistory() async {
-    await DatabaseHistoryService.clearHistory();
-  }
-
-  /// Устанавливает/снимает отметку "избранное" для базы данных
-  Future<void> setDatabaseFavorite(String path, bool isFavorite) async {
-    await DatabaseHistoryService.setFavorite(path, isFavorite);
-  }
-
-  /// Сохраняет мастер-пароль для базы данных (осторожно!)
-  Future<void> saveMasterPassword(String path, String masterPassword) async {
-    await DatabaseHistoryService.saveMasterPassword(path, masterPassword);
-  }
-
-  /// Удаляет сохраненный мастер-пароль
-  Future<void> removeSavedMasterPassword(String path) async {
-    await DatabaseHistoryService.removeSavedPassword(path);
-  }
-
-  /// Получает избранные базы данных
-  Future<List<DatabaseEntry>> getFavoriteDatabases() async {
-    return await DatabaseHistoryService.getFavoriteDatabases();
-  }
-
-  /// Получает недавно использованные базы данных (последние N)
-  Future<List<DatabaseEntry>> getRecentDatabases({int limit = 10}) async {
-    return await DatabaseHistoryService.getRecentDatabases(limit: limit);
-  }
-
-  /// Получает базы данных с сохраненными паролями
-  Future<List<DatabaseEntry>> getDatabasesWithSavedPasswords() async {
-    return await DatabaseHistoryService.getDatabasesWithSavedPasswords();
-  }
-
-  /// Пытается выполнить автологин для базы данных
-  Future<String?> tryAutoLogin(String path) async {
-    return await DatabaseHistoryService.tryAutoLogin(path);
-  }
-
-  /// Получает статистику по истории баз данных
-  Future<Map<String, dynamic>> getDatabaseHistoryStatistics() async {
-    return await DatabaseHistoryService.getStatistics();
-  }
-
-  /// Выполняет обслуживание истории баз данных
-  Future<void> performDatabaseHistoryMaintenance() async {
-    await DatabaseHistoryService.performMaintenance();
-  }
-
-  /// Пытается открыть базу данных с автологином
+  @override
   Future<DatabaseState?> openWithAutoLogin(String path) async {
     logInfo(
       'Попытка автологина для базы данных',
@@ -423,7 +338,7 @@ class EncryptedDatabaseManager {
     );
 
     try {
-      final savedPassword = await tryAutoLogin(path);
+      final savedPassword = await _historyService.tryAutoLogin(path);
       if (savedPassword != null) {
         logDebug(
           'Найден сохраненный пароль, пытаемся открыть БД',
@@ -459,8 +374,7 @@ class EncryptedDatabaseManager {
     }
   }
 
-  /// Умный метод для открытия базы данных
-  /// Сначала пытается автологин, если не получается - запрашивает пароль
+  @override
   Future<DatabaseState?> smartOpen(
     String path, [
     String? providedPassword,
@@ -519,10 +433,10 @@ class EncryptedDatabaseManager {
     }
   }
 
-  /// Проверяет, может ли база данных быть открыта с автологином
+  @override
   Future<bool> canAutoLogin(String path) async {
     try {
-      final savedPassword = await tryAutoLogin(path);
+      final savedPassword = await _historyService.tryAutoLogin(path);
       final canAuto = savedPassword != null;
       logDebug(
         'Проверка возможности автологина',
@@ -541,7 +455,7 @@ class EncryptedDatabaseManager {
     }
   }
 
-  // Pick database file using file picker
+  @override
   Future<String?> pickDatabaseFile() async {
     logInfo(
       'Выбор файла базы данных через файловый диалог',
@@ -577,6 +491,7 @@ class EncryptedDatabaseManager {
     }
   }
 
+  @override
   Future<void> dispose() async {
     logInfo(
       'Освобождение ресурсов EncryptedDatabaseManager',
@@ -585,7 +500,7 @@ class EncryptedDatabaseManager {
 
     try {
       if (_database != null) {
-        await DatabaseConnectionManager.closeConnection(_database);
+        await _connectionService.closeConnection(_database);
         _database = null;
         logDebug(
           'База данных закрыта при освобождении ресурсов',
@@ -607,5 +522,77 @@ class EncryptedDatabaseManager {
       _database = null;
       _clearSensitiveData();
     }
+  }
+
+  // === ДЕЛЕГИРУЕМЫЕ МЕТОДЫ ИСТОРИИ ===
+
+  @override
+  Future<void> updateDatabaseLastAccessed(String path) async {
+    await _historyService.updateLastAccessed(path);
+  }
+
+  @override
+  Future<List<DatabaseEntry>> getAllDatabases() async {
+    return await _historyService.getAllDatabases();
+  }
+
+  @override
+  Future<DatabaseEntry?> getDatabaseInfo(String path) async {
+    return await _historyService.getDatabaseInfo(path);
+  }
+
+  @override
+  Future<void> removeDatabaseFromHistory(String path) async {
+    await _historyService.removeFromHistory(path);
+  }
+
+  @override
+  Future<void> clearDatabaseHistory() async {
+    await _historyService.clearHistory();
+  }
+
+  @override
+  Future<void> setDatabaseFavorite(String path, bool isFavorite) async {
+    await _historyService.setFavorite(path, isFavorite);
+  }
+
+  @override
+  Future<void> saveMasterPassword(String path, String masterPassword) async {
+    await _historyService.saveMasterPassword(path, masterPassword);
+  }
+
+  @override
+  Future<void> removeSavedMasterPassword(String path) async {
+    await _historyService.removeSavedPassword(path);
+  }
+
+  @override
+  Future<List<DatabaseEntry>> getFavoriteDatabases() async {
+    return await _historyService.getFavoriteDatabases();
+  }
+
+  @override
+  Future<List<DatabaseEntry>> getRecentDatabases({int limit = 10}) async {
+    return await _historyService.getRecentDatabases(limit: limit);
+  }
+
+  @override
+  Future<List<DatabaseEntry>> getDatabasesWithSavedPasswords() async {
+    return await _historyService.getDatabasesWithSavedPasswords();
+  }
+
+  @override
+  Future<String?> tryAutoLogin(String path) async {
+    return await _historyService.tryAutoLogin(path);
+  }
+
+  @override
+  Future<Map<String, dynamic>> getDatabaseHistoryStatistics() async {
+    return await _historyService.getStatistics();
+  }
+
+  @override
+  Future<void> performDatabaseHistoryMaintenance() async {
+    await _historyService.performMaintenance();
   }
 }
