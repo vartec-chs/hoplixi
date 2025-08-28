@@ -13,6 +13,8 @@ class MainConstants {
   static const String appLicense = 'MIT';
   static const String appVersion = '1.0.0';
 
+  static const String dbExtension = 'hpl';
+
   static const bool isProduction = false;
 
   static const Size defaultWindowSize = Size(700, 600);

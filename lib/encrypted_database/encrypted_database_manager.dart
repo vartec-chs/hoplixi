@@ -1,17 +1,16 @@
-import 'dart:io';
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:drift/drift.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:crypto/crypto.dart';
-import 'package:drift/native.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'package:hoplixi/core/errors/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/secure_storage/secure_storage_models.dart';
+import 'crypto_utils.dart';
+import 'database_connection_manager.dart';
+import 'database_validators.dart';
 import 'database_history_service.dart';
 import 'db_state.dart';
 import 'dto/db_dto.dart';
@@ -24,59 +23,98 @@ class EncryptedDatabaseManager {
   EncryptedDatabase? get database => _database;
   bool get hasOpenDatabase => _database != null;
 
-  // Generate salt and hash password
-  Map<String, String> _generatePasswordHash(String password) {
-    final salt = _generateSecureSalt();
-    final hash = _hashPassword(password, salt);
+  static const String _dbExtension = MainConstants.dbExtension;
 
-    return {'hash': hash, 'salt': salt};
-  }
+  // === ПРИВАТНЫЕ ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===
 
-  // Generate cryptographically secure salt
-  String _generateSecureSalt() {
-    final bytes = List<int>.generate(
-      32,
-      (i) => DateTime.now().millisecondsSinceEpoch + i * 137,
-    );
-    return base64.encode(bytes);
-  }
-
-  // Hash password with salt using PBKDF2-like approach
-  String _hashPassword(String password, String salt) {
-    var bytes = utf8.encode(password + salt);
-    for (int i = 0; i < 10000; i++) {
-      bytes = Uint8List.fromList(sha256.convert(bytes).bytes);
-    }
-    return base64.encode(bytes);
-  }
-
-  // Derive encryption key from password
-  Uint8List _deriveKey(String password, String salt) {
-    var bytes = utf8.encode(password + salt);
-    for (int i = 0; i < 10000; i++) {
-      bytes = Uint8List.fromList(sha256.convert(bytes).bytes);
-    }
-    return Uint8List.fromList(bytes);
-  }
-
-  // Verify password
-  bool _verifyPassword(String password, String hash, String salt) {
-    final computedHash = _hashPassword(password, salt);
-    return computedHash == hash;
-  }
-
-  // Clear sensitive data from memory
+  /// Очищает чувствительные данные из памяти
   void _clearSensitiveData() {
-    if (_passwordKey != null) {
-      _passwordKey!.fillRange(0, _passwordKey!.length, 0);
-      _passwordKey = null;
-    }
+    CryptoUtils.clearSensitiveData(_passwordKey);
+    _passwordKey = null;
   }
 
-  // Get default database directory
+  /// Получает путь для базы данных по умолчанию
   Future<String> _getDefaultDatabasePath() async {
     final appDir = await getApplicationDocumentsDirectory();
     return p.join(appDir.path, MainConstants.appFolderName, 'storages');
+  }
+
+  /// Подготавливает путь для новой базы данных
+  Future<String> _prepareDatabasePath(CreateDatabaseDto dto) async {
+    final String basePath;
+
+    if (dto.customPath != null) {
+      basePath = dto.customPath!;
+      logDebug(
+        'Используется кастомный путь: $basePath',
+        tag: 'EncryptedDatabaseManager',
+      );
+    } else {
+      basePath = await _getDefaultDatabasePath();
+      logDebug(
+        'Используется путь по умолчанию: $basePath',
+        tag: 'EncryptedDatabaseManager',
+      );
+    }
+
+    await DatabaseValidators.ensureDirectoryExists(basePath);
+    return p.join(basePath, '${dto.name}.$_dbExtension');
+  }
+
+  /// Завершает создание базы данных
+  Future<void> _finalizeDatabaseCreation(
+    EncryptedDatabase database,
+    CreateDatabaseDto dto,
+    Map<String, String> passwordData,
+    String dbPath,
+  ) async {
+    _passwordKey = CryptoUtils.deriveKey(
+      dto.masterPassword,
+      passwordData['salt']!,
+    );
+    _database = database;
+
+    // Записываем информацию о базе данных в историю
+    await _recordDatabaseEntry(
+      path: dbPath,
+      name: dto.name,
+      description: dto.description,
+      masterPassword: dto.masterPassword,
+      saveMasterPassword: dto.saveMasterPassword,
+    );
+  }
+
+  /// Завершает открытие базы данных
+  Future<void> _finalizeOpenDatabase(
+    EncryptedDatabase database,
+    OpenDatabaseDto dto,
+    dynamic meta,
+  ) async {
+    _passwordKey = CryptoUtils.deriveKey(dto.masterPassword, meta.salt);
+    _database = database;
+
+    // Записываем/обновляем информацию о базе данных в истории
+    try {
+      await _recordDatabaseEntry(
+        path: dto.path,
+        name: meta.name.isNotEmpty
+            ? meta.name
+            : p.basenameWithoutExtension(dto.path),
+        description: meta.description,
+        masterPassword: dto.masterPassword,
+        saveMasterPassword: dto.saveMasterPassword,
+      );
+      logDebug(
+        'Информация о базе данных обновлена в истории',
+        tag: 'EncryptedDatabaseManager',
+      );
+    } catch (historyError) {
+      logWarning(
+        'Ошибка обновления истории (не критично): $historyError',
+        tag: 'EncryptedDatabaseManager',
+        data: {'error': historyError.toString()},
+      );
+    }
   }
 
   Future<DatabaseState> createDatabase(CreateDatabaseDto dto) async {
@@ -96,98 +134,31 @@ class EncryptedDatabaseManager {
           additionalData: {'name': dto.name},
         );
 
-        final String basePath;
-
-        if (dto.customPath != null) {
-          basePath = dto.customPath!;
-          logDebug(
-            'Используется кастомный путь: $basePath',
-            tag: 'EncryptedDatabaseManager',
-          );
-        } else {
-          basePath = await _getDefaultDatabasePath();
-          logDebug(
-            'Используется путь по умолчанию: $basePath',
-            tag: 'EncryptedDatabaseManager',
-          );
-        }
-
-        // Ensure directory exists
-        final directory = Directory(basePath);
-        if (!await directory.exists()) {
-          logInfo(
-            'Создание директории: $basePath',
-            tag: 'EncryptedDatabaseManager',
-          );
-          await directory.create(recursive: true);
-        }
-
-        final dbPath = p.join(basePath, '${dto.name}.db');
-        logDebug(
-          'Полный путь к базе данных: $dbPath',
-          tag: 'EncryptedDatabaseManager',
-        );
-
-        // Check if database already exists
-        if (File(dbPath).existsSync()) {
-          logWarning(
-            'База данных уже существует: $dbPath',
-            tag: 'EncryptedDatabaseManager',
-          );
-          throw DatabaseError.databaseAlreadyExists(path: dbPath);
-        }
-
-        // Generate password hash and salt
-        final passwordData = _generatePasswordHash(dto.masterPassword);
-        logDebug(
-          'Сгенерированы хеш и соль пароля',
-          tag: 'EncryptedDatabaseManager',
-        );
-
-        // Create encrypted database
-        final database = EncryptedDatabase(
-          NativeDatabase.createInBackground(
-            File(dbPath),
-            setup: (rawDb) {
-              rawDb.execute(
-                "PRAGMA key = '${dto.masterPassword.replaceAll("'", "''")}';",
-              );
-            },
-          ),
-        );
-
-        logInfo(
-          'База данных создана, инициализация метаданных',
-          tag: 'EncryptedDatabaseManager',
-        );
-
-        // Initialize database metadata record
-        await database
-            .into(database.databaseMeta)
-            .insert(
-              DatabaseMetaCompanion.insert(
-                name: dto.name,
-                description: Value(dto.description),
-                passwordHash: passwordData['hash']!,
-                salt: passwordData['salt']!,
-                createdAt: DateTime.now(),
-                modifiedAt: DateTime.now(),
-              ),
-            );
-
-        // Store derived key
-        _passwordKey = _deriveKey(dto.masterPassword, passwordData['salt']!);
-        _database = database;
-
-        // Записываем информацию о базе данных в историю
-        await _recordDatabaseEntry(
-          path: dbPath,
+        // Валидация параметров
+        DatabaseValidators.validateCreateDatabaseParams(
           name: dto.name,
-          description: dto.description,
           masterPassword: dto.masterPassword,
-          saveMasterPassword:
-              false, // По умолчанию не сохраняем пароль при создании
         );
+
+        final dbPath = await _prepareDatabasePath(dto);
+        await DatabaseValidators.validateDatabaseCreation(dbPath);
+
+        final passwordData = CryptoUtils.generatePasswordData(
+          dto.masterPassword,
+        );
+        final database = await DatabaseConnectionManager.createConnection(
+          path: dbPath,
+          password: dto.masterPassword,
+        );
+
+        await DatabaseConnectionManager.initializeDatabaseMetadata(
+          database: database,
+          name: dto.name,
+          description: dto.description ?? '',
+          passwordData: passwordData,
+        );
+
+        await _finalizeDatabaseCreation(database, dto, passwordData, dbPath);
 
         final result = DatabaseState(
           path: dbPath,
@@ -215,107 +186,46 @@ class EncryptedDatabaseManager {
     );
 
     try {
-      if (!File(dto.path).existsSync()) {
-        logWarning(
-          'База данных не найдена: ${dto.path}',
-          tag: 'EncryptedDatabaseManager',
-        );
-        throw DatabaseError.databaseNotFound(path: dto.path);
-      }
-
-      logDebug(
-        'Создание подключения к базе данных',
-        tag: 'EncryptedDatabaseManager',
-      );
-      final database = EncryptedDatabase(
-        NativeDatabase.createInBackground(
-          File(dto.path),
-          setup: (rawDb) {
-            rawDb.execute("PRAGMA key = '${dto.masterPassword}';");
-          },
-        ),
+      // Валидация параметров
+      DatabaseValidators.validateOpenDatabaseParams(
+        path: dto.path,
+        masterPassword: dto.masterPassword,
       );
 
-      // Try to read database metadata to verify password
-      try {
-        logDebug(
-          'Проверка пароля и чтение метаданных',
-          tag: 'EncryptedDatabaseManager',
-        );
-        final meta = await database.getDatabaseMeta();
+      await DatabaseValidators.validateDatabaseExists(dto.path);
 
-        // Verify password
-        if (!_verifyPassword(
-          dto.masterPassword,
-          meta.passwordHash,
-          meta.salt,
-        )) {
-          logWarning(
-            'Неверный пароль для базы данных: ${dto.path}',
-            tag: 'EncryptedDatabaseManager',
-          );
-          await database.close();
-          throw const DatabaseError.invalidPassword();
-        }
+      final database = await DatabaseConnectionManager.createConnection(
+        path: dto.path,
+        password: dto.masterPassword,
+      );
 
-        logDebug(
-          'Пароль верифицирован успешно',
-          tag: 'EncryptedDatabaseManager',
-        );
+      // Проверяем пароль через верификацию подключения
+      final isValidPassword = await DatabaseConnectionManager.verifyConnection(
+        database: database,
+        password: dto.masterPassword,
+      );
 
-        // Store derived key
-        _passwordKey = _deriveKey(dto.masterPassword, meta.salt);
-
-        // Записываем/обновляем информацию о базе данных в истории
-        try {
-          await _recordDatabaseEntry(
-            path: dto.path,
-            name: meta.name.isNotEmpty
-                ? meta.name
-                : p.basenameWithoutExtension(dto.path),
-            description: meta.description,
-            masterPassword: dto.masterPassword,
-            saveMasterPassword:
-                false, // По умолчанию не сохраняем пароль при открытии
-          );
-          logDebug(
-            'Информация о базе данных обновлена в истории',
-            tag: 'EncryptedDatabaseManager',
-          );
-        } catch (historyError) {
-          logWarning(
-            'Ошибка обновления истории (не критично): $historyError',
-            tag: 'EncryptedDatabaseManager',
-            data: {'error': historyError.toString()},
-          );
-        }
-
-        _database = database;
-
-        logInfo(
-          'База данных успешно открыта',
-          tag: 'EncryptedDatabaseManager',
-          data: {'path': dto.path, 'name': meta.name},
-        );
-
-        return DatabaseState(
-          path: dto.path,
-          name: meta.name.isNotEmpty
-              ? meta.name
-              : p.basenameWithoutExtension(dto.path),
-          status: DatabaseStatus.open,
-        );
-      } catch (e) {
-        logError(
-          'Ошибка при проверке пароля или чтении метаданных',
-          error: e,
-          tag: 'EncryptedDatabaseManager',
-          data: {'path': dto.path},
-        );
-        await database.close();
-        if (e is DatabaseError) rethrow;
+      if (!isValidPassword) {
+        await DatabaseConnectionManager.closeConnection(database);
         throw const DatabaseError.invalidPassword();
       }
+
+      final meta = await database.getDatabaseMeta();
+      await _finalizeOpenDatabase(database, dto, meta);
+
+      logInfo(
+        'База данных успешно открыта',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': dto.path, 'name': meta.name},
+      );
+
+      return DatabaseState(
+        path: dto.path,
+        name: meta.name.isNotEmpty
+            ? meta.name
+            : p.basenameWithoutExtension(dto.path),
+        status: DatabaseStatus.open,
+      );
     } catch (e) {
       logError(
         'Ошибка открытия базы данных',
@@ -337,17 +247,9 @@ class EncryptedDatabaseManager {
     logInfo('Закрытие базы данных', tag: 'EncryptedDatabaseManager');
 
     try {
-      if (_database != null) {
-        await _database!.close();
-        _database = null;
-        logDebug('База данных закрыта', tag: 'EncryptedDatabaseManager');
-      }
-
+      await DatabaseConnectionManager.closeConnection(_database);
+      _database = null;
       _clearSensitiveData();
-      logDebug(
-        'Чувствительные данные очищены',
-        tag: 'EncryptedDatabaseManager',
-      );
 
       logInfo('База данных успешно закрыта', tag: 'EncryptedDatabaseManager');
       return const DatabaseState(status: DatabaseStatus.closed);
@@ -683,7 +585,7 @@ class EncryptedDatabaseManager {
 
     try {
       if (_database != null) {
-        await _database!.close();
+        await DatabaseConnectionManager.closeConnection(_database);
         _database = null;
         logDebug(
           'База данных закрыта при освобождении ресурсов',
