@@ -1,44 +1,26 @@
-import 'dart:io';
-import 'package:hoplixi/core/errors/index.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
+import 'services/database_validation_service.dart';
 
 /// Валидаторы для операций с базой данных
+///
+/// УСТАРЕЛ: Используйте DatabaseValidationService для новых проектов
+/// Этот класс сохранен для обратной совместимости
+@Deprecated('Используйте DatabaseValidationService вместо DatabaseValidators')
 class DatabaseValidators {
+  static final DatabaseValidationService _service = DatabaseValidationService();
+
   /// Проверяет, что база данных не существует (для создания)
   static Future<void> validateDatabaseCreation(String dbPath) async {
-    if (File(dbPath).existsSync()) {
-      logWarning(
-        'База данных уже существует',
-        tag: 'DatabaseValidators',
-        data: {'path': dbPath},
-      );
-      throw DatabaseError.databaseAlreadyExists(path: dbPath);
-    }
+    await _service.validateDatabaseCreation(dbPath);
   }
 
   /// Проверяет, что база данных существует (для открытия)
   static Future<void> validateDatabaseExists(String path) async {
-    if (!File(path).existsSync()) {
-      logWarning(
-        'База данных не найдена',
-        tag: 'DatabaseValidators',
-        data: {'path': path},
-      );
-      throw DatabaseError.databaseNotFound(path: path);
-    }
+    await _service.validateDatabaseExists(path);
   }
 
   /// Проверяет и создает директорию, если она не существует
   static Future<void> ensureDirectoryExists(String path) async {
-    final directory = Directory(path);
-    if (!await directory.exists()) {
-      logInfo(
-        'Создание директории',
-        tag: 'DatabaseValidators',
-        data: {'path': path},
-      );
-      await directory.create(recursive: true);
-    }
+    await _service.ensureDirectoryExists(path);
   }
 
   /// Валидирует параметры создания базы данных
@@ -46,29 +28,10 @@ class DatabaseValidators {
     required String name,
     required String masterPassword,
   }) {
-    if (name.trim().isEmpty) {
-      throw const DatabaseError.operationFailed(
-        operation: 'validateCreateDatabase',
-        details: 'Empty database name',
-        message: 'Имя базы данных не может быть пустым',
-      );
-    }
-
-    if (masterPassword.trim().isEmpty) {
-      throw const DatabaseError.operationFailed(
-        operation: 'validateCreateDatabase',
-        details: 'Empty master password',
-        message: 'Мастер-пароль не может быть пустым',
-      );
-    }
-
-    if (masterPassword.length < 4) {
-      throw const DatabaseError.operationFailed(
-        operation: 'validateCreateDatabase',
-        details: 'Password too short',
-        message: 'Мастер-пароль должен содержать минимум 4 символа',
-      );
-    }
+    _service.validateCreateDatabaseParams(
+      name: name,
+      masterPassword: masterPassword,
+    );
   }
 
   /// Валидирует параметры открытия базы данных
@@ -76,20 +39,9 @@ class DatabaseValidators {
     required String path,
     required String masterPassword,
   }) {
-    if (path.trim().isEmpty) {
-      throw const DatabaseError.operationFailed(
-        operation: 'validateOpenDatabase',
-        details: 'Empty database path',
-        message: 'Путь к базе данных не может быть пустым',
-      );
-    }
-
-    if (masterPassword.trim().isEmpty) {
-      throw const DatabaseError.operationFailed(
-        operation: 'validateOpenDatabase',
-        details: 'Empty master password',
-        message: 'Мастер-пароль не может быть пустым',
-      );
-    }
+    _service.validateOpenDatabaseParams(
+      path: path,
+      masterPassword: masterPassword,
+    );
   }
 }
