@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_transitions/go_transitions.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
+import 'package:hoplixi/core/secure_storage/index.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';
 import 'package:universal_platform/universal_platform.dart';
@@ -18,6 +20,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
     observers: [GoTransition.observer, LoggingRouteObserver()],
     redirect: (context, state) async {
+      final initializationAsync = ref.watch(storageInitializationProvider);
       // final prefs = await SharedPreferences.getInstance();
       // final isFirstRun = prefs.getBool('is_first_run') ?? true;
 
@@ -30,6 +33,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // if (!isFirstRun && state.fullPath == '/setup') {
       //   return '/';
       // }
+
+      initializationAsync.when(
+        data: (data) {
+          return null; // Нет перенаправления, если инициализация успешна
+        },
+        error: (error, stack) {
+          // Если произошла ошибка, перенаправляем на экран ошибки
+          if (state.fullPath != '/error') {
+            return '/error';
+          }
+          logError('Initialization error', error: error, stackTrace: stack);
+          return null; // Уже на экране ошибки, не перенаправляем
+        },
+        loading: () {
+          return '/loading'; // Перенаправление на страницу загрузки
+        },
+      );
 
       return null;
     },

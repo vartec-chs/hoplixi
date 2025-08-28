@@ -10,6 +10,7 @@ import 'package:hoplixi/core/flutter_secure_storageo_impl.dart';
 // import 'package:hoplixi/core/hive_service.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
+import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
@@ -38,6 +39,14 @@ Future<void> main() async {
           enableCrashReports: true,
         ),
       );
+
+      final container = ProviderContainer();
+
+      // Инициализируем сервис-локатор
+      StorageServiceLocator.initialize(container);
+
+      // Инициализируем хранилище
+      await StorageServiceLocator.initializeStorage();
 
       // HiveService.initialize(appVersion: '1.0.0', secureStorage: secureStorage);
 
@@ -69,7 +78,7 @@ Future<void> main() async {
       // Initialize window manager
       await WindowManager.initialize();
 
-      runApp(const ProviderScope(child: App()));
+      runApp(UncontrolledProviderScope(container: container, child: App()));
     },
     (error, stackTrace) {
       logError('Uncaught error: $error', stackTrace: stackTrace);
