@@ -10,6 +10,8 @@ import 'package:drift/native.dart';
 import 'package:file_picker/file_picker.dart';
 
 import 'package:hoplixi/core/errors/db_errors.dart';
+import 'package:hoplixi/core/secure_storage/secure_storage_models.dart';
+import 'database_history_service.dart';
 import 'db_state.dart';
 import 'dto/db_dto.dart';
 import 'encrypted_database.dart';
@@ -21,18 +23,6 @@ class EncryptedDatabaseManager {
   EncryptedDatabase? get database => _database;
   bool get hasOpenDatabase => _database != null;
 
-  Future<void> initialize() async {
-    try {
-      // await HiveService.initialize(appVersion: '1.0.0');
-      // await _registryService.initialize();
-    } catch (e) {
-      throw DatabaseError.operationFailed(
-        operation: 'initialize',
-        message: e.toString(),
-        details: e.toString(),
-      );
-    }
-  }
 
   // Generate salt and hash password
   Map<String, String> _generatePasswordHash(String password) {
@@ -152,6 +142,16 @@ class EncryptedDatabaseManager {
       _passwordKey = _deriveKey(dto.masterPassword, passwordData['salt']!);
       _database = database;
 
+      // Записываем информацию о базе данных в историю
+      await _recordDatabaseEntry(
+        path: dbPath,
+        name: dto.name,
+        description: dto.description,
+        masterPassword: dto.masterPassword,
+        saveMasterPassword:
+            false, // По умолчанию не сохраняем пароль при создании
+      );
+
       return DatabaseState(
         path: dbPath,
         name: dto.name,
@@ -201,6 +201,18 @@ class EncryptedDatabaseManager {
 
         // Update last accessed time in registry
         // await _registryService.updateLastAccessed(dto.path);
+
+        // Записываем/обновляем информацию о базе данных в истории
+        await _recordDatabaseEntry(
+          path: dto.path,
+          name: meta.name.isNotEmpty
+              ? meta.name
+              : p.basenameWithoutExtension(dto.path),
+          description: meta.description,
+          masterPassword: dto.masterPassword,
+          saveMasterPassword:
+              false, // По умолчанию не сохраняем пароль при открытии
+        );
       } catch (e) {
         await database.close();
         if (e is DatabaseError) rethrow;
@@ -235,12 +247,147 @@ class EncryptedDatabaseManager {
     return const DatabaseState(status: DatabaseStatus.closed);
   }
 
-  // Get current state
-  DatabaseState _getCurrentState() {
-    if (_database != null) {
-      return const DatabaseState(status: DatabaseStatus.open);
+  // === МЕТОДЫ ДЛЯ РАБОТЫ С ИСТОРИЕЙ БАЗ ДАННЫХ ===
+
+  /// Записывает информацию о базе данных в историю
+  Future<void> _recordDatabaseEntry({
+    required String path,
+    required String name,
+    String? description,
+    String? masterPassword,
+    bool saveMasterPassword = false,
+  }) async {
+    await DatabaseHistoryService.recordDatabaseAccess(
+      path: path,
+      name: name,
+      description: description,
+      masterPassword: masterPassword,
+      saveMasterPassword: saveMasterPassword,
+    );
+  }
+
+  /// Обновляет время последнего доступа к базе данных
+  Future<void> updateDatabaseLastAccessed(String path) async {
+    await DatabaseHistoryService.updateLastAccessed(path);
+  }
+
+  /// Получает список всех ранее открытых баз данных
+  Future<List<DatabaseEntry>> getAllDatabases() async {
+    return await DatabaseHistoryService.getAllDatabases();
+  }
+
+  /// Получает информацию о конкретной базе данных
+  Future<DatabaseEntry?> getDatabaseInfo(String path) async {
+    return await DatabaseHistoryService.getDatabaseInfo(path);
+  }
+
+  /// Удаляет базу данных из истории
+  Future<void> removeDatabaseFromHistory(String path) async {
+    await DatabaseHistoryService.removeFromHistory(path);
+  }
+
+  /// Очищает всю историю баз данных
+  Future<void> clearDatabaseHistory() async {
+    await DatabaseHistoryService.clearHistory();
+  }
+
+  /// Устанавливает/снимает отметку "избранное" для базы данных
+  Future<void> setDatabaseFavorite(String path, bool isFavorite) async {
+    await DatabaseHistoryService.setFavorite(path, isFavorite);
+  }
+
+  /// Сохраняет мастер-пароль для базы данных (осторожно!)
+  Future<void> saveMasterPassword(String path, String masterPassword) async {
+    await DatabaseHistoryService.saveMasterPassword(path, masterPassword);
+  }
+
+  /// Удаляет сохраненный мастер-пароль
+  Future<void> removeSavedMasterPassword(String path) async {
+    await DatabaseHistoryService.removeSavedPassword(path);
+  }
+
+  /// Получает избранные базы данных
+  Future<List<DatabaseEntry>> getFavoriteDatabases() async {
+    return await DatabaseHistoryService.getFavoriteDatabases();
+  }
+
+  /// Получает недавно использованные базы данных (последние N)
+  Future<List<DatabaseEntry>> getRecentDatabases({int limit = 10}) async {
+    return await DatabaseHistoryService.getRecentDatabases(limit: limit);
+  }
+
+  /// Получает базы данных с сохраненными паролями
+  Future<List<DatabaseEntry>> getDatabasesWithSavedPasswords() async {
+    return await DatabaseHistoryService.getDatabasesWithSavedPasswords();
+  }
+
+  /// Пытается выполнить автологин для базы данных
+  Future<String?> tryAutoLogin(String path) async {
+    return await DatabaseHistoryService.tryAutoLogin(path);
+  }
+
+  /// Получает статистику по истории баз данных
+  Future<Map<String, dynamic>> getDatabaseHistoryStatistics() async {
+    return await DatabaseHistoryService.getStatistics();
+  }
+
+  /// Выполняет обслуживание истории баз данных
+  Future<void> performDatabaseHistoryMaintenance() async {
+    await DatabaseHistoryService.performMaintenance();
+  }
+
+  /// Пытается открыть базу данных с автологином
+  Future<DatabaseState?> openWithAutoLogin(String path) async {
+    try {
+      final savedPassword = await tryAutoLogin(path);
+      if (savedPassword != null) {
+        final openDto = OpenDatabaseDto(
+          path: path,
+          masterPassword: savedPassword,
+        );
+        return await openDatabase(openDto);
+      }
+      return null;
+    } catch (e) {
+      print('Ошибка автологина: $e');
+      return null;
     }
-    return const DatabaseState(status: DatabaseStatus.closed);
+  }
+
+  /// Умный метод для открытия базы данных
+  /// Сначала пытается автологин, если не получается - запрашивает пароль
+  Future<DatabaseState?> smartOpen(
+    String path, [
+    String? providedPassword,
+  ]) async {
+    try {
+      // Сначала пытаемся автологин
+      final autoLoginResult = await openWithAutoLogin(path);
+      if (autoLoginResult != null) {
+        return autoLoginResult;
+      }
+
+      // Если автологин не сработал и пароль предоставлен, пытаемся открыть
+      if (providedPassword != null) {
+        final openDto = OpenDatabaseDto(
+          path: path,
+          masterPassword: providedPassword,
+        );
+        return await openDatabase(openDto);
+      }
+
+      // Возвращаем null если не смогли открыть
+      return null;
+    } catch (e) {
+      print('Ошибка умного открытия: $e');
+      return null;
+    }
+  }
+
+  /// Проверяет, может ли база данных быть открыта с автологином
+  Future<bool> canAutoLogin(String path) async {
+    final savedPassword = await tryAutoLogin(path);
+    return savedPassword != null;
   }
 
   // Pick database file using file picker

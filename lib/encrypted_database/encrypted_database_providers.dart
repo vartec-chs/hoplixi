@@ -6,10 +6,6 @@ import 'package:riverpod/riverpod.dart';
 
 final databaseManagerProvider = Provider<EncryptedDatabaseManager>((ref) {
   final manager = EncryptedDatabaseManager();
-
-  // Initialize on first access
-  manager.initialize();
-
   // Cleanup on dispose
   ref.onDispose(() {
     manager.dispose();
