@@ -2,8 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+
+import 'secure_storage_errors.dart';
 
 /// Интерфейс для безопасного key-value хранилища
 abstract class SecureKeyValueStorage {
@@ -50,7 +53,9 @@ abstract class SecureKeyValueStorage {
   Future<void> clearCache();
 }
 
-/// Исключения для работы с хранилищем
+/// Устаревшие исключения для обратной совместимости
+/// Рекомендуется использовать SecureStorageError вместо них
+@Deprecated('Use SecureStorageError instead')
 class SecureStorageException implements Exception {
   final String message;
   final dynamic originalError;
@@ -61,14 +66,17 @@ class SecureStorageException implements Exception {
   String toString() => 'SecureStorageException: $message';
 }
 
+@Deprecated('Use SecureStorageError.encryptionFailed instead')
 class EncryptionException extends SecureStorageException {
   const EncryptionException(super.message, [super.originalError]);
 }
 
+@Deprecated('Use SecureStorageError.fileAccessFailed instead')
 class FileAccessException extends SecureStorageException {
   const FileAccessException(super.message, [super.originalError]);
 }
 
+@Deprecated('Use SecureStorageError.validationFailed instead')
 class ValidationException extends SecureStorageException {
   const ValidationException(super.message, [super.originalError]);
 }

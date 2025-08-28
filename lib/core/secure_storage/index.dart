@@ -4,3 +4,7 @@ export 'encrypted_key_value_storage.dart';
 export 'secure_storage_models.dart';
 export 'storage_service_locator.dart';
 export 'key_verification_service.dart';
+export 'secure_storage_errors.dart';
+export 'secure_storage_error_handler.dart';
+
+

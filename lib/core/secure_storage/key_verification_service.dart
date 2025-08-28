@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:pointycastle/export.dart';
 
 import '../flutter_secure_storageo_impl.dart';
 import 'secure_key_value_storage.dart';
+import 'secure_storage_errors.dart';
+import 'secure_storage_error_handler.dart';
 
 /// Сервис для проверки правильности ключей шифрования хранилища
 ///
@@ -33,21 +36,43 @@ class KeyVerificationService {
   /// Подпись создается путем шифрования известного тестового сообщения
   /// с использованием ключа и последующего хеширования результата
   String _createKeySignature(Uint8List encryptionKey) {
-    try {
-      // Создаем уникальную подпись на основе ключа
-      final hmac = Hmac(sha256, encryptionKey);
-      final digest = hmac.convert(utf8.encode(_testMessage));
+    return SecureStorageErrorHandler.safeExecuteSync(
+      operation: 'create_key_signature',
+      function: () {
+        logDebug(
+          'Создание подписи ключа',
+          tag: 'KeyVerificationService',
+          data: {'keyLength': encryptionKey.length},
+        );
 
-      // Дополнительно шифруем тестовое сообщение для создания более сложной подписи
-      final encryptedTest = _encryptTestMessage(encryptionKey);
-      final combinedData = digest.bytes + encryptedTest;
+        try {
+          // Создаем уникальную подпись на основе ключа
+          final hmac = Hmac(sha256, encryptionKey);
+          final digest = hmac.convert(utf8.encode(_testMessage));
 
-      // Создаем итоговую подпись
-      final finalDigest = sha256.convert(combinedData);
-      return finalDigest.toString();
-    } catch (e) {
-      throw EncryptionException('Failed to create key signature', e);
-    }
+          // Дополнительно шифруем тестовое сообщение для создания более сложной подписи
+          final encryptedTest = _encryptTestMessage(encryptionKey);
+          final combinedData = digest.bytes + encryptedTest;
+
+          // Создаем итоговую подпись
+          final finalDigest = sha256.convert(combinedData);
+
+          logDebug(
+            'Подпись ключа успешно создана',
+            tag: 'KeyVerificationService',
+          );
+
+          return finalDigest.toString();
+        } catch (e, stackTrace) {
+          throw SecureStorageErrorHandler.handleKeyError(
+            operation: 'create_key_signature',
+            error: e,
+            context: 'signature_creation',
+            stackTrace: stackTrace,
+          );
+        }
+      },
+    );
   }
 
   /// Шифрует тестовое сообщение с использованием AES-GCM
@@ -108,37 +133,67 @@ class KeyVerificationService {
     String storageKey,
     Uint8List encryptionKey,
   ) async {
-    try {
-      // Проверяем, есть ли уже подпись для этого хранилища
-      final existingSignature = await _getKeySignature(storageKey);
-      if (existingSignature != null) {
-        // Если подпись уже существует, проверяем, что ключ правильный
-        final isValid = await _verifyKeyInternal(storageKey, encryptionKey);
-        if (!isValid) {
-          throw ValidationException(
-            'Key registration failed: provided key does not match existing signature for storage: $storageKey',
+    return SecureStorageErrorHandler.safeExecute(
+      operation: 'register_encryption_key',
+      function: () async {
+        SecureStorageErrorHandler.logOperationStart(
+          operation: 'register_encryption_key',
+          context: storageKey,
+          additionalData: {'keyLength': encryptionKey.length},
+        );
+
+        try {
+          // Проверяем, есть ли уже подпись для этого хранилища
+          final existingSignature = await _getKeySignature(storageKey);
+          if (existingSignature != null) {
+            // Если подпись уже существует, проверяем, что ключ правильный
+            final isValid = await _verifyKeyInternal(storageKey, encryptionKey);
+            if (!isValid) {
+              throw SecureStorageErrorHandler.handleKeyError(
+                operation: 'register_encryption_key',
+                error: 'Provided key does not match existing signature',
+                storageKey: storageKey,
+                context: 'key_mismatch',
+              );
+            }
+
+            logInfo(
+              'Ключ уже зарегистрирован и действителен',
+              tag: 'KeyVerificationService',
+              data: {'storageKey': storageKey},
+            );
+            return; // Ключ уже зарегистрирован и правильный
+          }
+
+          // Создаем новую подпись для ключа
+          final signature = _createKeySignature(encryptionKey);
+          await _saveKeySignature(storageKey, signature);
+
+          // Сохраняем информацию о времени регистрации
+          final registrationKey =
+              '$_verificationPrefix${storageKey}_registered_at';
+          await _secureStorage.write(
+            key: registrationKey,
+            value: DateTime.now().toIso8601String(),
+          );
+
+          SecureStorageErrorHandler.logSuccess(
+            operation: 'register_encryption_key',
+            context: storageKey,
+            additionalData: {'keyLength': encryptionKey.length},
+          );
+        } catch (e, stackTrace) {
+          if (e is SecureStorageError) rethrow;
+          throw SecureStorageErrorHandler.handleKeyError(
+            operation: 'register_encryption_key',
+            error: e,
+            storageKey: storageKey,
+            context: 'key_registration',
+            stackTrace: stackTrace,
           );
         }
-        return; // Ключ уже зарегистрирован и правильный
-      }
-
-      // Создаем новую подпись для ключа
-      final signature = _createKeySignature(encryptionKey);
-      await _saveKeySignature(storageKey, signature);
-
-      // Сохраняем информацию о времени регистрации
-      final registrationKey = '$_verificationPrefix${storageKey}_registered_at';
-      await _secureStorage.write(
-        key: registrationKey,
-        value: DateTime.now().toIso8601String(),
-      );
-    } catch (e) {
-      if (e is SecureStorageException) rethrow;
-      throw SecureStorageException(
-        'Failed to register encryption key for storage: $storageKey',
-        e,
-      );
-    }
+      },
+    );
   }
 
   /// Внутренний метод проверки ключа
