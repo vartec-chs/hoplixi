@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 
 // Meta table for database information
-class DatabaseMeta extends Table {
+class HoplixiMeta extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description =>

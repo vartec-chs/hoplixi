@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'db_state.freezed.dart';
+part 'state.freezed.dart';
 
 enum DatabaseStatus { closed, open, locked, loading, error }
 

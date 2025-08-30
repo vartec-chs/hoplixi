@@ -2,19 +2,11 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/encrypted_database/interfaces/database_interfaces.dart';
-import 'package:hoplixi/encrypted_database/encrypted_database.dart';
-import 'package:hoplixi/encrypted_database/services/crypto_service.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 
 /// Реализация сервиса управления подключением к базе данных
-class DatabaseConnectionService implements IDatabaseConnectionService {
-  final ICryptoService _cryptoService;
-
-  DatabaseConnectionService({ICryptoService? cryptoService})
-    : _cryptoService = cryptoService ?? CryptoService();
-
-  @override
-  Future<T> createConnection<T>({
+class DatabaseConnectionService {
+  static Future<HoplixiStore> createConnection({
     required String path,
     required String password,
   }) async {
@@ -23,15 +15,12 @@ class DatabaseConnectionService implements IDatabaseConnectionService {
       tag: 'DatabaseConnectionService',
       data: {'path': path},
     );
-
     try {
-      final database = EncryptedDatabase(
+      final database = HoplixiStore(
         NativeDatabase.createInBackground(
           File(path),
           setup: (rawDb) {
-            // Экранируем одинарные кавычки в пароле
-            final escapedPassword = password.replaceAll("'", "''");
-            rawDb.execute("PRAGMA key = '$escapedPassword';");
+            rawDb.execute("PRAGMA key = '$password';");
           },
         ),
       );
@@ -39,11 +28,13 @@ class DatabaseConnectionService implements IDatabaseConnectionService {
         'Подключение к базе данных создано',
         tag: 'DatabaseConnectionService',
       );
-      return database as T;
-    } catch (e) {
+
+      return database;
+    } catch (e, s) {
       logError(
         'Ошибка создания подключения к базе данных',
         error: e,
+        stackTrace: s,
         tag: 'DatabaseConnectionService',
         data: {'path': path},
       );
@@ -51,9 +42,8 @@ class DatabaseConnectionService implements IDatabaseConnectionService {
     }
   }
 
-  @override
-  Future<bool> verifyConnection<T>({
-    required T database,
+  static Future<bool> verifyConnection({
+    required HoplixiStore database,
     required String password,
   }) async {
     logDebug(
@@ -62,23 +52,15 @@ class DatabaseConnectionService implements IDatabaseConnectionService {
     );
 
     try {
-      if (database is EncryptedDatabase) {
-        final meta = await database.getDatabaseMeta();
-        final isValid = _cryptoService.verifyPassword(
-          password,
-          meta.passwordHash,
-          meta.salt,
-        );
+      await database.getDatabaseMeta();
 
-        logDebug(
-          'Результат верификации пароля',
-          tag: 'DatabaseConnectionService',
-          data: {'isValid': isValid},
-        );
+      logDebug(
+        'Результат верификации пароля',
+        tag: 'DatabaseConnectionService',
+        data: {'isValid': true},
+      );
 
-        return isValid;
-      }
-      return false;
+      return true;
     } catch (e) {
       logWarning(
         'Ошибка проверки подключения к базе данных',
@@ -89,8 +71,7 @@ class DatabaseConnectionService implements IDatabaseConnectionService {
     }
   }
 
-  @override
-  Future<void> initializeDatabaseMetadata<T>({
+  static Future<void> initializeDatabaseMetadata<T>({
     required T database,
     required String name,
     required String description,
@@ -103,11 +84,11 @@ class DatabaseConnectionService implements IDatabaseConnectionService {
     );
 
     try {
-      if (database is EncryptedDatabase) {
+      if (database is HoplixiStore) {
         await database
-            .into(database.databaseMeta)
+            .into(database.hoplixiMeta)
             .insert(
-              DatabaseMetaCompanion.insert(
+              HoplixiMetaCompanion.insert(
                 name: name,
                 description: Value(description),
                 passwordHash: passwordData['hash']!,
@@ -132,8 +113,7 @@ class DatabaseConnectionService implements IDatabaseConnectionService {
     }
   }
 
-  @override
-  Future<void> closeConnection<T>(T? database) async {
+  static Future<void> closeConnection<T>(T? database) async {
     if (database == null) return;
 
     logDebug(
@@ -142,7 +122,7 @@ class DatabaseConnectionService implements IDatabaseConnectionService {
     );
 
     try {
-      if (database is EncryptedDatabase) {
+      if (database is HoplixiStore) {
         await database.close();
         logDebug(
           'Подключение к базе данных закрыто',

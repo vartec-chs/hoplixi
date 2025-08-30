@@ -1,13 +1,13 @@
 import 'package:drift/drift.dart';
-import '../encrypted_database.dart';
-import '../tables/categories.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
+import 'package:hoplixi/hoplixi_store/tables/categories.dart';
 
 part 'categories_dao.g.dart';
 
 @DriftAccessor(tables: [Categories])
-class CategoriesDao extends DatabaseAccessor<EncryptedDatabase>
+class CategoriesDao extends DatabaseAccessor<HoplixiStore>
     with _$CategoriesDaoMixin {
-  CategoriesDao(EncryptedDatabase db) : super(db);
+  CategoriesDao(HoplixiStore db) : super(db);
 
   Future<List<Category>> getAllCategories() async {
     final result = await select(categories).get();

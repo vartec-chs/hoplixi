@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DatabaseError {
 
- String get code; String? get message; Map<String, dynamic>? get data;
+ String get code; String? get message; Map<String, dynamic>? get data;@JsonKey(includeToJson: true) StackTrace? get stackTrace;
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $DatabaseErrorCopyWith<DatabaseError> get copyWith => _$DatabaseErrorCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseError&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other.data, data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseError&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other.data, data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,code,message,const DeepCollectionEquality().hash(data));
+int get hashCode => Object.hash(runtimeType,code,message,const DeepCollectionEquality().hash(data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError(code: $code, message: $message, data: $data)';
+  return 'DatabaseError(code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $DatabaseErrorCopyWith<$Res>  {
   factory $DatabaseErrorCopyWith(DatabaseError value, $Res Function(DatabaseError) _then) = _$DatabaseErrorCopyWithImpl;
 @useResult
 $Res call({
- String code, String message, Map<String, dynamic>? data
+ String code, String message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -62,12 +62,13 @@ class _$DatabaseErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? code = null,Object? message = null,Object? data = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? code = null,Object? message = null,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(_self.copyWith(
 code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: null == message ? _self.message! : message // ignore: cast_nullable_to_non_nullable
 as String,data: freezed == data ? _self.data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -88,7 +89,7 @@ extension DatabaseErrorPatterns on DatabaseError {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( InvalidPasswordError value)?  invalidPassword,TResult Function( DatabaseNotFoundError value)?  databaseNotFound,TResult Function( DatabaseAlreadyExistsError value)?  databaseAlreadyExists,TResult Function( ConnectionFailedError value)?  connectionFailed,TResult Function( OperationFailedError value)?  operationFailed,TResult Function( PathNotAccessibleError value)?  pathNotAccessible,TResult Function( UnknownDatabaseError value)?  unknown,TResult Function( KeyError value)?  keyError,TResult Function( SecureStorageError value)?  secureStorageError,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( InvalidPasswordError value)?  invalidPassword,TResult Function( DatabaseNotFoundError value)?  databaseNotFound,TResult Function( DatabaseAlreadyExistsError value)?  databaseAlreadyExists,TResult Function( ConnectionFailedError value)?  connectionFailed,TResult Function( OperationFailedError value)?  operationFailed,TResult Function( PathNotAccessibleError value)?  pathNotAccessible,TResult Function( UnknownDatabaseError value)?  unknown,TResult Function( KeyError value)?  keyError,TResult Function( SecureStorageError value)?  secureStorageError,TResult Function( CloseError value)?  closeError,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case InvalidPasswordError() when invalidPassword != null:
@@ -100,7 +101,8 @@ return operationFailed(_that);case PathNotAccessibleError() when pathNotAccessib
 return pathNotAccessible(_that);case UnknownDatabaseError() when unknown != null:
 return unknown(_that);case KeyError() when keyError != null:
 return keyError(_that);case SecureStorageError() when secureStorageError != null:
-return secureStorageError(_that);case _:
+return secureStorageError(_that);case CloseError() when closeError != null:
+return closeError(_that);case _:
   return orElse();
 
 }
@@ -118,7 +120,7 @@ return secureStorageError(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( InvalidPasswordError value)  invalidPassword,required TResult Function( DatabaseNotFoundError value)  databaseNotFound,required TResult Function( DatabaseAlreadyExistsError value)  databaseAlreadyExists,required TResult Function( ConnectionFailedError value)  connectionFailed,required TResult Function( OperationFailedError value)  operationFailed,required TResult Function( PathNotAccessibleError value)  pathNotAccessible,required TResult Function( UnknownDatabaseError value)  unknown,required TResult Function( KeyError value)  keyError,required TResult Function( SecureStorageError value)  secureStorageError,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( InvalidPasswordError value)  invalidPassword,required TResult Function( DatabaseNotFoundError value)  databaseNotFound,required TResult Function( DatabaseAlreadyExistsError value)  databaseAlreadyExists,required TResult Function( ConnectionFailedError value)  connectionFailed,required TResult Function( OperationFailedError value)  operationFailed,required TResult Function( PathNotAccessibleError value)  pathNotAccessible,required TResult Function( UnknownDatabaseError value)  unknown,required TResult Function( KeyError value)  keyError,required TResult Function( SecureStorageError value)  secureStorageError,required TResult Function( CloseError value)  closeError,}){
 final _that = this;
 switch (_that) {
 case InvalidPasswordError():
@@ -130,7 +132,8 @@ return operationFailed(_that);case PathNotAccessibleError():
 return pathNotAccessible(_that);case UnknownDatabaseError():
 return unknown(_that);case KeyError():
 return keyError(_that);case SecureStorageError():
-return secureStorageError(_that);case _:
+return secureStorageError(_that);case CloseError():
+return closeError(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -147,7 +150,7 @@ return secureStorageError(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( InvalidPasswordError value)?  invalidPassword,TResult? Function( DatabaseNotFoundError value)?  databaseNotFound,TResult? Function( DatabaseAlreadyExistsError value)?  databaseAlreadyExists,TResult? Function( ConnectionFailedError value)?  connectionFailed,TResult? Function( OperationFailedError value)?  operationFailed,TResult? Function( PathNotAccessibleError value)?  pathNotAccessible,TResult? Function( UnknownDatabaseError value)?  unknown,TResult? Function( KeyError value)?  keyError,TResult? Function( SecureStorageError value)?  secureStorageError,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( InvalidPasswordError value)?  invalidPassword,TResult? Function( DatabaseNotFoundError value)?  databaseNotFound,TResult? Function( DatabaseAlreadyExistsError value)?  databaseAlreadyExists,TResult? Function( ConnectionFailedError value)?  connectionFailed,TResult? Function( OperationFailedError value)?  operationFailed,TResult? Function( PathNotAccessibleError value)?  pathNotAccessible,TResult? Function( UnknownDatabaseError value)?  unknown,TResult? Function( KeyError value)?  keyError,TResult? Function( SecureStorageError value)?  secureStorageError,TResult? Function( CloseError value)?  closeError,}){
 final _that = this;
 switch (_that) {
 case InvalidPasswordError() when invalidPassword != null:
@@ -159,7 +162,8 @@ return operationFailed(_that);case PathNotAccessibleError() when pathNotAccessib
 return pathNotAccessible(_that);case UnknownDatabaseError() when unknown != null:
 return unknown(_that);case KeyError() when keyError != null:
 return keyError(_that);case SecureStorageError() when secureStorageError != null:
-return secureStorageError(_that);case _:
+return secureStorageError(_that);case CloseError() when closeError != null:
+return closeError(_that);case _:
   return null;
 
 }
@@ -176,18 +180,19 @@ return secureStorageError(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String code,  String message,  Map<String, dynamic>? data)?  invalidPassword,TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data)?  databaseNotFound,TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data)?  databaseAlreadyExists,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data)?  connectionFailed,TResult Function( String operation,  String details,  String code,  String? message,  Map<String, dynamic>? data)?  operationFailed,TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data)?  pathNotAccessible,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data)?  unknown,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data)?  keyError,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data)?  secureStorageError,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String code,  String message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  invalidPassword,TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  databaseNotFound,TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  databaseAlreadyExists,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  connectionFailed,TResult Function( String operation,  String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  operationFailed,TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  pathNotAccessible,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  unknown,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  keyError,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  secureStorageError,TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  closeError,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case InvalidPasswordError() when invalidPassword != null:
-return invalidPassword(_that.code,_that.message,_that.data);case DatabaseNotFoundError() when databaseNotFound != null:
-return databaseNotFound(_that.path,_that.code,_that.message,_that.data);case DatabaseAlreadyExistsError() when databaseAlreadyExists != null:
-return databaseAlreadyExists(_that.path,_that.code,_that.message,_that.data);case ConnectionFailedError() when connectionFailed != null:
-return connectionFailed(_that.details,_that.code,_that.message,_that.data);case OperationFailedError() when operationFailed != null:
-return operationFailed(_that.operation,_that.details,_that.code,_that.message,_that.data);case PathNotAccessibleError() when pathNotAccessible != null:
-return pathNotAccessible(_that.path,_that.code,_that.message,_that.data);case UnknownDatabaseError() when unknown != null:
-return unknown(_that.details,_that.code,_that.message,_that.data);case KeyError() when keyError != null:
-return keyError(_that.details,_that.code,_that.message,_that.data);case SecureStorageError() when secureStorageError != null:
-return secureStorageError(_that.details,_that.code,_that.message,_that.data);case _:
+return invalidPassword(_that.code,_that.message,_that.data,_that.stackTrace);case DatabaseNotFoundError() when databaseNotFound != null:
+return databaseNotFound(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case DatabaseAlreadyExistsError() when databaseAlreadyExists != null:
+return databaseAlreadyExists(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case ConnectionFailedError() when connectionFailed != null:
+return connectionFailed(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case OperationFailedError() when operationFailed != null:
+return operationFailed(_that.operation,_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case PathNotAccessibleError() when pathNotAccessible != null:
+return pathNotAccessible(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case UnknownDatabaseError() when unknown != null:
+return unknown(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case KeyError() when keyError != null:
+return keyError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case SecureStorageError() when secureStorageError != null:
+return secureStorageError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case CloseError() when closeError != null:
+return closeError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case _:
   return orElse();
 
 }
@@ -205,18 +210,19 @@ return secureStorageError(_that.details,_that.code,_that.message,_that.data);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String code,  String message,  Map<String, dynamic>? data)  invalidPassword,required TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data)  databaseNotFound,required TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data)  databaseAlreadyExists,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data)  connectionFailed,required TResult Function( String operation,  String details,  String code,  String? message,  Map<String, dynamic>? data)  operationFailed,required TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data)  pathNotAccessible,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data)  unknown,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data)  keyError,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data)  secureStorageError,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String code,  String message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  invalidPassword,required TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  databaseNotFound,required TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  databaseAlreadyExists,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  connectionFailed,required TResult Function( String operation,  String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  operationFailed,required TResult Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  pathNotAccessible,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  unknown,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  keyError,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  secureStorageError,required TResult Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)  closeError,}) {final _that = this;
 switch (_that) {
 case InvalidPasswordError():
-return invalidPassword(_that.code,_that.message,_that.data);case DatabaseNotFoundError():
-return databaseNotFound(_that.path,_that.code,_that.message,_that.data);case DatabaseAlreadyExistsError():
-return databaseAlreadyExists(_that.path,_that.code,_that.message,_that.data);case ConnectionFailedError():
-return connectionFailed(_that.details,_that.code,_that.message,_that.data);case OperationFailedError():
-return operationFailed(_that.operation,_that.details,_that.code,_that.message,_that.data);case PathNotAccessibleError():
-return pathNotAccessible(_that.path,_that.code,_that.message,_that.data);case UnknownDatabaseError():
-return unknown(_that.details,_that.code,_that.message,_that.data);case KeyError():
-return keyError(_that.details,_that.code,_that.message,_that.data);case SecureStorageError():
-return secureStorageError(_that.details,_that.code,_that.message,_that.data);case _:
+return invalidPassword(_that.code,_that.message,_that.data,_that.stackTrace);case DatabaseNotFoundError():
+return databaseNotFound(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case DatabaseAlreadyExistsError():
+return databaseAlreadyExists(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case ConnectionFailedError():
+return connectionFailed(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case OperationFailedError():
+return operationFailed(_that.operation,_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case PathNotAccessibleError():
+return pathNotAccessible(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case UnknownDatabaseError():
+return unknown(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case KeyError():
+return keyError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case SecureStorageError():
+return secureStorageError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case CloseError():
+return closeError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -233,18 +239,19 @@ return secureStorageError(_that.details,_that.code,_that.message,_that.data);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String code,  String message,  Map<String, dynamic>? data)?  invalidPassword,TResult? Function( String path,  String code,  String? message,  Map<String, dynamic>? data)?  databaseNotFound,TResult? Function( String path,  String code,  String? message,  Map<String, dynamic>? data)?  databaseAlreadyExists,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data)?  connectionFailed,TResult? Function( String operation,  String details,  String code,  String? message,  Map<String, dynamic>? data)?  operationFailed,TResult? Function( String path,  String code,  String? message,  Map<String, dynamic>? data)?  pathNotAccessible,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data)?  unknown,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data)?  keyError,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data)?  secureStorageError,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String code,  String message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  invalidPassword,TResult? Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  databaseNotFound,TResult? Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  databaseAlreadyExists,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  connectionFailed,TResult? Function( String operation,  String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  operationFailed,TResult? Function( String path,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  pathNotAccessible,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  unknown,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  keyError,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  secureStorageError,TResult? Function( String details,  String code,  String? message,  Map<String, dynamic>? data, @JsonKey(includeToJson: true)  StackTrace? stackTrace)?  closeError,}) {final _that = this;
 switch (_that) {
 case InvalidPasswordError() when invalidPassword != null:
-return invalidPassword(_that.code,_that.message,_that.data);case DatabaseNotFoundError() when databaseNotFound != null:
-return databaseNotFound(_that.path,_that.code,_that.message,_that.data);case DatabaseAlreadyExistsError() when databaseAlreadyExists != null:
-return databaseAlreadyExists(_that.path,_that.code,_that.message,_that.data);case ConnectionFailedError() when connectionFailed != null:
-return connectionFailed(_that.details,_that.code,_that.message,_that.data);case OperationFailedError() when operationFailed != null:
-return operationFailed(_that.operation,_that.details,_that.code,_that.message,_that.data);case PathNotAccessibleError() when pathNotAccessible != null:
-return pathNotAccessible(_that.path,_that.code,_that.message,_that.data);case UnknownDatabaseError() when unknown != null:
-return unknown(_that.details,_that.code,_that.message,_that.data);case KeyError() when keyError != null:
-return keyError(_that.details,_that.code,_that.message,_that.data);case SecureStorageError() when secureStorageError != null:
-return secureStorageError(_that.details,_that.code,_that.message,_that.data);case _:
+return invalidPassword(_that.code,_that.message,_that.data,_that.stackTrace);case DatabaseNotFoundError() when databaseNotFound != null:
+return databaseNotFound(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case DatabaseAlreadyExistsError() when databaseAlreadyExists != null:
+return databaseAlreadyExists(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case ConnectionFailedError() when connectionFailed != null:
+return connectionFailed(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case OperationFailedError() when operationFailed != null:
+return operationFailed(_that.operation,_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case PathNotAccessibleError() when pathNotAccessible != null:
+return pathNotAccessible(_that.path,_that.code,_that.message,_that.data,_that.stackTrace);case UnknownDatabaseError() when unknown != null:
+return unknown(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case KeyError() when keyError != null:
+return keyError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case SecureStorageError() when secureStorageError != null:
+return secureStorageError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case CloseError() when closeError != null:
+return closeError(_that.details,_that.code,_that.message,_that.data,_that.stackTrace);case _:
   return null;
 
 }
@@ -256,7 +263,7 @@ return secureStorageError(_that.details,_that.code,_that.message,_that.data);cas
 
 
 class InvalidPasswordError extends DatabaseError {
-  const InvalidPasswordError({this.code = 'DB_INVALID_PASSWORD', this.message = 'Неверный пароль для базы данных', final  Map<String, dynamic>? data}): _data = data,super._();
+  const InvalidPasswordError({this.code = 'DB_INVALID_PASSWORD', this.message = 'Неверный пароль для базы данных', final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
 @override@JsonKey() final  String code;
@@ -270,6 +277,7 @@ class InvalidPasswordError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -281,16 +289,16 @@ $InvalidPasswordErrorCopyWith<InvalidPasswordError> get copyWith => _$InvalidPas
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvalidPasswordError&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvalidPasswordError&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.invalidPassword(code: $code, message: $message, data: $data)';
+  return 'DatabaseError.invalidPassword(code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -301,7 +309,7 @@ abstract mixin class $InvalidPasswordErrorCopyWith<$Res> implements $DatabaseErr
   factory $InvalidPasswordErrorCopyWith(InvalidPasswordError value, $Res Function(InvalidPasswordError) _then) = _$InvalidPasswordErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String code, String message, Map<String, dynamic>? data
+ String code, String message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -318,12 +326,13 @@ class _$InvalidPasswordErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? code = null,Object? message = null,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? code = null,Object? message = null,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(InvalidPasswordError(
 code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -334,7 +343,7 @@ as Map<String, dynamic>?,
 
 
 class DatabaseNotFoundError extends DatabaseError {
-  const DatabaseNotFoundError({required this.path, this.code = 'DB_NOT_FOUND', this.message, final  Map<String, dynamic>? data}): _data = data,super._();
+  const DatabaseNotFoundError({required this.path, this.code = 'DB_NOT_FOUND', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
  final  String path;
@@ -349,6 +358,7 @@ class DatabaseNotFoundError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -360,16 +370,16 @@ $DatabaseNotFoundErrorCopyWith<DatabaseNotFoundError> get copyWith => _$Database
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseNotFoundError&&(identical(other.path, path) || other.path == path)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseNotFoundError&&(identical(other.path, path) || other.path == path)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,path,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,path,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.databaseNotFound(path: $path, code: $code, message: $message, data: $data)';
+  return 'DatabaseError.databaseNotFound(path: $path, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -380,7 +390,7 @@ abstract mixin class $DatabaseNotFoundErrorCopyWith<$Res> implements $DatabaseEr
   factory $DatabaseNotFoundErrorCopyWith(DatabaseNotFoundError value, $Res Function(DatabaseNotFoundError) _then) = _$DatabaseNotFoundErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String path, String code, String? message, Map<String, dynamic>? data
+ String path, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -397,13 +407,14 @@ class _$DatabaseNotFoundErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? path = null,Object? code = null,Object? message = freezed,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? path = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(DatabaseNotFoundError(
 path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -414,7 +425,7 @@ as Map<String, dynamic>?,
 
 
 class DatabaseAlreadyExistsError extends DatabaseError {
-  const DatabaseAlreadyExistsError({required this.path, this.code = 'DB_ALREADY_EXISTS', this.message, final  Map<String, dynamic>? data}): _data = data,super._();
+  const DatabaseAlreadyExistsError({required this.path, this.code = 'DB_ALREADY_EXISTS', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
  final  String path;
@@ -429,6 +440,7 @@ class DatabaseAlreadyExistsError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -440,16 +452,16 @@ $DatabaseAlreadyExistsErrorCopyWith<DatabaseAlreadyExistsError> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseAlreadyExistsError&&(identical(other.path, path) || other.path == path)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DatabaseAlreadyExistsError&&(identical(other.path, path) || other.path == path)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,path,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,path,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.databaseAlreadyExists(path: $path, code: $code, message: $message, data: $data)';
+  return 'DatabaseError.databaseAlreadyExists(path: $path, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -460,7 +472,7 @@ abstract mixin class $DatabaseAlreadyExistsErrorCopyWith<$Res> implements $Datab
   factory $DatabaseAlreadyExistsErrorCopyWith(DatabaseAlreadyExistsError value, $Res Function(DatabaseAlreadyExistsError) _then) = _$DatabaseAlreadyExistsErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String path, String code, String? message, Map<String, dynamic>? data
+ String path, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -477,13 +489,14 @@ class _$DatabaseAlreadyExistsErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? path = null,Object? code = null,Object? message = freezed,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? path = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(DatabaseAlreadyExistsError(
 path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -494,7 +507,7 @@ as Map<String, dynamic>?,
 
 
 class ConnectionFailedError extends DatabaseError {
-  const ConnectionFailedError({required this.details, this.code = 'DB_CONNECTION_FAILED', this.message, final  Map<String, dynamic>? data}): _data = data,super._();
+  const ConnectionFailedError({required this.details, this.code = 'DB_CONNECTION_FAILED', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
  final  String details;
@@ -509,6 +522,7 @@ class ConnectionFailedError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -520,16 +534,16 @@ $ConnectionFailedErrorCopyWith<ConnectionFailedError> get copyWith => _$Connecti
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ConnectionFailedError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ConnectionFailedError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.connectionFailed(details: $details, code: $code, message: $message, data: $data)';
+  return 'DatabaseError.connectionFailed(details: $details, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -540,7 +554,7 @@ abstract mixin class $ConnectionFailedErrorCopyWith<$Res> implements $DatabaseEr
   factory $ConnectionFailedErrorCopyWith(ConnectionFailedError value, $Res Function(ConnectionFailedError) _then) = _$ConnectionFailedErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String details, String code, String? message, Map<String, dynamic>? data
+ String details, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -557,13 +571,14 @@ class _$ConnectionFailedErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(ConnectionFailedError(
 details: null == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -574,7 +589,7 @@ as Map<String, dynamic>?,
 
 
 class OperationFailedError extends DatabaseError {
-  const OperationFailedError({required this.operation, required this.details, this.code = 'DB_OPERATION_FAILED', this.message, final  Map<String, dynamic>? data}): _data = data,super._();
+  const OperationFailedError({required this.operation, required this.details, this.code = 'DB_OPERATION_FAILED', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
  final  String operation;
@@ -590,6 +605,7 @@ class OperationFailedError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -601,16 +617,16 @@ $OperationFailedErrorCopyWith<OperationFailedError> get copyWith => _$OperationF
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OperationFailedError&&(identical(other.operation, operation) || other.operation == operation)&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OperationFailedError&&(identical(other.operation, operation) || other.operation == operation)&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,operation,details,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,operation,details,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.operationFailed(operation: $operation, details: $details, code: $code, message: $message, data: $data)';
+  return 'DatabaseError.operationFailed(operation: $operation, details: $details, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -621,7 +637,7 @@ abstract mixin class $OperationFailedErrorCopyWith<$Res> implements $DatabaseErr
   factory $OperationFailedErrorCopyWith(OperationFailedError value, $Res Function(OperationFailedError) _then) = _$OperationFailedErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String operation, String details, String code, String? message, Map<String, dynamic>? data
+ String operation, String details, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -638,14 +654,15 @@ class _$OperationFailedErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? operation = null,Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? operation = null,Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(OperationFailedError(
 operation: null == operation ? _self.operation : operation // ignore: cast_nullable_to_non_nullable
 as String,details: null == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -656,7 +673,7 @@ as Map<String, dynamic>?,
 
 
 class PathNotAccessibleError extends DatabaseError {
-  const PathNotAccessibleError({required this.path, this.code = 'DB_PATH_NOT_ACCESSIBLE', this.message, final  Map<String, dynamic>? data}): _data = data,super._();
+  const PathNotAccessibleError({required this.path, this.code = 'DB_PATH_NOT_ACCESSIBLE', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
  final  String path;
@@ -671,6 +688,7 @@ class PathNotAccessibleError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -682,16 +700,16 @@ $PathNotAccessibleErrorCopyWith<PathNotAccessibleError> get copyWith => _$PathNo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PathNotAccessibleError&&(identical(other.path, path) || other.path == path)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PathNotAccessibleError&&(identical(other.path, path) || other.path == path)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,path,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,path,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.pathNotAccessible(path: $path, code: $code, message: $message, data: $data)';
+  return 'DatabaseError.pathNotAccessible(path: $path, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -702,7 +720,7 @@ abstract mixin class $PathNotAccessibleErrorCopyWith<$Res> implements $DatabaseE
   factory $PathNotAccessibleErrorCopyWith(PathNotAccessibleError value, $Res Function(PathNotAccessibleError) _then) = _$PathNotAccessibleErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String path, String code, String? message, Map<String, dynamic>? data
+ String path, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -719,13 +737,14 @@ class _$PathNotAccessibleErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? path = null,Object? code = null,Object? message = freezed,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? path = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(PathNotAccessibleError(
 path: null == path ? _self.path : path // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -736,7 +755,7 @@ as Map<String, dynamic>?,
 
 
 class UnknownDatabaseError extends DatabaseError {
-  const UnknownDatabaseError({required this.details, this.code = 'DB_UNKNOWN_ERROR', this.message, final  Map<String, dynamic>? data}): _data = data,super._();
+  const UnknownDatabaseError({required this.details, this.code = 'DB_UNKNOWN_ERROR', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
  final  String details;
@@ -751,6 +770,7 @@ class UnknownDatabaseError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -762,16 +782,16 @@ $UnknownDatabaseErrorCopyWith<UnknownDatabaseError> get copyWith => _$UnknownDat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UnknownDatabaseError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UnknownDatabaseError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.unknown(details: $details, code: $code, message: $message, data: $data)';
+  return 'DatabaseError.unknown(details: $details, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -782,7 +802,7 @@ abstract mixin class $UnknownDatabaseErrorCopyWith<$Res> implements $DatabaseErr
   factory $UnknownDatabaseErrorCopyWith(UnknownDatabaseError value, $Res Function(UnknownDatabaseError) _then) = _$UnknownDatabaseErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String details, String code, String? message, Map<String, dynamic>? data
+ String details, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -799,13 +819,14 @@ class _$UnknownDatabaseErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(UnknownDatabaseError(
 details: null == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -816,7 +837,7 @@ as Map<String, dynamic>?,
 
 
 class KeyError extends DatabaseError {
-  const KeyError({required this.details, this.code = 'DB_KEY_ERROR', this.message, final  Map<String, dynamic>? data}): _data = data,super._();
+  const KeyError({required this.details, this.code = 'DB_KEY_ERROR', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
  final  String details;
@@ -831,6 +852,7 @@ class KeyError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -842,16 +864,16 @@ $KeyErrorCopyWith<KeyError> get copyWith => _$KeyErrorCopyWithImpl<KeyError>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is KeyError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is KeyError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.keyError(details: $details, code: $code, message: $message, data: $data)';
+  return 'DatabaseError.keyError(details: $details, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -862,7 +884,7 @@ abstract mixin class $KeyErrorCopyWith<$Res> implements $DatabaseErrorCopyWith<$
   factory $KeyErrorCopyWith(KeyError value, $Res Function(KeyError) _then) = _$KeyErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String details, String code, String? message, Map<String, dynamic>? data
+ String details, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -879,13 +901,14 @@ class _$KeyErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(KeyError(
 details: null == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 
@@ -896,7 +919,7 @@ as Map<String, dynamic>?,
 
 
 class SecureStorageError extends DatabaseError {
-  const SecureStorageError({required this.details, this.code = 'DB_SECURE_STORAGE_ERROR', this.message, final  Map<String, dynamic>? data}): _data = data,super._();
+  const SecureStorageError({required this.details, this.code = 'DB_SECURE_STORAGE_ERROR', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
   
 
  final  String details;
@@ -911,6 +934,7 @@ class SecureStorageError extends DatabaseError {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
@@ -922,16 +946,16 @@ $SecureStorageErrorCopyWith<SecureStorageError> get copyWith => _$SecureStorageE
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SecureStorageError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SecureStorageError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data));
+int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
 
 @override
 String toString() {
-  return 'DatabaseError.secureStorageError(details: $details, code: $code, message: $message, data: $data)';
+  return 'DatabaseError.secureStorageError(details: $details, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
 }
 
 
@@ -942,7 +966,7 @@ abstract mixin class $SecureStorageErrorCopyWith<$Res> implements $DatabaseError
   factory $SecureStorageErrorCopyWith(SecureStorageError value, $Res Function(SecureStorageError) _then) = _$SecureStorageErrorCopyWithImpl;
 @override @useResult
 $Res call({
- String details, String code, String? message, Map<String, dynamic>? data
+ String details, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
 });
 
 
@@ -959,13 +983,96 @@ class _$SecureStorageErrorCopyWithImpl<$Res>
 
 /// Create a copy of DatabaseError
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
   return _then(SecureStorageError(
 details: null == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
 as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class CloseError extends DatabaseError {
+  const CloseError({required this.details, this.code = 'DB_CLOSE_ERROR', this.message, final  Map<String, dynamic>? data, @JsonKey(includeToJson: true) this.stackTrace}): _data = data,super._();
+  
+
+ final  String details;
+@override@JsonKey() final  String code;
+@override final  String? message;
+ final  Map<String, dynamic>? _data;
+@override Map<String, dynamic>? get data {
+  final value = _data;
+  if (value == null) return null;
+  if (_data is EqualUnmodifiableMapView) return _data;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
+@override@JsonKey(includeToJson: true) final  StackTrace? stackTrace;
+
+/// Create a copy of DatabaseError
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CloseErrorCopyWith<CloseError> get copyWith => _$CloseErrorCopyWithImpl<CloseError>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseError&&(identical(other.details, details) || other.details == details)&&(identical(other.code, code) || other.code == code)&&(identical(other.message, message) || other.message == message)&&const DeepCollectionEquality().equals(other._data, _data)&&(identical(other.stackTrace, stackTrace) || other.stackTrace == stackTrace));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,details,code,message,const DeepCollectionEquality().hash(_data),stackTrace);
+
+@override
+String toString() {
+  return 'DatabaseError.closeError(details: $details, code: $code, message: $message, data: $data, stackTrace: $stackTrace)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CloseErrorCopyWith<$Res> implements $DatabaseErrorCopyWith<$Res> {
+  factory $CloseErrorCopyWith(CloseError value, $Res Function(CloseError) _then) = _$CloseErrorCopyWithImpl;
+@override @useResult
+$Res call({
+ String details, String code, String? message, Map<String, dynamic>? data,@JsonKey(includeToJson: true) StackTrace? stackTrace
+});
+
+
+
+
+}
+/// @nodoc
+class _$CloseErrorCopyWithImpl<$Res>
+    implements $CloseErrorCopyWith<$Res> {
+  _$CloseErrorCopyWithImpl(this._self, this._then);
+
+  final CloseError _self;
+  final $Res Function(CloseError) _then;
+
+/// Create a copy of DatabaseError
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? details = null,Object? code = null,Object? message = freezed,Object? data = freezed,Object? stackTrace = freezed,}) {
+  return _then(CloseError(
+details: null == details ? _self.details : details // ignore: cast_nullable_to_non_nullable
+as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
+as String,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String?,data: freezed == data ? _self._data : data // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,stackTrace: freezed == stackTrace ? _self.stackTrace : stackTrace // ignore: cast_nullable_to_non_nullable
+as StackTrace?,
   ));
 }
 

@@ -1,12 +1,10 @@
 import 'dart:io';
 import 'package:hoplixi/core/errors/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/encrypted_database/interfaces/database_interfaces.dart';
 
 /// Реализация сервиса валидации базы данных
-class DatabaseValidationService implements IDatabaseValidationService {
-  @override
-  void validateCreateDatabaseParams({
+class DatabaseValidationService {
+  static void validateCreateDatabaseParams({
     required String name,
     required String masterPassword,
   }) {
@@ -35,8 +33,7 @@ class DatabaseValidationService implements IDatabaseValidationService {
     }
   }
 
-  @override
-  void validateOpenDatabaseParams({
+  static void validateOpenDatabaseParams({
     required String path,
     required String masterPassword,
   }) {
@@ -57,8 +54,7 @@ class DatabaseValidationService implements IDatabaseValidationService {
     }
   }
 
-  @override
-  Future<void> validateDatabaseCreation(String dbPath) async {
+  static Future<void> validateDatabaseCreation(String dbPath) async {
     if (File(dbPath).existsSync()) {
       logWarning(
         'База данных уже существует',
@@ -69,8 +65,7 @@ class DatabaseValidationService implements IDatabaseValidationService {
     }
   }
 
-  @override
-  Future<void> validateDatabaseExists(String path) async {
+  static Future<void> validateDatabaseExists(String path) async {
     if (!File(path).existsSync()) {
       logWarning(
         'База данных не найдена',
@@ -81,8 +76,7 @@ class DatabaseValidationService implements IDatabaseValidationService {
     }
   }
 
-  @override
-  Future<void> ensureDirectoryExists(String path) async {
+  static Future<void> ensureDirectoryExists(String path) async {
     final directory = Directory(path);
     if (!await directory.exists()) {
       logInfo(

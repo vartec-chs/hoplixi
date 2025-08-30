@@ -1,14 +1,14 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'encrypted_database.dart';
+part of 'hoplixi_store.dart';
 
 // ignore_for_file: type=lint
-class $DatabaseMetaTable extends DatabaseMeta
-    with TableInfo<$DatabaseMetaTable, DatabaseMetaData> {
+class $HoplixiMetaTable extends HoplixiMeta
+    with TableInfo<$HoplixiMetaTable, HoplixiMetaData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $DatabaseMetaTable(this.attachedDatabase, [this._alias]);
+  $HoplixiMetaTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -119,10 +119,10 @@ class $DatabaseMetaTable extends DatabaseMeta
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'database_meta';
+  static const String $name = 'hoplixi_meta';
   @override
   VerificationContext validateIntegrity(
-    Insertable<DatabaseMetaData> instance, {
+    Insertable<HoplixiMetaData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -194,9 +194,9 @@ class $DatabaseMetaTable extends DatabaseMeta
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  DatabaseMetaData map(Map<String, dynamic> data, {String? tablePrefix}) {
+  HoplixiMetaData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return DatabaseMetaData(
+    return HoplixiMetaData(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
@@ -233,13 +233,12 @@ class $DatabaseMetaTable extends DatabaseMeta
   }
 
   @override
-  $DatabaseMetaTable createAlias(String alias) {
-    return $DatabaseMetaTable(attachedDatabase, alias);
+  $HoplixiMetaTable createAlias(String alias) {
+    return $HoplixiMetaTable(attachedDatabase, alias);
   }
 }
 
-class DatabaseMetaData extends DataClass
-    implements Insertable<DatabaseMetaData> {
+class HoplixiMetaData extends DataClass implements Insertable<HoplixiMetaData> {
   final int id;
   final String name;
   final String? description;
@@ -248,7 +247,7 @@ class DatabaseMetaData extends DataClass
   final DateTime createdAt;
   final DateTime modifiedAt;
   final String version;
-  const DatabaseMetaData({
+  const HoplixiMetaData({
     required this.id,
     required this.name,
     this.description,
@@ -274,8 +273,8 @@ class DatabaseMetaData extends DataClass
     return map;
   }
 
-  DatabaseMetaCompanion toCompanion(bool nullToAbsent) {
-    return DatabaseMetaCompanion(
+  HoplixiMetaCompanion toCompanion(bool nullToAbsent) {
+    return HoplixiMetaCompanion(
       id: Value(id),
       name: Value(name),
       description: description == null && nullToAbsent
@@ -289,12 +288,12 @@ class DatabaseMetaData extends DataClass
     );
   }
 
-  factory DatabaseMetaData.fromJson(
+  factory HoplixiMetaData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return DatabaseMetaData(
+    return HoplixiMetaData(
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
@@ -320,7 +319,7 @@ class DatabaseMetaData extends DataClass
     };
   }
 
-  DatabaseMetaData copyWith({
+  HoplixiMetaData copyWith({
     int? id,
     String? name,
     Value<String?> description = const Value.absent(),
@@ -329,7 +328,7 @@ class DatabaseMetaData extends DataClass
     DateTime? createdAt,
     DateTime? modifiedAt,
     String? version,
-  }) => DatabaseMetaData(
+  }) => HoplixiMetaData(
     id: id ?? this.id,
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
@@ -339,8 +338,8 @@ class DatabaseMetaData extends DataClass
     modifiedAt: modifiedAt ?? this.modifiedAt,
     version: version ?? this.version,
   );
-  DatabaseMetaData copyWithCompanion(DatabaseMetaCompanion data) {
-    return DatabaseMetaData(
+  HoplixiMetaData copyWithCompanion(HoplixiMetaCompanion data) {
+    return HoplixiMetaData(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       description: data.description.present
@@ -360,7 +359,7 @@ class DatabaseMetaData extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('DatabaseMetaData(')
+    return (StringBuffer('HoplixiMetaData(')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
@@ -387,7 +386,7 @@ class DatabaseMetaData extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is DatabaseMetaData &&
+      (other is HoplixiMetaData &&
           other.id == this.id &&
           other.name == this.name &&
           other.description == this.description &&
@@ -398,7 +397,7 @@ class DatabaseMetaData extends DataClass
           other.version == this.version);
 }
 
-class DatabaseMetaCompanion extends UpdateCompanion<DatabaseMetaData> {
+class HoplixiMetaCompanion extends UpdateCompanion<HoplixiMetaData> {
   final Value<int> id;
   final Value<String> name;
   final Value<String?> description;
@@ -407,7 +406,7 @@ class DatabaseMetaCompanion extends UpdateCompanion<DatabaseMetaData> {
   final Value<DateTime> createdAt;
   final Value<DateTime> modifiedAt;
   final Value<String> version;
-  const DatabaseMetaCompanion({
+  const HoplixiMetaCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.description = const Value.absent(),
@@ -417,7 +416,7 @@ class DatabaseMetaCompanion extends UpdateCompanion<DatabaseMetaData> {
     this.modifiedAt = const Value.absent(),
     this.version = const Value.absent(),
   });
-  DatabaseMetaCompanion.insert({
+  HoplixiMetaCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.description = const Value.absent(),
@@ -431,7 +430,7 @@ class DatabaseMetaCompanion extends UpdateCompanion<DatabaseMetaData> {
        salt = Value(salt),
        createdAt = Value(createdAt),
        modifiedAt = Value(modifiedAt);
-  static Insertable<DatabaseMetaData> custom({
+  static Insertable<HoplixiMetaData> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? description,
@@ -453,7 +452,7 @@ class DatabaseMetaCompanion extends UpdateCompanion<DatabaseMetaData> {
     });
   }
 
-  DatabaseMetaCompanion copyWith({
+  HoplixiMetaCompanion copyWith({
     Value<int>? id,
     Value<String>? name,
     Value<String?>? description,
@@ -463,7 +462,7 @@ class DatabaseMetaCompanion extends UpdateCompanion<DatabaseMetaData> {
     Value<DateTime>? modifiedAt,
     Value<String>? version,
   }) {
-    return DatabaseMetaCompanion(
+    return HoplixiMetaCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
@@ -507,7 +506,7 @@ class DatabaseMetaCompanion extends UpdateCompanion<DatabaseMetaData> {
 
   @override
   String toString() {
-    return (StringBuffer('DatabaseMetaCompanion(')
+    return (StringBuffer('HoplixiMetaCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
@@ -974,26 +973,21 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   }
 }
 
-abstract class _$EncryptedDatabase extends GeneratedDatabase {
-  _$EncryptedDatabase(QueryExecutor e) : super(e);
-  $EncryptedDatabaseManager get managers => $EncryptedDatabaseManager(this);
-  late final $DatabaseMetaTable databaseMeta = $DatabaseMetaTable(this);
+abstract class _$HoplixiStore extends GeneratedDatabase {
+  _$HoplixiStore(QueryExecutor e) : super(e);
+  $HoplixiStoreManager get managers => $HoplixiStoreManager(this);
+  late final $HoplixiMetaTable hoplixiMeta = $HoplixiMetaTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
-  late final CategoriesDao categoriesDao = CategoriesDao(
-    this as EncryptedDatabase,
-  );
+  late final CategoriesDao categoriesDao = CategoriesDao(this as HoplixiStore);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [
-    databaseMeta,
-    categories,
-  ];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [hoplixiMeta, categories];
 }
 
-typedef $$DatabaseMetaTableCreateCompanionBuilder =
-    DatabaseMetaCompanion Function({
+typedef $$HoplixiMetaTableCreateCompanionBuilder =
+    HoplixiMetaCompanion Function({
       Value<int> id,
       required String name,
       Value<String?> description,
@@ -1003,8 +997,8 @@ typedef $$DatabaseMetaTableCreateCompanionBuilder =
       required DateTime modifiedAt,
       Value<String> version,
     });
-typedef $$DatabaseMetaTableUpdateCompanionBuilder =
-    DatabaseMetaCompanion Function({
+typedef $$HoplixiMetaTableUpdateCompanionBuilder =
+    HoplixiMetaCompanion Function({
       Value<int> id,
       Value<String> name,
       Value<String?> description,
@@ -1015,9 +1009,9 @@ typedef $$DatabaseMetaTableUpdateCompanionBuilder =
       Value<String> version,
     });
 
-class $$DatabaseMetaTableFilterComposer
-    extends Composer<_$EncryptedDatabase, $DatabaseMetaTable> {
-  $$DatabaseMetaTableFilterComposer({
+class $$HoplixiMetaTableFilterComposer
+    extends Composer<_$HoplixiStore, $HoplixiMetaTable> {
+  $$HoplixiMetaTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -1065,9 +1059,9 @@ class $$DatabaseMetaTableFilterComposer
   );
 }
 
-class $$DatabaseMetaTableOrderingComposer
-    extends Composer<_$EncryptedDatabase, $DatabaseMetaTable> {
-  $$DatabaseMetaTableOrderingComposer({
+class $$HoplixiMetaTableOrderingComposer
+    extends Composer<_$HoplixiStore, $HoplixiMetaTable> {
+  $$HoplixiMetaTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -1115,9 +1109,9 @@ class $$DatabaseMetaTableOrderingComposer
   );
 }
 
-class $$DatabaseMetaTableAnnotationComposer
-    extends Composer<_$EncryptedDatabase, $DatabaseMetaTable> {
-  $$DatabaseMetaTableAnnotationComposer({
+class $$HoplixiMetaTableAnnotationComposer
+    extends Composer<_$HoplixiStore, $HoplixiMetaTable> {
+  $$HoplixiMetaTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -1155,41 +1149,35 @@ class $$DatabaseMetaTableAnnotationComposer
       $composableBuilder(column: $table.version, builder: (column) => column);
 }
 
-class $$DatabaseMetaTableTableManager
+class $$HoplixiMetaTableTableManager
     extends
         RootTableManager<
-          _$EncryptedDatabase,
-          $DatabaseMetaTable,
-          DatabaseMetaData,
-          $$DatabaseMetaTableFilterComposer,
-          $$DatabaseMetaTableOrderingComposer,
-          $$DatabaseMetaTableAnnotationComposer,
-          $$DatabaseMetaTableCreateCompanionBuilder,
-          $$DatabaseMetaTableUpdateCompanionBuilder,
+          _$HoplixiStore,
+          $HoplixiMetaTable,
+          HoplixiMetaData,
+          $$HoplixiMetaTableFilterComposer,
+          $$HoplixiMetaTableOrderingComposer,
+          $$HoplixiMetaTableAnnotationComposer,
+          $$HoplixiMetaTableCreateCompanionBuilder,
+          $$HoplixiMetaTableUpdateCompanionBuilder,
           (
-            DatabaseMetaData,
-            BaseReferences<
-              _$EncryptedDatabase,
-              $DatabaseMetaTable,
-              DatabaseMetaData
-            >,
+            HoplixiMetaData,
+            BaseReferences<_$HoplixiStore, $HoplixiMetaTable, HoplixiMetaData>,
           ),
-          DatabaseMetaData,
+          HoplixiMetaData,
           PrefetchHooks Function()
         > {
-  $$DatabaseMetaTableTableManager(
-    _$EncryptedDatabase db,
-    $DatabaseMetaTable table,
-  ) : super(
+  $$HoplixiMetaTableTableManager(_$HoplixiStore db, $HoplixiMetaTable table)
+    : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$DatabaseMetaTableFilterComposer($db: db, $table: table),
+              $$HoplixiMetaTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$DatabaseMetaTableOrderingComposer($db: db, $table: table),
+              $$HoplixiMetaTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$DatabaseMetaTableAnnotationComposer($db: db, $table: table),
+              $$HoplixiMetaTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -1200,7 +1188,7 @@ class $$DatabaseMetaTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> modifiedAt = const Value.absent(),
                 Value<String> version = const Value.absent(),
-              }) => DatabaseMetaCompanion(
+              }) => HoplixiMetaCompanion(
                 id: id,
                 name: name,
                 description: description,
@@ -1220,7 +1208,7 @@ class $$DatabaseMetaTableTableManager
                 required DateTime createdAt,
                 required DateTime modifiedAt,
                 Value<String> version = const Value.absent(),
-              }) => DatabaseMetaCompanion.insert(
+              }) => HoplixiMetaCompanion.insert(
                 id: id,
                 name: name,
                 description: description,
@@ -1238,25 +1226,21 @@ class $$DatabaseMetaTableTableManager
       );
 }
 
-typedef $$DatabaseMetaTableProcessedTableManager =
+typedef $$HoplixiMetaTableProcessedTableManager =
     ProcessedTableManager<
-      _$EncryptedDatabase,
-      $DatabaseMetaTable,
-      DatabaseMetaData,
-      $$DatabaseMetaTableFilterComposer,
-      $$DatabaseMetaTableOrderingComposer,
-      $$DatabaseMetaTableAnnotationComposer,
-      $$DatabaseMetaTableCreateCompanionBuilder,
-      $$DatabaseMetaTableUpdateCompanionBuilder,
+      _$HoplixiStore,
+      $HoplixiMetaTable,
+      HoplixiMetaData,
+      $$HoplixiMetaTableFilterComposer,
+      $$HoplixiMetaTableOrderingComposer,
+      $$HoplixiMetaTableAnnotationComposer,
+      $$HoplixiMetaTableCreateCompanionBuilder,
+      $$HoplixiMetaTableUpdateCompanionBuilder,
       (
-        DatabaseMetaData,
-        BaseReferences<
-          _$EncryptedDatabase,
-          $DatabaseMetaTable,
-          DatabaseMetaData
-        >,
+        HoplixiMetaData,
+        BaseReferences<_$HoplixiStore, $HoplixiMetaTable, HoplixiMetaData>,
       ),
-      DatabaseMetaData,
+      HoplixiMetaData,
       PrefetchHooks Function()
     >;
 typedef $$CategoriesTableCreateCompanionBuilder =
@@ -1281,7 +1265,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
     });
 
 class $$CategoriesTableFilterComposer
-    extends Composer<_$EncryptedDatabase, $CategoriesTable> {
+    extends Composer<_$HoplixiStore, $CategoriesTable> {
   $$CategoriesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -1326,7 +1310,7 @@ class $$CategoriesTableFilterComposer
 }
 
 class $$CategoriesTableOrderingComposer
-    extends Composer<_$EncryptedDatabase, $CategoriesTable> {
+    extends Composer<_$HoplixiStore, $CategoriesTable> {
   $$CategoriesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -1371,7 +1355,7 @@ class $$CategoriesTableOrderingComposer
 }
 
 class $$CategoriesTableAnnotationComposer
-    extends Composer<_$EncryptedDatabase, $CategoriesTable> {
+    extends Composer<_$HoplixiStore, $CategoriesTable> {
   $$CategoriesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -1408,7 +1392,7 @@ class $$CategoriesTableAnnotationComposer
 class $$CategoriesTableTableManager
     extends
         RootTableManager<
-          _$EncryptedDatabase,
+          _$HoplixiStore,
           $CategoriesTable,
           Category,
           $$CategoriesTableFilterComposer,
@@ -1418,12 +1402,12 @@ class $$CategoriesTableTableManager
           $$CategoriesTableUpdateCompanionBuilder,
           (
             Category,
-            BaseReferences<_$EncryptedDatabase, $CategoriesTable, Category>,
+            BaseReferences<_$HoplixiStore, $CategoriesTable, Category>,
           ),
           Category,
           PrefetchHooks Function()
         > {
-  $$CategoriesTableTableManager(_$EncryptedDatabase db, $CategoriesTable table)
+  $$CategoriesTableTableManager(_$HoplixiStore db, $CategoriesTable table)
     : super(
         TableManagerState(
           db: db,
@@ -1480,7 +1464,7 @@ class $$CategoriesTableTableManager
 
 typedef $$CategoriesTableProcessedTableManager =
     ProcessedTableManager<
-      _$EncryptedDatabase,
+      _$HoplixiStore,
       $CategoriesTable,
       Category,
       $$CategoriesTableFilterComposer,
@@ -1488,19 +1472,16 @@ typedef $$CategoriesTableProcessedTableManager =
       $$CategoriesTableAnnotationComposer,
       $$CategoriesTableCreateCompanionBuilder,
       $$CategoriesTableUpdateCompanionBuilder,
-      (
-        Category,
-        BaseReferences<_$EncryptedDatabase, $CategoriesTable, Category>,
-      ),
+      (Category, BaseReferences<_$HoplixiStore, $CategoriesTable, Category>),
       Category,
       PrefetchHooks Function()
     >;
 
-class $EncryptedDatabaseManager {
-  final _$EncryptedDatabase _db;
-  $EncryptedDatabaseManager(this._db);
-  $$DatabaseMetaTableTableManager get databaseMeta =>
-      $$DatabaseMetaTableTableManager(_db, _db.databaseMeta);
+class $HoplixiStoreManager {
+  final _$HoplixiStore _db;
+  $HoplixiStoreManager(this._db);
+  $$HoplixiMetaTableTableManager get hoplixiMeta =>
+      $$HoplixiMetaTableTableManager(_db, _db.hoplixiMeta);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
 }

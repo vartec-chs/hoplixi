@@ -3,6 +3,6 @@
 part of 'categories_dao.dart';
 
 // ignore_for_file: type=lint
-mixin _$CategoriesDaoMixin on DatabaseAccessor<EncryptedDatabase> {
+mixin _$CategoriesDaoMixin on DatabaseAccessor<HoplixiStore> {
   $CategoriesTable get categories => attachedDatabase.categories;
 }

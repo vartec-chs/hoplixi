@@ -1,14 +1,15 @@
 import 'package:drift/drift.dart';
-import 'package:hoplixi/encrypted_database/dao/categories_dao.dart';
+import 'package:hoplixi/core/errors/index.dart';
+import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/hoplixi_store/tables/hoplixi_meta.dart';
 import 'tables/categories.dart';
-import 'tables/database_meta.dart';
 
-part 'encrypted_database.g.dart';
+part 'hoplixi_store.g.dart';
 
-@DriftDatabase(tables: [DatabaseMeta, Categories], daos: [CategoriesDao])
-class EncryptedDatabase extends _$EncryptedDatabase {
-  EncryptedDatabase(QueryExecutor e) : super(e);
+@DriftDatabase(tables: [HoplixiMeta, Categories], daos: [CategoriesDao])
+class HoplixiStore extends _$HoplixiStore {
+  HoplixiStore(QueryExecutor e) : super(e);
 
   @override
   int get schemaVersion => 1;
@@ -32,8 +33,8 @@ class EncryptedDatabase extends _$EncryptedDatabase {
     );
     try {
       await update(
-        databaseMeta,
-      ).write(DatabaseMetaCompanion(modifiedAt: Value(DateTime.now())));
+        hoplixiMeta,
+      ).write(HoplixiMetaCompanion(modifiedAt: Value(DateTime.now())));
       logDebug(
         'Время модификации базы данных обновлено',
         tag: 'EncryptedDatabase',
@@ -43,15 +44,21 @@ class EncryptedDatabase extends _$EncryptedDatabase {
         'Ошибка обновления времени модификации',
         error: e,
         tag: 'EncryptedDatabase',
+        stackTrace: StackTrace.current,
       );
-      rethrow;
+      throw DatabaseError.operationFailed(
+        operation: 'updateModificationTime',
+        details: e.toString(),
+        message: 'Ошибка обновления времени модификации',
+        stackTrace: StackTrace.current,
+      );
     }
   }
 
-  Future<DatabaseMetaData> getDatabaseMeta() async {
+  Future<HoplixiMetaData> getDatabaseMeta() async {
     logDebug('Получение метаданных базы данных', tag: 'EncryptedDatabase');
     try {
-      final meta = await select(databaseMeta).getSingle();
+      final meta = await select(hoplixiMeta).getSingle();
       logDebug(
         'Метаданные базы данных получены',
         tag: 'EncryptedDatabase',
@@ -63,8 +70,14 @@ class EncryptedDatabase extends _$EncryptedDatabase {
         'Ошибка получения метаданных базы данных',
         error: e,
         tag: 'EncryptedDatabase',
+        stackTrace: StackTrace.current,
       );
-      rethrow;
+      throw DatabaseError.operationFailed(
+        operation: 'getDatabaseMeta',
+        details: e.toString(),
+        message: 'Ошибка получения метаданных базы данных',
+        stackTrace: StackTrace.current,
+      );
     }
   }
 
@@ -78,8 +91,13 @@ class EncryptedDatabase extends _$EncryptedDatabase {
         'Ошибка закрытия базы данных',
         error: e,
         tag: 'EncryptedDatabase',
+        stackTrace: StackTrace.current,
       );
-      rethrow;
+      throw DatabaseError.closeError(
+        details: e.toString(),
+        message: 'Ошибка закрытия базы данных',
+        stackTrace: StackTrace.current,
+      );
     }
   }
 }
