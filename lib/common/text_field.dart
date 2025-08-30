@@ -37,8 +37,13 @@ InputDecoration primaryInputDecoration(
     filled: filled,
     errorBorder: UnderlineInputBorder(
       borderRadius: defaultBorderRadiusValue,
-      borderSide: BorderSide(color: theme.colorScheme.error, width: 0),
+      borderSide: BorderSide(color: Colors.transparent, width: 0),
     ),
+    focusedErrorBorder: UnderlineInputBorder(
+      borderRadius: defaultBorderRadiusValue,
+      borderSide: BorderSide(color: Colors.transparent, width: 0),
+    ),
+
     floatingLabelBehavior: FloatingLabelBehavior.auto,
     floatingLabelAlignment: FloatingLabelAlignment.start,
     floatingLabelStyle: TextStyle(

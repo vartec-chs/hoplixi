@@ -11,6 +11,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     @Default('Неверный пароль для базы данных') String message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = InvalidPasswordError;
 
   const factory DatabaseError.databaseNotFound({
@@ -19,6 +20,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = DatabaseNotFoundError;
 
   const factory DatabaseError.databaseAlreadyExists({
@@ -27,6 +29,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = DatabaseAlreadyExistsError;
 
   const factory DatabaseError.connectionFailed({
@@ -35,6 +38,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = ConnectionFailedError;
 
   const factory DatabaseError.operationFailed({
@@ -44,6 +48,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = OperationFailedError;
 
   const factory DatabaseError.pathNotAccessible({
@@ -52,6 +57,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = PathNotAccessibleError;
 
   const factory DatabaseError.unknown({
@@ -60,6 +66,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = UnknownDatabaseError;
 
   const factory DatabaseError.keyError({
@@ -68,6 +75,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = KeyError;
 
   const factory DatabaseError.secureStorageError({
@@ -76,6 +84,7 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = SecureStorageError;
 
   const factory DatabaseError.closeError({
@@ -84,72 +93,73 @@ abstract class DatabaseError with _$DatabaseError implements Exception {
     String? message,
     Map<String, dynamic>? data,
     @JsonKey(includeToJson: true) StackTrace? stackTrace,
+    @JsonKey(includeToJson: true) DateTime? timestamp,
   }) = CloseError;
 
   // Helper methods
   String get displayMessage {
     return when(
-      invalidPassword: (code, message, data, _) => message,
-      databaseNotFound: (path, code, message, data, _) =>
+      invalidPassword: (code, message, data, _, _) => message,
+      databaseNotFound: (path, code, message, data, _, _) =>
           message ?? 'База данных не найдена: $path',
-      databaseAlreadyExists: (path, code, message, data, _) =>
+      databaseAlreadyExists: (path, code, message, data, _, _) =>
           message ?? 'База данных уже существует: $path',
-      connectionFailed: (details, code, message, data, _) =>
+      connectionFailed: (details, code, message, data, _, _) =>
           message ?? 'Ошибка подключения к базе данных: $details',
-      operationFailed: (operation, details, code, message, data, _) =>
+      operationFailed: (operation, details, code, message, data, _, _) =>
           message ?? 'Ошибка операции "$operation": $details',
-      pathNotAccessible: (path, code, message, data, _) =>
+      pathNotAccessible: (path, code, message, data, _, _) =>
           message ?? 'Путь недоступен: $path',
-      unknown: (details, code, message, data, _) =>
+      unknown: (details, code, message, data, _, _) =>
           message ?? 'Неизвестная ошибка: $details',
-      keyError: (details, code, message, data, _) =>
+      keyError: (details, code, message, data, _, _) =>
           message ?? 'Ошибка работы с ключами: $details',
-      secureStorageError: (details, code, message, data, _) =>
+      secureStorageError: (details, code, message, data, _, _) =>
           message ?? 'Ошибка защищенного хранилища: $details',
-      closeError: (details, code, message, data, _) =>
+      closeError: (details, code, message, data, _, _) =>
           message ?? 'Ошибка закрытия базы данных: $details',
     );
   }
 
   @override
   String get code => when(
-    invalidPassword: (code, message, data, _) => code,
-    databaseNotFound: (path, code, message, data, _) => code,
-    databaseAlreadyExists: (path, code, message, data, _) => code,
-    connectionFailed: (details, code, message, data, _) => code,
-    operationFailed: (operation, details, code, message, data, _) => code,
-    pathNotAccessible: (path, code, message, data, _) => code,
-    unknown: (details, code, message, data, _) => code,
-    keyError: (details, code, message, data, _) => code,
-    secureStorageError: (details, code, message, data, _) => code,
-    closeError: (details, code, message, data, _) => code,
+    invalidPassword: (code, message, data, _, _) => code,
+    databaseNotFound: (path, code, message, data, _, _) => code,
+    databaseAlreadyExists: (path, code, message, data, _, _) => code,
+    connectionFailed: (details, code, message, data, _, _) => code,
+    operationFailed: (operation, details, code, message, data, _, _) => code,
+    pathNotAccessible: (path, code, message, data, _, _) => code,
+    unknown: (details, code, message, data, _, _) => code,
+    keyError: (details, code, message, data, _, _) => code,
+    secureStorageError: (details, code, message, data, _, _) => code,
+    closeError: (details, code, message, data, _, _) => code,
   );
 
   @override
   Map<String, dynamic>? get data => when(
-    invalidPassword: (code, message, data, _) => data,
-    databaseNotFound: (path, code, message, data, _) => data,
-    databaseAlreadyExists: (path, code, message, data, _) => data,
-    connectionFailed: (details, code, message, data, _) => data,
-    operationFailed: (operation, details, code, message, data, _) => data,
-    pathNotAccessible: (path, code, message, data, _) => data,
-    unknown: (details, code, message, data, _) => data,
-    keyError: (details, code, message, data, _) => data,
-    secureStorageError: (details, code, message, data, _) => data,
-    closeError: (details, code, message, data, _) => data,
+    invalidPassword: (code, message, data, _, _) => data,
+    databaseNotFound: (path, code, message, data, _, _) => data,
+    databaseAlreadyExists: (path, code, message, data, _, _) => data,
+    connectionFailed: (details, code, message, data, _, _) => data,
+    operationFailed: (operation, details, code, message, data, _, _) => data,
+    pathNotAccessible: (path, code, message, data, _, _) => data,
+    unknown: (details, code, message, data, _, _) => data,
+    keyError: (details, code, message, data, _, _) => data,
+    secureStorageError: (details, code, message, data, _, _) => data,
+    closeError: (details, code, message, data, _, _) => data,
   );
 
   @override
   String? get message => when(
-    invalidPassword: (code, message, data, _) => message,
-    databaseNotFound: (path, code, message, data, _) => message,
-    databaseAlreadyExists: (path, code, message, data, _) => message,
-    connectionFailed: (details, code, message, data, _) => message,
-    operationFailed: (operation, details, code, message, data, _) => message,
-    pathNotAccessible: (path, code, message, data, _) => message,
-    unknown: (details, code, message, data, _) => message,
-    keyError: (details, code, message, data, _) => message,
-    secureStorageError: (details, code, message, data, _) => message,
-    closeError: (details, code, message, data, _) => message,
+    invalidPassword: (code, message, data, _, _) => message,
+    databaseNotFound: (path, code, message, data, _, _) => message,
+    databaseAlreadyExists: (path, code, message, data, _, _) => message,
+    connectionFailed: (details, code, message, data, _, _) => message,
+    operationFailed: (operation, details, code, message, data, _, _) => message,
+    pathNotAccessible: (path, code, message, data, _, _) => message,
+    unknown: (details, code, message, data, _, _) => message,
+    keyError: (details, code, message, data, _, _) => message,
+    secureStorageError: (details, code, message, data, _, _) => message,
+    closeError: (details, code, message, data, _, _) => message,
   );
 }

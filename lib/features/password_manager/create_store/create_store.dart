@@ -1,15 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
-
+import 'package:hoplixi/features/password_manager/create_store/create_store_control.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
+import 'package:hoplixi/hoplixi_store/state.dart';
 
-class CreateStoreScreen extends StatelessWidget {
+class CreateStoreScreen extends ConsumerStatefulWidget {
   const CreateStoreScreen({super.key});
 
   @override
+  ConsumerState<CreateStoreScreen> createState() => _CreateStoreScreenState();
+}
+
+class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _masterPasswordController;
+  late final TextEditingController _confirmPasswordController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _descriptionController = TextEditingController();
+    _masterPasswordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _masterPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final formState = ref.watch(createStoreControllerProvider);
+    final controller = ref.read(createStoreControllerProvider.notifier);
+    final isReady = ref.watch(createStoreReadyProvider);
+
+    // Слушаем изменения состояния базы данных
+    ref.listen<DatabaseState>(createStoreDatabaseStateProvider, (
+      previous,
+      next,
+    ) {
+      if (next.isOpen && previous?.status != next.status) {
+        // База данных успешно создана, переходим на главный экран
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Хранилище успешно создано!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // context.go(AppRoutes.home);
+      }
+    });
+
+    // Показываем ошибки
+    if (formState.errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(formState.errorMessage!),
+            backgroundColor: Colors.red,
+          ),
+        );
+        controller.clearError();
+      });
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Создать хранилище'),
@@ -23,104 +90,216 @@ class CreateStoreScreen extends StatelessWidget {
       body: SafeArea(
         child: Container(
           padding: const EdgeInsets.all(8.0),
-          child: Column(
-            spacing: 8,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    spacing: 8,
-                    children: [
-                      TextFormField(
-                        decoration:
-                            primaryInputDecoration(
-                              context,
-                              labelText: 'Название хранилища',
-                              filled: true,
-                            ).copyWith(
-                              prefixIcon: IconButton(
-                                icon: const Icon(Icons.title),
-                                onPressed: () {},
+          child: Form(
+            key: _formKey,
+            child: Column(
+              spacing: 8,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      spacing: 8,
+                      children: [
+                        // Название хранилища
+                        TextFormField(
+                          controller: _nameController,
+                          onChanged: controller.updateStoreName,
+                          decoration:
+                              primaryInputDecoration(
+                                context,
+                                labelText: 'Название хранилища',
+                                filled: true,
+                                errorText: formState.fieldErrors['storeName'],
+                              ).copyWith(
+                                prefixIcon: IconButton(
+                                  icon: const Icon(Icons.title),
+                                  onPressed: () {},
+                                ),
                               ),
-                            ),
-                      ),
-                      TextFormField(
-                        decoration:
-                            primaryInputDecoration(
-                              context,
-                              labelText: 'Описание хранилища',
+                          validator: (value) =>
+                              formState.fieldErrors['storeName'],
+                        ),
 
-                              filled: true,
-                            ).copyWith(
-                              prefixIcon: IconButton(
-                                icon: const Icon(Icons.subtitles),
-                                onPressed: () {},
+                        // Описание хранилища
+                        TextFormField(
+                          controller: _descriptionController,
+                          onChanged: controller.updateStoreDescription,
+                          decoration:
+                              primaryInputDecoration(
+                                context,
+                                labelText: 'Описание хранилища',
+                                filled: true,
+                                errorText:
+                                    formState.fieldErrors['storeDescription'],
+                              ).copyWith(
+                                prefixIcon: IconButton(
+                                  icon: const Icon(Icons.subtitles),
+                                  onPressed: () {},
+                                ),
                               ),
+                          minLines: 2,
+                          maxLines: 4,
+                          validator: (value) =>
+                              formState.fieldErrors['storeDescription'],
+                        ),
+
+                        // Мастер пароль
+                        _CustomPasswordField(
+                          label: 'Мастер пароль',
+                          controller: _masterPasswordController,
+                          onChanged: controller.updateMasterPassword,
+                          errorText: formState.fieldErrors['masterPassword'],
+                        ),
+
+                        // Подтверждение пароля
+                        _CustomPasswordField(
+                          label: 'Подтвердите мастер пароль',
+                          controller: _confirmPasswordController,
+                          onChanged: controller.updateConfirmPassword,
+                          errorText: formState.fieldErrors['confirmPassword'],
+                        ),
+
+                        Divider(
+                          color: Theme.of(context).colorScheme.outline,
+                          radius: BorderRadius.all(Radius.circular(12)),
+                        ),
+
+                        // Выбор типа пути
+                        SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment(
+                              value: true,
+                              label: Text('Предустановленный путь'),
                             ),
-                        minLines: 2,
-                        maxLines: 4,
-                      ),
-                      PasswordField(label: 'Мастер пароль'),
-                      PasswordField(label: 'Подтвердите мастер пароль'),
-                      Divider(
-                        color: Theme.of(context).colorScheme.outline,
-                        radius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      SegmentedButton(
-                        segments: const [
-                          ButtonSegment(
-                            value: true,
-                            label: Text('Предустановленный путь'),
-                          ),
-                          ButtonSegment(
-                            value: false,
-                            label: Text('Пользовательский путь'),
-                          ),
-                        ],
-                        selected: <bool>{true},
-                        onSelectionChanged: (Set<bool> newSelection) {},
-                      ),
-                      TextFormField(
-                        decoration:
-                            primaryInputDecoration(
-                              context,
-                              labelText: 'Итоговый путь',
-                              helperText:
-                                  'Итоговый путь где будут храниться файл паролей',
-                              filled: true,
-                            ).copyWith(
-                              prefixIcon: IconButton(
-                                icon: const Icon(Icons.folder_open),
-                                onPressed: () {},
+                            ButtonSegment(
+                              value: false,
+                              label: Text('Пользовательский путь'),
+                            ),
+                          ],
+                          selected: <bool>{formState.isDefaultPath},
+                          onSelectionChanged: (Set<bool> newSelection) {
+                            controller.togglePathType(newSelection.first);
+                          },
+                        ),
+
+                        // Итоговый путь
+                        TextFormField(
+                          decoration:
+                              primaryInputDecoration(
+                                context,
+                                labelText: 'Итоговый путь',
+                                helperText:
+                                    'Итоговый путь где будет сохранен файл хранилища',
+                                filled: true,
+                              ).copyWith(
+                                prefixIcon: IconButton(
+                                  icon: const Icon(Icons.folder_open),
+                                  onPressed: formState.isDefaultPath
+                                      ? null
+                                      : () {
+                                          controller.selectCustomPath();
+                                        },
+                                ),
                               ),
+                          minLines: 1,
+                          maxLines: 3,
+                          readOnly: true,
+                          initialValue: formState.finalPath,
+                          key: ValueKey(
+                            formState.finalPath,
+                          ), // Принудительное обновление
+                          enabled: false,
+                        ),
+
+                        if (!formState.isDefaultPath)
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: formState.isLoading
+                                  ? null
+                                  : controller.selectCustomPath,
+                              icon: const Icon(Icons.folder_open),
+                              label: const Text('Выбрать путь'),
                             ),
-                        minLines: 1,
-                        maxLines: 3,
-                        readOnly: true,
-                        initialValue:
-                            'C:\\Users\\User\\Desktop\\password_manager',
-                        enabled: false,
-                      ),
-                    ],
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              SizedBox(
-                width: double.infinity,
-                child: SmoothButton(
-                  onPressed: () {},
-                  // loading: true,
-                  label: "Создать",
-                  type: SmoothButtonType.filled,
-                  size: SmoothButtonSize.medium,
-                  icon: const Icon(Icons.add),
+                // Кнопка создания
+                SizedBox(
+                  width: double.infinity,
+                  child: SmoothButton(
+                    onPressed: isReady
+                        ? () async {
+                            if (_formKey.currentState?.validate() ?? false) {
+                              await controller.createStore();
+                            }
+                          }
+                        : null,
+                    loading: formState.isLoading,
+                    label: "Создать",
+                    type: SmoothButtonType.filled,
+                    size: SmoothButtonSize.medium,
+                    icon: const Icon(Icons.add),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Кастомное поле для пароля с поддержкой onChanged и errorText
+class _CustomPasswordField extends StatefulWidget {
+  final String label;
+  final TextEditingController? controller;
+  final void Function(String)? onChanged;
+  final String? errorText;
+
+  const _CustomPasswordField({
+    required this.label,
+    this.controller,
+    this.onChanged,
+    this.errorText,
+  });
+
+  @override
+  _CustomPasswordFieldState createState() => _CustomPasswordFieldState();
+}
+
+class _CustomPasswordFieldState extends State<_CustomPasswordField> {
+  bool _obscureText = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: widget.controller,
+      obscureText: _obscureText,
+      onChanged: widget.onChanged,
+      decoration:
+          primaryInputDecoration(
+            context,
+            labelText: widget.label,
+            errorText: widget.errorText,
+            filled: true,
+          ).copyWith(
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscureText ? Icons.visibility_off : Icons.visibility,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscureText = !_obscureText;
+                });
+              },
+            ),
+            prefixIcon: const Icon(Icons.lock),
+          ),
     );
   }
 }

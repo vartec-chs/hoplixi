@@ -54,6 +54,7 @@ class AppLogger {
         lineLength: 120,
         colors: true,
         printEmojis: true,
+
         levelColors: <Level, AnsiColor>{
           Level.debug: AnsiColor.fg(200),
           Level.info: AnsiColor.fg(100),
