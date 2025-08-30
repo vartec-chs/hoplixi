@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:hoplixi/core/errors/db_errors.dart';
 
 part 'state.freezed.dart';
 
@@ -10,7 +11,7 @@ abstract class DatabaseState with _$DatabaseState {
     String? path,
     String? name,
     @Default(DatabaseStatus.closed) DatabaseStatus status,
-    String? error,
+    DatabaseError? error,
   }) = _DatabaseState;
 
   const DatabaseState._();

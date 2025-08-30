@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DatabaseState {
 
- String? get path; String? get name; DatabaseStatus get status; String? get error;
+ String? get path; String? get name; DatabaseStatus get status; DatabaseError? get error;
 /// Create a copy of DatabaseState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,11 +45,11 @@ abstract mixin class $DatabaseStateCopyWith<$Res>  {
   factory $DatabaseStateCopyWith(DatabaseState value, $Res Function(DatabaseState) _then) = _$DatabaseStateCopyWithImpl;
 @useResult
 $Res call({
- String? path, String? name, DatabaseStatus status, String? error
+ String? path, String? name, DatabaseStatus status, DatabaseError? error
 });
 
 
-
+$DatabaseErrorCopyWith<$Res>? get error;
 
 }
 /// @nodoc
@@ -68,10 +68,22 @@ path: freezed == path ? _self.path : path // ignore: cast_nullable_to_non_nullab
 as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as DatabaseStatus,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
-as String?,
+as DatabaseError?,
   ));
 }
+/// Create a copy of DatabaseState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DatabaseErrorCopyWith<$Res>? get error {
+    if (_self.error == null) {
+    return null;
+  }
 
+  return $DatabaseErrorCopyWith<$Res>(_self.error!, (value) {
+    return _then(_self.copyWith(error: value));
+  });
+}
 }
 
 
@@ -153,7 +165,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? path,  String? name,  DatabaseStatus status,  String? error)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? path,  String? name,  DatabaseStatus status,  DatabaseError? error)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DatabaseState() when $default != null:
 return $default(_that.path,_that.name,_that.status,_that.error);case _:
@@ -174,7 +186,7 @@ return $default(_that.path,_that.name,_that.status,_that.error);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? path,  String? name,  DatabaseStatus status,  String? error)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? path,  String? name,  DatabaseStatus status,  DatabaseError? error)  $default,) {final _that = this;
 switch (_that) {
 case _DatabaseState():
 return $default(_that.path,_that.name,_that.status,_that.error);case _:
@@ -194,7 +206,7 @@ return $default(_that.path,_that.name,_that.status,_that.error);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? path,  String? name,  DatabaseStatus status,  String? error)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? path,  String? name,  DatabaseStatus status,  DatabaseError? error)?  $default,) {final _that = this;
 switch (_that) {
 case _DatabaseState() when $default != null:
 return $default(_that.path,_that.name,_that.status,_that.error);case _:
@@ -215,7 +227,7 @@ class _DatabaseState extends DatabaseState {
 @override final  String? path;
 @override final  String? name;
 @override@JsonKey() final  DatabaseStatus status;
-@override final  String? error;
+@override final  DatabaseError? error;
 
 /// Create a copy of DatabaseState
 /// with the given fields replaced by the non-null parameter values.
@@ -247,11 +259,11 @@ abstract mixin class _$DatabaseStateCopyWith<$Res> implements $DatabaseStateCopy
   factory _$DatabaseStateCopyWith(_DatabaseState value, $Res Function(_DatabaseState) _then) = __$DatabaseStateCopyWithImpl;
 @override @useResult
 $Res call({
- String? path, String? name, DatabaseStatus status, String? error
+ String? path, String? name, DatabaseStatus status, DatabaseError? error
 });
 
 
-
+@override $DatabaseErrorCopyWith<$Res>? get error;
 
 }
 /// @nodoc
@@ -270,11 +282,23 @@ path: freezed == path ? _self.path : path // ignore: cast_nullable_to_non_nullab
 as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as DatabaseStatus,error: freezed == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
-as String?,
+as DatabaseError?,
   ));
 }
 
+/// Create a copy of DatabaseState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DatabaseErrorCopyWith<$Res>? get error {
+    if (_self.error == null) {
+    return null;
+  }
 
+  return $DatabaseErrorCopyWith<$Res>(_self.error!, (value) {
+    return _then(_self.copyWith(error: value));
+  });
+}
 }
 
 // dart format on

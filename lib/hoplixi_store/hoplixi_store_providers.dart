@@ -43,16 +43,23 @@ class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
         tag: 'DatabaseStateNotifier',
         data: {'name': dto.name},
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       logError(
         'Ошибка создания базы данных',
         error: e,
         tag: 'DatabaseStateNotifier',
         data: {'name': dto.name},
+        stackTrace: stackTrace,
       );
       state = DatabaseState(
         status: DatabaseStatus.error,
-        error: e is DatabaseError ? e.toString() : e.toString(),
+        error: e is DatabaseError
+            ? e
+            : DatabaseError.unknown(
+                message: 'Unknown database error',
+                stackTrace: stackTrace,
+                details: e.toString(),
+              ),
       );
       rethrow;
     }
@@ -69,16 +76,23 @@ class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
         tag: 'DatabaseStateNotifier',
         data: {'path': dto.path},
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       logError(
         'Ошибка открытия базы данных',
         error: e,
         tag: 'DatabaseStateNotifier',
         data: {'path': dto.path},
+        stackTrace: stackTrace,
       );
       state = DatabaseState(
         status: DatabaseStatus.error,
-        error: e is DatabaseError ? e.toString() : e.toString(),
+        error: e is DatabaseError
+            ? e
+            : DatabaseError.unknown(
+                message: 'Unknown database error',
+                stackTrace: stackTrace,
+                details: e.toString(),
+              ),
       );
       rethrow;
     }
@@ -211,9 +225,6 @@ class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
 
   /// Установка состояния ошибки
   void setError(DatabaseError error) {
-    state = DatabaseState(
-      status: DatabaseStatus.error,
-      error: error.toString(),
-    );
+    state = DatabaseState(status: DatabaseStatus.error, error: error);
   }
 }
