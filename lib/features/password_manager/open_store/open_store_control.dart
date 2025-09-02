@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+import 'package:hoplixi/hoplixi_store/dto/database_file_info.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
 import 'package:file_picker/file_picker.dart';
@@ -60,7 +63,7 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
       errors['databasePath'] = 'Путь к хранилищу обязателен';
     } else if (!File(path).existsSync()) {
       errors['databasePath'] = 'Файл хранилища не существует';
-    } else if (!path.toLowerCase().endsWith('.hpx')) {
+    } else if (!path.toLowerCase().endsWith(".${MainConstants.dbExtension}")) {
       errors['databasePath'] = 'Неверный формат файла хранилища';
     } else {
       errors.remove('databasePath');
@@ -87,7 +90,7 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['hpx'],
+        allowedExtensions: [MainConstants.dbExtension],
         dialogTitle: 'Выберите файл хранилища',
       );
 
@@ -113,6 +116,16 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
     }
   }
 
+  /// Быстрый выбор файла БД из найденных
+  void selectDatabaseFromInfo(DatabaseFileInfo fileInfo) {
+    updateDatabasePath(fileInfo.path);
+    logDebug(
+      'Выбран файл БД из списка',
+      tag: 'OpenStoreController',
+      data: {'path': fileInfo.path, 'name': fileInfo.name},
+    );
+  }
+
   /// Открытие хранилища
   Future<void> openStore() async {
     if (!state.isValid) {
@@ -134,21 +147,27 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
 
       await _ref.read(databaseStateProvider.notifier).openDatabase(dto);
 
-      logInfo(
-        'Хранилище успешно открыто',
-        tag: 'OpenStoreController',
-        data: {'path': state.databasePath},
-      );
+      // Отложенное логирование после завершения операции
+      scheduleMicrotask(() {
+        logInfo(
+          'Хранилище успешно открыто',
+          tag: 'OpenStoreController',
+          data: {'path': state.databasePath},
+        );
+      });
 
       state = state.copyWith(isLoading: false);
     } catch (e, stackTrace) {
-      logError(
-        'Ошибка открытия хранилища',
-        error: e,
-        tag: 'OpenStoreController',
-        data: {'path': state.databasePath},
-        stackTrace: stackTrace,
-      );
+      // Отложенное логирование для избежания проблем с build cycle
+      scheduleMicrotask(() {
+        logError(
+          'Ошибка открытия хранилища',
+          error: e,
+          tag: 'OpenStoreController',
+          data: {'path': state.databasePath},
+          stackTrace: stackTrace,
+        );
+      });
 
       state = state.copyWith(
         isLoading: false,
@@ -231,4 +250,18 @@ final openStoreDatabaseStateProvider = Provider<DatabaseState>((ref) {
 final openStoreReadyProvider = Provider<bool>((ref) {
   final formState = ref.watch(openStoreControllerProvider);
   return formState.isValid && !formState.isLoading;
+});
+
+/// Провайдер для поиска файлов БД в папке по умолчанию
+final databaseFilesProvider = FutureProvider<DatabaseFilesResult>((ref) async {
+  final manager = ref.read(hoplixiStoreManagerProvider);
+  return await manager.findDatabaseFiles();
+});
+
+/// Провайдер для получения самого недавнего файла БД
+final mostRecentDatabaseFileProvider = FutureProvider<DatabaseFileInfo?>((
+  ref,
+) async {
+  final manager = ref.read(hoplixiStoreManagerProvider);
+  return await manager.getMostRecentDatabaseFile();
 });

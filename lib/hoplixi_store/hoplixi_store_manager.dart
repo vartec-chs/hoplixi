@@ -9,10 +9,10 @@ import 'package:hoplixi/hoplixi_store/services/database_validation_service.dart'
 
 import 'state.dart';
 import 'dto/db_dto.dart';
+import 'dto/database_file_info.dart';
 import 'hoplixi_store.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:path/path.dart' as p;
@@ -220,6 +220,112 @@ class HoplixiStoreManager {
   Future<String> getDefaultDatabasePath() async {
     final appDir = await getApplicationDocumentsDirectory();
     return p.join(appDir.path, MainConstants.appFolderName, 'storages');
+  }
+
+  /// Поиск файлов базы данных в папке по умолчанию
+  Future<DatabaseFilesResult> findDatabaseFiles() async {
+    const String operation = 'findDatabaseFiles';
+
+    try {
+      final defaultPath = await getDefaultDatabasePath();
+      final directory = Directory(defaultPath);
+
+      logDebug(
+        'Поиск файлов БД в папке',
+        tag: 'HoplixiStoreManager',
+        data: {'path': defaultPath, 'operation': operation},
+      );
+
+      // Проверяем, существует ли папка
+      if (!await directory.exists()) {
+        logDebug(
+          'Папка с БД не существует',
+          tag: 'HoplixiStoreManager',
+          data: {'path': defaultPath},
+        );
+
+        return DatabaseFilesResult(files: [], searchPath: defaultPath);
+      }
+
+      // Получаем все файлы с расширением .hpx
+      final files = await directory
+          .list()
+          .where(
+            (entity) =>
+                entity is File &&
+                entity.path.toLowerCase().endsWith('.$_dbExtension'),
+          )
+          .cast<File>()
+          .toList();
+
+      // Преобразуем в DatabaseFileInfo и сортируем по дате изменения
+      final databaseFiles = <DatabaseFileInfo>[];
+
+      for (final file in files) {
+        try {
+          final stat = await file.stat();
+          final fileName = p.basenameWithoutExtension(file.path);
+
+          final fileInfo = DatabaseFileInfo(
+            path: file.path,
+            name: fileName,
+            displayName: fileName,
+            lastModified: stat.modified,
+            sizeBytes: stat.size,
+          );
+
+          databaseFiles.add(fileInfo);
+        } catch (e) {
+          logWarning(
+            'Ошибка при получении информации о файле',
+            tag: 'HoplixiStoreManager',
+            data: {'file': file.path, 'error': e.toString()},
+          );
+        }
+      }
+
+      // Сортируем по дате изменения (новые сначала)
+      databaseFiles.sort((a, b) => b.lastModified.compareTo(a.lastModified));
+
+      // Находим самый недавно измененный файл
+      final mostRecent = databaseFiles.isNotEmpty ? databaseFiles.first : null;
+
+      logInfo(
+        'Найдено файлов БД: ${databaseFiles.length}',
+        tag: 'HoplixiStoreManager',
+        data: {
+          'count': databaseFiles.length,
+          'mostRecent': mostRecent?.name,
+          'path': defaultPath,
+        },
+      );
+
+      return DatabaseFilesResult(
+        files: databaseFiles,
+        mostRecent: mostRecent,
+        searchPath: defaultPath,
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка поиска файлов БД',
+        error: e,
+        tag: 'HoplixiStoreManager',
+        stackTrace: stackTrace,
+        data: {'operation': operation},
+      );
+
+      // Возвращаем пустой результат в случае ошибки
+      return DatabaseFilesResult(
+        files: [],
+        searchPath: await getDefaultDatabasePath(),
+      );
+    }
+  }
+
+  /// Получает самый недавно измененный файл БД
+  Future<DatabaseFileInfo?> getMostRecentDatabaseFile() async {
+    final result = await findDatabaseFiles();
+    return result.mostRecent;
   }
 
   /// Подготавливает путь для новой базы данных

@@ -5,6 +5,7 @@ import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/password_field.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/open_store/open_store_control.dart';
+import 'package:hoplixi/features/password_manager/open_store/widgets/database_files_list.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
@@ -21,6 +22,8 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
 
   late final TextEditingController _pathController;
   late final TextEditingController _passwordController;
+
+  bool _showAllFiles = false;
 
   @override
   void initState() {
@@ -45,12 +48,17 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
     // Слушаем изменения состояния базы данных
     ref.listen<DatabaseState>(openStoreDatabaseStateProvider, (previous, next) {
       if (next.isOpen && previous?.status != next.status) {
-        // База данных успешно открыта, переходим на главный экран
-        ToastHelper.success(
-          title: 'Успех',
-          description: 'Хранилище успешно открыто!',
-        );
-        context.go(AppRoutes.home);
+        // База данных успешно открыта, показываем уведомление
+        Future.microtask(() {
+          if (mounted) {
+            ToastHelper.success(
+              title: 'Успех',
+              description: 'Хранилище успешно открыто!',
+            );
+            // Переходим на главный экран после успешного открытия
+            context.go(AppRoutes.home);
+          }
+        });
       }
     });
 
@@ -126,12 +134,91 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                           ),
                         ),
 
+                        // Найденные файлы БД
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final databaseFilesAsync = ref.watch(
+                              databaseFilesProvider,
+                            );
+
+                            return databaseFilesAsync.when(
+                              data: (result) {
+                                if (result.files.isNotEmpty) {
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      DatabaseFilesList(
+                                        files: result.files,
+                                        selectedFile:
+                                            result.files
+                                                .where(
+                                                  (f) =>
+                                                      f.path ==
+                                                      formState.databasePath,
+                                                )
+                                                .isEmpty
+                                            ? null
+                                            : result.files
+                                                  .where(
+                                                    (f) =>
+                                                        f.path ==
+                                                        formState.databasePath,
+                                                  )
+                                                  .first,
+                                        onFileSelected: (file) {
+                                          controller.selectDatabaseFromInfo(
+                                            file,
+                                          );
+                                          _pathController.text = file.path;
+                                        },
+                                        showAllFiles: _showAllFiles,
+                                        onToggleShowAll: () {
+                                          setState(() {
+                                            _showAllFiles = !_showAllFiles;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 16),
+                                    ],
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                              loading: () => Card(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Поиск файлов хранилищ...',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              error: (error, stack) => const SizedBox.shrink(),
+                            );
+                          },
+                        ),
+
                         // Путь к файлу хранилища
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Файл хранилища',
+                              'Выбрать файл вручную',
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
