@@ -66,7 +66,7 @@ class ToastHelper {
       type: ToastificationType.error,
       style: toastificationStyle,
       autoCloseDuration: autoCloseDuration ?? const Duration(seconds: 5),
-      title: Text("$title"),
+      title: Text(title),
       description: description != null
           ? Text('(Нажмите для копирования) $description')
           : null,

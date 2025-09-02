@@ -3,6 +3,16 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
+import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
+import 'package:sqlite3/open.dart';
+import 'package:universal_platform/universal_platform.dart';
+
+Future<void> setupSqlCipher() async {
+  if (UniversalPlatform.isAndroid) {
+    await applyWorkaroundToOpenSqlCipherOnOldAndroidVersions();
+    open.overrideFor(OperatingSystem.android, openCipherOnAndroid);
+  }
+}
 
 /// Реализация сервиса управления подключением к базе данных
 class DatabaseConnectionService {
@@ -19,8 +29,12 @@ class DatabaseConnectionService {
       final database = HoplixiStore(
         NativeDatabase.createInBackground(
           File(path),
+          isolateSetup: () async {
+            await setupSqlCipher();
+          },
           setup: (rawDb) {
             rawDb.execute("PRAGMA key = '$password';");
+            rawDb.config.doubleQuotedStringLiterals = false;
           },
         ),
       );

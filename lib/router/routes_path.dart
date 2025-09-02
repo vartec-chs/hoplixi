@@ -6,4 +6,5 @@ class AppRoutes {
   static const String createStore = '/create-store';
   static const String openStore = '/open-store';
   static const String testDemo = '/test-demo';
+  static const String dashboard = '/dashboard';
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/password_manager/create_store/create_store.dart';
+import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
 import 'package:hoplixi/features/password_manager/open_store/open_store.dart';
 import 'package:hoplixi/features/test/test.dart';
 import 'routes_path.dart';
@@ -34,6 +35,10 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.testDemo,
     builder: (context, state) => const TestScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.dashboard,
+    builder: (context, state) => const DashboardScreen(),
   ),
 ];
 

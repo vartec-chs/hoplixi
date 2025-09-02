@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
@@ -10,9 +11,14 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:toastification/toastification.dart';
 import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
+import 'package:sqlite3/open.dart';
+import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
+import 'package:sqlite3/sqlite3.dart';
+
 
 Future<void> main() async {
   if (UniversalPlatform.isWeb) {
@@ -20,8 +26,10 @@ Future<void> main() async {
       'Web platform is not supported in this version. Please use a different platform.',
     );
   }
+
   runZonedGuarded(
     () async {
+      
       // Ensure Flutter binding is initialized
       WidgetsFlutterBinding.ensureInitialized();
 
