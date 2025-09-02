@@ -7,7 +7,7 @@ part 'categories_dao.g.dart';
 @DriftAccessor(tables: [Categories])
 class CategoriesDao extends DatabaseAccessor<HoplixiStore>
     with _$CategoriesDaoMixin {
-  CategoriesDao(HoplixiStore db) : super(db);
+  CategoriesDao(super.db);
 
   Future<List<Category>> getAllCategories() async {
     final result = await select(categories).get();

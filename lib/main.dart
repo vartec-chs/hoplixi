@@ -9,7 +9,8 @@ import 'package:hoplixi/app.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
-import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
+import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:toastification/toastification.dart';
 import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
 
@@ -52,10 +53,13 @@ Future<void> main() async {
           'Flutter error: ${details.exceptionAsString()}',
           stackTrace: details.stack,
         );
-        ScaffoldMessengerManager.instance.showError(
-          'Ошибка Flutter: ${details.exceptionAsString()}',
-          onCopyPressed: () => Clipboard.setData(
-            ClipboardData(text: details.exceptionAsString()),
+        ToastHelper.error(
+          title: 'Ошибка Flutter',
+          description: details.exceptionAsString(),
+          callbacks: ToastificationCallbacks(
+            onTap: (toastItem) => Clipboard.setData(
+              ClipboardData(text: details.exceptionAsString()),
+            ),
           ),
         );
       };
@@ -63,10 +67,13 @@ Future<void> main() async {
       // Handle platform errors
       PlatformDispatcher.instance.onError = (error, stackTrace) {
         logError('Platform error: $error', stackTrace: stackTrace);
-        ScaffoldMessengerManager.instance.showError(
-          'Ошибка платформы: $error',
-          onCopyPressed: () =>
-              Clipboard.setData(ClipboardData(text: error.toString())),
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: error.toString(),
+          callbacks: ToastificationCallbacks(
+            onTap: (toastItem) =>
+                Clipboard.setData(ClipboardData(text: error.toString())),
+          ),
         );
         return true;
       };
@@ -74,14 +81,35 @@ Future<void> main() async {
       // Initialize window manager
       await WindowManager.initialize();
 
-      runApp(UncontrolledProviderScope(container: container, child: App()));
+      runApp(
+        UncontrolledProviderScope(
+          container: container,
+          child: ToastificationWrapper(
+            config: ToastificationConfig(
+              maxTitleLines: 2,
+              maxDescriptionLines: 5,
+              maxToastLimit: 3,
+              itemWidth: UniversalPlatform.isDesktop ? 400 : double.infinity,
+              // alignment: Alignment.bottomRight,
+              alignment: UniversalPlatform.isDesktop
+                  ? Alignment.bottomRight
+                  : Alignment.topCenter,
+            ),
+            child: App(),
+          ),
+        ),
+      );
     },
     (error, stackTrace) {
       logError('Uncaught error: $error', stackTrace: stackTrace);
-      ScaffoldMessengerManager.instance.showError(
-        'Неизвестная ошибка: $error',
-        onCopyPressed: () =>
-            Clipboard.setData(ClipboardData(text: error.toString())),
+      ToastHelper.error(
+        // context: context,
+        title: 'Ошибка',
+        description: error.toString(),
+        callbacks: ToastificationCallbacks(
+          onTap: (toastItem) =>
+              Clipboard.setData(ClipboardData(text: error.toString())),
+        ),
       );
     },
   );

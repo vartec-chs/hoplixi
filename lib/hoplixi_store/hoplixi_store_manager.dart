@@ -191,19 +191,19 @@ class HoplixiStoreManager {
   }
 
   String _generateSecureSalt() {
-    const int _saltLength = 32;
+    const int saltLength = 32;
     final random = Random.secure();
-    final bytes = Uint8List(_saltLength);
-    for (int i = 0; i < _saltLength; i++) {
+    final bytes = Uint8List(saltLength);
+    for (int i = 0; i < saltLength; i++) {
       bytes[i] = random.nextInt(256);
     }
     return base64.encode(bytes);
   }
 
   String _hashPassword(String password, String salt) {
-    const int _iterations = 10000;
+    const int iterations = 10000;
     var bytes = utf8.encode(password + salt);
-    for (int i = 0; i < _iterations; i++) {
+    for (int i = 0; i < iterations; i++) {
       bytes = Uint8List.fromList(sha256.convert(bytes).bytes);
     }
     return base64.encode(bytes);

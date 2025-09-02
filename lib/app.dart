@@ -6,6 +6,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 
 // import 'package:hoplixi/core/theme/theme.dart';
 import 'package:hoplixi/core/theme_old/theme_provider.dart';
+import 'package:hoplixi/core/utils/toast/toast_manager.dart';
 import 'package:hoplixi/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 import 'package:hoplixi/core/theme/theme.dart';
@@ -24,10 +25,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     super.initState();
     // Добавляем наблюдатель жизненного цикла
     WidgetsBinding.instance.addObserver(this);
+
     // Инициализируем ScaffoldMessengerManager
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ScaffoldMessengerManager.initializeApp();
-    });
   }
 
   @override
@@ -69,6 +68,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       title: MainConstants.appName,
       theme: AppTheme.light(context),
       darkTheme: AppTheme.dark(context),
+
       scaffoldMessengerKey: ScaffoldMessengerManager.globalKey,
 
       debugShowCheckedModeBanner: false,
@@ -76,26 +76,31 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       routerConfig: router,
       themeMode: theme,
 
-      builder: (context, child) => ResponsiveBreakpoints.builder(
-        child: ClampingScrollWrapper.builder(context, child!),
-        breakpoints: const [
-          Breakpoint(
-            start: MobileBreakpoint.start,
-            end: MobileBreakpoint.end,
-            name: MOBILE,
-          ),
-          Breakpoint(
-            start: TabletBreakpoint.start,
-            end: TabletBreakpoint.end,
-            name: TABLET,
-          ),
-          Breakpoint(
-            start: DesktopBreakpoint.start,
-            end: DesktopBreakpoint.end,
-            name: DESKTOP,
-          ),
-        ],
-      ),
+      builder: (context, child) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ToastManager().initialize();
+        });
+        return ResponsiveBreakpoints.builder(
+          child: ClampingScrollWrapper.builder(context, child!),
+          breakpoints: const [
+            Breakpoint(
+              start: MobileBreakpoint.start,
+              end: MobileBreakpoint.end,
+              name: MOBILE,
+            ),
+            Breakpoint(
+              start: TabletBreakpoint.start,
+              end: TabletBreakpoint.end,
+              name: TABLET,
+            ),
+            Breakpoint(
+              start: DesktopBreakpoint.start,
+              end: DesktopBreakpoint.end,
+              name: DESKTOP,
+            ),
+          ],
+        );
+      },
     );
   }
 }

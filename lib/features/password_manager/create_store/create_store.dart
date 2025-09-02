@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/create_store/create_store_control.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
 
 class CreateStoreScreen extends ConsumerStatefulWidget {
@@ -54,25 +54,39 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     ) {
       if (next.isOpen && previous?.status != next.status) {
         // База данных успешно создана, переходим на главный экран
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Хранилище успешно создано!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(
+        //     content: Text('Хранилище успешно создано!'),
+        //     backgroundColor: Colors.green,
+        //   ),
+        // );
+
+        // Toast.success('Хранилище успешно создано!');
         // context.go(AppRoutes.home);
+        ToastHelper.success(
+          title: 'Успех',
+          description: 'Хранилище успешно создано!',
+        );
+        // Toast.success('Хранилище успешно создано!');
       }
     });
 
     // Показываем ошибки
     if (formState.errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(formState.errorMessage!),
-            backgroundColor: Colors.red,
-          ),
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   SnackBar(
+        //     content: Text(formState.errorMessage!),
+        //     backgroundColor: Colors.red,
+        //   ),
+        // );
+        // Toast.error(formState.errorMessage!);
+        ToastHelper.error(
+          // context: context,
+          title: 'Ошибка',
+          description: formState.errorMessage!,
         );
+        // Toast.error(formState.errorMessage!);
         controller.clearError();
       });
     }

@@ -9,7 +9,7 @@ part 'hoplixi_store.g.dart';
 
 @DriftDatabase(tables: [HoplixiMeta, Categories], daos: [CategoriesDao])
 class HoplixiStore extends _$HoplixiStore {
-  HoplixiStore(QueryExecutor e) : super(e);
+  HoplixiStore(super.e);
 
   @override
   int get schemaVersion => 1;

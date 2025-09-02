@@ -161,6 +161,7 @@ class SecureStorageError with _$SecureStorageError implements Exception {
     );
   }
 
+  @override
   String get code => when(
     encryptionFailed: (operation, details, code, message, data) => code,
     decryptionFailed: (operation, details, code, message, data) => code,
@@ -179,6 +180,7 @@ class SecureStorageError with _$SecureStorageError implements Exception {
     unknown: (details, code, message, data) => code,
   );
 
+  @override
   Map<String, dynamic>? get data => when(
     encryptionFailed: (operation, details, code, message, data) => data,
     decryptionFailed: (operation, details, code, message, data) => data,
@@ -197,6 +199,7 @@ class SecureStorageError with _$SecureStorageError implements Exception {
     unknown: (details, code, message, data) => data,
   );
 
+  @override
   String? get message => when(
     encryptionFailed: (operation, details, code, message, data) => message,
     decryptionFailed: (operation, details, code, message, data) => message,
