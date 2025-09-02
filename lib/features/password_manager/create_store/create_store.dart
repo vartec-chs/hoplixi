@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/common/password_field.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/create_store/create_store_control.dart';
 import 'package:hoplixi/router/routes_path.dart';
@@ -158,7 +159,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
                         ),
 
                         // Мастер пароль
-                        _CustomPasswordField(
+                        CustomPasswordField(
                           label: 'Мастер пароль',
                           controller: _masterPasswordController,
                           onChanged: controller.updateMasterPassword,
@@ -166,7 +167,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
                         ),
 
                         // Подтверждение пароля
-                        _CustomPasswordField(
+                        CustomPasswordField(
                           label: 'Подтвердите мастер пароль',
                           controller: _confirmPasswordController,
                           onChanged: controller.updateConfirmPassword,
@@ -264,56 +265,6 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Кастомное поле для пароля с поддержкой onChanged и errorText
-class _CustomPasswordField extends StatefulWidget {
-  final String label;
-  final TextEditingController? controller;
-  final void Function(String)? onChanged;
-  final String? errorText;
-
-  const _CustomPasswordField({
-    required this.label,
-    this.controller,
-    this.onChanged,
-    this.errorText,
-  });
-
-  @override
-  _CustomPasswordFieldState createState() => _CustomPasswordFieldState();
-}
-
-class _CustomPasswordFieldState extends State<_CustomPasswordField> {
-  bool _obscureText = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: widget.controller,
-      obscureText: _obscureText,
-      onChanged: widget.onChanged,
-      decoration:
-          primaryInputDecoration(
-            context,
-            labelText: widget.label,
-            errorText: widget.errorText,
-            filled: true,
-          ).copyWith(
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureText ? Icons.visibility_off : Icons.visibility,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscureText = !_obscureText;
-                });
-              },
-            ),
-            prefixIcon: const Icon(Icons.lock),
-          ),
     );
   }
 }

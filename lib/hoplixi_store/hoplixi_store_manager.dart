@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -216,7 +217,7 @@ class HoplixiStoreManager {
   }
 
   /// Получает путь для базы данных по умолчанию
-  Future<String> _getDefaultDatabasePath() async {
+  Future<String> getDefaultDatabasePath() async {
     final appDir = await getApplicationDocumentsDirectory();
     return p.join(appDir.path, MainConstants.appFolderName, 'storages');
   }
@@ -232,7 +233,7 @@ class HoplixiStoreManager {
         tag: 'EncryptedDatabaseManager',
       );
     } else {
-      basePath = await _getDefaultDatabasePath();
+      basePath = await getDefaultDatabasePath();
       logDebug(
         'Используется путь по умолчанию: $basePath',
         tag: 'EncryptedDatabaseManager',

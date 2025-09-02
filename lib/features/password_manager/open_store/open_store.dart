@@ -1,0 +1,292 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/common/password_field.dart';
+import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:hoplixi/features/password_manager/open_store/open_store_control.dart';
+import 'package:hoplixi/router/routes_path.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hoplixi/hoplixi_store/state.dart';
+
+class OpenStoreScreen extends ConsumerStatefulWidget {
+  const OpenStoreScreen({super.key});
+
+  @override
+  ConsumerState<OpenStoreScreen> createState() => _OpenStoreScreenState();
+}
+
+class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
+  final _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _pathController;
+  late final TextEditingController _passwordController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pathController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _pathController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final formState = ref.watch(openStoreControllerProvider);
+    final controller = ref.read(openStoreControllerProvider.notifier);
+    final isReady = ref.watch(openStoreReadyProvider);
+
+    // Слушаем изменения состояния базы данных
+    ref.listen<DatabaseState>(openStoreDatabaseStateProvider, (previous, next) {
+      if (next.isOpen && previous?.status != next.status) {
+        // База данных успешно открыта, переходим на главный экран
+        ToastHelper.success(
+          title: 'Успех',
+          description: 'Хранилище успешно открыто!',
+        );
+        context.go(AppRoutes.home);
+      }
+    });
+
+    // Показываем ошибки
+    if (formState.errorMessage != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: formState.errorMessage!,
+        );
+        controller.clearError();
+      });
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Открыть хранилище'),
+        surfaceTintColor: Colors.transparent,
+        leading: BackButton(
+          onPressed: () {
+            context.go(AppRoutes.home);
+          },
+        ),
+      ),
+      body: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      spacing: 16,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Описание
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Открытие хранилища',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Выберите файл хранилища (.hpx) и введите мастер-пароль для его открытия.',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Путь к файлу хранилища
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Файл хранилища',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: _pathController,
+                                    readOnly: true,
+                                    onChanged: controller.updateDatabasePath,
+                                    decoration:
+                                        primaryInputDecoration(
+                                          context,
+                                          labelText: 'Путь к файлу хранилища',
+                                          hintText:
+                                              'Выберите файл хранилища...',
+                                          errorText: formState
+                                              .fieldErrors['databasePath'],
+                                          filled: true,
+                                        ).copyWith(
+                                          prefixIcon: const Icon(Icons.folder),
+                                        ),
+                                    validator: (value) =>
+                                        formState.fieldErrors['databasePath'],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                SmoothButton(
+                                  onPressed: () async {
+                                    await controller.selectDatabaseFile();
+                                    // Синхронизируем контроллер с состоянием
+                                    final newFormState = ref.read(
+                                      openStoreControllerProvider,
+                                    );
+                                    if (newFormState.databasePath.isNotEmpty) {
+                                      _pathController.text =
+                                          newFormState.databasePath;
+                                    }
+                                  },
+                                  type: SmoothButtonType.outlined,
+                                  size: SmoothButtonSize.medium,
+                                  label: 'Выбрать',
+                                  icon: const Icon(Icons.file_open),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        // Мастер пароль
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Мастер-пароль',
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            CustomPasswordField(
+                              label: 'Мастер-пароль',
+                              controller: _passwordController,
+                              onChanged: controller.updateMasterPassword,
+                              errorText:
+                                  formState.fieldErrors['masterPassword'],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Введите мастер-пароль, который использовался при создании хранилища.',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.7),
+                                  ),
+                            ),
+                          ],
+                        ),
+
+                        // Информация о выбранном файле
+                        if (formState.databasePath.isNotEmpty) ...[
+                          const Divider(),
+                          Card(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.storage,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Выбранное хранилище',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    formState.databasePath,
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(fontFamily: 'monospace'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Кнопка открытия
+                SizedBox(
+                  width: double.infinity,
+                  child: SmoothButton(
+                    onPressed: isReady
+                        ? () async {
+                            if (_formKey.currentState?.validate() ?? false) {
+                              await controller.openStore();
+                            }
+                          }
+                        : null,
+                    loading: formState.isLoading,
+                    label: "Открыть хранилище",
+                    type: SmoothButtonType.filled,
+                    size: SmoothButtonSize.medium,
+                    icon: const Icon(Icons.lock_open),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
