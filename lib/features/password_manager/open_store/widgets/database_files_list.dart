@@ -24,7 +24,7 @@ class DatabaseFilesList extends ConsumerWidget {
     if (files.isEmpty) {
       return Card(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             children: [
               Icon(
@@ -68,7 +68,7 @@ class DatabaseFilesList extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
                 Icon(
@@ -88,6 +88,14 @@ class DatabaseFilesList extends ConsumerWidget {
                 const Spacer(),
                 if (hasMoreFiles && onToggleShowAll != null)
                   TextButton.icon(
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(0, 0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                     onPressed: onToggleShowAll,
                     icon: Icon(
                       showAllFiles ? Icons.expand_less : Icons.expand_more,
@@ -104,16 +112,22 @@ class DatabaseFilesList extends ConsumerWidget {
             ),
           ),
           ...filesToShow.map(
-            (file) => _DatabaseFileItem(
-              file: file,
-              isSelected: selectedFile?.path == file.path,
-              onTap: () => onFileSelected(file),
+            (file) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: _DatabaseFileItem(
+                file: file,
+                isSelected: selectedFile?.path == file.path,
+                onTap: () => onFileSelected(file),
+              ),
             ),
           ),
+
+          const SizedBox(height: 8),
+
           if (!showAllFiles && hasMoreFiles)
             Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
+                horizontal: 12.0,
                 vertical: 8.0,
               ),
               child: Text(

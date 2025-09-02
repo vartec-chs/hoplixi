@@ -63,64 +63,6 @@ class HomeScreen extends StatelessWidget {
               SliverToBoxAdapter(child: const SizedBox(height: 16)),
               SliverToBoxAdapter(child: const Divider(height: 2)),
               SliverToBoxAdapter(child: const SizedBox(height: 16)),
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 2,
-
-                  children: [
-                    SmoothButton(
-                      onPressed: () {
-                        ToastHelper.success(
-                          context: context,
-                          title: 'Успех',
-                          description: 'Хранилище открыто',
-                        );
-                      },
-                      isFullWidth: true,
-                      label: 'Success',
-                      icon: const Icon(Icons.file_open_sharp, size: 32),
-                    ),
-                    SmoothButton(
-                      onPressed: () {
-                        ToastHelper.error(
-                          context: context,
-                          title: 'Ошибка',
-                          description: 'Не удалось открыть хранилище',
-                        );
-                      },
-                      isFullWidth: true,
-                      label: 'Error',
-                      icon: const Icon(Icons.error, size: 32),
-                    ),
-                    SmoothButton(
-                      onPressed: () {
-                        ToastHelper.warning(
-                          context: context,
-                          title: 'Предупреждение',
-                          description: 'Проверьте свои данные',
-                        );
-                      },
-                      isFullWidth: true,
-                      label: 'Warning',
-                      icon: const Icon(Icons.warning, size: 32),
-                    ),
-                    SmoothButton(
-                      onPressed: () {
-                        ToastHelper.info(
-                          context: context,
-                          title: 'Информация',
-                          description: 'Это информационное сообщение',
-                        );
-                      },
-                      isFullWidth: true,
-                      label: 'Info',
-                      icon: const Icon(Icons.info, size: 32),
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ),

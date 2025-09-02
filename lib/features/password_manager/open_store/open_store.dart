@@ -170,7 +170,14 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                                           controller.selectDatabaseFromInfo(
                                             file,
                                           );
+
                                           _pathController.text = file.path;
+                                          _passwordController.text = '';
+                                          ToastHelper.info(
+                                            title: 'Файл выбран',
+                                            description:
+                                                'Выбран файл: ${file.path}',
+                                          );
                                         },
                                         showAllFiles: _showAllFiles,
                                         onToggleShowAll: () {
