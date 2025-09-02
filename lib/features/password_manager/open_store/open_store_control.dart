@@ -233,6 +233,33 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
   void resetForm() {
     state = const OpenStoreFormState();
   }
+
+  /// Полная очистка всех данных
+  void clearAllData() {
+    // Очищаем состояние
+    state = const OpenStoreFormState();
+
+    // Логируем очистку данных
+    logDebug(
+      'Выполнена полная очистка данных формы открытия хранилища',
+      tag: 'OpenStoreController',
+    );
+  }
+
+  /// Безопасная очистка всех чувствительных данных
+  void clearSensitiveData() {
+    // Очищаем только чувствительные данные (пароль)
+    state = state.copyWith(
+      masterPassword: '',
+      errorMessage: null,
+      fieldErrors: {},
+    );
+
+    logDebug(
+      'Выполнена очистка чувствительных данных формы открытия хранилища',
+      tag: 'OpenStoreController',
+    );
+  }
 }
 
 /// Провайдер контроллера открытия хранилища

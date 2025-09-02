@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hoplixi/global.dart';
 import 'package:toastification/toastification.dart';
 
@@ -65,8 +66,10 @@ class ToastHelper {
       type: ToastificationType.error,
       style: toastificationStyle,
       autoCloseDuration: autoCloseDuration ?? const Duration(seconds: 5),
-      title: Text(title),
-      description: description != null ? Text(description) : null,
+      title: Text("$title"),
+      description: description != null
+          ? Text('(Нажмите для копирования) $description')
+          : null,
 
       direction: TextDirection.ltr,
       animationDuration: const Duration(milliseconds: 300),
@@ -83,7 +86,38 @@ class ToastHelper {
       closeOnClick: false,
       pauseOnHover: true,
       dragToClose: true,
-      callbacks: callbacks ?? const ToastificationCallbacks(),
+
+      callbacks:
+          callbacks ??
+          ToastificationCallbacks(
+            onTap: (value) =>
+                Clipboard.setData(ClipboardData(text: description ?? '')).then(
+                  (value) {
+                    // ScaffoldMessenger.of(contextToUse).showSnackBar(
+                    //   SnackBar(
+                    //     content: Text('Ошибка скопирована в буфер обмена'),
+                    //   ),
+                    // );
+                    ToastHelper.info(
+                      context: contextToUse,
+                      title: 'Скопировано',
+                      description: 'Ошибка скопирована в буфер обмена',
+                      autoCloseDuration: const Duration(seconds: 3),
+                    );
+                  },
+                  onError: (error) {
+                    // ScaffoldMessenger.of(contextToUse).showSnackBar(
+                    //   SnackBar(content: Text('Ошибка копирования: $error')),
+                    // );
+                    ToastHelper.error(
+                      context: contextToUse,
+                      title: 'Ошибка',
+                      description: 'Ошибка копирования: $error',
+                      autoCloseDuration: const Duration(seconds: 3),
+                    );
+                  },
+                ),
+          ),
     );
   }
 

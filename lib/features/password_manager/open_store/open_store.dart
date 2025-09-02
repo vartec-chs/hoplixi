@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/password_field.dart';
+import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/open_store/open_store_control.dart';
 import 'package:hoplixi/features/password_manager/open_store/widgets/database_files_list.dart';
@@ -34,6 +35,11 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
 
   @override
   void dispose() {
+    // Очищаем все контроллеры
+    _pathController.clear();
+    _passwordController.clear();
+
+    // Освобождаем ресурсы
     _pathController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -48,7 +54,13 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
     // Слушаем изменения состояния базы данных
     ref.listen<DatabaseState>(openStoreDatabaseStateProvider, (previous, next) {
       if (next.isOpen && previous?.status != next.status) {
-        // База данных успешно открыта, показываем уведомление
+        // База данных успешно открыта, очищаем данные и показываем уведомление
+        controller.clearAllData();
+
+        // Очищаем текстовые контроллеры
+        _pathController.clear();
+        _passwordController.clear();
+
         Future.microtask(() {
           if (mounted) {
             ToastHelper.success(
@@ -73,247 +85,40 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
       });
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Открыть хранилище'),
-        surfaceTintColor: Colors.transparent,
-        leading: BackButton(
-          onPressed: () {
-            context.go(AppRoutes.home);
-          },
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          // Очищаем данные при системной навигации назад
+          ref.read(openStoreControllerProvider.notifier).clearAllData();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Открыть хранилище'),
+          surfaceTintColor: Colors.transparent,
+          leading: BackButton(
+            onPressed: () {
+              // Очищаем данные перед уходом с экрана
+              ref.read(openStoreControllerProvider.notifier).clearAllData();
+              context.go(AppRoutes.home);
+            },
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      spacing: 16,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Описание
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Открытие хранилища',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Выберите файл хранилища (.hpx) и введите мастер-пароль для его открытия.',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // Найденные файлы БД
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final databaseFilesAsync = ref.watch(
-                              databaseFilesProvider,
-                            );
-
-                            return databaseFilesAsync.when(
-                              data: (result) {
-                                if (result.files.isNotEmpty) {
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      DatabaseFilesList(
-                                        files: result.files,
-                                        selectedFile:
-                                            result.files
-                                                .where(
-                                                  (f) =>
-                                                      f.path ==
-                                                      formState.databasePath,
-                                                )
-                                                .isEmpty
-                                            ? null
-                                            : result.files
-                                                  .where(
-                                                    (f) =>
-                                                        f.path ==
-                                                        formState.databasePath,
-                                                  )
-                                                  .first,
-                                        onFileSelected: (file) {
-                                          controller.selectDatabaseFromInfo(
-                                            file,
-                                          );
-
-                                          _pathController.text = file.path;
-                                          _passwordController.text = '';
-                                          ToastHelper.info(
-                                            title: 'Файл выбран',
-                                            description:
-                                                'Выбран файл: ${file.path}',
-                                          );
-                                        },
-                                        showAllFiles: _showAllFiles,
-                                        onToggleShowAll: () {
-                                          setState(() {
-                                            _showAllFiles = !_showAllFiles;
-                                          });
-                                        },
-                                      ),
-                                      const SizedBox(height: 16),
-                                    ],
-                                  );
-                                }
-                                return const SizedBox.shrink();
-                              },
-                              loading: () => Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Row(
-                                    children: [
-                                      const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Поиск файлов хранилищ...',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodyMedium,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              error: (error, stack) => const SizedBox.shrink(),
-                            );
-                          },
-                        ),
-
-                        // Путь к файлу хранилища
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Выбрать файл вручную',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: _pathController,
-                                    readOnly: true,
-                                    onChanged: controller.updateDatabasePath,
-                                    decoration:
-                                        primaryInputDecoration(
-                                          context,
-                                          labelText: 'Путь к файлу хранилища',
-                                          hintText:
-                                              'Выберите файл хранилища...',
-                                          errorText: formState
-                                              .fieldErrors['databasePath'],
-                                          filled: true,
-                                        ).copyWith(
-                                          prefixIcon: const Icon(Icons.folder),
-                                        ),
-                                    validator: (value) =>
-                                        formState.fieldErrors['databasePath'],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                SmoothButton(
-                                  onPressed: () async {
-                                    await controller.selectDatabaseFile();
-                                    // Синхронизируем контроллер с состоянием
-                                    final newFormState = ref.read(
-                                      openStoreControllerProvider,
-                                    );
-                                    if (newFormState.databasePath.isNotEmpty) {
-                                      _pathController.text =
-                                          newFormState.databasePath;
-                                    }
-                                  },
-                                  type: SmoothButtonType.outlined,
-                                  size: SmoothButtonSize.medium,
-                                  label: 'Выбрать',
-                                  icon: const Icon(Icons.file_open),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        // Мастер пароль
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Мастер-пароль',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            CustomPasswordField(
-                              label: 'Мастер-пароль',
-                              controller: _passwordController,
-                              onChanged: controller.updateMasterPassword,
-                              errorText:
-                                  formState.fieldErrors['masterPassword'],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Введите мастер-пароль, который использовался при создании хранилища.',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.7),
-                                  ),
-                            ),
-                          ],
-                        ),
-
-                        // Информация о выбранном файле
-                        if (formState.databasePath.isNotEmpty) ...[
-                          const Divider(),
+        body: SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(8.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        spacing: 16,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Описание
                           Card(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainer,
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
@@ -322,7 +127,7 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                                   Row(
                                     children: [
                                       Icon(
-                                        Icons.storage,
+                                        Icons.info_outline,
                                         color: Theme.of(
                                           context,
                                         ).colorScheme.primary,
@@ -330,10 +135,10 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Выбранное хранилище',
+                                        'Открытие хранилища',
                                         style: Theme.of(context)
                                             .textTheme
-                                            .titleSmall
+                                            .titleMedium
                                             ?.copyWith(
                                               fontWeight: FontWeight.bold,
                                             ),
@@ -342,26 +147,251 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    formState.databasePath,
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(fontFamily: 'monospace'),
+                                    'Выберите файл хранилища (.${MainConstants.dbExtension}) и введите мастер-пароль для его открытия.',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
                                 ],
                               ),
                             ),
                           ),
+
+                          // Найденные файлы БД
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final databaseFilesAsync = ref.watch(
+                                databaseFilesProvider,
+                              );
+
+                              return databaseFilesAsync.when(
+                                data: (result) {
+                                  if (result.files.isNotEmpty) {
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        DatabaseFilesList(
+                                          files: result.files,
+                                          selectedFile:
+                                              result.files
+                                                  .where(
+                                                    (f) =>
+                                                        f.path ==
+                                                        formState.databasePath,
+                                                  )
+                                                  .isEmpty
+                                              ? null
+                                              : result.files
+                                                    .where(
+                                                      (f) =>
+                                                          f.path ==
+                                                          formState
+                                                              .databasePath,
+                                                    )
+                                                    .first,
+                                          onFileSelected: (file) {
+                                            controller.selectDatabaseFromInfo(
+                                              file,
+                                            );
+
+                                            _pathController.text = file.path;
+                                            _passwordController.text = '';
+                                            ToastHelper.info(
+                                              title: 'Файл выбран',
+                                              description:
+                                                  'Выбран файл: ${file.path}',
+                                            );
+                                          },
+                                          showAllFiles: _showAllFiles,
+                                          onToggleShowAll: () {
+                                            setState(() {
+                                              _showAllFiles = !_showAllFiles;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
+                                      ],
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                                loading: () => Card(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Row(
+                                      children: [
+                                        const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Поиск файлов хранилищ...',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                error: (error, stack) =>
+                                    const SizedBox.shrink(),
+                              );
+                            },
+                          ),
+
+                          // Путь к файлу хранилища
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Выбрать файл вручную',
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      controller: _pathController,
+                                      readOnly: true,
+                                      onChanged: controller.updateDatabasePath,
+                                      decoration:
+                                          primaryInputDecoration(
+                                            context,
+                                            labelText: 'Путь к файлу хранилища',
+                                            hintText:
+                                                'Выберите файл хранилища...',
+                                            errorText: formState
+                                                .fieldErrors['databasePath'],
+                                            filled: true,
+                                          ).copyWith(
+                                            prefixIcon: const Icon(
+                                              Icons.folder,
+                                            ),
+                                          ),
+                                      validator: (value) =>
+                                          formState.fieldErrors['databasePath'],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  SmoothButton(
+                                    onPressed: () async {
+                                      await controller.selectDatabaseFile();
+                                      // Синхронизируем контроллер с состоянием
+                                      final newFormState = ref.read(
+                                        openStoreControllerProvider,
+                                      );
+                                      if (newFormState
+                                          .databasePath
+                                          .isNotEmpty) {
+                                        _pathController.text =
+                                            newFormState.databasePath;
+                                      }
+                                    },
+                                    type: SmoothButtonType.outlined,
+                                    size: SmoothButtonSize.medium,
+                                    label: 'Выбрать',
+                                    icon: const Icon(Icons.file_open),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          // Мастер пароль
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Мастер-пароль',
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              CustomPasswordField(
+                                label: 'Мастер-пароль',
+                                controller: _passwordController,
+                                onChanged: controller.updateMasterPassword,
+                                errorText:
+                                    formState.fieldErrors['masterPassword'],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Введите мастер-пароль, который использовался при создании хранилища.',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.7),
+                                    ),
+                              ),
+                            ],
+                          ),
+
+                          // Информация о выбранном файле
+                          if (formState.databasePath.isNotEmpty) ...[
+                            const Divider(),
+                            Card(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainer,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.storage,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Выбранное хранилище',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      formState.databasePath,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(fontFamily: 'monospace'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Кнопка открытия
-                SizedBox(
-                  width: double.infinity,
-                  child: SmoothButton(
+                  // Кнопка открытия
+                  SmoothButton(
+                    isFullWidth: true,
                     onPressed: isReady
                         ? () async {
                             if (_formKey.currentState?.validate() ?? false) {
@@ -375,12 +405,12 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                     size: SmoothButtonSize.medium,
                     icon: const Icon(Icons.lock_open),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
+        ), // Закрываем Scaffold
       ),
-    );
+    ); // Закрываем PopScope
   }
 }

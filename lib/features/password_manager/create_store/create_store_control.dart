@@ -274,12 +274,6 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      // Проверяем, что файл не существует
-      final file = File(state.finalPath);
-      // if (await file.exists()) {
-      //   throw Exception('Файл с таким именем уже существует');
-      // }
-
       // Создаем DTO для создания базы данных
       final dto = CreateDatabaseDto(
         name: state.storeName,
@@ -345,6 +339,34 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
   void resetForm() {
     state = const CreateStoreFormState();
     _initializeDefaultPath();
+  }
+
+  /// Полная очистка всех данных
+  void clearAllData() {
+    // Очищаем состояние
+    state = const CreateStoreFormState();
+
+    // Логируем очистку данных
+    logDebug(
+      'Выполнена полная очистка данных формы создания хранилища',
+      tag: 'CreateStoreController',
+    );
+  }
+
+  /// Безопасная очистка всех чувствительных данных
+  void clearSensitiveData() {
+    // Очищаем только чувствительные данные (пароли)
+    state = state.copyWith(
+      masterPassword: '',
+      confirmPassword: '',
+      errorMessage: null,
+      fieldErrors: {},
+    );
+
+    logDebug(
+      'Выполнена очистка чувствительных данных формы создания хранилища',
+      tag: 'CreateStoreController',
+    );
   }
 }
 

@@ -35,6 +35,13 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
 
   @override
   void dispose() {
+    // Очищаем все контроллеры
+    _nameController.clear();
+    _descriptionController.clear();
+    _masterPasswordController.clear();
+    _confirmPasswordController.clear();
+
+    // Освобождаем ресурсы
     _nameController.dispose();
     _descriptionController.dispose();
     _masterPasswordController.dispose();
@@ -54,20 +61,21 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
       next,
     ) {
       if (next.isOpen && previous?.status != next.status) {
-        // База данных успешно создана, переходим на главный экран
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   const SnackBar(
-        //     content: Text('Хранилище успешно создано!'),
-        //     backgroundColor: Colors.green,
-        //   ),
-        // );
+        // База данных успешно создана, очищаем данные и переходим на главный экран
+        controller.clearAllData();
 
-        // Toast.success('Хранилище успешно создано!');
-        // context.go(AppRoutes.home);
-        ToastHelper.success(
-          title: 'Успех',
-          description: 'Хранилище успешно создано!',
-        );
+        // Очищаем текстовые контроллеры
+        _nameController.clear();
+        _descriptionController.clear();
+        _masterPasswordController.clear();
+        _confirmPasswordController.clear();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ToastHelper.success(
+            title: 'Успех',
+            description: 'Хранилище успешно создано!',
+          );
+          context.go(AppRoutes.home);
+        });
         // Toast.success('Хранилище успешно создано!');
       }
     });
@@ -92,160 +100,168 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
       });
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Создать хранилище'),
-        surfaceTintColor: Colors.transparent,
-        leading: BackButton(
-          onPressed: () {
-            context.go(AppRoutes.home);
-          },
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          // Очищаем данные при системной навигации назад
+          ref.read(createStoreControllerProvider.notifier).clearAllData();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Создать хранилище'),
+          surfaceTintColor: Colors.transparent,
+          leading: BackButton(
+            onPressed: () {
+              // Очищаем данные перед уходом с экрана
+              ref.read(createStoreControllerProvider.notifier).clearAllData();
+              context.go(AppRoutes.home);
+            },
+          ),
         ),
-      ),
-      body: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.all(8.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              spacing: 8,
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      spacing: 8,
-                      children: [
-                        // Название хранилища
-                        TextFormField(
-                          controller: _nameController,
-                          onChanged: controller.updateStoreName,
-                          decoration:
-                              primaryInputDecoration(
-                                context,
-                                labelText: 'Название хранилища',
-                                filled: true,
-                                errorText: formState.fieldErrors['storeName'],
-                              ).copyWith(
-                                prefixIcon: IconButton(
-                                  icon: const Icon(Icons.title),
-                                  onPressed: () {},
+        body: SafeArea(
+          child: Container(
+            padding: const EdgeInsets.all(8.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                spacing: 8,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        spacing: 8,
+                        children: [
+                          // Название хранилища
+                          TextFormField(
+                            controller: _nameController,
+                            onChanged: controller.updateStoreName,
+                            decoration:
+                                primaryInputDecoration(
+                                  context,
+                                  labelText: 'Название хранилища',
+                                  filled: true,
+                                  errorText: formState.fieldErrors['storeName'],
+                                ).copyWith(
+                                  prefixIcon: IconButton(
+                                    icon: const Icon(Icons.title),
+                                    onPressed: () {},
+                                  ),
                                 ),
-                              ),
-                          validator: (value) =>
-                              formState.fieldErrors['storeName'],
-                        ),
-
-                        // Описание хранилища
-                        TextFormField(
-                          controller: _descriptionController,
-                          onChanged: controller.updateStoreDescription,
-                          decoration:
-                              primaryInputDecoration(
-                                context,
-                                labelText: 'Описание хранилища',
-                                filled: true,
-                                errorText:
-                                    formState.fieldErrors['storeDescription'],
-                              ).copyWith(
-                                prefixIcon: IconButton(
-                                  icon: const Icon(Icons.subtitles),
-                                  onPressed: () {},
-                                ),
-                              ),
-                          minLines: 2,
-                          maxLines: 4,
-                          validator: (value) =>
-                              formState.fieldErrors['storeDescription'],
-                        ),
-
-                        // Мастер пароль
-                        CustomPasswordField(
-                          label: 'Мастер пароль',
-                          controller: _masterPasswordController,
-                          onChanged: controller.updateMasterPassword,
-                          errorText: formState.fieldErrors['masterPassword'],
-                        ),
-
-                        // Подтверждение пароля
-                        CustomPasswordField(
-                          label: 'Подтвердите мастер пароль',
-                          controller: _confirmPasswordController,
-                          onChanged: controller.updateConfirmPassword,
-                          errorText: formState.fieldErrors['confirmPassword'],
-                        ),
-
-                        Divider(
-                          color: Theme.of(context).colorScheme.outline,
-                          radius: BorderRadius.all(Radius.circular(12)),
-                        ),
-
-                        // Выбор типа пути
-                        SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(
-                              value: true,
-                              label: Text('Предустановленный путь'),
-                            ),
-                            ButtonSegment(
-                              value: false,
-                              label: Text('Пользовательский путь'),
-                            ),
-                          ],
-                          selected: <bool>{formState.isDefaultPath},
-                          onSelectionChanged: (Set<bool> newSelection) {
-                            controller.togglePathType(newSelection.first);
-                          },
-                        ),
-
-                        // Итоговый путь
-                        TextFormField(
-                          decoration:
-                              primaryInputDecoration(
-                                context,
-                                labelText: 'Итоговый путь',
-                                helperText:
-                                    'Итоговый путь где будет сохранен файл хранилища',
-                                filled: true,
-                              ).copyWith(
-                                prefixIcon: IconButton(
-                                  icon: const Icon(Icons.folder_open),
-                                  onPressed: formState.isDefaultPath
-                                      ? null
-                                      : () {
-                                          controller.selectCustomPath();
-                                        },
-                                ),
-                              ),
-                          minLines: 1,
-                          maxLines: 3,
-                          readOnly: true,
-                          initialValue: formState.finalPath,
-                          key: ValueKey(
-                            formState.finalPath,
-                          ), // Принудительное обновление
-                          enabled: false,
-                        ),
-
-                        if (!formState.isDefaultPath)
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: formState.isLoading
-                                  ? null
-                                  : controller.selectCustomPath,
-                              icon: const Icon(Icons.folder_open),
-                              label: const Text('Выбрать путь'),
-                            ),
+                            validator: (value) =>
+                                formState.fieldErrors['storeName'],
                           ),
-                      ],
+
+                          // Описание хранилища
+                          TextFormField(
+                            controller: _descriptionController,
+                            onChanged: controller.updateStoreDescription,
+                            decoration:
+                                primaryInputDecoration(
+                                  context,
+                                  labelText: 'Описание хранилища',
+                                  filled: true,
+                                  errorText:
+                                      formState.fieldErrors['storeDescription'],
+                                ).copyWith(
+                                  prefixIcon: IconButton(
+                                    icon: const Icon(Icons.subtitles),
+                                    onPressed: () {},
+                                  ),
+                                ),
+                            minLines: 2,
+                            maxLines: 4,
+                            validator: (value) =>
+                                formState.fieldErrors['storeDescription'],
+                          ),
+
+                          // Мастер пароль
+                          CustomPasswordField(
+                            label: 'Мастер пароль',
+                            controller: _masterPasswordController,
+                            onChanged: controller.updateMasterPassword,
+                            errorText: formState.fieldErrors['masterPassword'],
+                          ),
+
+                          // Подтверждение пароля
+                          CustomPasswordField(
+                            label: 'Подтвердите мастер пароль',
+                            controller: _confirmPasswordController,
+                            onChanged: controller.updateConfirmPassword,
+                            errorText: formState.fieldErrors['confirmPassword'],
+                          ),
+
+                          Divider(
+                            color: Theme.of(context).colorScheme.outline,
+                            radius: BorderRadius.all(Radius.circular(12)),
+                          ),
+
+                          // Выбор типа пути
+                          SegmentedButton<bool>(
+                            segments: const [
+                              ButtonSegment(
+                                value: true,
+                                label: Text('Предустановленный путь'),
+                              ),
+                              ButtonSegment(
+                                value: false,
+                                label: Text('Пользовательский путь'),
+                              ),
+                            ],
+                            selected: <bool>{formState.isDefaultPath},
+                            onSelectionChanged: (Set<bool> newSelection) {
+                              controller.togglePathType(newSelection.first);
+                            },
+                          ),
+
+                          // Итоговый путь
+                          TextFormField(
+                            decoration:
+                                primaryInputDecoration(
+                                  context,
+                                  labelText: 'Итоговый путь',
+                                  helperText:
+                                      'Итоговый путь где будет сохранен файл хранилища',
+                                  filled: true,
+                                ).copyWith(
+                                  prefixIcon: IconButton(
+                                    icon: const Icon(Icons.folder_open),
+                                    onPressed: formState.isDefaultPath
+                                        ? null
+                                        : () {
+                                            controller.selectCustomPath();
+                                          },
+                                  ),
+                                ),
+                            minLines: 1,
+                            maxLines: 3,
+                            readOnly: true,
+                            initialValue: formState.finalPath,
+                            key: ValueKey(
+                              formState.finalPath,
+                            ), // Принудительное обновление
+                            enabled: false,
+                          ),
+
+                          if (!formState.isDefaultPath)
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: formState.isLoading
+                                    ? null
+                                    : controller.selectCustomPath,
+                                icon: const Icon(Icons.folder_open),
+                                label: const Text('Выбрать путь'),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // Кнопка создания
-                SizedBox(
-                  width: double.infinity,
-                  child: SmoothButton(
+                  // Кнопка создания
+                  SmoothButton(
+                    isFullWidth: true,
                     onPressed: isReady
                         ? () async {
                             if (_formKey.currentState?.validate() ?? false) {
@@ -259,8 +275,8 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
                     size: SmoothButtonSize.medium,
                     icon: const Icon(Icons.add),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
