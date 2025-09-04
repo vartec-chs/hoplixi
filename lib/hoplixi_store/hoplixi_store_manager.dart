@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:hoplixi/hoplixi_store/services/database_connection_service.dart';
 import 'package:hoplixi/hoplixi_store/services/database_validation_service.dart';
+import 'package:hoplixi/hoplixi_store/history.dart';
 
 import 'state.dart';
 import 'dto/db_dto.dart';
@@ -19,10 +20,13 @@ import 'package:path/path.dart' as p;
 
 class HoplixiStoreManager {
   HoplixiStore? _database;
+  DatabaseHistoryService? _historyService;
 
   static const String _dbExtension = MainConstants.dbExtension;
 
   HoplixiStore? get database => _database;
+  DatabaseHistoryService get historyService =>
+      _historyService ??= DatabaseHistoryService();
 
   bool get hasOpenDatabase => _database != null;
 
@@ -176,6 +180,16 @@ class HoplixiStoreManager {
         );
       }
 
+      // Закрываем сервис истории
+      if (_historyService != null) {
+        await _historyService!.dispose();
+        _historyService = null;
+        logDebug(
+          'Сервис истории закрыт при освобождении ресурсов',
+          tag: 'EncryptedDatabaseManager',
+        );
+      }
+
       logInfo(
         'Ресурсы EncryptedDatabaseManager освобождены',
         tag: 'EncryptedDatabaseManager',
@@ -188,6 +202,7 @@ class HoplixiStoreManager {
       );
       // Все равно пытаемся очистить состояние
       _database = null;
+      _historyService = null;
     }
   }
 
@@ -364,13 +379,13 @@ class HoplixiStoreManager {
     _database = database;
 
     // Записываем информацию о базе данных в историю
-    // await _recordDatabaseEntry(
-    //   path: dbPath,
-    //   name: dto.name,
-    //   description: dto.description,
-    //   masterPassword: dto.masterPassword,
-    //   saveMasterPassword: dto.saveMasterPassword,
-    // );
+    await _recordDatabaseEntry(
+      path: dbPath,
+      name: dto.name,
+      description: dto.description,
+      masterPassword: dto.masterPassword,
+      saveMasterPassword: dto.saveMasterPassword,
+    );
   }
 
   /// Завершает открытие базы данных
@@ -383,55 +398,155 @@ class HoplixiStoreManager {
     _database = database;
 
     // Записываем/обновляем информацию о базе данных в истории
-    // try {
-    //   await _recordDatabaseEntry(
-    //     path: dto.path,
-    //     name: meta.name.isNotEmpty
-    //         ? meta.name
-    //         : p.basenameWithoutExtension(dto.path),
-    //     description: meta.description,
-    //     masterPassword: dto.masterPassword,
-    //     saveMasterPassword: dto.saveMasterPassword,
-    //   );
-    //   logDebug(
-    //     'Информация о базе данных обновлена в истории',
-    //     tag: 'EncryptedDatabaseManager',
-    //   );
-    // } catch (historyError) {
-    //   logWarning(
-    //     'Ошибка обновления истории (не критично): $historyError',
-    //     tag: 'EncryptedDatabaseManager',
-    //     data: {'error': historyError.toString()},
-    //   );
+    try {
+      await _recordDatabaseEntry(
+        path: dto.path,
+        name: meta.name.isNotEmpty
+            ? meta.name
+            : p.basenameWithoutExtension(dto.path),
+        description: meta.description,
+        masterPassword: dto.masterPassword,
+        saveMasterPassword: dto.saveMasterPassword,
+      );
+      logDebug(
+        'Информация о базе данных обновлена в истории',
+        tag: 'EncryptedDatabaseManager',
+      );
+    } catch (historyError) {
+      logWarning(
+        'Ошибка обновления истории (не критично): $historyError',
+        tag: 'EncryptedDatabaseManager',
+        data: {'error': historyError.toString()},
+      );
+    }
   }
 
   /// Записывает информацию о базе данных в историю
-  // Future<void> _recordDatabaseEntry({
-  //   required String path,
-  //   required String name,
-  //   String? description,
-  //   String? masterPassword,
-  //   bool saveMasterPassword = false,
-  // }) async {
-  //   try {
-  //     await _historyService.recordDatabaseAccess(
-  //       path: path,
-  //       name: name,
-  //       description: description,
-  //       masterPassword: masterPassword,
-  //       saveMasterPassword: saveMasterPassword,
-  //     );
-  //     logDebug(
-  //       'Информация о базе данных записана в историю',
-  //       tag: 'EncryptedDatabaseManager',
-  //       data: {'path': path, 'name': name},
-  //     );
-  //   } catch (e) {
-  //     logWarning(
-  //       'Не удалось записать информацию о базе данных в историю (не критично)',
-  //       tag: 'EncryptedDatabaseManager',
-  //       data: {'path': path, 'error': e.toString()},
-  //     );
-  //   }
-  // }
+  Future<void> _recordDatabaseEntry({
+    required String path,
+    required String name,
+    String? description,
+    String? masterPassword,
+    bool saveMasterPassword = false,
+  }) async {
+    try {
+      await historyService.recordDatabaseAccess(
+        path: path,
+        name: name,
+        description: description,
+        masterPassword: masterPassword,
+        saveMasterPassword: saveMasterPassword,
+      );
+      logDebug(
+        'Информация о базе данных записана в историю',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': path, 'name': name},
+      );
+    } catch (e) {
+      logWarning(
+        'Не удалось записать информацию о базе данных в историю (не критично)',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': path, 'error': e.toString()},
+      );
+    }
+  }
+
+  // Методы для работы с историей
+
+  /// Получить всю историю баз данных
+  Future<List<DatabaseEntry>> getDatabaseHistory() async {
+    try {
+      return await historyService.getAllHistory();
+    } catch (e) {
+      logError(
+        'Ошибка получения истории БД',
+        error: e,
+        tag: 'HoplixiStoreManager',
+      );
+      return [];
+    }
+  }
+
+  /// Получить запись из истории по пути
+  Future<DatabaseEntry?> getDatabaseHistoryEntry(String path) async {
+    try {
+      return await historyService.getEntryByPath(path);
+    } catch (e) {
+      logError(
+        'Ошибка получения записи истории БД',
+        error: e,
+        tag: 'HoplixiStoreManager',
+        data: {'path': path},
+      );
+      return null;
+    }
+  }
+
+  /// Удалить запись из истории
+  Future<void> removeDatabaseHistoryEntry(String path) async {
+    try {
+      await historyService.removeEntry(path);
+      logInfo(
+        'Запись удалена из истории БД',
+        tag: 'HoplixiStoreManager',
+        data: {'path': path},
+      );
+    } catch (e) {
+      logError(
+        'Ошибка удаления записи из истории БД',
+        error: e,
+        tag: 'HoplixiStoreManager',
+        data: {'path': path},
+      );
+      rethrow;
+    }
+  }
+
+  /// Очистить всю историю
+  Future<void> clearDatabaseHistory() async {
+    try {
+      await historyService.clearHistory();
+      logInfo('История БД очищена', tag: 'HoplixiStoreManager');
+    } catch (e) {
+      logError(
+        'Ошибка очистки истории БД',
+        error: e,
+        tag: 'HoplixiStoreManager',
+      );
+      rethrow;
+    }
+  }
+
+  /// Получить статистику истории
+  Future<Map<String, dynamic>> getDatabaseHistoryStats() async {
+    try {
+      return await historyService.getHistoryStats();
+    } catch (e) {
+      logError(
+        'Ошибка получения статистики истории БД',
+        error: e,
+        tag: 'HoplixiStoreManager',
+      );
+      return {
+        'totalEntries': 0,
+        'entriesWithSavedPasswords': 0,
+        'oldestEntry': null,
+        'newestEntry': null,
+      };
+    }
+  }
+
+  /// Получить записи с сохраненными паролями
+  Future<List<DatabaseEntry>> getDatabaseHistoryWithSavedPasswords() async {
+    try {
+      return await historyService.getEntriesWithSavedPasswords();
+    } catch (e) {
+      logError(
+        'Ошибка получения записей с сохраненными паролями',
+        error: e,
+        tag: 'HoplixiStoreManager',
+      );
+      return [];
+    }
+  }
 }
