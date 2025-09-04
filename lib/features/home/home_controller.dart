@@ -32,6 +32,8 @@ class HomeController extends ChangeNotifier {
     await _loadRecentDatabase();
   }
 
+  //TODO: Warning: Failed to read record c:\users\vartec\documents\hoplixi\storages\test.hpl: SegmentCorruptError: Failed to read record c:\users\vartec\documents\hoplixi\storages\test.hpl: SegmentCorruptError: Checksum mismatch for record c:\users\vartec\documents\hoplixi\storages\test.hpl. Expected: 00f196da6deab6710e27613c6a2ecf6d49a274ac9661b267df82041d0fe6e06a, Got: 424a4d76e586a1f8bec3fba947ef5a1348267fd5f0ca30f8a8086fafa6465a04 исправить работу с конкурентными блокировками
+
   /// Загружает информацию о недавно открытой базе данных
   Future<void> _loadRecentDatabase() async {
     try {
@@ -109,7 +111,7 @@ class HomeController extends ChangeNotifier {
       );
 
       // Обновляем информацию о недавней базе данных
-      await _loadRecentDatabase();
+      await _safeReloadHistory();
 
       return result;
     } catch (e, stackTrace) {
@@ -162,7 +164,7 @@ class HomeController extends ChangeNotifier {
       );
 
       // Обновляем информацию о недавней базе данных
-      await _loadRecentDatabase();
+      await _safeReloadHistory();
 
       return result;
     } catch (e, stackTrace) {
@@ -217,7 +219,7 @@ class HomeController extends ChangeNotifier {
       );
 
       // Обновляем информацию о недавней базе данных
-      await _loadRecentDatabase();
+      await _safeReloadHistory();
 
       return result;
     } catch (e, stackTrace) {
@@ -255,7 +257,7 @@ class HomeController extends ChangeNotifier {
       );
 
       // Перезагружаем список
-      await _loadRecentDatabase();
+      await _safeReloadHistory();
     } catch (e, stackTrace) {
       _setError('Ошибка удаления из истории: ${e.toString()}');
       logError(
@@ -285,6 +287,31 @@ class HomeController extends ChangeNotifier {
         'oldestEntry': null,
         'newestEntry': null,
       };
+    }
+  }
+
+  /// Безопасная перезагрузка истории БД с повторными попытками
+  Future<void> _safeReloadHistory({int maxRetries = 3}) async {
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await _loadRecentDatabase();
+        return; // Успешно загружено
+      } catch (e) {
+        if (attempt == maxRetries - 1) {
+          // Последняя попытка не удалась
+          logError(
+            'Не удалось загрузить историю БД после $maxRetries попыток',
+            error: e,
+            tag: 'HomeController',
+          );
+          _recentDatabase = null;
+          notifyListeners();
+          return;
+        }
+
+        // Ждем перед следующей попыткой
+        await Future.delayed(Duration(milliseconds: 200 * (attempt + 1)));
+      }
     }
   }
 

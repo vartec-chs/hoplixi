@@ -4,9 +4,11 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/services/database_connection_service.dart';
+import 'package:hoplixi/hoplixi_store/services/database_history_service.dart';
 import 'package:hoplixi/hoplixi_store/services/database_validation_service.dart';
-import 'package:hoplixi/hoplixi_store/history.dart';
+
 
 import 'state.dart';
 import 'dto/db_dto.dart';

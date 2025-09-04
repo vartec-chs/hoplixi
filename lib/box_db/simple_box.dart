@@ -199,27 +199,79 @@ class SimpleBox<T> {
   /// Создание блокировки файла для предотвращения конкурентного доступа
   Future<void> _acquireFileLock() async {
     try {
-      if (await _lockFile.exists()) {
-        // Проверяем, не является ли блокировка устаревшей (больше 30 секунд)
-        final lockStat = await _lockFile.stat();
-        final now = DateTime.now();
-        final lockAge = now.difference(lockStat.modified);
+      final maxRetries = 10;
+      const retryDelay = Duration(milliseconds: 100);
 
-        if (lockAge.inSeconds > 30) {
-          print('Warning: Removing stale lock file');
-          await _lockFile.delete();
-        } else {
-          throw ManifestError('Box is locked by another process');
+      for (int attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          if (await _lockFile.exists()) {
+            // Проверяем, не является ли блокировка устаревшей (больше 30 секунд)
+            final lockStat = await _lockFile.stat();
+            final now = DateTime.now();
+            final lockAge = now.difference(lockStat.modified);
+
+            if (lockAge.inSeconds > 30) {
+              print(
+                'Warning: Removing stale lock file (age: ${lockAge.inSeconds}s)',
+              );
+              try {
+                await _lockFile.delete();
+              } catch (e) {
+                // Если не можем удалить, возможно другой процесс уже это сделал
+                if (attempt == maxRetries - 1) {
+                  throw ManifestError('Cannot remove stale lock file: $e');
+                }
+                await Future.delayed(retryDelay);
+                continue;
+              }
+            } else {
+              if (attempt == maxRetries - 1) {
+                throw ManifestError(
+                  'Box is locked by another process (lock age: ${lockAge.inSeconds}s)',
+                );
+              }
+              await Future.delayed(retryDelay);
+              continue;
+            }
+          }
+
+          // Пытаемся создать блокировку атомарно
+          final lockContent = '${DateTime.now().toIso8601String()}\n${pid}\n';
+
+          // Используем временный файл для атомарного создания блокировки
+          final tempLockFile = File('${_lockFile.path}.tmp');
+          await tempLockFile.writeAsString(lockContent);
+
+          try {
+            // Пытаемся переименовать временный файл в файл блокировки
+            // Это атомарная операция на большинстве файловых систем
+            await tempLockFile.rename(_lockFile.path);
+            return; // Успешно получили блокировку
+          } catch (e) {
+            // Блокировка уже существует, убираем временный файл
+            try {
+              await tempLockFile.delete();
+            } catch (_) {}
+
+            if (attempt == maxRetries - 1) {
+              throw ManifestError(
+                'Failed to acquire file lock after $maxRetries attempts: $e',
+              );
+            }
+            await Future.delayed(retryDelay);
+          }
+        } catch (e) {
+          if (e is ManifestError) rethrow;
+          if (attempt == maxRetries - 1) {
+            throw ManifestError('Failed to acquire file lock: $e');
+          }
+          await Future.delayed(retryDelay);
         }
       }
-
-      await _lockFile.writeAsString('${DateTime.now().toIso8601String()}\n');
     } on FileSystemException catch (e) {
       throw ManifestError(
         'Failed to acquire file lock due to file system error: ${e.message}',
       );
-    } catch (e) {
-      throw ManifestError('Failed to acquire file lock: $e');
     }
   }
 
@@ -538,7 +590,7 @@ class SimpleBox<T> {
   }
 
   /// Добавить документ с указанным ID (устаревший метод)
-  @Deprecated('Use add() method instead for auto-generated IDs')
+  // @Deprecated('Use add() method instead for auto-generated IDs')
   Future<void> put(String id, T document) async {
     _ensureInitialized();
     if (id.isEmpty) {
@@ -583,8 +635,136 @@ class SimpleBox<T> {
         return false; // Документ не найден
       }
 
+      // Для обновления используем ту же логику записи, что и для новых записей
+      // Это добавит новую запись в конец файла, а старая запись останется как tombstone
       await _writeRecordUnsafe(id, document, deleted: false);
       return true;
+    });
+  }
+
+  /// Обновить существующий документ на месте (перезаписать в том же месте файла)
+  ///
+  /// ВАЖНО: Этот метод безопасно перезаписывает данные в том же месте файла:
+  /// 1. Сначала записывает JSON данные
+  /// 2. Заполняет оставшееся место пробелами (если новые данные короче)
+  /// 3. Записывает '\n' в последний байт блока
+  ///
+  /// Такой подход гарантирует, что при чтении '\n' будет последним символом,
+  /// что позволит правильно нормализовать строку и сохранить корректность контрольных сумм.
+  ///
+  /// Если новая запись не помещается в старое место, то старая запись помечается как удаленная
+  /// в индексе, а новая добавляется в конец файла.
+  Future<bool> updateInPlace(String id, T document) async {
+    _ensureInitialized();
+    if (id.isEmpty) {
+      throw ArgumentError('ID cannot be empty');
+    }
+    if (document == null) {
+      throw ArgumentError('Document cannot be null');
+    }
+
+    return await _mutex.synchronized(() async {
+      final entry = _index[id];
+      if (entry == null || entry.isDeleted) {
+        return false; // Документ не найден
+      }
+
+      // Создаем новую запись
+      final record = {
+        'id': id,
+        'data': toMap(document),
+        'deleted': false,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+      };
+
+      String jsonLine = jsonEncode(record);
+
+      // Шифрование если нужно
+      if (crypto != null) {
+        try {
+          final encrypted = await crypto!.encryptUtf8WithAutoNonce(jsonLine);
+          jsonLine = jsonEncode(encrypted);
+        } catch (e) {
+          throw WriterError('Failed to encrypt record: $e');
+        }
+      }
+
+      // Кодируем JSON без переноса строки для расчета размера
+      final jsonBytes = utf8.encode(jsonLine);
+      final newLength = jsonBytes.length + 1; // +1 для '\n' в конце
+
+      // Проверяем, помещается ли новая запись в старое место
+      if (newLength <= entry.length) {
+        // Обновляем на месте
+        try {
+          // Используем FileMode.writeOnly для произвольной записи
+          final file = await _dataFile.open(mode: FileMode.writeOnly);
+          try {
+            await file.setPosition(entry.offset);
+
+            // Записываем JSON данные
+            await file.writeFrom(jsonBytes);
+
+            // Если новая запись короче старой, заполняем пробелами
+            if (newLength < entry.length) {
+              final paddingLength = entry.length - newLength;
+              final padding = List.filled(paddingLength, 32); // пробелы
+              await file.writeFrom(padding);
+            }
+
+            // Записываем '\n' в последний байт
+            await file.setPosition(entry.offset + entry.length - 1);
+            await file.writeFrom([10]); // '\n'
+
+            await file.flush();
+          } finally {
+            await file.close();
+          }
+
+          // Обновляем индекс с правильной контрольной суммой
+          final newChecksum = _calculateChecksum(jsonLine);
+          final updatedEntry = IndexEntry(
+            id: id,
+            offset: entry.offset,
+            length: entry.length, // сохраняем старую длину
+            isDeleted: false,
+            timestamp: record['timestamp'] as String,
+            checksum: newChecksum,
+          );
+
+          _index[id] = updatedEntry;
+          await _saveIndex();
+
+          return true;
+        } catch (e) {
+          throw WriterError('Failed to update record in place: $e');
+        }
+      } else {
+        // Новая запись не помещается в старое место
+        // Помечаем старую запись как tombstone в индексе
+        final oldEntry = IndexEntry(
+          id: id,
+          offset: entry.offset,
+          length: entry.length,
+          isDeleted: true,
+          timestamp: DateTime.now().toUtc().toIso8601String(),
+          checksum: entry.checksum, // сохраняем старую контрольную сумму
+        );
+
+        // Добавляем tombstone в индексный файл
+        await _appendToIndex(oldEntry);
+
+        // Увеличиваем счетчик удаленных записей
+        _deletedRecordsCount++;
+
+        // Добавляем новую запись в конец файла
+        await _writeRecordUnsafe(id, document, deleted: false);
+
+        // Проверяем необходимость автоматической компактификации
+        await _checkAutoCompaction();
+
+        return true;
+      }
     });
   }
 
@@ -701,7 +881,7 @@ class SimpleBox<T> {
       final fileSize = await _dataFile.exists() ? await _dataFile.length() : 0;
 
       // Записываем с использованием RandomAccessFile для большей надежности
-      final file = await _dataFile.open(mode: FileMode.append);
+      final file = await _dataFile.open(mode: FileMode.writeOnlyAppend);
       try {
         await file.setPosition(fileSize);
         final lineWithNewline = '$jsonLine\n';
@@ -760,7 +940,7 @@ class SimpleBox<T> {
       final json = jsonEncode(entry.toJson());
       final lineWithNewline = '$json\n';
 
-      final file = await _indexFile.open(mode: FileMode.append);
+      final file = await _indexFile.open(mode: FileMode.writeOnlyAppend);
       try {
         final bytes = utf8.encode(lineWithNewline);
         await file.writeFrom(bytes);

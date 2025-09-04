@@ -29,7 +29,7 @@ class WindowManager {
 class AppWindowListener with WindowListener {
   @override
   void onWindowEvent(String eventName) {
-    if (eventName != "move" || eventName != "moved") {
+    if (eventName != "move") {
       logInfo('Window $eventName', tag: 'WindowManager');
     }
   }

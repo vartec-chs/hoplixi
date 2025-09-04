@@ -19,7 +19,9 @@ class DatabaseHistoryService {
     try {
       // Получаем директорию для хранения истории
       final appDir = await getApplicationDocumentsDirectory();
-      final historyDir = Directory(p.join(appDir.path, MainConstants.appFolderName, 'box'));
+      final historyDir = Directory(
+        p.join(appDir.path, MainConstants.appFolderName, 'box'),
+      );
 
       // Инициализируем менеджер коробок
       _boxManager = await SimpleBoxManager.getInstance(
@@ -63,31 +65,50 @@ class DatabaseHistoryService {
 
     try {
       final now = DateTime.now();
-
-      // Создаем или обновляем запись
-      final entry = DatabaseEntry(
-        path: path,
-        name: name,
-        description: description,
-        masterPassword: saveMasterPassword ? masterPassword : null,
-        saveMasterPassword: saveMasterPassword,
-        lastAccessed: now,
-        createdAt: now,
-      );
-
-      // Используем путь как ключ для обновления существующих записей
       final key = _pathToKey(path);
 
       // Проверяем, есть ли уже запись с таким путем
       final existingEntry = await _historyBox!.get(key);
+
+      final DatabaseEntry entry;
       if (existingEntry != null) {
         // Обновляем существующую запись, сохраняя дату создания
-        final updatedEntry = entry.copyWith(createdAt: existingEntry.createdAt);
-        await _historyBox!.put(key, updatedEntry);
+        entry = DatabaseEntry(
+          path: path,
+          name: name,
+          description: description,
+          masterPassword: saveMasterPassword ? masterPassword : null,
+          saveMasterPassword: saveMasterPassword,
+          lastAccessed: now,
+          createdAt:
+              existingEntry.createdAt, // Сохраняем исходную дату создания
+        );
+        await _historyBox!.updateInPlace(key, entry);
+        logDebug(
+          'Обновление существующей записи в истории для пути: $path',
+          tag: 'DatabaseHistoryService',
+        );
       } else {
         // Создаем новую запись
+        entry = DatabaseEntry(
+          path: path,
+          name: name,
+          description: description,
+          masterPassword: saveMasterPassword ? masterPassword : null,
+          saveMasterPassword: saveMasterPassword,
+          lastAccessed: now,
+          createdAt:
+              now, // Устанавливаем дату создания только для новых записей
+        );
+
+        logDebug(
+          'Создание новой записи в истории для пути: $path',
+          tag: 'DatabaseHistoryService',
+        );
         await _historyBox!.put(key, entry);
       }
+
+      // Сохраняем запись
 
       logDebug(
         'Запись о доступе к БД добавлена в историю',
@@ -251,7 +272,7 @@ class DatabaseHistoryService {
           lastAccessed: DateTime.now(),
         );
 
-        await _historyBox!.put(key, updatedEntry);
+        await _historyBox!.updateInPlace(key, updatedEntry);
 
         logDebug(
           'Информация о БД обновлена',
