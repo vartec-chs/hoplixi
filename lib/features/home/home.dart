@@ -4,13 +4,72 @@ import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/router/routes_path.dart';
+import 'home_controller.dart';
+import 'widgets/index.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late final HomeController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = HomeController();
+    _initializeController();
+  }
+
+  Future<void> _initializeController() async {
+    await _controller.initialize();
+
+    // Если пароль сохранен, предлагаем автоматическое открытие
+    if (_controller.canAutoOpen && mounted) {
+      _showAutoOpenDialog();
+    }
+  }
+
+  void _showAutoOpenDialog() {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Автоматическое открытие'),
+        content: Text(
+          'Найдена недавно открытая база данных "${_controller.recentDatabase?.name}" с сохраненным паролем. Открыть автоматически?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Пропустить'),
+          ),
+          SmoothButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _handleAutoOpen();
+            },
+            label: 'Открыть',
+            icon: const Icon(Icons.lock_open, size: 18),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
         child: Container(
@@ -28,19 +87,37 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
 
+              // Карточка недавней базы данных
+              SliverToBoxAdapter(
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    if (_controller.hasRecentDatabase) {
+                      return RecentDatabaseCard(
+                        database: _controller.recentDatabase!,
+                        isLoading: _controller.isLoading,
+                        isAutoOpening: _controller.isAutoOpening,
+                        onOpenAuto: _handleAutoOpen,
+                        onOpenManual: _handleManualOpen,
+                        onRemove: _handleRemove,
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+
               SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   spacing: 2,
-
                   children: [
                     SmoothButton(
                       onPressed: () {
                         context.go(AppRoutes.openStore);
                       },
                       isFullWidth: true,
-
                       label: 'Открыть хранилище',
                       icon: const Icon(Icons.file_open_sharp, size: 32),
                     ),
@@ -59,12 +136,120 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              SliverToBoxAdapter(child: const SizedBox(height: 16)),
-              SliverToBoxAdapter(child: const Divider(height: 2)),
-              SliverToBoxAdapter(child: const SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: Divider(height: 2)),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+              // Показываем ошибки если есть
+              SliverToBoxAdapter(
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    if (_controller.error != null) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _controller.error!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Future<void> _handleAutoOpen() async {
+    final result = await _controller.autoOpenRecentDatabase();
+    if (result != null && mounted) {
+      // Переходим к экрану базы данных
+      _navigateToDatabase();
+    }
+  }
+
+  Future<void> _handleManualOpen() async {
+    if (!_controller.hasRecentDatabase) return;
+
+    final result = await DatabasePasswordDialog.show(
+      context,
+      _controller.recentDatabase!,
+    );
+
+    if (result != null && mounted) {
+      final dbResult = result.savePassword
+          ? await _controller.openRecentDatabaseWithPasswordAndSave(
+              result.password,
+            )
+          : await _controller.openRecentDatabaseWithPassword(result.password);
+
+      if (dbResult != null && mounted) {
+        _navigateToDatabase();
+      }
+    }
+  }
+
+  Future<void> _handleRemove() async {
+    final confirmed = await _showRemoveConfirmDialog();
+    if (confirmed == true) {
+      await _controller.removeRecentDatabase();
+    }
+  }
+
+  Future<bool?> _showRemoveConfirmDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить из истории'),
+        content: Text(
+          'Удалить "${_controller.recentDatabase?.name}" из истории недавно открытых баз данных?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Отмена'),
+          ),
+          SmoothButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            label: 'Удалить',
+            icon: const Icon(Icons.delete, size: 18),
+            type: SmoothButtonType.outlined,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToDatabase() {
+    // TODO: Добавить навигацию к главному экрану базы данных
+    // context.go(AppRoutes.database);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('База данных успешно открыта!'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
