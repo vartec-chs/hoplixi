@@ -7,6 +7,7 @@ class CustomPasswordField extends StatefulWidget {
   final String? hintText;
   final TextEditingController? controller;
   final void Function(String)? onChanged;
+  final void Function(String)? onFieldSubmitted;
   final String? Function(String?)? validator;
   final void Function(String?)? onSaved;
   final String? errorText;
@@ -30,6 +31,7 @@ class CustomPasswordField extends StatefulWidget {
     this.validator,
     this.onSaved,
     this.errorText,
+    this.onFieldSubmitted,
     this.enabled = true,
     this.readOnly = false,
     this.autofocus = false,
@@ -91,6 +93,7 @@ class _CustomPasswordFieldState extends State<CustomPasswordField> {
       focusNode: widget.focusNode,
       onTap: widget.onTap,
       decoration: effectiveDecoration,
+      onFieldSubmitted: widget.onFieldSubmitted,
     );
   }
 }

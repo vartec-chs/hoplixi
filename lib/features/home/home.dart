@@ -89,25 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Карточка недавней базы данных
               SliverToBoxAdapter(
-                child: ListenableBuilder(
-                  listenable: _controller,
-                  builder: (context, _) {
-                    if (_controller.hasRecentDatabase) {
-                      return RecentDatabaseCard(
-                        database: _controller.recentDatabase!,
-                        isLoading: _controller.isLoading,
-                        isAutoOpening: _controller.isAutoOpening,
-                        onOpenAuto: _handleAutoOpen,
-                        onOpenManual: _handleManualOpen,
-                        onRemove: _handleRemove,
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ),
-
-              SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -138,6 +119,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),
               const SliverToBoxAdapter(child: Divider(height: 2)),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              SliverToBoxAdapter(
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    if (_controller.hasRecentDatabase) {
+                      return RecentDatabaseCard(
+                        database: _controller.recentDatabase!,
+                        isLoading: _controller.isLoading,
+                        isAutoOpening: _controller.isAutoOpening,
+                        onOpenAuto: _handleAutoOpen,
+                        onOpenManual: _handleManualOpen,
+                        onRemove: _handleRemove,
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
               // Показываем ошибки если есть

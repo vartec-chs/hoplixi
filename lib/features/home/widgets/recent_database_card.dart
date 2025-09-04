@@ -194,45 +194,47 @@ class RecentDatabaseCard extends StatelessWidget {
         database.saveMasterPassword &&
         database.masterPassword?.isNotEmpty == true;
 
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
         // Кнопка автоматического открытия (если пароль сохранен)
-        if (canAutoOpen) ...[
-          Expanded(
-            flex: 2,
-            child: SmoothButton(
-              onPressed: isLoading ? null : onOpenAuto,
-              label: 'Открыть',
-              icon: const Icon(Icons.lock_open, size: 18),
-              loading: isLoading,
-            ),
+        if (canAutoOpen)
+          SmoothButton(
+            isFullWidth: true,
+            onPressed: isLoading ? null : onOpenAuto,
+            label: 'Открыть',
+            icon: const Icon(Icons.lock_open, size: 18),
+            loading: isLoading,
           ),
-          const SizedBox(width: 8),
-        ],
+
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          spacing: 8,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SmoothButton(
+              onPressed: isLoading ? null : onOpenManual,
+              type: canAutoOpen
+                  ? SmoothButtonType.outlined
+                  : SmoothButtonType.filled,
+              label: canAutoOpen ? 'Другой пароль' : 'Открыть',
+              icon: Icon(canAutoOpen ? Icons.key : Icons.lock_open, size: 18),
+            ),
+
+            // Кнопка удаления из истории
+            IconButton(
+              onPressed: isLoading ? null : onRemove,
+              icon: const Icon(Icons.delete, size: 20),
+              tooltip: 'Удалить из истории',
+              style: IconButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
+        ),
 
         // Кнопка ручного открытия
-        Expanded(
-          child: SmoothButton(
-            onPressed: isLoading ? null : onOpenManual,
-            type: canAutoOpen
-                ? SmoothButtonType.outlined
-                : SmoothButtonType.filled,
-            label: canAutoOpen ? 'Другой пароль' : 'Открыть',
-            icon: Icon(canAutoOpen ? Icons.key : Icons.lock_open, size: 18),
-          ),
-        ),
-
-        const SizedBox(width: 8),
-
-        // Кнопка удаления из истории
-        IconButton(
-          onPressed: isLoading ? null : onRemove,
-          icon: const Icon(Icons.close),
-          tooltip: 'Удалить из истории',
-          style: IconButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.error,
-          ),
-        ),
       ],
     );
   }

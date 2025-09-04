@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/common/button.dart';
 
@@ -38,7 +39,6 @@ class DatabasePasswordDialog extends StatefulWidget {
 class _DatabasePasswordDialogState extends State<DatabasePasswordDialog> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _obscurePassword = true;
   bool _savePassword = false;
   bool _isLoading = false;
 
@@ -122,27 +122,44 @@ class _DatabasePasswordDialogState extends State<DatabasePasswordDialog> {
             const SizedBox(height: 16),
 
             // Поле ввода пароля
-            TextFormField(
+            // TextFormField(
+            //   controller: _passwordController,
+            //   obscureText: _obscurePassword,
+            //   autofocus: true,
+            //   enabled: !_isLoading,
+            //   decoration: InputDecoration(
+            //     labelText: 'Мастер-пароль',
+            //     hintText: 'Введите пароль для открытия базы данных',
+            //     prefixIcon: const Icon(Icons.lock),
+            //     suffixIcon: IconButton(
+            //       icon: Icon(
+            //         _obscurePassword ? Icons.visibility : Icons.visibility_off,
+            //       ),
+            //       onPressed: () {
+            //         setState(() {
+            //           _obscurePassword = !_obscurePassword;
+            //         });
+            //       },
+            //     ),
+            //     border: const OutlineInputBorder(),
+            //   ),
+            //   validator: (value) {
+            //     if (value == null || value.trim().isEmpty) {
+            //       return 'Пароль не может быть пустым';
+            //     }
+            //     if (value.length < 3) {
+            //       return 'Пароль слишком короткий';
+            //     }
+            //     return null;
+            //   },
+            //   onFieldSubmitted: (_) => _handleSubmit(),
+            // ),
+            CustomPasswordField(
+              label: 'Мастер-пароль',
               controller: _passwordController,
-              obscureText: _obscurePassword,
               autofocus: true,
               enabled: !_isLoading,
-              decoration: InputDecoration(
-                labelText: 'Мастер-пароль',
-                hintText: 'Введите пароль для открытия базы данных',
-                prefixIcon: const Icon(Icons.lock),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-                border: const OutlineInputBorder(),
-              ),
+
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Пароль не может быть пустым';
@@ -153,6 +170,7 @@ class _DatabasePasswordDialogState extends State<DatabasePasswordDialog> {
                 return null;
               },
               onFieldSubmitted: (_) => _handleSubmit(),
+              hintText: 'Введите пароль для открытия базы данных',
             ),
 
             const SizedBox(height: 16),
