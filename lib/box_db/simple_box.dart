@@ -708,8 +708,16 @@ class SimpleBox<T> {
             }
           });
 
-          // Обновляем индекс с правильной контрольной суммой
-          final newChecksum = _calculateChecksum(jsonLine);
+          // Вычисляем контрольную сумму от того, что фактически записано в блок
+          String actualRecordedData = jsonLine;
+          if (newLength < entry.length) {
+            // Добавляем пробелы, которые были записаны как padding
+            final paddingLength = entry.length - newLength;
+            final padding = ' ' * paddingLength;
+            actualRecordedData = jsonLine + padding;
+          }
+
+          final newChecksum = _calculateChecksum(actualRecordedData);
           final updatedEntry = IndexEntry(
             id: id,
             offset: entry.offset,
@@ -788,6 +796,7 @@ class SimpleBox<T> {
               ? line.substring(0, line.length - 1)
               : line;
 
+          // TODO: ошибки при обовлении данных - контрольная сумма не совпадает
           // Проверяем контрольную сумму при чтении (консистентно)
           final calculatedChecksum = _calculateChecksum(normalizedLine);
           if (calculatedChecksum != entry.checksum) {

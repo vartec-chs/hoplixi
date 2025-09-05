@@ -9,7 +9,6 @@ import 'package:hoplixi/hoplixi_store/services/database_connection_service.dart'
 import 'package:hoplixi/hoplixi_store/services/database_history_service.dart';
 import 'package:hoplixi/hoplixi_store/services/database_validation_service.dart';
 
-
 import 'state.dart';
 import 'dto/db_dto.dart';
 import 'dto/database_file_info.dart';
@@ -43,6 +42,14 @@ class HoplixiStoreManager {
 
     final dbPath = await _prepareDatabasePath(dto);
     await DatabaseValidationService.validateDatabaseCreation(dbPath);
+
+    if (hasOpenDatabase) {
+      logWarning(
+        'Закрытие текущей базы данных перед созданием новой',
+        tag: 'EncryptedDatabaseManager',
+      );
+      await closeDatabase();
+    }
 
     final passwordData = _generatePasswordData(dto.masterPassword);
     final database = await DatabaseConnectionService.createConnection(
@@ -90,6 +97,14 @@ class HoplixiStoreManager {
       );
 
       await DatabaseValidationService.validateDatabaseExists(dto.path);
+
+      if (hasOpenDatabase) {
+        logWarning(
+          'Закрытие текущей базы данных перед созданием новой',
+          tag: 'EncryptedDatabaseManager',
+        );
+        await closeDatabase();
+      }
 
       final database = await DatabaseConnectionService.createConnection(
         path: dto.path,
