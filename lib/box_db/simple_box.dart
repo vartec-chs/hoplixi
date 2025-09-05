@@ -4,36 +4,10 @@ import 'dart:async';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import 'package:crypto/crypto.dart';
+import 'package:synchronized/synchronized.dart';
 import 'types.dart';
 import 'crypto_box.dart';
 import 'errors.dart';
-
-/// Простой мьютекс для синхронизации доступа
-class SimpleMutex {
-  Completer<void>? _completer;
-
-  Future<void> acquire() async {
-    while (_completer != null) {
-      await _completer!.future;
-    }
-    _completer = Completer<void>();
-  }
-
-  void release() {
-    final completer = _completer;
-    _completer = null;
-    completer?.complete();
-  }
-
-  Future<T> synchronized<T>(Future<T> Function() fn) async {
-    await acquire();
-    try {
-      return await fn();
-    } finally {
-      release();
-    }
-  }
-}
 
 /// Запись в индексе
 class IndexEntry {
@@ -90,8 +64,9 @@ class SimpleBox<T> {
   final Map<String, IndexEntry> _index = {};
   bool _isInitialized = false;
 
-  // Мьютекс для синхронизации доступа
-  final SimpleMutex _mutex = SimpleMutex();
+  // Блокировки для синхронизации доступа к данным и файлам
+  final Lock _dataLock = Lock(); // Основная блокировка для данных
+  final Lock _fileLock = Lock(); // Блокировка для файловых операций
 
   // Генератор UUID для автоматических ID
   static const _uuid = Uuid();
@@ -156,7 +131,7 @@ class SimpleBox<T> {
 
   /// Инициализация коробки
   Future<void> _initialize() async {
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       if (_isInitialized) return;
 
       // Создаем директорию если не существует
@@ -288,36 +263,38 @@ class SimpleBox<T> {
 
   /// Подсчет удаленных записей включая tombstones
   Future<int> _countDeletedRecords() async {
-    if (!await _indexFile.exists()) {
-      return 0;
-    }
-
-    int deletedCount = 0;
-    try {
-      final lines = await _indexFile.readAsLines();
-
-      for (final line in lines) {
-        if (line.isEmpty || line == '\n') continue;
-
-        try {
-          final Map<String, dynamic> json = jsonDecode(line);
-          final entry = IndexEntry.fromJson(json);
-
-          if (entry.isDeleted) {
-            deletedCount++;
-          }
-        } catch (e) {
-          print(
-            'Warning: Failed to parse index line during count: $line, error: $e',
-          );
-          continue;
-        }
+    return await _fileLock.synchronized(() async {
+      if (!await _indexFile.exists()) {
+        return 0;
       }
-    } catch (e) {
-      print('Warning: Failed to count deleted records: $e');
-    }
 
-    return deletedCount;
+      int deletedCount = 0;
+      try {
+        final lines = await _indexFile.readAsLines();
+
+        for (final line in lines) {
+          if (line.isEmpty || line == '\n') continue;
+
+          try {
+            final Map<String, dynamic> json = jsonDecode(line);
+            final entry = IndexEntry.fromJson(json);
+
+            if (entry.isDeleted) {
+              deletedCount++;
+            }
+          } catch (e) {
+            print(
+              'Warning: Failed to parse index line during count: $line, error: $e',
+            );
+            continue;
+          }
+        }
+      } catch (e) {
+        print('Warning: Failed to count deleted records: $e');
+      }
+
+      return deletedCount;
+    });
   }
 
   /// Создание бэкапа основного файла
@@ -333,163 +310,171 @@ class SimpleBox<T> {
 
   /// Загрузка индекса из файла
   Future<void> _loadIndex() async {
-    _index.clear();
+    return await _fileLock.synchronized(() async {
+      _index.clear();
 
-    if (!await _indexFile.exists()) {
-      // Если индекс не существует, но есть данные, нужно его пересоздать
-      if (await _dataFile.exists()) {
-        await _rebuildIndex();
-      }
-      return;
-    }
-
-    try {
-      final lines = await _indexFile.readAsLines();
-
-      for (final line in lines) {
-        if (line.isEmpty || line == '\n') continue;
-
-        try {
-          final Map<String, dynamic> json = jsonDecode(line);
-          final entry = IndexEntry.fromJson(json);
-
-          // Теперь сохраняем все записи в индексе для правильной статистики
-          // но активными считаем только не удаленные
-          if (entry.isDeleted) {
-            // Удаляем из активного индекса, но учитываем в статистике
-            _index.remove(entry.id);
-          } else {
-            _index[entry.id] = entry;
-          }
-        } catch (e) {
-          print('Warning: Failed to parse index line: $line, error: $e');
-          continue;
+      if (!await _indexFile.exists()) {
+        // Если индекс не существует, но есть данные, нужно его пересоздать
+        if (await _dataFile.exists()) {
+          await _rebuildIndex();
         }
+        return;
       }
-    } catch (e) {
-      throw SegmentCorruptError('Failed to load index from file: $e');
-    }
+
+      try {
+        final lines = await _indexFile.readAsLines();
+
+        for (final line in lines) {
+          if (line.isEmpty || line == '\n') continue;
+
+          try {
+            final Map<String, dynamic> json = jsonDecode(line);
+            final entry = IndexEntry.fromJson(json);
+
+            // Теперь сохраняем все записи в индексе для правильной статистики
+            // но активными считаем только не удаленные
+            if (entry.isDeleted) {
+              // Удаляем из активного индекса, но учитываем в статистике
+              _index.remove(entry.id);
+            } else {
+              _index[entry.id] = entry;
+            }
+          } catch (e) {
+            print('Warning: Failed to parse index line: $line, error: $e');
+            continue;
+          }
+        }
+      } catch (e) {
+        throw SegmentCorruptError('Failed to load index from file: $e');
+      }
+    });
   }
 
   /// Пересоздание индекса из файла данных
   Future<void> _rebuildIndex() async {
-    _index.clear();
+    return await _fileLock.synchronized(() async {
+      _index.clear();
 
-    if (!await _dataFile.exists()) {
-      return;
-    }
-
-    try {
-      final file = await _dataFile.open();
-      int offset = 0;
-
-      try {
-        while (true) {
-          final startOffset = offset;
-          final lineBytes = <int>[];
-
-          // Читаем строку байт за байтом
-          while (true) {
-            final bytes = await file.read(1);
-            if (bytes.isEmpty) break;
-
-            offset += 1;
-            if (bytes[0] == 10) break; // '\n'
-            lineBytes.add(bytes[0]);
-          }
-
-          if (lineBytes.isEmpty) break;
-
-          final line = utf8.decode(lineBytes);
-          if (line.isEmpty || line == '\n') continue;
-
-          try {
-            String jsonData = line;
-
-            // Расшифровка если нужно
-            if (crypto != null) {
-              try {
-                final container = jsonDecode(line) as Map<String, dynamic>;
-                if (!container.containsKey('payload') ||
-                    !container.containsKey('nonce') ||
-                    !container.containsKey('mac')) {
-                  throw DecryptionError('Invalid encryption container format');
-                }
-                jsonData = await crypto!.decryptFromContainer(container);
-              } catch (e) {
-                print(
-                  'Warning: Failed to decrypt data line during index rebuild: $line, error: $e',
-                );
-                continue;
-              }
-            }
-
-            final Map<String, dynamic> record = jsonDecode(jsonData);
-            final String id = record['id'] as String;
-            final bool isDeleted = record['deleted'] as bool? ?? false;
-            final String timestamp =
-                record['timestamp'] as String? ??
-                DateTime.now().toUtc().toIso8601String();
-
-            final length = offset - startOffset;
-            final entry = IndexEntry(
-              id: id,
-              offset: startOffset,
-              length: length,
-              isDeleted: isDeleted,
-              timestamp: timestamp,
-              checksum: _calculateChecksum(line),
-            );
-
-            if (isDeleted) {
-              _index.remove(id);
-            } else {
-              _index[id] = entry;
-            }
-          } catch (e) {
-            print(
-              'Warning: Failed to parse data line during index rebuild: $line, error: $e',
-            );
-            continue;
-          }
-        }
-      } finally {
-        await file.close();
+      if (!await _dataFile.exists()) {
+        return;
       }
 
-      // Сохраняем пересозданный индекс
-      await _saveIndex();
-    } catch (e) {
-      throw SegmentCorruptError('Failed to rebuild index: $e');
-    }
+      try {
+        final file = await _dataFile.open();
+        int offset = 0;
+
+        try {
+          while (true) {
+            final startOffset = offset;
+            final lineBytes = <int>[];
+
+            // Читаем строку байт за байтом
+            while (true) {
+              final bytes = await file.read(1);
+              if (bytes.isEmpty) break;
+
+              offset += 1;
+              if (bytes[0] == 10) break; // '\n'
+              lineBytes.add(bytes[0]);
+            }
+
+            if (lineBytes.isEmpty) break;
+
+            final line = utf8.decode(lineBytes);
+            if (line.isEmpty || line == '\n') continue;
+
+            try {
+              String jsonData = line;
+
+              // Расшифровка если нужно
+              if (crypto != null) {
+                try {
+                  final container = jsonDecode(line) as Map<String, dynamic>;
+                  if (!container.containsKey('payload') ||
+                      !container.containsKey('nonce') ||
+                      !container.containsKey('mac')) {
+                    throw DecryptionError(
+                      'Invalid encryption container format',
+                    );
+                  }
+                  jsonData = await crypto!.decryptFromContainer(container);
+                } catch (e) {
+                  print(
+                    'Warning: Failed to decrypt data line during index rebuild: $line, error: $e',
+                  );
+                  continue;
+                }
+              }
+
+              final Map<String, dynamic> record = jsonDecode(jsonData);
+              final String id = record['id'] as String;
+              final bool isDeleted = record['deleted'] as bool? ?? false;
+              final String timestamp =
+                  record['timestamp'] as String? ??
+                  DateTime.now().toUtc().toIso8601String();
+
+              final length = offset - startOffset;
+              final entry = IndexEntry(
+                id: id,
+                offset: startOffset,
+                length: length,
+                isDeleted: isDeleted,
+                timestamp: timestamp,
+                checksum: _calculateChecksum(line),
+              );
+
+              if (isDeleted) {
+                _index.remove(id);
+              } else {
+                _index[id] = entry;
+              }
+            } catch (e) {
+              print(
+                'Warning: Failed to parse data line during index rebuild: $line, error: $e',
+              );
+              continue;
+            }
+          }
+        } finally {
+          await file.close();
+        }
+
+        // Сохраняем пересозданный индекс
+        await _saveIndex();
+      } catch (e) {
+        throw SegmentCorruptError('Failed to rebuild index: $e');
+      }
+    });
   }
 
   /// Сохранение индекса в файл
   Future<void> _saveIndex() async {
-    try {
-      final sink = _tempIndexFile.openWrite();
-
+    return await _fileLock.synchronized(() async {
       try {
-        for (final entry in _index.values) {
-          final json = jsonEncode(entry.toJson());
-          sink.writeln(json);
-        }
-      } finally {
-        await sink.close();
-      }
+        final sink = _tempIndexFile.openWrite();
 
-      // Атомарная замена файла индекса
-      if (await _indexFile.exists()) {
-        await _indexFile.delete();
+        try {
+          for (final entry in _index.values) {
+            final json = jsonEncode(entry.toJson());
+            sink.writeln(json);
+          }
+        } finally {
+          await sink.close();
+        }
+
+        // Атомарная замена файла индекса
+        if (await _indexFile.exists()) {
+          await _indexFile.delete();
+        }
+        await _tempIndexFile.rename(_indexFile.path);
+      } catch (e) {
+        // Очищаем временный файл при ошибке
+        if (await _tempIndexFile.exists()) {
+          await _tempIndexFile.delete();
+        }
+        throw WriterError('Failed to save index to file: $e');
       }
-      await _tempIndexFile.rename(_indexFile.path);
-    } catch (e) {
-      // Очищаем временный файл при ошибке
-      if (await _tempIndexFile.exists()) {
-        await _tempIndexFile.delete();
-      }
-      throw WriterError('Failed to save index to file: $e');
-    }
+    });
   }
 
   /// Вычисление контрольной суммы для строки данных (консистентный метод)
@@ -609,7 +594,7 @@ class SimpleBox<T> {
     if (id.isEmpty) {
       throw ArgumentError('ID cannot be empty');
     }
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       final entry = _index[id];
       if (entry == null || entry.isDeleted) {
         return null;
@@ -629,7 +614,7 @@ class SimpleBox<T> {
       throw ArgumentError('Document cannot be null');
     }
 
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       final entry = _index[id];
       if (entry == null || entry.isDeleted) {
         return false; // Документ не найден
@@ -663,7 +648,7 @@ class SimpleBox<T> {
       throw ArgumentError('Document cannot be null');
     }
 
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       final entry = _index[id];
       if (entry == null || entry.isDeleted) {
         return false; // Документ не найден
@@ -698,28 +683,30 @@ class SimpleBox<T> {
         // Обновляем на месте
         try {
           // Используем FileMode.writeOnly для произвольной записи
-          final file = await _dataFile.open(mode: FileMode.writeOnly);
-          try {
-            await file.setPosition(entry.offset);
+          await _fileLock.synchronized(() async {
+            final file = await _dataFile.open(mode: FileMode.writeOnly);
+            try {
+              await file.setPosition(entry.offset);
 
-            // Записываем JSON данные
-            await file.writeFrom(jsonBytes);
+              // Записываем JSON данные
+              await file.writeFrom(jsonBytes);
 
-            // Если новая запись короче старой, заполняем пробелами
-            if (newLength < entry.length) {
-              final paddingLength = entry.length - newLength;
-              final padding = List.filled(paddingLength, 32); // пробелы
-              await file.writeFrom(padding);
+              // Если новая запись короче старой, заполняем пробелами
+              if (newLength < entry.length) {
+                final paddingLength = entry.length - newLength;
+                final padding = List.filled(paddingLength, 32); // пробелы
+                await file.writeFrom(padding);
+              }
+
+              // Записываем '\n' в последний байт
+              await file.setPosition(entry.offset + entry.length - 1);
+              await file.writeFrom([10]); // '\n'
+
+              await file.flush();
+            } finally {
+              await file.close();
             }
-
-            // Записываем '\n' в последний байт
-            await file.setPosition(entry.offset + entry.length - 1);
-            await file.writeFrom([10]); // '\n'
-
-            await file.flush();
-          } finally {
-            await file.close();
-          }
+          });
 
           // Обновляем индекс с правильной контрольной суммой
           final newChecksum = _calculateChecksum(jsonLine);
@@ -775,7 +762,7 @@ class SimpleBox<T> {
       throw ArgumentError('ID cannot be empty');
     }
 
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       final entry = _index[id];
       if (entry == null || entry.isDeleted) {
         return false; // Документ не найден или уже удален
@@ -788,52 +775,54 @@ class SimpleBox<T> {
 
   /// Чтение записи из файла по индексу
   Future<T> _readRecord(IndexEntry entry) async {
-    try {
-      final file = await _dataFile.open();
-
+    return await _fileLock.synchronized(() async {
       try {
-        await file.setPosition(entry.offset);
-        final bytes = await file.read(entry.length);
-        final line = utf8.decode(bytes);
-        // Удаляем только завершающий символ новой строки
-        final normalizedLine = line.endsWith('\n')
-            ? line.substring(0, line.length - 1)
-            : line;
+        final file = await _dataFile.open();
 
-        // Проверяем контрольную сумму при чтении (консистентно)
-        final calculatedChecksum = _calculateChecksum(normalizedLine);
-        if (calculatedChecksum != entry.checksum) {
-          throw SegmentCorruptError(
-            'Checksum mismatch for record ${entry.id}. Expected: ${entry.checksum}, Got: $calculatedChecksum',
-          );
-        }
+        try {
+          await file.setPosition(entry.offset);
+          final bytes = await file.read(entry.length);
+          final line = utf8.decode(bytes);
+          // Удаляем только завершающий символ новой строки
+          final normalizedLine = line.endsWith('\n')
+              ? line.substring(0, line.length - 1)
+              : line;
 
-        String jsonData = normalizedLine;
-
-        // Расшифровка если нужно
-        if (crypto != null) {
-          try {
-            final container = jsonDecode(line) as Map<String, dynamic>;
-            if (!container.containsKey('payload') ||
-                !container.containsKey('nonce') ||
-                !container.containsKey('mac')) {
-              throw DecryptionError('Invalid encryption container format');
-            }
-            jsonData = await crypto!.decryptFromContainer(container);
-          } catch (e) {
-            throw DecryptionError('Failed to decrypt record ${entry.id}: $e');
+          // Проверяем контрольную сумму при чтении (консистентно)
+          final calculatedChecksum = _calculateChecksum(normalizedLine);
+          if (calculatedChecksum != entry.checksum) {
+            throw SegmentCorruptError(
+              'Checksum mismatch for record ${entry.id}. Expected: ${entry.checksum}, Got: $calculatedChecksum',
+            );
           }
-        }
 
-        final Map<String, dynamic> record = jsonDecode(jsonData);
-        final data = record['data'] as Map<String, dynamic>;
-        return fromMap(data);
-      } finally {
-        await file.close();
+          String jsonData = normalizedLine;
+
+          // Расшифровка если нужно
+          if (crypto != null) {
+            try {
+              final container = jsonDecode(line) as Map<String, dynamic>;
+              if (!container.containsKey('payload') ||
+                  !container.containsKey('nonce') ||
+                  !container.containsKey('mac')) {
+                throw DecryptionError('Invalid encryption container format');
+              }
+              jsonData = await crypto!.decryptFromContainer(container);
+            } catch (e) {
+              throw DecryptionError('Failed to decrypt record ${entry.id}: $e');
+            }
+          }
+
+          final Map<String, dynamic> record = jsonDecode(jsonData);
+          final data = record['data'] as Map<String, dynamic>;
+          return fromMap(data);
+        } finally {
+          await file.close();
+        }
+      } catch (e) {
+        throw SegmentCorruptError('Failed to read record ${entry.id}: $e');
       }
-    } catch (e) {
-      throw SegmentCorruptError('Failed to read record ${entry.id}: $e');
-    }
+    });
   }
 
   /// Запись записи в файл с использованием RandomAccessFile для надежности
@@ -842,7 +831,7 @@ class SimpleBox<T> {
     T? document, {
     required bool deleted,
   }) async {
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       await _writeRecordUnsafe(id, document, deleted: deleted);
     });
   }
@@ -881,16 +870,18 @@ class SimpleBox<T> {
       final fileSize = await _dataFile.exists() ? await _dataFile.length() : 0;
 
       // Записываем с использованием RandomAccessFile для большей надежности
-      final file = await _dataFile.open(mode: FileMode.writeOnlyAppend);
-      try {
-        await file.setPosition(fileSize);
-        final lineWithNewline = '$jsonLine\n';
-        final bytes = utf8.encode(lineWithNewline);
-        await file.writeFrom(bytes);
-        await file.flush(); // Принудительная синхронизация с диском
-      } finally {
-        await file.close();
-      }
+      await _fileLock.synchronized(() async {
+        final file = await _dataFile.open(mode: FileMode.writeOnlyAppend);
+        try {
+          await file.setPosition(fileSize);
+          final lineWithNewline = '$jsonLine\n';
+          final bytes = utf8.encode(lineWithNewline);
+          await file.writeFrom(bytes);
+          await file.flush(); // Принудительная синхронизация с диском
+        } finally {
+          await file.close();
+        }
+      });
 
       // Получаем новый размер файла
       final newSize = await _dataFile.length();
@@ -936,21 +927,23 @@ class SimpleBox<T> {
 
   /// Добавить запись в индексный файл с использованием RandomAccessFile
   Future<void> _appendToIndex(IndexEntry entry) async {
-    try {
-      final json = jsonEncode(entry.toJson());
-      final lineWithNewline = '$json\n';
-
-      final file = await _indexFile.open(mode: FileMode.writeOnlyAppend);
+    return await _fileLock.synchronized(() async {
       try {
-        final bytes = utf8.encode(lineWithNewline);
-        await file.writeFrom(bytes);
-        await file.flush(); // Принудительная синхронизация с диском
-      } finally {
-        await file.close();
+        final json = jsonEncode(entry.toJson());
+        final lineWithNewline = '$json\n';
+
+        final file = await _indexFile.open(mode: FileMode.writeOnlyAppend);
+        try {
+          final bytes = utf8.encode(lineWithNewline);
+          await file.writeFrom(bytes);
+          await file.flush(); // Принудительная синхронизация с диском
+        } finally {
+          await file.close();
+        }
+      } catch (e) {
+        throw WriterError('Failed to append to index: $e');
       }
-    } catch (e) {
-      throw WriterError('Failed to append to index: $e');
-    }
+    });
   }
 
   /// Запуск автоматической компактификации
@@ -1010,14 +1003,17 @@ class SimpleBox<T> {
   Stream<T> getAll() async* {
     _ensureInitialized();
 
-    for (final entry in _index.values) {
-      if (!entry.isDeleted) {
-        try {
-          yield await _readRecord(entry);
-        } catch (e) {
-          print('Warning: Failed to read record ${entry.id}: $e');
-          continue;
-        }
+    // Получаем копию индекса под блокировкой для безопасной итерации
+    final List<IndexEntry> entries = await _dataLock.synchronized(() async {
+      return _index.values.where((entry) => !entry.isDeleted).toList();
+    });
+
+    for (final entry in entries) {
+      try {
+        yield await _readRecord(entry);
+      } catch (e) {
+        print('Warning: Failed to read record ${entry.id}: $e');
+        continue;
       }
     }
   }
@@ -1026,17 +1022,20 @@ class SimpleBox<T> {
   Stream<T> query(bool Function(T) predicate) async* {
     _ensureInitialized();
 
-    for (final entry in _index.values) {
-      if (!entry.isDeleted) {
-        try {
-          final document = await _readRecord(entry);
-          if (predicate(document)) {
-            yield document;
-          }
-        } catch (e) {
-          print('Warning: Failed to read record ${entry.id}: $e');
-          continue;
+    // Получаем копию индекса под блокировкой для безопасной итерации
+    final List<IndexEntry> entries = await _dataLock.synchronized(() async {
+      return _index.values.where((entry) => !entry.isDeleted).toList();
+    });
+
+    for (final entry in entries) {
+      try {
+        final document = await _readRecord(entry);
+        if (predicate(document)) {
+          yield document;
         }
+      } catch (e) {
+        print('Warning: Failed to read record ${entry.id}: $e');
+        continue;
       }
     }
   }
@@ -1044,6 +1043,7 @@ class SimpleBox<T> {
   /// Получить все ключи
   List<String> getAllKeys() {
     _ensureInitialized();
+    // Этот метод читает только индекс, который уже защищен _dataLock в других операциях
     return _index.keys.where((key) => !_index[key]!.isDeleted).toList();
   }
 
@@ -1068,7 +1068,7 @@ class SimpleBox<T> {
   Future<void> clear() async {
     _ensureInitialized();
 
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       _index.clear();
       _deletedRecordsCount = 0; // Сбрасываем счетчик удаленных записей
 
@@ -1082,7 +1082,7 @@ class SimpleBox<T> {
   Future<void> compact() async {
     _ensureInitialized();
 
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       final activeEntries = _index.values
           .where((entry) => !entry.isDeleted)
           .toList();
@@ -1208,7 +1208,7 @@ class SimpleBox<T> {
   Future<Map<String, dynamic>> getStats() async {
     _ensureInitialized();
 
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       final dataFileSize = await _dataFile.exists()
           ? await _dataFile.length()
           : 0;
@@ -1246,7 +1246,7 @@ class SimpleBox<T> {
   Future<Map<String, dynamic>> checkIntegrity() async {
     _ensureInitialized();
 
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       final result = {
         'isValid': true,
         'corruptedRecords': <String>[],
@@ -1399,7 +1399,7 @@ class SimpleBox<T> {
 
   /// Закрыть коробку
   Future<void> close() async {
-    return await _mutex.synchronized(() async {
+    return await _dataLock.synchronized(() async {
       // Останавливаем таймер автоматической компактификации
       _compactionTimer?.cancel();
       _compactionTimer = null;
