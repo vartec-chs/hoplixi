@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
+import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'home_controller.dart';
 import 'widgets/index.dart';
@@ -78,13 +79,48 @@ class _HomeScreenState extends State<HomeScreen> {
             shrinkWrap: true,
             slivers: [
               if (UniversalPlatform.isMobile)
-                const SliverAppBar(
+                SliverAppBar(
                   pinned: true,
                   centerTitle: true,
-                  title: Text(
+                  title: const Text(
                     MainConstants.appName,
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const DynamicSettingsScreen(),
+                          ),
+                        );
+                      },
+                      tooltip: 'Настройки',
+                    ),
+                  ],
+                )
+              else
+                SliverAppBar(
+                  pinned: true,
+                  centerTitle: true,
+                  title: const Text(
+                    MainConstants.appName,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const DynamicSettingsScreen(),
+                          ),
+                        );
+                      },
+                      tooltip: 'Настройки',
+                    ),
+                  ],
                 ),
 
               // Карточка недавней базы данных

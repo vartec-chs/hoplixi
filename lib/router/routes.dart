@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/password_manager/create_store/create_store.dart';
 import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
@@ -39,6 +40,10 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.dashboard,
     builder: (context, state) => const DashboardScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.baseSettings,
+    builder: (context, state) => const DynamicSettingsScreen(),
   ),
 ];
 

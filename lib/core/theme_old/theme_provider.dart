@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hoplixi/core/preferences/app_preferences.dart';
+
 // import 'theme.dart';
 
 /// Провайдер для управления темой приложения
@@ -27,8 +28,6 @@ final isDarkThemeProvider = Provider<bool>((ref) {
 
 /// StateNotifier для управления состоянием темы
 class ThemeNotifier extends StateNotifier<ThemeMode> {
-  static const String _themeKey = 'theme_mode';
-
   ThemeNotifier() : super(ThemeMode.system) {
     _loadTheme();
   }
@@ -36,12 +35,9 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   /// Загружает сохраненную тему из SharedPreferences
   Future<void> _loadTheme() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final themeIndex = prefs.getInt(_themeKey);
+      final prefs = AppPreferences.instance;
 
-      if (themeIndex != null) {
-        state = ThemeMode.values[themeIndex];
-      }
+      state = prefs.themeMode;
     } catch (e) {
       // В случае ошибки оставляем системную тему
       state = ThemeMode.system;
@@ -51,8 +47,8 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   /// Сохраняет текущую тему в SharedPreferences
   Future<void> _saveTheme(ThemeMode themeMode) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_themeKey, themeMode.index);
+      final prefs = AppPreferences.instance;
+      await prefs.setThemeMode(themeMode);
     } catch (e) {
       // Игнорируем ошибки сохранения
     }

@@ -1,24 +1,18 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
+import 'package:hoplixi/core/preferences/app_preferences.dart';
 import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:toastification/toastification.dart';
 import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
-import 'package:sqlite3/open.dart';
-import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
-import 'package:sqlite3/sqlite3.dart';
-
 
 Future<void> main() async {
   if (UniversalPlatform.isWeb) {
@@ -29,9 +23,10 @@ Future<void> main() async {
 
   runZonedGuarded(
     () async {
-      
       // Ensure Flutter binding is initialized
       WidgetsFlutterBinding.ensureInitialized();
+
+     
 
       // Initialize AppLogger
       await AppLogger.instance.initialize(
@@ -46,6 +41,23 @@ Future<void> main() async {
           enableCrashReports: true,
         ),
       );
+
+       // Инициализируем AppPreferences
+      await AppPreferences.init();
+
+      // Получаем экземпляр настроек
+      final prefs = AppPreferences.instance;
+
+      // Логируем информацию о запуске
+      if (prefs.isFirstLaunch) {
+        logDebug('Hoplixi: Первый запуск приложения');
+      } else {
+        logDebug('Hoplixi: Повторный запуск приложения');
+        logDebug(
+          'Hoplixi: Последнее использованное хранилище: ${prefs.lastUsedStore ?? "не установлено"}',
+        );
+        logDebug('Hoplixi: Режим темы: ${prefs.themeMode}');
+      }
 
       final container = ProviderContainer();
 

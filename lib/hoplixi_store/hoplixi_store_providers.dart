@@ -115,6 +115,9 @@ class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
     }
   }
 
+  // текущее состояние базы данных
+  DatabaseState get currentState => state;
+
   // /// Попытка автологина
   // Future<bool> tryAutoLogin(String path) async {
   //   try {

@@ -7,4 +7,5 @@ class AppRoutes {
   static const String openStore = '/open-store';
   static const String testDemo = '/test-demo';
   static const String dashboard = '/dashboard';
+  static const String baseSettings = '/base-settings';
 }
