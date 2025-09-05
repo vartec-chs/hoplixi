@@ -268,9 +268,12 @@ class SimpleBox<T> {
         return 0;
       }
 
-      int deletedCount = 0;
       try {
         final lines = await _indexFile.readAsLines();
+
+        // Собираем информацию о всех записях по ID
+        final Map<String, List<IndexEntry>> entriesById = {};
+        final Set<String> deletedIds = {};
 
         for (final line in lines) {
           if (line.isEmpty || line == '\n') continue;
@@ -279,8 +282,12 @@ class SimpleBox<T> {
             final Map<String, dynamic> json = jsonDecode(line);
             final entry = IndexEntry.fromJson(json);
 
+            // Группируем записи по ID
+            entriesById.putIfAbsent(entry.id, () => []).add(entry);
+
+            // Отмечаем ID как удаленный, если хотя бы одна запись помечена как удаленная
             if (entry.isDeleted) {
-              deletedCount++;
+              deletedIds.add(entry.id);
             }
           } catch (e) {
             print(
@@ -289,11 +296,18 @@ class SimpleBox<T> {
             continue;
           }
         }
+
+        // Подсчитываем количество записей для удаленных ID
+        int deletedCount = 0;
+        for (final id in deletedIds) {
+          deletedCount += entriesById[id]?.length ?? 0;
+        }
+
+        return deletedCount;
       } catch (e) {
         print('Warning: Failed to count deleted records: $e');
+        return 0;
       }
-
-      return deletedCount;
     });
   }
 
@@ -324,6 +338,10 @@ class SimpleBox<T> {
       try {
         final lines = await _indexFile.readAsLines();
 
+        // Сначала собираем все записи, группируя по ID
+        final Map<String, List<IndexEntry>> entriesById = {};
+        final Set<String> deletedIds = {};
+
         for (final line in lines) {
           if (line.isEmpty || line == '\n') continue;
 
@@ -331,17 +349,35 @@ class SimpleBox<T> {
             final Map<String, dynamic> json = jsonDecode(line);
             final entry = IndexEntry.fromJson(json);
 
-            // Теперь сохраняем все записи в индексе для правильной статистики
-            // но активными считаем только не удаленные
+            // Группируем записи по ID
+            entriesById.putIfAbsent(entry.id, () => []).add(entry);
+
+            // Отмечаем ID как удаленный, если хотя бы одна запись помечена как удаленная
             if (entry.isDeleted) {
-              // Удаляем из активного индекса, но учитываем в статистике
-              _index.remove(entry.id);
-            } else {
-              _index[entry.id] = entry;
+              deletedIds.add(entry.id);
             }
           } catch (e) {
             print('Warning: Failed to parse index line: $line, error: $e');
             continue;
+          }
+        }
+
+        // Теперь обрабатываем записи: если ID помечен как удаленный,
+        // исключаем все записи с этим ID из активного индекса
+        for (final id in entriesById.keys) {
+          if (deletedIds.contains(id)) {
+            // ID помечен как удаленный - удаляем из активного индекса
+            _index.remove(id);
+          } else {
+            // Берем последнюю (самую свежую) не удаленную запись для этого ID
+            final entries = entriesById[id]!;
+            final activeEntries = entries.where((e) => !e.isDeleted).toList();
+
+            if (activeEntries.isNotEmpty) {
+              // Сортируем по timestamp и берем самую свежую
+              activeEntries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+              _index[id] = activeEntries.first;
+            }
           }
         }
       } catch (e) {
@@ -362,6 +398,10 @@ class SimpleBox<T> {
       try {
         final file = await _dataFile.open();
         int offset = 0;
+
+        // Сначала собираем все записи, группируя по ID
+        final Map<String, List<IndexEntry>> entriesById = {};
+        final Set<String> deletedIds = {};
 
         try {
           while (true) {
@@ -423,10 +463,12 @@ class SimpleBox<T> {
                 checksum: _calculateChecksum(line),
               );
 
+              // Группируем записи по ID
+              entriesById.putIfAbsent(id, () => []).add(entry);
+
+              // Отмечаем ID как удаленный, если хотя бы одна запись помечена как удаленная
               if (isDeleted) {
-                _index.remove(id);
-              } else {
-                _index[id] = entry;
+                deletedIds.add(id);
               }
             } catch (e) {
               print(
@@ -437,6 +479,25 @@ class SimpleBox<T> {
           }
         } finally {
           await file.close();
+        }
+
+        // Теперь обрабатываем записи: если ID помечен как удаленный,
+        // исключаем все записи с этим ID из активного индекса
+        for (final id in entriesById.keys) {
+          if (deletedIds.contains(id)) {
+            // ID помечен как удаленный - удаляем из активного индекса
+            _index.remove(id);
+          } else {
+            // Берем последнюю (самую свежую) не удаленную запись для этого ID
+            final entries = entriesById[id]!;
+            final activeEntries = entries.where((e) => !e.isDeleted).toList();
+
+            if (activeEntries.isNotEmpty) {
+              // Сортируем по timestamp и берем самую свежую
+              activeEntries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+              _index[id] = activeEntries.first;
+            }
+          }
         }
 
         // Сохраняем пересозданный индекс
