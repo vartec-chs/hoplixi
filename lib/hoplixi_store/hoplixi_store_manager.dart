@@ -161,6 +161,14 @@ class HoplixiStoreManager {
   Future<DatabaseState> closeDatabase() async {
     logInfo('Закрытие базы данных', tag: 'EncryptedDatabaseManager');
 
+    if (!hasOpenDatabase) {
+      logWarning(
+        'Попытка закрыть базу данных, когда она не открыта',
+        tag: 'EncryptedDatabaseManager',
+      );
+      return const DatabaseState(status: DatabaseStatus.closed);
+    }
+
     try {
       await DatabaseConnectionService.closeConnection(_database);
       _database = null;

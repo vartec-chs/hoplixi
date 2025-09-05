@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/theme_old/theme_switcher.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:window_manager/window_manager.dart';
 
 class TitleBar extends ConsumerStatefulWidget {
@@ -19,6 +20,8 @@ class _TitleBarState extends ConsumerState<TitleBar> {
 
   @override
   Widget build(BuildContext context) {
+    final dbState = ref.watch(databaseStateProvider);
+    final dbNotifier = ref.read(databaseStateProvider.notifier);
     return DragToMoveArea(
       child: Container(
         height: 40,
@@ -75,10 +78,11 @@ class _TitleBarState extends ConsumerState<TitleBar> {
                     hoverColor: Colors.red,
                     constraints: constraints,
                     icon: Icon(Icons.close, size: 20),
-                    onPressed: () => {
+                    onPressed: () async => {
                       // if (dbState.runtimeType.toString() == '_Connected')
                       // {await dbNotifier.closeDatabase()},
-                      windowManager.close(),
+                      await dbNotifier.closeDatabase(),
+                      await windowManager.close(),
                     },
                   ),
                 ],

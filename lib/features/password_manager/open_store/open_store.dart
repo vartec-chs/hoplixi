@@ -336,6 +336,103 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                             ],
                           ),
 
+                          // Переключатель сохранения пароля с предупреждением
+                          Card(
+                            color: formState.saveMasterPassword
+                                ? Theme.of(context).colorScheme.errorContainer
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainer,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SwitchListTile(
+                                    value: formState.saveMasterPassword,
+                                    onChanged:
+                                        controller.toggleSaveMasterPassword,
+                                    title: const Text(
+                                      'Сохранить мастер-пароль',
+                                    ),
+                                    subtitle: const Text(
+                                      'Автоматически открывать хранилище без ввода пароля',
+                                    ),
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+
+                                  if (formState.saveMasterPassword) ...[
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(12.0),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .error
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .error
+                                              .withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.warning_amber,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.error,
+                                                size: 20,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'ВНИМАНИЕ: РИСК БЕЗОПАСНОСТИ',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleSmall
+                                                    ?.copyWith(
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.error,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Сохранение мастер-пароля крайне рискованно! Включайте эту опцию только если:\n'
+                                            '• Вы уверены в безопасности своего окружения\n'
+                                            '• На устройстве нет вирусов и вредоносного ПО\n'
+                                            '• Устройство защищено надежным паролем/биометрией\n'
+                                            '• Никто другой не имеет доступа к устройству\n\n'
+                                            'При компрометации устройства злоумышленники получат доступ ко всем вашим паролям!',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.error,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+
                           // Информация о выбранном файле
                           if (formState.databasePath.isNotEmpty) ...[
                             const Divider(),

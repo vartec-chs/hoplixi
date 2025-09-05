@@ -14,6 +14,7 @@ import 'package:file_picker/file_picker.dart';
 class OpenStoreFormState {
   final String databasePath;
   final String masterPassword;
+  final bool saveMasterPassword;
   final bool isLoading;
   final String? errorMessage;
   final Map<String, String?> fieldErrors;
@@ -21,6 +22,7 @@ class OpenStoreFormState {
   const OpenStoreFormState({
     this.databasePath = '',
     this.masterPassword = '',
+    this.saveMasterPassword = false,
     this.isLoading = false,
     this.errorMessage,
     this.fieldErrors = const {},
@@ -29,6 +31,7 @@ class OpenStoreFormState {
   OpenStoreFormState copyWith({
     String? databasePath,
     String? masterPassword,
+    bool? saveMasterPassword,
     bool? isLoading,
     String? errorMessage,
     Map<String, String?>? fieldErrors,
@@ -36,6 +39,7 @@ class OpenStoreFormState {
     return OpenStoreFormState(
       databasePath: databasePath ?? this.databasePath,
       masterPassword: masterPassword ?? this.masterPassword,
+      saveMasterPassword: saveMasterPassword ?? this.saveMasterPassword,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       fieldErrors: fieldErrors ?? this.fieldErrors,
@@ -83,6 +87,11 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
     }
 
     state = state.copyWith(masterPassword: password, fieldErrors: errors);
+  }
+
+  /// Переключение сохранения мастер-пароля
+  void toggleSaveMasterPassword(bool saveMasterPassword) {
+    state = state.copyWith(saveMasterPassword: saveMasterPassword);
   }
 
   /// Выбор файла базы данных
@@ -143,6 +152,7 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
       final dto = OpenDatabaseDto(
         path: state.databasePath,
         masterPassword: state.masterPassword,
+        saveMasterPassword: state.saveMasterPassword,
       );
 
       await _ref.read(databaseStateProvider.notifier).openDatabase(dto);
@@ -249,6 +259,7 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
   /// Безопасная очистка всех чувствительных данных
   void clearSensitiveData() {
     // Очищаем только чувствительные данные (пароль)
+    // Сохраняем настройку saveMasterPassword для удобства пользователя
     state = state.copyWith(
       masterPassword: '',
       errorMessage: null,

@@ -20,6 +20,7 @@ class CreateStoreFormState {
   final bool isDefaultPath;
   final String customPath;
   final String finalPath;
+  final bool saveMasterPassword;
   final bool isLoading;
   final String? errorMessage;
   final Map<String, String?> fieldErrors;
@@ -32,6 +33,7 @@ class CreateStoreFormState {
     this.isDefaultPath = true,
     this.customPath = '',
     this.finalPath = '',
+    this.saveMasterPassword = false,
     this.isLoading = false,
     this.errorMessage,
     this.fieldErrors = const {},
@@ -45,6 +47,7 @@ class CreateStoreFormState {
     bool? isDefaultPath,
     String? customPath,
     String? finalPath,
+    bool? saveMasterPassword,
     bool? isLoading,
     String? errorMessage,
     Map<String, String?>? fieldErrors,
@@ -57,6 +60,7 @@ class CreateStoreFormState {
       isDefaultPath: isDefaultPath ?? this.isDefaultPath,
       customPath: customPath ?? this.customPath,
       finalPath: finalPath ?? this.finalPath,
+      saveMasterPassword: saveMasterPassword ?? this.saveMasterPassword,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       fieldErrors: fieldErrors ?? this.fieldErrors,
@@ -210,6 +214,11 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
     }
   }
 
+  /// Переключение сохранения мастер-пароля
+  void toggleSaveMasterPassword(bool saveMasterPassword) {
+    state = state.copyWith(saveMasterPassword: saveMasterPassword);
+  }
+
   /// Выбор пользовательского пути
   Future<void> selectCustomPath() async {
     try {
@@ -282,6 +291,7 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
             : null,
         masterPassword: state.masterPassword,
         customPath: state.isDefaultPath ? null : p.dirname(state.finalPath),
+        saveMasterPassword: state.saveMasterPassword,
       );
 
       // Вызываем создание через провайдер базы данных
@@ -356,6 +366,7 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
   /// Безопасная очистка всех чувствительных данных
   void clearSensitiveData() {
     // Очищаем только чувствительные данные (пароли)
+    // Сохраняем настройку saveMasterPassword для удобства пользователя
     state = state.copyWith(
       masterPassword: '',
       confirmPassword: '',
