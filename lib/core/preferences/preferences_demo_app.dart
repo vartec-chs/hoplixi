@@ -103,16 +103,6 @@ class _DemoHomePageState extends State<DemoHomePage> {
 
             const SizedBox(height: 8),
 
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const SettingsDemo()),
-                );
-              },
-              icon: const Icon(Icons.dashboard),
-              label: const Text('Старые настройки (для сравнения)'),
-            ),
-
             const SizedBox(height: 8),
 
             ElevatedButton.icon(

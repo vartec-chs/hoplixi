@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app.dart';
+import 'package:hoplixi/core/auto_preferences/app_settings_definition.dart';
+import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/preferences/app_preferences.dart';
@@ -26,8 +28,6 @@ Future<void> main() async {
       // Ensure Flutter binding is initialized
       WidgetsFlutterBinding.ensureInitialized();
 
-     
-
       // Initialize AppLogger
       await AppLogger.instance.initialize(
         config: const LoggerConfig(
@@ -42,8 +42,10 @@ Future<void> main() async {
         ),
       );
 
-       // Инициализируем AppPreferences
+      // Инициализируем AppPreferences
       await AppPreferences.init();
+      await AutoPreferencesManager.init();
+      AppSettingsDefinition.initialize();
 
       // Получаем экземпляр настроек
       final prefs = AppPreferences.instance;

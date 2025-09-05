@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/auto_preferences/auto_settings_screen.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
@@ -114,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const DynamicSettingsScreen(),
+                            builder: (context) => const AutoSettingsScreen(),
                           ),
                         );
                       },
