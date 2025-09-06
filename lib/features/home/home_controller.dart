@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
@@ -30,6 +31,19 @@ class HomeController extends ChangeNotifier {
   /// Инициализация контроллера
   Future<void> initialize() async {
     await _loadRecentDatabase();
+  }
+
+  Future<bool> get canAutoOpenAsync async {
+    if (!hasRecentDatabase) return false;
+    final manager = AutoPreferencesManager.instance;
+    final autoOpenLastStorage = manager.getValue<bool>(
+      'auto_open_last_storage',
+    );
+    if (autoOpenLastStorage != true) {
+      return false;
+    }
+    return _recentDatabase?.saveMasterPassword == true &&
+        _recentDatabase?.masterPassword?.isNotEmpty == true;
   }
 
   //TODO: Warning: Failed to read record c:\users\vartec\documents\hoplixi\storages\test.hpl: SegmentCorruptError: Failed to read record c:\users\vartec\documents\hoplixi\storages\test.hpl: SegmentCorruptError: Checksum mismatch for record c:\users\vartec\documents\hoplixi\storages\test.hpl. Expected: 00f196da6deab6710e27613c6a2ecf6d49a274ac9661b267df82041d0fe6e06a, Got: 424a4d76e586a1f8bec3fba947ef5a1348267fd5f0ca30f8a8086fafa6465a04 исправить работу с конкурентными блокировками

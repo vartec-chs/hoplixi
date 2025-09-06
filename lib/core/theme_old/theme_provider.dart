@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/preferences/app_preferences.dart';
 
@@ -35,9 +36,12 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   /// Загружает сохраненную тему из SharedPreferences
   Future<void> _loadTheme() async {
     try {
-      final prefs = AppPreferences.instance;
-
-      state = prefs.themeMode;
+      final prefs = AutoPreferencesManager.instance;
+      final themeMode = prefs.getValue<ThemeMode>(
+        'theme_mode',
+        defaultValue: ThemeMode.system,
+      );
+      state = themeMode;
     } catch (e) {
       // В случае ошибки оставляем системную тему
       state = ThemeMode.system;
@@ -47,8 +51,8 @@ class ThemeNotifier extends StateNotifier<ThemeMode> {
   /// Сохраняет текущую тему в SharedPreferences
   Future<void> _saveTheme(ThemeMode themeMode) async {
     try {
-      final prefs = AppPreferences.instance;
-      await prefs.setThemeMode(themeMode);
+      final prefs = AutoPreferencesManager.instance;
+      await prefs.setValue('theme_mode', themeMode);
     } catch (e) {
       // Игнорируем ошибки сохранения
     }

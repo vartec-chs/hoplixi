@@ -274,6 +274,7 @@ class AutoPreferencesManager {
   }
 
   /// Удалить слушатель изменений
+  
   void removeListener(String key, void Function(dynamic) listener) {
     _listeners[key]?.remove(listener);
     if (_listeners[key]?.isEmpty == true) {

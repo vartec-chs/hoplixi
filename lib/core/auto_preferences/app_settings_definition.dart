@@ -95,6 +95,18 @@ class AppSettingsDefinition {
         order: 25,
         defaultValue: true,
       ),
+
+
+      BooleanSetting(
+        key: 'auto_open_last_storage',
+        title: 'Автоматически открывать последнее хранилище',
+        subtitle: 'При запуске приложения открывать последнее использованное хранилище',
+        category: 'Общие',
+        subcategory: 'Безопасность',
+        icon: 'lock_clock',
+        order: 25,
+        defaultValue: true,
+      ),
     ];
   }
 

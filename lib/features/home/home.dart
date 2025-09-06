@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await _controller.initialize();
 
     // Если пароль сохранен, предлагаем автоматическое открытие
-    if (_controller.canAutoOpen && mounted) {
+    if (await _controller.canAutoOpenAsync && mounted) {
       _showAutoOpenDialog();
     }
   }

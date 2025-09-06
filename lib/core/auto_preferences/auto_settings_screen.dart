@@ -155,6 +155,15 @@ class _AutoSettingsScreenState extends State<AutoSettingsScreen>
             ? TabBar(
                 controller: _tabController,
                 isScrollable: true,
+                splashBorderRadius: BorderRadius.circular(12),
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.2),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+
                 tabs: [
                   const Tab(icon: Icon(Icons.search), text: 'Поиск'),
                   ..._categories.map(
