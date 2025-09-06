@@ -102,17 +102,21 @@ class SliderButton extends StatefulWidget {
   final double? width;
   final bool resetAfterComplete;
   final Duration resetDelay;
+  final bool showLoading;
+  final Future<void> Function()? onSlideCompleteAsync;
 
   const SliderButton({
     super.key,
     required this.type,
     required this.text,
     this.onSlideComplete,
+    this.onSlideCompleteAsync,
     this.theme,
     this.enabled = true,
     this.width,
     this.resetAfterComplete = true,
     this.resetDelay = const Duration(milliseconds: 500),
+    this.showLoading = false,
   });
 
   @override
@@ -129,6 +133,7 @@ class _SliderButtonState extends State<SliderButton>
   double _dragPosition = 0.0;
   bool _isDragging = false;
   bool _isCompleted = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -165,7 +170,7 @@ class _SliderButtonState extends State<SliderButton>
   }
 
   void _startPulse() {
-    if (!_isDragging && !_isCompleted && widget.enabled) {
+    if (!_isDragging && !_isCompleted && !_isLoading && widget.enabled) {
       _pulseController.repeat(reverse: true);
     }
   }
@@ -176,7 +181,7 @@ class _SliderButtonState extends State<SliderButton>
   }
 
   void _onPanStart(DragStartDetails details) {
-    if (!widget.enabled || _isCompleted) return;
+    if (!widget.enabled || _isCompleted || _isLoading) return;
 
     setState(() {
       _isDragging = true;
@@ -186,7 +191,7 @@ class _SliderButtonState extends State<SliderButton>
   }
 
   void _onPanUpdate(DragUpdateDetails details, double maxWidth) {
-    if (!widget.enabled || _isCompleted) return;
+    if (!widget.enabled || _isCompleted || _isLoading) return;
 
     setState(() {
       _dragPosition = (_dragPosition + details.delta.dx).clamp(0.0, maxWidth);
@@ -198,7 +203,7 @@ class _SliderButtonState extends State<SliderButton>
     double maxWidth,
     SliderButtonThemeData theme,
   ) {
-    if (!widget.enabled || _isCompleted) return;
+    if (!widget.enabled || _isCompleted || _isLoading) return;
 
     setState(() {
       _isDragging = false;
@@ -212,16 +217,54 @@ class _SliderButtonState extends State<SliderButton>
     }
   }
 
-  void _completeSlide(SliderButtonThemeData theme) {
-    setState(() {
-      _isCompleted = true;
-      _dragPosition = _getMaxDragDistance();
-    });
+  void _completeSlide(SliderButtonThemeData theme) async {
+    if (widget.showLoading) {
+      setState(() {
+        _isLoading = true;
+        _dragPosition = _getMaxDragDistance();
+      });
 
-    HapticFeedback.mediumImpact();
-    _slideController.forward();
+      HapticFeedback.mediumImpact();
 
-    widget.onSlideComplete?.call();
+      try {
+        // Выполняем асинхронное действие если есть
+        if (widget.onSlideCompleteAsync != null) {
+          await widget.onSlideCompleteAsync!();
+        } else {
+          widget.onSlideComplete?.call();
+        }
+
+        // Показываем анимацию завершения после загрузки
+        setState(() {
+          _isLoading = false;
+          _isCompleted = true;
+        });
+
+        _slideController.forward();
+      } catch (e) {
+        // В случае ошибки сбрасываем состояние
+        setState(() {
+          _isLoading = false;
+        });
+        _resetSlide();
+        return;
+      }
+    } else {
+      // Обычная логика без загрузки
+      setState(() {
+        _isCompleted = true;
+        _dragPosition = _getMaxDragDistance();
+      });
+
+      HapticFeedback.mediumImpact();
+      _slideController.forward();
+
+      if (widget.onSlideCompleteAsync != null) {
+        widget.onSlideCompleteAsync!();
+      } else {
+        widget.onSlideComplete?.call();
+      }
+    }
 
     if (widget.resetAfterComplete) {
       Future.delayed(widget.resetDelay, () {
@@ -238,6 +281,7 @@ class _SliderButtonState extends State<SliderButton>
         setState(() {
           _dragPosition = 0.0;
           _isCompleted = false;
+          _isLoading = false;
         });
         _startPulse();
       }
@@ -311,14 +355,34 @@ class _SliderButtonState extends State<SliderButton>
                             ),
                             const SizedBox(width: 8),
                           ],
-                          Text(
-                            widget.text,
-                            style: theme.textStyle.copyWith(
-                              color: widget.enabled
-                                  ? theme.textColor
-                                  : theme.textColor.withOpacity(0.5),
+                          if (_isLoading) ...[
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.0,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  theme.textColor,
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Загрузка...',
+                              style: theme.textStyle.copyWith(
+                                color: theme.textColor,
+                              ),
+                            ),
+                          ] else ...[
+                            Text(
+                              widget.text,
+                              style: theme.textStyle.copyWith(
+                                color: widget.enabled
+                                    ? theme.textColor
+                                    : theme.textColor.withOpacity(0.5),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -360,13 +424,25 @@ class _SliderButtonState extends State<SliderButton>
                                       ]
                                     : [],
                               ),
-                              child: Icon(
-                                theme.icon,
-                                color: widget.enabled
-                                    ? theme.iconColor
-                                    : theme.iconColor.withOpacity(0.3),
-                                size: theme.thumbSize * 0.5,
-                              ),
+                              child: _isLoading
+                                  ? SizedBox(
+                                      width: theme.thumbSize * 0.6,
+                                      height: theme.thumbSize * 0.6,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.0,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              theme.iconColor,
+                                            ),
+                                      ),
+                                    )
+                                  : Icon(
+                                      theme.icon,
+                                      color: widget.enabled
+                                          ? theme.iconColor
+                                          : theme.iconColor.withOpacity(0.3),
+                                      size: theme.thumbSize * 0.5,
+                                    ),
                             ),
                           );
                         },

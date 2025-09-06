@@ -94,6 +94,38 @@ class _SliderButtonTestScreenState extends State<SliderButtonTestScreen> {
 
             const SizedBox(height: 24),
 
+            // Кнопки с загрузкой
+            Text(
+              'Кнопки с загрузкой:',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+
+            const SizedBox(height: 16),
+
+            SliderButton(
+              type: SliderButtonType.confirm,
+              text: 'Подтвердить с загрузкой',
+              showLoading: true,
+              onSlideCompleteAsync: () async {
+                await Future.delayed(const Duration(seconds: 2));
+                _onSlideComplete('Подтверждение с загрузкой');
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            SliderButton(
+              type: SliderButtonType.send,
+              text: 'Отправить с загрузкой',
+              showLoading: true,
+              onSlideCompleteAsync: () async {
+                await Future.delayed(const Duration(seconds: 3));
+                _onSlideComplete('Отправка с загрузкой');
+              },
+            ),
+
+            const SizedBox(height: 24),
+
             // Отключенные кнопки
             Text(
               'Отключенные кнопки (прозрачность + иконка замочка):',
@@ -145,7 +177,7 @@ class _SliderButtonTestScreenState extends State<SliderButtonTestScreen> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Улучшения для отключенных кнопок:',
+                          'Новые возможности SliderButton:',
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
@@ -155,6 +187,12 @@ class _SliderButtonTestScreenState extends State<SliderButtonTestScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
+                      '🔄 Состояние загрузки:\n'
+                      '• Установите showLoading: true\n'
+                      '• Используйте onSlideCompleteAsync для асинхронных операций\n'
+                      '• Автоматическая анимация загрузки в ползунке\n'
+                      '• Индикатор загрузки в тексте\n\n'
+                      '🎯 Улучшения для отключенных кнопок:\n'
                       '• Прозрачность 50% для всей кнопки\n'
                       '• Фон кнопки с прозрачностью 30%\n'
                       '• Заливка при движении с прозрачностью 30%\n'
