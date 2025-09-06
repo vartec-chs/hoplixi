@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'widgets/search_header.dart';
-import 'widgets/tab_bar_section.dart';
 import 'widgets/password_card.dart';
 import 'widgets/filter_modal.dart';
 import 'widgets/expandable_fab.dart';
+import '../../../common/text_field.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -75,17 +74,18 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildDrawer() {
     return Drawer(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
+              color: Theme.of(context).colorScheme.surface,
             ),
             child: Text(
               'Hoplixi',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -94,6 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ListTile(
             leading: const Icon(Icons.settings),
             title: const Text('Настройки'),
+
             onTap: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(
@@ -141,7 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       showDialog(
         context: context,
         builder: (context) =>
-            Dialog(child: Container(width: 400, child: const FilterModal())),
+            Dialog(child: Container(child: const FilterModal())),
       );
     }
   }
@@ -182,97 +183,197 @@ class _DashboardScreenState extends State<DashboardScreen>
     return PopScope(
       child: Scaffold(
         drawer: _buildDrawer(),
-        body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              // Search Header
-              SliverToBoxAdapter(
-                child: Builder(
-                  builder: (context) => SearchHeader(
+        body: CustomScrollView(
+          slivers: [
+            // SliverAppBar for search
+            SliverAppBar(
+              expandedHeight: 114.0,
+              floating: true,
+              pinned: false,
+              snap: false,
+              elevation: 0,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              surfaceTintColor: Theme.of(context).colorScheme.surface,
+              leading: Builder(
+                builder: (context) => IconButton(
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  icon: Icon(
+                    Icons.menu,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  tooltip: 'Меню',
+                ),
+              ),
+              actions: [
+                Container(
+                  margin: const EdgeInsets.only(right: 16.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    onPressed: _showFilterModal,
+                    icon: Icon(
+                      Icons.tune,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                    tooltip: 'Фильтры',
+                  ),
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  padding: const EdgeInsets.only(
+                    left: 16.0,
+                    right: 16.0,
+                    top: 60.0,
+                    bottom: 4.0,
+                  ),
+                  child: PrimaryTextField(
                     controller: _searchController,
-                    onSearchChanged: (value) {
+                    onChanged: (value) {
                       setState(() {
                         _searchQuery = value;
                       });
                     },
-                    onDrawerPressed: () => Scaffold.of(context).openDrawer(),
-                    onFilterPressed: _showFilterModal,
+                    hintText: 'Поиск паролей...',
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
                 ),
               ),
-              // Tab Bar Section
-              SliverToBoxAdapter(
-                child: TabBarSection(controller: _tabController),
+            ),
+            // SliverAppBar for tabs
+            SliverAppBar(
+              // expandedHeight: 40,
+              collapsedHeight: 60.0,
+              floating: false,
+              pinned: false,
+              snap: false,
+              elevation: 0,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              surfaceTintColor: Theme.of(context).colorScheme.surface,
+              automaticallyImplyLeading: false,
+              flexibleSpace: Container(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.1),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.shadow.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelColor: Theme.of(context).colorScheme.onSecondary,
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.7),
+                  labelStyle: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  unselectedLabelStyle: Theme.of(context).textTheme.bodyMedium,
+                  padding: const EdgeInsets.all(4),
+                  tabs: const [
+                    Tab(text: 'Все', height: 40),
+                    Tab(text: 'Избранные', height: 40),
+                  ],
+                ),
               ),
-              // Password List
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                sliver: _filteredPasswords.isEmpty
-                    ? SliverToBoxAdapter(
-                        child: Container(
-                          height: 200,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.search_off,
-                                  size: 48,
+            ),
+            // Password List
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              sliver: _filteredPasswords.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: Container(
+                        height: 200,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 48,
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                _searchQuery.isNotEmpty
+                                    ? 'Ничего не найдено'
+                                    : _selectedTab == 'favorites'
+                                    ? 'Нет избранных паролей'
+                                    : 'Нет паролей',
+                                style: theme.textTheme.bodyLarge?.copyWith(
                                   color: theme.colorScheme.onSurface
                                       .withOpacity(0.6),
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _searchQuery.isNotEmpty
-                                      ? 'Ничего не найдено'
-                                      : _selectedTab == 'favorites'
-                                      ? 'Нет избранных паролей'
-                                      : 'Нет паролей',
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                      )
-                    : SliverList(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final password = _filteredPasswords[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0),
-                            child: PasswordCard(
-                              password: password,
-                              onFavoriteToggle: (id) {
-                                setState(() {
-                                  final passwordIndex = _passwords.indexWhere(
-                                    (p) => p['id'] == id,
-                                  );
-                                  if (passwordIndex != -1) {
-                                    _passwords[passwordIndex]['isFavorite'] =
-                                        !_passwords[passwordIndex]['isFavorite'];
-                                  }
-                                });
-                              },
-                              onEdit: (id) {
-                                // TODO: Implement edit functionality
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Редактирование пароля $id'),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        }, childCount: _filteredPasswords.length),
                       ),
-              ),
-              // Bottom spacing for FAB
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
-          ),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final password = _filteredPasswords[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: PasswordCard(
+                            password: password,
+                            onFavoriteToggle: (id) {
+                              setState(() {
+                                final passwordIndex = _passwords.indexWhere(
+                                  (p) => p['id'] == id,
+                                );
+                                if (passwordIndex != -1) {
+                                  _passwords[passwordIndex]['isFavorite'] =
+                                      !_passwords[passwordIndex]['isFavorite'];
+                                }
+                              });
+                            },
+                            onEdit: (id) {
+                              // TODO: Implement edit functionality
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Редактирование пароля $id'),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      }, childCount: _filteredPasswords.length),
+                    ),
+            ),
+            // Bottom spacing for FAB
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
         ),
         floatingActionButton: ExpandableFAB(
           onCreatePassword: () {
