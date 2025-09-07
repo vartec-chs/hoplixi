@@ -32,7 +32,9 @@ class CategoriesService {
       }
 
       if (name.length > 100) {
-        return CategoryResult.error('Имя категории слишком длинное (максимум 100 символов)');
+        return CategoryResult.error(
+          'Имя категории слишком длинное (максимум 100 символов)',
+        );
       }
 
       // Проверка существования категории с таким именем
@@ -51,7 +53,6 @@ class CategoriesService {
       );
 
       final categoryId = await _categoriesDao.createCategory(dto);
-      final category = await _categoriesDao.getCategoryById(categoryId);
 
       logDebug(
         'Категория создана',
@@ -104,13 +105,20 @@ class CategoriesService {
         }
 
         if (name.length > 100) {
-          return CategoryResult.error('Имя категории слишком длинное (максимум 100 символов)');
+          return CategoryResult.error(
+            'Имя категории слишком длинное (максимум 100 символов)',
+          );
         }
 
         // Проверка уникальности имени (исключая текущую категорию)
-        final exists = await _categoriesDao.categoryExists(name.trim(), excludeId: id);
+        final exists = await _categoriesDao.categoryExists(
+          name.trim(),
+          excludeId: id,
+        );
         if (exists) {
-          return CategoryResult.error('Категория с таким именем уже существует');
+          return CategoryResult.error(
+            'Категория с таким именем уже существует',
+          );
         }
       }
 
@@ -129,8 +137,6 @@ class CategoriesService {
         return CategoryResult.error('Не удалось обновить категорию');
       }
 
-      final updatedCategory = await _categoriesDao.getCategoryById(id);
-
       logDebug(
         'Категория обновлена',
         tag: 'CategoriesService',
@@ -139,7 +145,6 @@ class CategoriesService {
 
       return CategoryResult.success(
         categoryId: id,
-        category: updatedCategory,
         message: 'Категория успешно обновлена',
       );
     } catch (e, s) {
@@ -150,7 +155,9 @@ class CategoriesService {
         tag: 'CategoriesService',
         data: {'id': id},
       );
-      return CategoryResult.error('Ошибка обновления категории: ${e.toString()}');
+      return CategoryResult.error(
+        'Ошибка обновления категории: ${e.toString()}',
+      );
     }
   }
 
@@ -265,7 +272,9 @@ class CategoriesService {
   }
 
   /// Получение категорий с подсчетом элементов
-  Future<List<CategoryWithItemCount>> getCategoriesWithItemCount(CategoryType type) async {
+  Future<List<CategoryWithItemCount>> getCategoriesWithItemCount(
+    CategoryType type,
+  ) async {
     try {
       return await _categoriesDao.getCategoriesWithItemCount(type);
     } catch (e, s) {
@@ -285,11 +294,8 @@ class CategoriesService {
     try {
       final total = await _categoriesDao.getCategoriesCount();
       final byType = await _categoriesDao.getCategoriesCountByType();
-      
-      return {
-        'total': total,
-        'byType': byType,
-      };
+
+      return {'total': total, 'byType': byType};
     } catch (e, s) {
       logError(
         'Ошибка получения статистики категорий',
@@ -297,10 +303,7 @@ class CategoriesService {
         stackTrace: s,
         tag: 'CategoriesService',
       );
-      return {
-        'total': 0,
-        'byType': <String, int>{},
-      };
+      return {'total': 0, 'byType': <String, int>{}};
     }
   }
 
@@ -315,7 +318,9 @@ class CategoriesService {
   }
 
   /// Массовое создание категорий
-  Future<CategoryResult> createCategoriesBatch(List<Map<String, dynamic>> categoriesData) async {
+  Future<CategoryResult> createCategoriesBatch(
+    List<Map<String, dynamic>> categoriesData,
+  ) async {
     try {
       logDebug(
         'Массовое создание категорий',
@@ -324,7 +329,7 @@ class CategoriesService {
       );
 
       final dtos = <CreateCategoryDto>[];
-      
+
       for (final data in categoriesData) {
         // Валидация каждой категории
         final name = data['name'] as String?;
@@ -342,13 +347,15 @@ class CategoriesService {
           return CategoryResult.error('Категория "$name" уже существует');
         }
 
-        dtos.add(CreateCategoryDto(
-          name: name.trim(),
-          description: (data['description'] as String?)?.trim(),
-          iconId: data['iconId'] as String?,
-          color: data['color'] as String? ?? '#2196F3',
-          type: data['type'] as CategoryType? ?? CategoryType.mixed,
-        ));
+        dtos.add(
+          CreateCategoryDto(
+            name: name.trim(),
+            description: (data['description'] as String?)?.trim(),
+            iconId: data['iconId'] as String?,
+            color: data['color'] as String? ?? '#2196F3',
+            type: data['type'] as CategoryType? ?? CategoryType.mixed,
+          ),
+        );
       }
 
       await _categoriesDao.createCategoriesBatch(dtos);
@@ -370,7 +377,9 @@ class CategoriesService {
         tag: 'CategoriesService',
         data: {'count': categoriesData.length},
       );
-      return CategoryResult.error('Ошибка массового создания категорий: ${e.toString()}');
+      return CategoryResult.error(
+        'Ошибка массового создания категорий: ${e.toString()}',
+      );
     }
   }
 
@@ -385,11 +394,15 @@ class CategoriesService {
     }
 
     if (name.length > 100) {
-      return CategoryResult.error('Имя категории слишком длинное (максимум 100 символов)');
+      return CategoryResult.error(
+        'Имя категории слишком длинное (максимум 100 символов)',
+      );
     }
 
     if (description != null && description.length > 500) {
-      return CategoryResult.error('Описание категории слишком длинное (максимум 500 символов)');
+      return CategoryResult.error(
+        'Описание категории слишком длинное (максимум 500 символов)',
+      );
     }
 
     return CategoryResult.success(message: 'Данные категории корректны');
