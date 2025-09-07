@@ -11,6 +11,7 @@ import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
 import 'package:hoplixi/hoplixi_store/dao/index.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+import 'package:hoplixi/hoplixi_store/services/history_service.dart';
 
 final hoplixiStoreManagerProvider = Provider<HoplixiStoreManager>((ref) {
   final manager = HoplixiStoreManager();
@@ -414,6 +415,78 @@ final totpTagsDaoProvider = Provider<TotpTagsDao>((ref) {
 });
 
 // =============================================================================
+// ИСТОРИЯ DAO ПРОВАЙДЕРЫ
+// =============================================================================
+
+/// Провайдер для PasswordHistoriesDao
+final passwordHistoriesDaoProvider = Provider<PasswordHistoriesDao>((ref) {
+  final manager = ref.watch(hoplixiStoreManagerProvider);
+  final state = ref.watch(databaseStateProvider);
+
+  if (!state.isOpen || manager.database == null) {
+    throw DatabaseError.operationFailed(
+      operation: 'getPasswordHistoriesDao',
+      details: 'Database is not open or not initialized',
+      message: 'Database must be opened before accessing PasswordHistoriesDao',
+      stackTrace: StackTrace.current,
+    );
+  }
+
+  return PasswordHistoriesDao(manager.database!);
+});
+
+/// Провайдер для NoteHistoriesDao
+final noteHistoriesDaoProvider = Provider<NoteHistoriesDao>((ref) {
+  final manager = ref.watch(hoplixiStoreManagerProvider);
+  final state = ref.watch(databaseStateProvider);
+
+  if (!state.isOpen || manager.database == null) {
+    throw DatabaseError.operationFailed(
+      operation: 'getNoteHistoriesDao',
+      details: 'Database is not open or not initialized',
+      message: 'Database must be opened before accessing NoteHistoriesDao',
+      stackTrace: StackTrace.current,
+    );
+  }
+
+  return NoteHistoriesDao(manager.database!);
+});
+
+/// Провайдер для TotpHistoriesDao
+final totpHistoriesDaoProvider = Provider<TotpHistoriesDao>((ref) {
+  final manager = ref.watch(hoplixiStoreManagerProvider);
+  final state = ref.watch(databaseStateProvider);
+
+  if (!state.isOpen || manager.database == null) {
+    throw DatabaseError.operationFailed(
+      operation: 'getTotpHistoriesDao',
+      details: 'Database is not open or not initialized',
+      message: 'Database must be opened before accessing TotpHistoriesDao',
+      stackTrace: StackTrace.current,
+    );
+  }
+
+  return TotpHistoriesDao(manager.database!);
+});
+
+/// Провайдер для HistoryService
+final historyServiceProvider = Provider<HistoryService>((ref) {
+  final manager = ref.watch(hoplixiStoreManagerProvider);
+  final state = ref.watch(databaseStateProvider);
+
+  if (!state.isOpen || manager.database == null) {
+    throw DatabaseError.operationFailed(
+      operation: 'getHistoryService',
+      details: 'Database is not open or not initialized',
+      message: 'Database must be opened before accessing HistoryService',
+      stackTrace: StackTrace.current,
+    );
+  }
+
+  return HistoryService(manager.database!);
+});
+
+// =============================================================================
 // STREAM ПРОВАЙДЕРЫ для часто используемых данных
 // =============================================================================
 
@@ -579,6 +652,82 @@ final categoriesStatsProvider = FutureProvider<CategoriesStats>((ref) async {
 
   return CategoriesStats(totalCount: totalCount, countByType: countByType);
 });
+
+// =============================================================================
+// ПРОВАЙДЕРЫ ИСТОРИИ
+// =============================================================================
+
+/// Провайдер для получения общей статистики истории
+final historyStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final historyService = ref.watch(historyServiceProvider);
+  return await historyService.getOverallStatistics();
+});
+
+/// Семейный провайдер для получения истории пароля
+final passwordHistoryProvider = StreamProvider.family<List<dynamic>, String>((
+  ref,
+  passwordId,
+) {
+  // Поскольку нет watchPasswordHistory, используем FutureProvider и периодически обновляем
+  throw UnimplementedError('Требуется реализация Stream методов в DAO');
+});
+
+/// Семейный провайдер для получения истории заметки
+final noteHistoryProvider = FutureProvider.family<List<dynamic>, String>((
+  ref,
+  noteId,
+) async {
+  final historyService = ref.watch(historyServiceProvider);
+  return await historyService.getNoteHistory(noteId);
+});
+
+/// Семейный провайдер для получения истории TOTP
+final totpHistoryProvider = FutureProvider.family<List<dynamic>, String>((
+  ref,
+  totpId,
+) async {
+  final historyService = ref.watch(historyServiceProvider);
+  return await historyService.getTotpHistory(totpId);
+});
+
+/// Провайдер для недавней активности
+final recentActivityProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
+  final historyService = ref.watch(historyServiceProvider);
+  return await historyService.getRecentActivity();
+});
+
+/// Семейный провайдер для поиска в истории
+final historySearchProvider =
+    FutureProvider.family<Map<String, List<dynamic>>, String>((
+      ref,
+      query,
+    ) async {
+      final historyService = ref.watch(historyServiceProvider);
+      return await historyService.searchHistory(query);
+    });
+
+/// Семейный провайдер для статистики истории конкретного пароля
+final passwordHistoryStatsProvider =
+    FutureProvider.family<Map<String, int>, String>((ref, passwordId) async {
+      final historyService = ref.watch(historyServiceProvider);
+      return await historyService.getPasswordHistoryStats(passwordId);
+    });
+
+/// Семейный провайдер для статистики истории конкретной заметки
+final noteHistoryStatsProvider =
+    FutureProvider.family<Map<String, int>, String>((ref, noteId) async {
+      final historyService = ref.watch(historyServiceProvider);
+      return await historyService.getNoteHistoryStats(noteId);
+    });
+
+/// Семейный провайдер для статистики истории конкретного TOTP
+final totpHistoryStatsProvider =
+    FutureProvider.family<Map<String, int>, String>((ref, totpId) async {
+      final historyService = ref.watch(historyServiceProvider);
+      return await historyService.getTotpHistoryStats(totpId);
+    });
 
 // =============================================================================
 // КЛАССЫ ДЛЯ СТАТИСТИКИ

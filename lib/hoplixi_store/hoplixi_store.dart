@@ -52,6 +52,9 @@ part 'hoplixi_store.g.dart';
     AttachmentsDao,
     NotesDao,
     NoteTagsDao,
+    PasswordHistoriesDao,
+    NoteHistoriesDao,
+    TotpHistoriesDao,
   ],
 )
 class HoplixiStore extends _$HoplixiStore {
