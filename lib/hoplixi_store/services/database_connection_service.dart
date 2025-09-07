@@ -107,8 +107,6 @@ class DatabaseConnectionService {
                 description: Value(description),
                 passwordHash: passwordData['hash']!,
                 salt: passwordData['salt']!,
-                createdAt: DateTime.now(),
-                modifiedAt: DateTime.now(),
               ),
             );
         logDebug(

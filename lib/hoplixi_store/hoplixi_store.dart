@@ -4,15 +4,30 @@ import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/tables/hoplixi_meta.dart';
 import 'tables/categories.dart';
+import 'tables/icons.dart';
+import 'tables/tags.dart';
+import 'tables/passwords.dart';
+import 'tables/password_tags.dart';
+import 'tables/password_histories.dart';
 
 part 'hoplixi_store.g.dart';
 
-@DriftDatabase(tables: [HoplixiMeta, Categories], daos: [CategoriesDao])
+@DriftDatabase(
+  tables: [
+    HoplixiMeta,
+    Categories,
+    Icons,
+    Tags,
+    Passwords,
+    PasswordTags,
+    PasswordHistories,
+  ]
+)
 class HoplixiStore extends _$HoplixiStore {
   HoplixiStore(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 1; // Keep as 1 for clean start
 
   @override
   MigrationStrategy get migration {
