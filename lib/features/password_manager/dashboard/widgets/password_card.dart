@@ -210,9 +210,8 @@ class _PasswordCardState extends State<PasswordCard>
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                          0.3,
-                        ),
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withOpacity(0.3),
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(16),
                           bottomRight: Radius.circular(16),
@@ -265,12 +264,12 @@ class _PasswordCardState extends State<PasswordCard>
                           // Edit Button
                           SizedBox(
                             width: double.infinity,
-                            child: OutlinedButton.icon(
+                            child: TextButton.icon(
                               onPressed: () =>
                                   widget.onEdit(widget.password['id']),
                               icon: const Icon(Icons.edit, size: 18),
                               label: const Text('Редактировать'),
-                              style: OutlinedButton.styleFrom(
+                              style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
                                 ),
@@ -309,9 +308,9 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return ElevatedButton(
+    return FilledButton(
       onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
+      style: FilledButton.styleFrom(
         backgroundColor: theme.colorScheme.primaryContainer,
         foregroundColor: theme.colorScheme.onPrimaryContainer,
         elevation: 0,
@@ -327,6 +326,7 @@ class _ActionButton extends StatelessWidget {
             label,
             style: theme.textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w500,
+              color: theme.colorScheme.onPrimaryContainer,
             ),
           ),
         ],
