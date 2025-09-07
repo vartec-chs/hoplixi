@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import '../utils/uuid_generator.dart';
 
 @DataClassName('NoteHistory')
@@ -6,8 +7,10 @@ class NoteHistories extends Table {
   TextColumn get id =>
       text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
   TextColumn get originalNoteId => text()(); // ID of original note
-  TextColumn get action =>
-      text().withLength(min: 1, max: 50)(); // 'deleted', 'modified'
+  TextColumn get action => textEnum<ActionInHistory>().withLength(
+    min: 1,
+    max: 50,
+  )(); // 'deleted', 'modified'
   TextColumn get title => text().withLength(min: 1, max: 255)();
   TextColumn get content =>
       text().nullable()(); // Content (nullable for privacy)

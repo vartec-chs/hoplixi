@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import '../utils/uuid_generator.dart';
 
 @DataClassName('PasswordHistory')
@@ -6,8 +7,10 @@ class PasswordHistories extends Table {
   TextColumn get id =>
       text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
   TextColumn get originalPasswordId => text()(); // ID of original password
-  TextColumn get action =>
-      text().withLength(min: 1, max: 50)(); // 'deleted', 'modified'
+  TextColumn get action => textEnum<ActionInHistory>().withLength(
+    min: 1,
+    max: 50,
+  )(); // 'deleted', 'modified'
   TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description => text().nullable()();
   TextColumn get password =>

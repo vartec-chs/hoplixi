@@ -34,6 +34,7 @@ class DatabaseConnectionService {
           },
           setup: (rawDb) {
             rawDb.execute("PRAGMA key = '$password';");
+            rawDb.execute('PRAGMA foreign_keys = ON;');
             rawDb.config.doubleQuotedStringLiterals = false;
           },
         ),

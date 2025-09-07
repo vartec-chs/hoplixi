@@ -7,6 +7,7 @@ class Notes extends Table {
   TextColumn get id =>
       text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
   TextColumn get title => text().withLength(min: 1, max: 255)();
+  TextColumn get description => text().nullable()();
   TextColumn get content => text()(); // Main content of the note
   TextColumn get categoryId => text().nullable().references(
     Categories,

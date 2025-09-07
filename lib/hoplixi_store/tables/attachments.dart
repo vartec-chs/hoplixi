@@ -4,6 +4,10 @@ import 'totps.dart';
 import 'notes.dart';
 import '../utils/uuid_generator.dart';
 
+//TODO: attachments — CHECK и поведение при удалении родителя
+// Проблема: в схеме CHECK требует ровно одного NOT NULL из (password_id, totp_id, note_id). Если при удалении родителя вы будете делать ON DELETE SET NULL — CHECK нарушится. Поэтому нужно либо удалять attachments вместе с родителем (ON DELETE CASCADE), либо менять логику CHECK.
+// Рекомендация: сделать FK в attachments с ON DELETE CASCADE, чтобы вложения удалялись вместе с родителем.
+
 @DataClassName('Attachment')
 class Attachments extends Table {
   TextColumn get id =>

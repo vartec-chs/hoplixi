@@ -552,19 +552,19 @@ class $IconsTable extends Icons with TableInfo<$IconsTable, IconData> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
-  late final GeneratedColumn<String> type = GeneratedColumn<String>(
-    'type',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 100,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+  late final GeneratedColumnWithTypeConverter<IconType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        additionalChecks: GeneratedColumn.checkTextLength(
+          minTextLength: 1,
+          maxTextLength: 50,
+        ),
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<IconType>($IconsTable.$convertertype);
   static const VerificationMeta _dataMeta = const VerificationMeta('data');
   @override
   late final GeneratedColumn<Uint8List> data = GeneratedColumn<Uint8List>(
@@ -630,14 +630,6 @@ class $IconsTable extends Icons with TableInfo<$IconsTable, IconData> {
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
-    if (data.containsKey('type')) {
-      context.handle(
-        _typeMeta,
-        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_typeMeta);
-    }
     if (data.containsKey('data')) {
       context.handle(
         _dataMeta,
@@ -675,10 +667,12 @@ class $IconsTable extends Icons with TableInfo<$IconsTable, IconData> {
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      type: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}type'],
-      )!,
+      type: $IconsTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
       data: attachedDatabase.typeMapping.read(
         DriftSqlType.blob,
         data['${effectivePrefix}data'],
@@ -698,12 +692,15 @@ class $IconsTable extends Icons with TableInfo<$IconsTable, IconData> {
   $IconsTable createAlias(String alias) {
     return $IconsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<IconType, String, String> $convertertype =
+      const EnumNameConverter<IconType>(IconType.values);
 }
 
 class IconData extends DataClass implements Insertable<IconData> {
   final String id;
   final String name;
-  final String type;
+  final IconType type;
   final Uint8List data;
   final DateTime createdAt;
   final DateTime modifiedAt;
@@ -720,7 +717,9 @@ class IconData extends DataClass implements Insertable<IconData> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
-    map['type'] = Variable<String>(type);
+    {
+      map['type'] = Variable<String>($IconsTable.$convertertype.toSql(type));
+    }
     map['data'] = Variable<Uint8List>(data);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['modified_at'] = Variable<DateTime>(modifiedAt);
@@ -746,7 +745,9 @@ class IconData extends DataClass implements Insertable<IconData> {
     return IconData(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      type: serializer.fromJson<String>(json['type']),
+      type: $IconsTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
       data: serializer.fromJson<Uint8List>(json['data']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       modifiedAt: serializer.fromJson<DateTime>(json['modifiedAt']),
@@ -758,7 +759,9 @@ class IconData extends DataClass implements Insertable<IconData> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
-      'type': serializer.toJson<String>(type),
+      'type': serializer.toJson<String>(
+        $IconsTable.$convertertype.toJson(type),
+      ),
       'data': serializer.toJson<Uint8List>(data),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'modifiedAt': serializer.toJson<DateTime>(modifiedAt),
@@ -768,7 +771,7 @@ class IconData extends DataClass implements Insertable<IconData> {
   IconData copyWith({
     String? id,
     String? name,
-    String? type,
+    IconType? type,
     Uint8List? data,
     DateTime? createdAt,
     DateTime? modifiedAt,
@@ -830,7 +833,7 @@ class IconData extends DataClass implements Insertable<IconData> {
 class IconsCompanion extends UpdateCompanion<IconData> {
   final Value<String> id;
   final Value<String> name;
-  final Value<String> type;
+  final Value<IconType> type;
   final Value<Uint8List> data;
   final Value<DateTime> createdAt;
   final Value<DateTime> modifiedAt;
@@ -847,7 +850,7 @@ class IconsCompanion extends UpdateCompanion<IconData> {
   IconsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
-    required String type,
+    required IconType type,
     required Uint8List data,
     this.createdAt = const Value.absent(),
     this.modifiedAt = const Value.absent(),
@@ -878,7 +881,7 @@ class IconsCompanion extends UpdateCompanion<IconData> {
   IconsCompanion copyWith({
     Value<String>? id,
     Value<String>? name,
-    Value<String>? type,
+    Value<IconType>? type,
     Value<Uint8List>? data,
     Value<DateTime>? createdAt,
     Value<DateTime>? modifiedAt,
@@ -905,7 +908,9 @@ class IconsCompanion extends UpdateCompanion<IconData> {
       map['name'] = Variable<String>(name.value);
     }
     if (type.present) {
-      map['type'] = Variable<String>(type.value);
+      map['type'] = Variable<String>(
+        $IconsTable.$convertertype.toSql(type.value),
+      );
     }
     if (data.present) {
       map['data'] = Variable<Uint8List>(data.value);
@@ -987,7 +992,7 @@ class $CategoriesTable extends Categories
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES icons (id)',
+      'REFERENCES icons (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _colorMeta = const VerificationMeta('color');
@@ -995,9 +1000,10 @@ class $CategoriesTable extends Categories
   late final GeneratedColumn<String> color = GeneratedColumn<String>(
     'color',
     aliasedName,
-    true,
+    false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+    defaultValue: const Constant('FFFFFF'),
   );
   @override
   late final GeneratedColumnWithTypeConverter<CategoryType, String> type =
@@ -1127,7 +1133,7 @@ class $CategoriesTable extends Categories
       color: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}color'],
-      ),
+      )!,
       type: $CategoriesTable.$convertertype.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -1159,7 +1165,7 @@ class Category extends DataClass implements Insertable<Category> {
   final String name;
   final String? description;
   final String? iconId;
-  final String? color;
+  final String color;
   final CategoryType type;
   final DateTime createdAt;
   final DateTime modifiedAt;
@@ -1168,7 +1174,7 @@ class Category extends DataClass implements Insertable<Category> {
     required this.name,
     this.description,
     this.iconId,
-    this.color,
+    required this.color,
     required this.type,
     required this.createdAt,
     required this.modifiedAt,
@@ -1184,9 +1190,7 @@ class Category extends DataClass implements Insertable<Category> {
     if (!nullToAbsent || iconId != null) {
       map['icon_id'] = Variable<String>(iconId);
     }
-    if (!nullToAbsent || color != null) {
-      map['color'] = Variable<String>(color);
-    }
+    map['color'] = Variable<String>(color);
     {
       map['type'] = Variable<String>(
         $CategoriesTable.$convertertype.toSql(type),
@@ -1207,9 +1211,7 @@ class Category extends DataClass implements Insertable<Category> {
       iconId: iconId == null && nullToAbsent
           ? const Value.absent()
           : Value(iconId),
-      color: color == null && nullToAbsent
-          ? const Value.absent()
-          : Value(color),
+      color: Value(color),
       type: Value(type),
       createdAt: Value(createdAt),
       modifiedAt: Value(modifiedAt),
@@ -1226,7 +1228,7 @@ class Category extends DataClass implements Insertable<Category> {
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
       iconId: serializer.fromJson<String?>(json['iconId']),
-      color: serializer.fromJson<String?>(json['color']),
+      color: serializer.fromJson<String>(json['color']),
       type: $CategoriesTable.$convertertype.fromJson(
         serializer.fromJson<String>(json['type']),
       ),
@@ -1242,7 +1244,7 @@ class Category extends DataClass implements Insertable<Category> {
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
       'iconId': serializer.toJson<String?>(iconId),
-      'color': serializer.toJson<String?>(color),
+      'color': serializer.toJson<String>(color),
       'type': serializer.toJson<String>(
         $CategoriesTable.$convertertype.toJson(type),
       ),
@@ -1256,7 +1258,7 @@ class Category extends DataClass implements Insertable<Category> {
     String? name,
     Value<String?> description = const Value.absent(),
     Value<String?> iconId = const Value.absent(),
-    Value<String?> color = const Value.absent(),
+    String? color,
     CategoryType? type,
     DateTime? createdAt,
     DateTime? modifiedAt,
@@ -1265,7 +1267,7 @@ class Category extends DataClass implements Insertable<Category> {
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
     iconId: iconId.present ? iconId.value : this.iconId,
-    color: color.present ? color.value : this.color,
+    color: color ?? this.color,
     type: type ?? this.type,
     createdAt: createdAt ?? this.createdAt,
     modifiedAt: modifiedAt ?? this.modifiedAt,
@@ -1332,7 +1334,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String> name;
   final Value<String?> description;
   final Value<String?> iconId;
-  final Value<String?> color;
+  final Value<String> color;
   final Value<CategoryType> type;
   final Value<DateTime> createdAt;
   final Value<DateTime> modifiedAt;
@@ -1389,7 +1391,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<String>? name,
     Value<String?>? description,
     Value<String?>? iconId,
-    Value<String?>? color,
+    Value<String>? color,
     Value<CategoryType>? type,
     Value<DateTime>? createdAt,
     Value<DateTime>? modifiedAt,
@@ -1965,7 +1967,7 @@ class $PasswordsTable extends Passwords
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES categories (id)',
+      'REFERENCES categories (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
@@ -2649,7 +2651,7 @@ class $PasswordTagsTable extends PasswordTags
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES passwords (id)',
+      'REFERENCES passwords (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
@@ -2661,7 +2663,7 @@ class $PasswordTagsTable extends PasswordTags
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES tags (id)',
+      'REFERENCES tags (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
@@ -2932,19 +2934,21 @@ class $PasswordHistoriesTable extends PasswordHistories
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       );
-  static const VerificationMeta _actionMeta = const VerificationMeta('action');
   @override
-  late final GeneratedColumn<String> action = GeneratedColumn<String>(
-    'action',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 50,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+  late final GeneratedColumnWithTypeConverter<ActionInHistory, String> action =
+      GeneratedColumn<String>(
+        'action',
+        aliasedName,
+        false,
+        additionalChecks: GeneratedColumn.checkTextLength(
+          minTextLength: 1,
+          maxTextLength: 50,
+        ),
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ActionInHistory>(
+        $PasswordHistoriesTable.$converteraction,
+      );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -3127,14 +3131,6 @@ class $PasswordHistoriesTable extends PasswordHistories
     } else if (isInserting) {
       context.missing(_originalPasswordIdMeta);
     }
-    if (data.containsKey('action')) {
-      context.handle(
-        _actionMeta,
-        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_actionMeta);
-    }
     if (data.containsKey('name')) {
       context.handle(
         _nameMeta,
@@ -3244,10 +3240,12 @@ class $PasswordHistoriesTable extends PasswordHistories
         DriftSqlType.string,
         data['${effectivePrefix}original_password_id'],
       )!,
-      action: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}action'],
-      )!,
+      action: $PasswordHistoriesTable.$converteraction.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}action'],
+        )!,
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -3307,12 +3305,15 @@ class $PasswordHistoriesTable extends PasswordHistories
   $PasswordHistoriesTable createAlias(String alias) {
     return $PasswordHistoriesTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<ActionInHistory, String, String> $converteraction =
+      const EnumNameConverter<ActionInHistory>(ActionInHistory.values);
 }
 
 class PasswordHistory extends DataClass implements Insertable<PasswordHistory> {
   final String id;
   final String originalPasswordId;
-  final String action;
+  final ActionInHistory action;
   final String name;
   final String? description;
   final String? password;
@@ -3349,7 +3350,11 @@ class PasswordHistory extends DataClass implements Insertable<PasswordHistory> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['original_password_id'] = Variable<String>(originalPasswordId);
-    map['action'] = Variable<String>(action);
+    {
+      map['action'] = Variable<String>(
+        $PasswordHistoriesTable.$converteraction.toSql(action),
+      );
+    }
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
@@ -3437,7 +3442,9 @@ class PasswordHistory extends DataClass implements Insertable<PasswordHistory> {
       originalPasswordId: serializer.fromJson<String>(
         json['originalPasswordId'],
       ),
-      action: serializer.fromJson<String>(json['action']),
+      action: $PasswordHistoriesTable.$converteraction.fromJson(
+        serializer.fromJson<String>(json['action']),
+      ),
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
       password: serializer.fromJson<String?>(json['password']),
@@ -3463,7 +3470,9 @@ class PasswordHistory extends DataClass implements Insertable<PasswordHistory> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'originalPasswordId': serializer.toJson<String>(originalPasswordId),
-      'action': serializer.toJson<String>(action),
+      'action': serializer.toJson<String>(
+        $PasswordHistoriesTable.$converteraction.toJson(action),
+      ),
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
       'password': serializer.toJson<String?>(password),
@@ -3483,7 +3492,7 @@ class PasswordHistory extends DataClass implements Insertable<PasswordHistory> {
   PasswordHistory copyWith({
     String? id,
     String? originalPasswordId,
-    String? action,
+    ActionInHistory? action,
     String? name,
     Value<String?> description = const Value.absent(),
     Value<String?> password = const Value.absent(),
@@ -3619,7 +3628,7 @@ class PasswordHistory extends DataClass implements Insertable<PasswordHistory> {
 class PasswordHistoriesCompanion extends UpdateCompanion<PasswordHistory> {
   final Value<String> id;
   final Value<String> originalPasswordId;
-  final Value<String> action;
+  final Value<ActionInHistory> action;
   final Value<String> name;
   final Value<String?> description;
   final Value<String?> password;
@@ -3656,7 +3665,7 @@ class PasswordHistoriesCompanion extends UpdateCompanion<PasswordHistory> {
   PasswordHistoriesCompanion.insert({
     this.id = const Value.absent(),
     required String originalPasswordId,
-    required String action,
+    required ActionInHistory action,
     required String name,
     this.description = const Value.absent(),
     this.password = const Value.absent(),
@@ -3719,7 +3728,7 @@ class PasswordHistoriesCompanion extends UpdateCompanion<PasswordHistory> {
   PasswordHistoriesCompanion copyWith({
     Value<String>? id,
     Value<String>? originalPasswordId,
-    Value<String>? action,
+    Value<ActionInHistory>? action,
     Value<String>? name,
     Value<String?>? description,
     Value<String?>? password,
@@ -3766,7 +3775,9 @@ class PasswordHistoriesCompanion extends UpdateCompanion<PasswordHistory> {
       map['original_password_id'] = Variable<String>(originalPasswordId.value);
     }
     if (action.present) {
-      map['action'] = Variable<String>(action.value);
+      map['action'] = Variable<String>(
+        $PasswordHistoriesTable.$converteraction.toSql(action.value),
+      );
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -3866,7 +3877,7 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES passwords (id)',
+      'REFERENCES passwords (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
@@ -4010,7 +4021,7 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES categories (id)',
+      'REFERENCES categories (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
@@ -4927,7 +4938,7 @@ class $TotpTagsTable extends TotpTags with TableInfo<$TotpTagsTable, TotpTag> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES totps (id)',
+      'REFERENCES totps (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
@@ -4939,7 +4950,7 @@ class $TotpTagsTable extends TotpTags with TableInfo<$TotpTagsTable, TotpTag> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES tags (id)',
+      'REFERENCES tags (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
@@ -6398,6 +6409,17 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _contentMeta = const VerificationMeta(
     'content',
   );
@@ -6420,7 +6442,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES categories (id)',
+      'REFERENCES categories (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
@@ -6492,6 +6514,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
   List<GeneratedColumn> get $columns => [
     id,
     title,
+    description,
     content,
     categoryId,
     isFavorite,
@@ -6522,6 +6545,15 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
       );
     } else if (isInserting) {
       context.missing(_titleMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
     }
     if (data.containsKey('content')) {
       context.handle(
@@ -6587,6 +6619,10 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         DriftSqlType.string,
         data['${effectivePrefix}title'],
       )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
       content: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}content'],
@@ -6627,6 +6663,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
 class Note extends DataClass implements Insertable<Note> {
   final String id;
   final String title;
+  final String? description;
   final String content;
   final String? categoryId;
   final bool isFavorite;
@@ -6637,6 +6674,7 @@ class Note extends DataClass implements Insertable<Note> {
   const Note({
     required this.id,
     required this.title,
+    this.description,
     required this.content,
     this.categoryId,
     required this.isFavorite,
@@ -6650,6 +6688,9 @@ class Note extends DataClass implements Insertable<Note> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['title'] = Variable<String>(title);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
     map['content'] = Variable<String>(content);
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<String>(categoryId);
@@ -6668,6 +6709,9 @@ class Note extends DataClass implements Insertable<Note> {
     return NotesCompanion(
       id: Value(id),
       title: Value(title),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
       content: Value(content),
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
@@ -6690,6 +6734,7 @@ class Note extends DataClass implements Insertable<Note> {
     return Note(
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
+      description: serializer.fromJson<String?>(json['description']),
       content: serializer.fromJson<String>(json['content']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
@@ -6705,6 +6750,7 @@ class Note extends DataClass implements Insertable<Note> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
+      'description': serializer.toJson<String?>(description),
       'content': serializer.toJson<String>(content),
       'categoryId': serializer.toJson<String?>(categoryId),
       'isFavorite': serializer.toJson<bool>(isFavorite),
@@ -6718,6 +6764,7 @@ class Note extends DataClass implements Insertable<Note> {
   Note copyWith({
     String? id,
     String? title,
+    Value<String?> description = const Value.absent(),
     String? content,
     Value<String?> categoryId = const Value.absent(),
     bool? isFavorite,
@@ -6728,6 +6775,7 @@ class Note extends DataClass implements Insertable<Note> {
   }) => Note(
     id: id ?? this.id,
     title: title ?? this.title,
+    description: description.present ? description.value : this.description,
     content: content ?? this.content,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     isFavorite: isFavorite ?? this.isFavorite,
@@ -6740,6 +6788,9 @@ class Note extends DataClass implements Insertable<Note> {
     return Note(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
       content: data.content.present ? data.content.value : this.content,
       categoryId: data.categoryId.present
           ? data.categoryId.value
@@ -6763,6 +6814,7 @@ class Note extends DataClass implements Insertable<Note> {
     return (StringBuffer('Note(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('description: $description, ')
           ..write('content: $content, ')
           ..write('categoryId: $categoryId, ')
           ..write('isFavorite: $isFavorite, ')
@@ -6778,6 +6830,7 @@ class Note extends DataClass implements Insertable<Note> {
   int get hashCode => Object.hash(
     id,
     title,
+    description,
     content,
     categoryId,
     isFavorite,
@@ -6792,6 +6845,7 @@ class Note extends DataClass implements Insertable<Note> {
       (other is Note &&
           other.id == this.id &&
           other.title == this.title &&
+          other.description == this.description &&
           other.content == this.content &&
           other.categoryId == this.categoryId &&
           other.isFavorite == this.isFavorite &&
@@ -6804,6 +6858,7 @@ class Note extends DataClass implements Insertable<Note> {
 class NotesCompanion extends UpdateCompanion<Note> {
   final Value<String> id;
   final Value<String> title;
+  final Value<String?> description;
   final Value<String> content;
   final Value<String?> categoryId;
   final Value<bool> isFavorite;
@@ -6815,6 +6870,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   const NotesCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
+    this.description = const Value.absent(),
     this.content = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.isFavorite = const Value.absent(),
@@ -6827,6 +6883,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   NotesCompanion.insert({
     this.id = const Value.absent(),
     required String title,
+    this.description = const Value.absent(),
     required String content,
     this.categoryId = const Value.absent(),
     this.isFavorite = const Value.absent(),
@@ -6840,6 +6897,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   static Insertable<Note> custom({
     Expression<String>? id,
     Expression<String>? title,
+    Expression<String>? description,
     Expression<String>? content,
     Expression<String>? categoryId,
     Expression<bool>? isFavorite,
@@ -6852,6 +6910,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (title != null) 'title': title,
+      if (description != null) 'description': description,
       if (content != null) 'content': content,
       if (categoryId != null) 'category_id': categoryId,
       if (isFavorite != null) 'is_favorite': isFavorite,
@@ -6866,6 +6925,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   NotesCompanion copyWith({
     Value<String>? id,
     Value<String>? title,
+    Value<String?>? description,
     Value<String>? content,
     Value<String?>? categoryId,
     Value<bool>? isFavorite,
@@ -6878,6 +6938,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     return NotesCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
+      description: description ?? this.description,
       content: content ?? this.content,
       categoryId: categoryId ?? this.categoryId,
       isFavorite: isFavorite ?? this.isFavorite,
@@ -6897,6 +6958,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
     }
     if (content.present) {
       map['content'] = Variable<String>(content.value);
@@ -6930,6 +6994,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     return (StringBuffer('NotesCompanion(')
           ..write('id: $id, ')
           ..write('title: $title, ')
+          ..write('description: $description, ')
           ..write('content: $content, ')
           ..write('categoryId: $categoryId, ')
           ..write('isFavorite: $isFavorite, ')
@@ -7038,7 +7103,7 @@ class $AttachmentsTable extends Attachments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES passwords (id)',
+      'REFERENCES passwords (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _totpIdMeta = const VerificationMeta('totpId');
@@ -7050,7 +7115,7 @@ class $AttachmentsTable extends Attachments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES totps (id)',
+      'REFERENCES totps (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _noteIdMeta = const VerificationMeta('noteId');
@@ -7062,7 +7127,7 @@ class $AttachmentsTable extends Attachments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES notes (id)',
+      'REFERENCES notes (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
@@ -7676,7 +7741,7 @@ class $NoteTagsTable extends NoteTags with TableInfo<$NoteTagsTable, NoteTag> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES notes (id)',
+      'REFERENCES notes (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
@@ -7688,7 +7753,7 @@ class $NoteTagsTable extends NoteTags with TableInfo<$NoteTagsTable, NoteTag> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES tags (id)',
+      'REFERENCES tags (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
@@ -7954,19 +8019,19 @@ class $NoteHistoriesTable extends NoteHistories
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _actionMeta = const VerificationMeta('action');
   @override
-  late final GeneratedColumn<String> action = GeneratedColumn<String>(
-    'action',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 50,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+  late final GeneratedColumnWithTypeConverter<ActionInHistory, String> action =
+      GeneratedColumn<String>(
+        'action',
+        aliasedName,
+        false,
+        additionalChecks: GeneratedColumn.checkTextLength(
+          minTextLength: 1,
+          maxTextLength: 50,
+        ),
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<ActionInHistory>($NoteHistoriesTable.$converteraction);
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -8127,14 +8192,6 @@ class $NoteHistoriesTable extends NoteHistories
     } else if (isInserting) {
       context.missing(_originalNoteIdMeta);
     }
-    if (data.containsKey('action')) {
-      context.handle(
-        _actionMeta,
-        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_actionMeta);
-    }
     if (data.containsKey('title')) {
       context.handle(
         _titleMeta,
@@ -8226,10 +8283,12 @@ class $NoteHistoriesTable extends NoteHistories
         DriftSqlType.string,
         data['${effectivePrefix}original_note_id'],
       )!,
-      action: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}action'],
-      )!,
+      action: $NoteHistoriesTable.$converteraction.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}action'],
+        )!,
+      ),
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -8277,12 +8336,15 @@ class $NoteHistoriesTable extends NoteHistories
   $NoteHistoriesTable createAlias(String alias) {
     return $NoteHistoriesTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<ActionInHistory, String, String> $converteraction =
+      const EnumNameConverter<ActionInHistory>(ActionInHistory.values);
 }
 
 class NoteHistory extends DataClass implements Insertable<NoteHistory> {
   final String id;
   final String originalNoteId;
-  final String action;
+  final ActionInHistory action;
   final String title;
   final String? content;
   final String? categoryId;
@@ -8313,7 +8375,11 @@ class NoteHistory extends DataClass implements Insertable<NoteHistory> {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['original_note_id'] = Variable<String>(originalNoteId);
-    map['action'] = Variable<String>(action);
+    {
+      map['action'] = Variable<String>(
+        $NoteHistoriesTable.$converteraction.toSql(action),
+      );
+    }
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || content != null) {
       map['content'] = Variable<String>(content);
@@ -8383,7 +8449,9 @@ class NoteHistory extends DataClass implements Insertable<NoteHistory> {
     return NoteHistory(
       id: serializer.fromJson<String>(json['id']),
       originalNoteId: serializer.fromJson<String>(json['originalNoteId']),
-      action: serializer.fromJson<String>(json['action']),
+      action: $NoteHistoriesTable.$converteraction.fromJson(
+        serializer.fromJson<String>(json['action']),
+      ),
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String?>(json['content']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
@@ -8406,7 +8474,9 @@ class NoteHistory extends DataClass implements Insertable<NoteHistory> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'originalNoteId': serializer.toJson<String>(originalNoteId),
-      'action': serializer.toJson<String>(action),
+      'action': serializer.toJson<String>(
+        $NoteHistoriesTable.$converteraction.toJson(action),
+      ),
       'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String?>(content),
       'categoryId': serializer.toJson<String?>(categoryId),
@@ -8423,7 +8493,7 @@ class NoteHistory extends DataClass implements Insertable<NoteHistory> {
   NoteHistory copyWith({
     String? id,
     String? originalNoteId,
-    String? action,
+    ActionInHistory? action,
     String? title,
     Value<String?> content = const Value.absent(),
     Value<String?> categoryId = const Value.absent(),
@@ -8541,7 +8611,7 @@ class NoteHistory extends DataClass implements Insertable<NoteHistory> {
 class NoteHistoriesCompanion extends UpdateCompanion<NoteHistory> {
   final Value<String> id;
   final Value<String> originalNoteId;
-  final Value<String> action;
+  final Value<ActionInHistory> action;
   final Value<String> title;
   final Value<String?> content;
   final Value<String?> categoryId;
@@ -8572,7 +8642,7 @@ class NoteHistoriesCompanion extends UpdateCompanion<NoteHistory> {
   NoteHistoriesCompanion.insert({
     this.id = const Value.absent(),
     required String originalNoteId,
-    required String action,
+    required ActionInHistory action,
     required String title,
     this.content = const Value.absent(),
     this.categoryId = const Value.absent(),
@@ -8625,7 +8695,7 @@ class NoteHistoriesCompanion extends UpdateCompanion<NoteHistory> {
   NoteHistoriesCompanion copyWith({
     Value<String>? id,
     Value<String>? originalNoteId,
-    Value<String>? action,
+    Value<ActionInHistory>? action,
     Value<String>? title,
     Value<String?>? content,
     Value<String?>? categoryId,
@@ -8666,7 +8736,9 @@ class NoteHistoriesCompanion extends UpdateCompanion<NoteHistory> {
       map['original_note_id'] = Variable<String>(originalNoteId.value);
     }
     if (action.present) {
-      map['action'] = Variable<String>(action.value);
+      map['action'] = Variable<String>(
+        $NoteHistoriesTable.$converteraction.toSql(action.value),
+      );
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -8766,6 +8838,107 @@ abstract class _$HoplixiStore extends GeneratedDatabase {
     noteTags,
     noteHistories,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'icons',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('categories', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('passwords', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'passwords',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('password_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tags',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('password_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'passwords',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('totps', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('totps', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'totps',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('totp_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tags',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('totp_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('notes', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'passwords',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attachments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'totps',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attachments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('attachments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('note_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tags',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('note_tags', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$HoplixiMetaTableCreateCompanionBuilder =
@@ -9035,7 +9208,7 @@ typedef $$IconsTableCreateCompanionBuilder =
     IconsCompanion Function({
       Value<String> id,
       required String name,
-      required String type,
+      required IconType type,
       required Uint8List data,
       Value<DateTime> createdAt,
       Value<DateTime> modifiedAt,
@@ -9045,7 +9218,7 @@ typedef $$IconsTableUpdateCompanionBuilder =
     IconsCompanion Function({
       Value<String> id,
       Value<String> name,
-      Value<String> type,
+      Value<IconType> type,
       Value<Uint8List> data,
       Value<DateTime> createdAt,
       Value<DateTime> modifiedAt,
@@ -9093,10 +9266,11 @@ class $$IconsTableFilterComposer extends Composer<_$HoplixiStore, $IconsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get type => $composableBuilder(
-    column: $table.type,
-    builder: (column) => ColumnFilters(column),
-  );
+  ColumnWithTypeConverterFilters<IconType, IconType, String> get type =>
+      $composableBuilder(
+        column: $table.type,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
   ColumnFilters<Uint8List> get data => $composableBuilder(
     column: $table.data,
@@ -9194,7 +9368,7 @@ class $$IconsTableAnnotationComposer
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<String> get type =>
+  GeneratedColumnWithTypeConverter<IconType, String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
 
   GeneratedColumn<Uint8List> get data =>
@@ -9264,7 +9438,7 @@ class $$IconsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<String> type = const Value.absent(),
+                Value<IconType> type = const Value.absent(),
                 Value<Uint8List> data = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> modifiedAt = const Value.absent(),
@@ -9282,7 +9456,7 @@ class $$IconsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 required String name,
-                required String type,
+                required IconType type,
                 required Uint8List data,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> modifiedAt = const Value.absent(),
@@ -9348,7 +9522,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       required String name,
       Value<String?> description,
       Value<String?> iconId,
-      Value<String?> color,
+      Value<String> color,
       required CategoryType type,
       Value<DateTime> createdAt,
       Value<DateTime> modifiedAt,
@@ -9360,7 +9534,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> description,
       Value<String?> iconId,
-      Value<String?> color,
+      Value<String> color,
       Value<CategoryType> type,
       Value<DateTime> createdAt,
       Value<DateTime> modifiedAt,
@@ -9828,7 +10002,7 @@ class $$CategoriesTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<String?> iconId = const Value.absent(),
-                Value<String?> color = const Value.absent(),
+                Value<String> color = const Value.absent(),
                 Value<CategoryType> type = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> modifiedAt = const Value.absent(),
@@ -9850,7 +10024,7 @@ class $$CategoriesTableTableManager
                 required String name,
                 Value<String?> description = const Value.absent(),
                 Value<String?> iconId = const Value.absent(),
-                Value<String?> color = const Value.absent(),
+                Value<String> color = const Value.absent(),
                 required CategoryType type,
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> modifiedAt = const Value.absent(),
@@ -11653,7 +11827,7 @@ typedef $$PasswordHistoriesTableCreateCompanionBuilder =
     PasswordHistoriesCompanion Function({
       Value<String> id,
       required String originalPasswordId,
-      required String action,
+      required ActionInHistory action,
       required String name,
       Value<String?> description,
       Value<String?> password,
@@ -11673,7 +11847,7 @@ typedef $$PasswordHistoriesTableUpdateCompanionBuilder =
     PasswordHistoriesCompanion Function({
       Value<String> id,
       Value<String> originalPasswordId,
-      Value<String> action,
+      Value<ActionInHistory> action,
       Value<String> name,
       Value<String?> description,
       Value<String?> password,
@@ -11709,9 +11883,10 @@ class $$PasswordHistoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get action => $composableBuilder(
+  ColumnWithTypeConverterFilters<ActionInHistory, ActionInHistory, String>
+  get action => $composableBuilder(
     column: $table.action,
-    builder: (column) => ColumnFilters(column),
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
   ColumnFilters<String> get name => $composableBuilder(
@@ -11887,7 +12062,7 @@ class $$PasswordHistoriesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get action =>
+  GeneratedColumnWithTypeConverter<ActionInHistory, String> get action =>
       $composableBuilder(column: $table.action, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
@@ -11982,7 +12157,7 @@ class $$PasswordHistoriesTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> originalPasswordId = const Value.absent(),
-                Value<String> action = const Value.absent(),
+                Value<ActionInHistory> action = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<String?> password = const Value.absent(),
@@ -12020,7 +12195,7 @@ class $$PasswordHistoriesTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 required String originalPasswordId,
-                required String action,
+                required ActionInHistory action,
                 required String name,
                 Value<String?> description = const Value.absent(),
                 Value<String?> password = const Value.absent(),
@@ -13851,6 +14026,7 @@ typedef $$NotesTableCreateCompanionBuilder =
     NotesCompanion Function({
       Value<String> id,
       required String title,
+      Value<String?> description,
       required String content,
       Value<String?> categoryId,
       Value<bool> isFavorite,
@@ -13864,6 +14040,7 @@ typedef $$NotesTableUpdateCompanionBuilder =
     NotesCompanion Function({
       Value<String> id,
       Value<String> title,
+      Value<String?> description,
       Value<String> content,
       Value<String?> categoryId,
       Value<bool> isFavorite,
@@ -13948,6 +14125,11 @@ class $$NotesTableFilterComposer extends Composer<_$HoplixiStore, $NotesTable> {
 
   ColumnFilters<String> get title => $composableBuilder(
     column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14074,6 +14256,11 @@ class $$NotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get content => $composableBuilder(
     column: $table.content,
     builder: (column) => ColumnOrderings(column),
@@ -14142,6 +14329,11 @@ class $$NotesTableAnnotationComposer
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get content =>
       $composableBuilder(column: $table.content, builder: (column) => column);
@@ -14275,6 +14467,7 @@ class $$NotesTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
                 Value<String> content = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
@@ -14286,6 +14479,7 @@ class $$NotesTableTableManager
               }) => NotesCompanion(
                 id: id,
                 title: title,
+                description: description,
                 content: content,
                 categoryId: categoryId,
                 isFavorite: isFavorite,
@@ -14299,6 +14493,7 @@ class $$NotesTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 required String title,
+                Value<String?> description = const Value.absent(),
                 required String content,
                 Value<String?> categoryId = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
@@ -14310,6 +14505,7 @@ class $$NotesTableTableManager
               }) => NotesCompanion.insert(
                 id: id,
                 title: title,
+                description: description,
                 content: content,
                 categoryId: categoryId,
                 isFavorite: isFavorite,
@@ -15442,7 +15638,7 @@ typedef $$NoteHistoriesTableCreateCompanionBuilder =
     NoteHistoriesCompanion Function({
       Value<String> id,
       required String originalNoteId,
-      required String action,
+      required ActionInHistory action,
       required String title,
       Value<String?> content,
       Value<String?> categoryId,
@@ -15459,7 +15655,7 @@ typedef $$NoteHistoriesTableUpdateCompanionBuilder =
     NoteHistoriesCompanion Function({
       Value<String> id,
       Value<String> originalNoteId,
-      Value<String> action,
+      Value<ActionInHistory> action,
       Value<String> title,
       Value<String?> content,
       Value<String?> categoryId,
@@ -15492,9 +15688,10 @@ class $$NoteHistoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get action => $composableBuilder(
+  ColumnWithTypeConverterFilters<ActionInHistory, ActionInHistory, String>
+  get action => $composableBuilder(
     column: $table.action,
-    builder: (column) => ColumnFilters(column),
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
   ColumnFilters<String> get title => $composableBuilder(
@@ -15640,7 +15837,7 @@ class $$NoteHistoriesTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get action =>
+  GeneratedColumnWithTypeConverter<ActionInHistory, String> get action =>
       $composableBuilder(column: $table.action, builder: (column) => column);
 
   GeneratedColumn<String> get title =>
@@ -15717,7 +15914,7 @@ class $$NoteHistoriesTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> originalNoteId = const Value.absent(),
-                Value<String> action = const Value.absent(),
+                Value<ActionInHistory> action = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String?> content = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
@@ -15749,7 +15946,7 @@ class $$NoteHistoriesTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 required String originalNoteId,
-                required String action,
+                required ActionInHistory action,
                 required String title,
                 Value<String?> content = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),

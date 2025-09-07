@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Generated files freezed by `flutter pub run build_runner build`
+**/lib/**/ *.g.dart
+**/lib/**/ *.freezed.dart
