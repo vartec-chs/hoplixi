@@ -20,11 +20,12 @@ import 'tables/attachments.dart';
 import 'tables/notes.dart';
 import 'tables/note_tags.dart';
 import 'tables/note_histories.dart';
+import 'dao/index.dart';
 
 part 'hoplixi_store.g.dart';
 
 @DriftDatabase(
-  tables: [
+  tables: const [
     HoplixiMeta,
     Categories,
     Icons,
@@ -39,6 +40,18 @@ part 'hoplixi_store.g.dart';
     Notes,
     NoteTags,
     NoteHistories,
+  ],
+  daos: const [
+    CategoriesDao,
+    IconsDao,
+    TagsDao,
+    PasswordsDao,
+    PasswordTagsDao,
+    TotpsDao,
+    TotpTagsDao,
+    AttachmentsDao,
+    NotesDao,
+    NoteTagsDao,
   ],
 )
 class HoplixiStore extends _$HoplixiStore {
