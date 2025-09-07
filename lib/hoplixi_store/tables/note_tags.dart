@@ -4,8 +4,10 @@ import 'tags.dart';
 
 @DataClassName('NoteTag')
 class NoteTags extends Table {
-  TextColumn get noteId => text().references(Notes, #id)();
-  TextColumn get tagId => text().references(Tags, #id)();
+  TextColumn get noteId =>
+      text().references(Notes, #id, onDelete: KeyAction.cascade)();
+  TextColumn get tagId =>
+      text().references(Tags, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get createdAt =>
       dateTime().clientDefault(() => DateTime.now())();
 

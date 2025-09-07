@@ -17,9 +17,15 @@ class Attachments extends Table {
       text().nullable()(); // File checksum for integrity verification
 
   // Foreign keys - an attachment can belong to password, TOTP, or note (but only one)
-  TextColumn get passwordId => text().nullable().references(Passwords, #id)();
-  TextColumn get totpId => text().nullable().references(Totps, #id)();
-  TextColumn get noteId => text().nullable().references(Notes, #id)();
+  TextColumn get passwordId => text().nullable().references(
+    Passwords,
+    #id,
+    onDelete: KeyAction.cascade,
+  )();
+  TextColumn get totpId =>
+      text().nullable().references(Totps, #id, onDelete: KeyAction.cascade)();
+  TextColumn get noteId =>
+      text().nullable().references(Notes, #id, onDelete: KeyAction.cascade)();
 
   DateTimeColumn get createdAt =>
       dateTime().clientDefault(() => DateTime.now())();
@@ -31,8 +37,6 @@ class Attachments extends Table {
 
   @override
   String get tableName => 'attachments';
-
-  
 
   @override
   List<String> get customConstraints => [

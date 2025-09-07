@@ -10,7 +10,7 @@ class Categories extends Table {
   TextColumn get name => text().unique().withLength(min: 1, max: 100)();
   TextColumn get description => text().nullable()();
   TextColumn get iconId =>
-      text().nullable().references(Icons, #id)(); // Foreign key to icons table
+      text().nullable().references(Icons, #id, onDelete: KeyAction.setNull)(); // Foreign key to icons table
   TextColumn get color => text().nullable()(); // Hex color code
   TextColumn get type =>
       textEnum<CategoryType>()(); // notes, password, totp, mixed

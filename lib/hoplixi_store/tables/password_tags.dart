@@ -4,8 +4,10 @@ import 'tags.dart';
 
 @DataClassName('PasswordTag')
 class PasswordTags extends Table {
-  TextColumn get passwordId => text().references(Passwords, #id)();
-  TextColumn get tagId => text().references(Tags, #id)();
+  TextColumn get passwordId =>
+      text().references(Passwords, #id, onDelete: KeyAction.cascade)();
+  TextColumn get tagId =>
+      text().references(Tags, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get createdAt =>
       dateTime().clientDefault(() => DateTime.now())();
 

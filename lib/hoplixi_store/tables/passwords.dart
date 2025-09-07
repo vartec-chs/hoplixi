@@ -16,6 +16,7 @@ class Passwords extends Table {
   TextColumn get categoryId => text().nullable().references(
     Categories,
     #id,
+    onDelete: KeyAction.setNull,
   )(); // Foreign key to categories
   BoolColumn get isFavorite =>
       boolean().withDefault(const Constant(false))(); // Favorite flag

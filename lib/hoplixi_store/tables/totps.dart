@@ -11,6 +11,7 @@ class Totps extends Table {
   TextColumn get passwordId => text().nullable().references(
     Passwords,
     #id,
+    onDelete: KeyAction.setNull,
   )(); // Foreign key to passwords (optional)
   TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description => text().nullable()();
@@ -45,6 +46,7 @@ class Totps extends Table {
   TextColumn get categoryId => text().nullable().references(
     Categories,
     #id,
+    onDelete: KeyAction.setNull,
   )(); // Foreign key to categories
   BoolColumn get isFavorite =>
       boolean().withDefault(const Constant(false))(); // Favorite flag
