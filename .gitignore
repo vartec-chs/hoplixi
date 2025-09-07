@@ -47,3 +47,5 @@ app.*.map.json
 # Generated files freezed by `flutter pub run build_runner build`
 **/lib/**/ *.g.dart
 **/lib/**/ *.freezed.dart
+*.g.dart
+*.freezed.dart
