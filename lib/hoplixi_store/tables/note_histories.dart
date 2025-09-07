@@ -1,25 +1,22 @@
 import 'package:drift/drift.dart';
 import '../utils/uuid_generator.dart';
 
-@DataClassName('PasswordHistory')
-class PasswordHistories extends Table {
+@DataClassName('NoteHistory')
+class NoteHistories extends Table {
   TextColumn get id =>
       text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
-  TextColumn get originalPasswordId => text()(); // ID of original password
+  TextColumn get originalNoteId => text()(); // ID of original note
   TextColumn get action =>
       text().withLength(min: 1, max: 50)(); // 'deleted', 'modified'
-  TextColumn get name => text().withLength(min: 1, max: 255)();
-  TextColumn get description => text().nullable()();
-  TextColumn get password =>
-      text().nullable()(); // Encrypted password (nullable for privacy)
-  TextColumn get url => text().nullable()();
-  TextColumn get notes => text().nullable()();
-  TextColumn get login => text().nullable()();
-  TextColumn get email => text().nullable()();
+  TextColumn get title => text().withLength(min: 1, max: 255)();
+  TextColumn get content =>
+      text().nullable()(); // Content (nullable for privacy)
   TextColumn get categoryId => text().nullable()();
   TextColumn get categoryName =>
       text().nullable()(); // Category name at time of action
   TextColumn get tags => text().nullable()(); // JSON array of tag names
+  BoolColumn get wasFavorite => boolean().nullable()();
+  BoolColumn get wasPinned => boolean().nullable()();
   DateTimeColumn get originalCreatedAt => dateTime().nullable()();
   DateTimeColumn get originalModifiedAt => dateTime().nullable()();
   DateTimeColumn get actionAt => dateTime().clientDefault(
@@ -30,5 +27,5 @@ class PasswordHistories extends Table {
   Set<Column> get primaryKey => {id};
 
   @override
-  String get tableName => 'password_histories';
+  String get tableName => 'note_histories';
 }

@@ -1,14 +1,23 @@
 import 'package:drift/drift.dart';
 import 'package:hoplixi/core/errors/index.dart';
-import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
+
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/tables/hoplixi_meta.dart';
+import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import 'tables/categories.dart';
 import 'tables/icons.dart';
 import 'tables/tags.dart';
 import 'tables/passwords.dart';
 import 'tables/password_tags.dart';
 import 'tables/password_histories.dart';
+import 'tables/totps.dart';
+import 'tables/totp_tags.dart';
+import 'tables/totp_histories.dart';
+import 'tables/attachments.dart';
+import 'tables/notes.dart';
+import 'tables/note_tags.dart';
+import 'tables/note_histories.dart';
 
 part 'hoplixi_store.g.dart';
 
@@ -21,7 +30,14 @@ part 'hoplixi_store.g.dart';
     Passwords,
     PasswordTags,
     PasswordHistories,
-  ]
+    Totps,
+    TotpTags,
+    TotpHistories,
+    Attachments,
+    Notes,
+    NoteTags,
+    NoteHistories,
+  ],
 )
 class HoplixiStore extends _$HoplixiStore {
   HoplixiStore(super.e);

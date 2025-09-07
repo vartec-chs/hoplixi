@@ -1,9 +1,11 @@
 import 'package:drift/drift.dart';
+import '../utils/uuid_generator.dart';
 
 // Meta table for database information
 @DataClassName('HoplixiMetaData')
 class HoplixiMeta extends Table {
-  TextColumn get id => text().clientDefault(() => '')(); // UUID v4
+  TextColumn get id =>
+      text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
   TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description =>
       text().withLength(min: 0, max: 1024).nullable()();

@@ -1,16 +1,19 @@
 import 'package:drift/drift.dart';
 import 'icons.dart';
+import '../enums/entity_types.dart';
+import '../utils/uuid_generator.dart';
 
 @DataClassName('Category')
 class Categories extends Table {
-  TextColumn get id => text().clientDefault(() => '')(); // UUID v4
+  TextColumn get id =>
+      text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
   TextColumn get name => text().withLength(min: 1, max: 100)();
   TextColumn get description => text().nullable()();
   TextColumn get iconId =>
       text().nullable().references(Icons, #id)(); // Foreign key to icons table
   TextColumn get color => text().nullable()(); // Hex color code
   TextColumn get type =>
-      text().withLength(min: 1, max: 50)(); // notes, password, totp
+      textEnum<CategoryType>()(); // notes, password, totp, mixed
   DateTimeColumn get createdAt =>
       dateTime().clientDefault(() => DateTime.now())();
   DateTimeColumn get modifiedAt =>
