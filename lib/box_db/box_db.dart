@@ -10,7 +10,7 @@
 /// - Компактификация данных
 /// - Экспорт/импорт в JSON
 
-library simple_box_db;
+library;
 
 // Основные классы
 export 'simple_box.dart';

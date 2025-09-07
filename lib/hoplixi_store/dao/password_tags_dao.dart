@@ -9,7 +9,7 @@ part 'password_tags_dao.g.dart';
 @DriftAccessor(tables: [PasswordTags, Passwords, Tags])
 class PasswordTagsDao extends DatabaseAccessor<HoplixiStore>
     with _$PasswordTagsDaoMixin {
-  PasswordTagsDao(HoplixiStore db) : super(db);
+  PasswordTagsDao(super.db);
 
   /// Добавление тега к паролю
   Future<void> addTagToPassword(String passwordId, String tagId) async {

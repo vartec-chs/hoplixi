@@ -7,7 +7,7 @@ part 'notes_dao.g.dart';
 
 @DriftAccessor(tables: [Notes])
 class NotesDao extends DatabaseAccessor<HoplixiStore> with _$NotesDaoMixin {
-  NotesDao(HoplixiStore db) : super(db);
+  NotesDao(super.db);
 
   /// Создание новой заметки
   Future<String> createNote(CreateNoteDto dto) async {

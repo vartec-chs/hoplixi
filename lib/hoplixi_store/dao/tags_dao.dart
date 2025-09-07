@@ -8,7 +8,7 @@ part 'tags_dao.g.dart';
 
 @DriftAccessor(tables: [Tags])
 class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
-  TagsDao(HoplixiStore db) : super(db);
+  TagsDao(super.db);
 
   /// Создание нового тега
   Future<String> createTag(CreateTagDto dto) async {

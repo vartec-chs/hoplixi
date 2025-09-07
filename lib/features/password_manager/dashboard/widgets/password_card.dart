@@ -210,7 +210,7 @@ class _PasswordCardState extends State<PasswordCard>
                     child: Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceVariant.withOpacity(
+                        color: theme.colorScheme.surfaceContainerHighest.withOpacity(
                           0.3,
                         ),
                         borderRadius: const BorderRadius.only(

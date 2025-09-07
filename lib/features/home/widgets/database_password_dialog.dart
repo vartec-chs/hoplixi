@@ -40,7 +40,7 @@ class _DatabasePasswordDialogState extends State<DatabasePasswordDialog> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _savePassword = false;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   @override
   void dispose() {
@@ -79,7 +79,7 @@ class _DatabasePasswordDialogState extends State<DatabasePasswordDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceVariant.withOpacity(0.3),
+                color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(

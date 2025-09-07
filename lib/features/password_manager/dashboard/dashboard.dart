@@ -310,7 +310,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               sliver: _filteredPasswords.isEmpty
                   ? SliverToBoxAdapter(
-                      child: Container(
+                      child: SizedBox(
                         height: 200,
                         child: Center(
                           child: Column(

@@ -8,7 +8,7 @@ part 'totps_dao.g.dart';
 
 @DriftAccessor(tables: [Totps])
 class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
-  TotpsDao(HoplixiStore db) : super(db);
+  TotpsDao(super.db);
 
   /// Создание нового TOTP
   Future<String> createTotp(CreateTotpDto dto) async {

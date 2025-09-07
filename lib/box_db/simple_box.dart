@@ -211,7 +211,7 @@ class SimpleBox<T> {
           }
 
           // Пытаемся создать блокировку атомарно
-          final lockContent = '${DateTime.now().toIso8601String()}\n${pid}\n';
+          final lockContent = '${DateTime.now().toIso8601String()}\n$pid\n';
 
           // Используем временный файл для атомарного создания блокировки
           final tempLockFile = File('${_lockFile.path}.tmp');
@@ -919,7 +919,7 @@ class SimpleBox<T> {
     try {
       final record = {
         'id': id,
-        'data': deleted ? null : toMap(document!),
+        'data': deleted ? null : toMap(document as T),
         'deleted': deleted,
         'timestamp': DateTime.now().toUtc().toIso8601String(),
       };
@@ -1458,11 +1458,11 @@ class SimpleBox<T> {
       'interval': _autoCompactionInterval?.inMilliseconds,
       'deletedRecordsCount': _deletedRecordsCount,
       'totalRecords': _index.length,
-      'deletionRatio': _index.length > 0
+      'deletionRatio': _index.isNotEmpty
           ? _deletedRecordsCount / _index.length
           : 0.0,
       'needsCompaction':
-          _index.length > 0 &&
+          _index.isNotEmpty &&
           (_deletedRecordsCount / _index.length) >= _compactionThreshold,
     };
   }

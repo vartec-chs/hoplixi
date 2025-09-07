@@ -1,4 +1,5 @@
 /// Экспорт всех компонентов модуля core
+library;
 
 // Preferences
 export 'preferences/index.dart';

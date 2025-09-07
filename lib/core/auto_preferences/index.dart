@@ -25,7 +25,7 @@
 /// ));
 /// ```
 
-library auto_preferences;
+library;
 
 // Экспорт основных классов
 export 'setting_types.dart';

@@ -1,4 +1,5 @@
 /// Errors for the box-based JSON-line key-value storage.
+library;
 
 /// Base error for all box-related errors.
 abstract class BoxError implements Exception {

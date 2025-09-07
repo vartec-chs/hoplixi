@@ -251,7 +251,7 @@ class _IntegerSettingWidgetState extends State<IntegerSettingWidget> {
           min: setting.min!.toDouble(),
           max: setting.max!.toDouble(),
           divisions: (setting.max! - setting.min!) ~/ setting.step,
-          label: '${_value}${setting.unit ?? ''}',
+          label: '$_value${setting.unit ?? ''}',
           onChanged: isEnabled
               ? (value) {
                   setState(() {
@@ -269,7 +269,7 @@ class _IntegerSettingWidgetState extends State<IntegerSettingWidget> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('${setting.min}${setting.unit ?? ''}'),
-            Text('${_value}${setting.unit ?? ''}'),
+            Text('$_value${setting.unit ?? ''}'),
             Text('${setting.max}${setting.unit ?? ''}'),
           ],
         ),
@@ -362,7 +362,7 @@ class _ChoiceSettingWidgetState extends State<ChoiceSettingWidget> {
           if (widget.setting.subtitle != null) Text(widget.setting.subtitle!),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _value,
+            initialValue: _value,
             isExpanded: true,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),

@@ -8,7 +8,7 @@ part 'attachments_dao.g.dart';
 @DriftAccessor(tables: [Attachments])
 class AttachmentsDao extends DatabaseAccessor<HoplixiStore>
     with _$AttachmentsDaoMixin {
-  AttachmentsDao(HoplixiStore db) : super(db);
+  AttachmentsDao(super.db);
 
   /// Создание нового вложения
   Future<String> createAttachment(CreateAttachmentDto dto) async {

@@ -16,6 +16,7 @@
 /// final passwords = ref.watch(allPasswordsStreamProvider);
 /// final dao = ref.read(passwordsDaoProvider);
 /// ```
+library;
 
 export 'hoplixi_store_providers.dart';
 

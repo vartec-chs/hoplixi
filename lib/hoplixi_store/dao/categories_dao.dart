@@ -9,7 +9,7 @@ part 'categories_dao.g.dart';
 @DriftAccessor(tables: [Categories])
 class CategoriesDao extends DatabaseAccessor<HoplixiStore>
     with _$CategoriesDaoMixin {
-  CategoriesDao(HoplixiStore db) : super(db);
+  CategoriesDao(super.db);
 
   /// Создание новой категории
   Future<String> createCategory(CreateCategoryDto dto) async {

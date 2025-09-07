@@ -2,6 +2,7 @@
 ///
 /// Этот файл содержит все Riverpod провайдеры для работы с базой данных,
 /// включая DAO провайдеры, stream провайдеры и статистические провайдеры.
+library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';

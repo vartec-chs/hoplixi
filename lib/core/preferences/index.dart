@@ -1,4 +1,5 @@
 /// Экспорт всех компонентов модуля preferences
+library;
 export 'app_preferences.dart';
 export 'app_preferences_providers.dart';
 

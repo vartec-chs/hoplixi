@@ -9,7 +9,7 @@ part 'note_tags_dao.g.dart';
 @DriftAccessor(tables: [NoteTags, Notes, Tags])
 class NoteTagsDao extends DatabaseAccessor<HoplixiStore>
     with _$NoteTagsDaoMixin {
-  NoteTagsDao(HoplixiStore db) : super(db);
+  NoteTagsDao(super.db);
 
   /// Добавление тега к заметке
   Future<void> addTagToNote(String noteId, String tagId) async {

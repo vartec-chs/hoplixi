@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/preferences/app_preferences.dart';
 
 // import 'theme.dart';
 

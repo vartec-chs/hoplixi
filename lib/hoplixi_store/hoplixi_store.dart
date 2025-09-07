@@ -25,7 +25,7 @@ import 'dao/index.dart';
 part 'hoplixi_store.g.dart';
 
 @DriftDatabase(
-  tables: const [
+  tables: [
     HoplixiMeta,
     Categories,
     Icons,
@@ -41,7 +41,7 @@ part 'hoplixi_store.g.dart';
     NoteTags,
     NoteHistories,
   ],
-  daos: const [
+  daos: [
     CategoriesDao,
     IconsDao,
     TagsDao,

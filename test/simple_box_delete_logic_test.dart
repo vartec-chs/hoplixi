@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/box_db/simple_box.dart';
+import 'package:hoplixi/box_db/simple_box.dart';
 
 void main() {
   group('SimpleBox Delete Logic Tests', () {

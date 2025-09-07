@@ -8,7 +8,7 @@ part 'passwords_dao.g.dart';
 @DriftAccessor(tables: [Passwords])
 class PasswordsDao extends DatabaseAccessor<HoplixiStore>
     with _$PasswordsDaoMixin {
-  PasswordsDao(HoplixiStore db) : super(db);
+  PasswordsDao(super.db);
 
   /// Создание нового пароля
   Future<String> createPassword(CreatePasswordDto dto) async {

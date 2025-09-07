@@ -9,7 +9,7 @@ part 'icons_dao.g.dart';
 
 @DriftAccessor(tables: [Icons])
 class IconsDao extends DatabaseAccessor<HoplixiStore> with _$IconsDaoMixin {
-  IconsDao(HoplixiStore db) : super(db);
+  IconsDao(super.db);
 
   /// Создание новой иконки
   Future<String> createIcon(CreateIconDto dto) async {

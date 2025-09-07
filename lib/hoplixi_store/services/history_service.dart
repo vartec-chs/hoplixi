@@ -1,13 +1,8 @@
-import 'package:drift/drift.dart';
 import '../../core/logger/app_logger.dart';
 import '../hoplixi_store.dart';
 import '../dao/password_histories_dao.dart';
 import '../dao/note_histories_dao.dart';
 import '../dao/totp_histories_dao.dart';
-import '../tables/password_histories.dart';
-import '../tables/note_histories.dart';
-import '../tables/totp_histories.dart';
-import '../enums/entity_types.dart';
 
 /// Унифицированный сервис для работы с историей паролей, заметок и TOTP
 class HistoryService {

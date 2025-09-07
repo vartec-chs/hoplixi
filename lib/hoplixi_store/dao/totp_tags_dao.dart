@@ -10,7 +10,7 @@ part 'totp_tags_dao.g.dart';
 @DriftAccessor(tables: [TotpTags, Totps, Tags])
 class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
     with _$TotpTagsDaoMixin {
-  TotpTagsDao(HoplixiStore db) : super(db);
+  TotpTagsDao(super.db);
 
   /// Добавление тега к TOTP
   Future<void> addTagToTotp(String totpId, String tagId) async {
