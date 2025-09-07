@@ -10,11 +10,23 @@ class TotpHistories extends Table {
       text().withLength(min: 1, max: 50)(); // 'deleted', 'modified'
   TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description => text().nullable()();
-  TextColumn get secretCipher =>
-      text().nullable()(); // Encrypted TOTP secret (nullable for privacy)
+
+  // OTP authentication fields
+  TextColumn get type => text().nullable()(); // TOTP or HOTP
+  TextColumn get issuer => text().nullable()(); // Service name
+  TextColumn get accountName => text().nullable()(); // Account identifier
+
+  // Secret encryption fields (nullable for privacy)
+  TextColumn get secretNonce => text().nullable()();
+  TextColumn get secretCipher => text().nullable()(); // Encrypted secret
+  TextColumn get secretTag => text().nullable()();
+
+  // OTP configuration
   TextColumn get algorithm => text().nullable()();
   IntColumn get digits => integer().nullable()();
   IntColumn get period => integer().nullable()();
+  IntColumn get counter => integer().nullable()(); // For HOTP
+
   TextColumn get categoryId => text().nullable()();
   TextColumn get categoryName =>
       text().nullable()(); // Category name at time of action

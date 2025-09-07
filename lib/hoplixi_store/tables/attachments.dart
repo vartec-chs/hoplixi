@@ -32,6 +32,8 @@ class Attachments extends Table {
   @override
   String get tableName => 'attachments';
 
+  
+
   @override
   List<String> get customConstraints => [
     // Constraint: attachment must belong to exactly one entity (password, totp, or note)

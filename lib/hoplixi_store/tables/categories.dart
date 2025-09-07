@@ -7,7 +7,7 @@ import '../utils/uuid_generator.dart';
 class Categories extends Table {
   TextColumn get id =>
       text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
-  TextColumn get name => text().withLength(min: 1, max: 100)();
+  TextColumn get name => text().unique().withLength(min: 1, max: 100)();
   TextColumn get description => text().nullable()();
   TextColumn get iconId =>
       text().nullable().references(Icons, #id)(); // Foreign key to icons table

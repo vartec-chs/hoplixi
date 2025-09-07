@@ -81,15 +81,22 @@
 - `password_id` - TEXT, ссылка на пароль (FK -> Passwords.id, опционально)
 - `name` - TEXT(1-255), название TOTP записи
 - `description` - TEXT, описание (опционально)
-- `secret_cipher` - TEXT, зашифрованный секретный ключ TOTP
+- `type` - TEXT ENUM, тип аутентификации (totp, hotp, по умолчанию 'totp')
+- `issuer` - TEXT, название сервиса (опционально, например "Google", "GitHub")
+- `account_name` - TEXT, идентификатор аккаунта (опционально, например email, username)
+- `secret_nonce` - TEXT, nonce для шифрования секрета
+- `secret_cipher` - TEXT, зашифрованный секретный ключ TOTP/HOTP
+- `secret_tag` - TEXT, тег аутентификации для шифрования
 - `algorithm` - TEXT, алгоритм HMAC (по умолчанию 'SHA1')
 - `digits` - INTEGER, количество цифр в коде (по умолчанию 6)
-- `period` - INTEGER, период в секундах (по умолчанию 30)
+- `period` - INTEGER, период в секундах для TOTP (по умолчанию 30)
+- `counter` - INTEGER, счетчик для HOTP (опционально, только для type='hotp')
 - `category_id` - TEXT, ссылка на категорию (FK -> Categories.id, опционально)
 - `is_favorite` - BOOLEAN, флаг избранного (по умолчанию false)
 - `created_at` - DATETIME, время создания (авто)
 - `modified_at` - DATETIME, время изменения (авто)
 - `last_accessed` - DATETIME, время последнего доступа (опционально)
+- **Ограничение**: CHECK ((type = 'hotp' AND counter IS NOT NULL) OR (type = 'totp' AND counter IS NULL))
 
 ### 8. Attachments - Вложения
 
@@ -158,10 +165,16 @@
 - `action` - TEXT(1-50), действие ('deleted', 'modified')
 - `name` - TEXT(1-255), название TOTP записи
 - `description` - TEXT, описание (опционально)
+- `type` - TEXT, тип аутентификации (опционально)
+- `issuer` - TEXT, название сервиса (опционально)
+- `account_name` - TEXT, идентификатор аккаунта (опционально)
+- `secret_nonce` - TEXT, nonce для шифрования (опционально для приватности)
 - `secret_cipher` - TEXT, зашифрованный секрет (опционально для приватности)
+- `secret_tag` - TEXT, тег аутентификации (опционально для приватности)
 - `algorithm` - TEXT, алгоритм HMAC (опционально)
 - `digits` - INTEGER, количество цифр (опционально)
 - `period` - INTEGER, период в секундах (опционально)
+- `counter` - INTEGER, счетчик для HOTP (опционально)
 - `category_id` - TEXT, ID категории на момент действия (опционально)
 - `category_name` - TEXT, название категории на момент действия (опционально)
 - `tags` - TEXT, JSON массив названий тегов (опционально)
@@ -193,6 +206,11 @@
 - `password` - Для паролей
 - `totp` - Для TOTP кодов
 - `mixed` - Смешанный тип
+
+### OtpType
+
+- `totp` - Time-based One-Time Password (временной одноразовый пароль)
+- `hotp` - HMAC-based One-Time Password (счетчиковый одноразовый пароль)
 
 ## Особенности безопасности
 
@@ -226,6 +244,7 @@
 
 1. **Passwords**: CHECK (login IS NOT NULL OR email IS NOT NULL)
 2. **Attachments**: CHECK (точно одно из полей password_id, totp_id, note_id должно быть NOT NULL)
+3. **Totps**: CHECK ((type = 'hotp' AND counter IS NOT NULL) OR (type = 'totp' AND counter IS NULL))
 
 ## Генерация кода
 
@@ -316,17 +335,24 @@ CREATE TABLE totps (
     password_id TEXT,
     name TEXT(255) NOT NULL CHECK(length(name) >= 1),
     description TEXT,
+    type TEXT NOT NULL DEFAULT 'totp' CHECK(type IN ('totp', 'hotp')),
+    issuer TEXT,
+    account_name TEXT,
+    secret_nonce TEXT NOT NULL,
     secret_cipher TEXT NOT NULL,
+    secret_tag TEXT NOT NULL,
     algorithm TEXT NOT NULL DEFAULT 'SHA1',
     digits INTEGER NOT NULL DEFAULT 6,
     period INTEGER NOT NULL DEFAULT 30,
+    counter INTEGER,
     category_id TEXT,
     is_favorite BOOLEAN NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_accessed DATETIME,
     FOREIGN KEY (password_id) REFERENCES passwords(id),
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    FOREIGN KEY (category_id) REFERENCES categories(id),
+    CHECK ((type = 'hotp' AND counter IS NOT NULL) OR (type = 'totp' AND counter IS NULL))
 );
 
 CREATE TABLE attachments (
@@ -420,10 +446,16 @@ CREATE TABLE totp_histories (
     action TEXT(50) NOT NULL CHECK(length(action) >= 1),
     name TEXT(255) NOT NULL CHECK(length(name) >= 1),
     description TEXT,
+    type TEXT,
+    issuer TEXT,
+    account_name TEXT,
+    secret_nonce TEXT,
     secret_cipher TEXT,
+    secret_tag TEXT,
     algorithm TEXT,
     digits INTEGER,
     period INTEGER,
+    counter INTEGER,
     category_id TEXT,
     category_name TEXT,
     tags TEXT,

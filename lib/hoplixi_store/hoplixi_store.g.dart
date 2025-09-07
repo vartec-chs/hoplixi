@@ -965,6 +965,7 @@ class $CategoriesTable extends Categories
     ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _descriptionMeta = const VerificationMeta(
     'description',
@@ -1486,6 +1487,7 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, Tag> {
     ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
   );
   static const VerificationMeta _colorMeta = const VerificationMeta('color');
   @override
@@ -3891,12 +3893,64 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<OtpType, String> type =
+      GeneratedColumn<String>(
+        'type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('totp'),
+      ).withConverter<OtpType>($TotpsTable.$convertertype);
+  static const VerificationMeta _issuerMeta = const VerificationMeta('issuer');
+  @override
+  late final GeneratedColumn<String> issuer = GeneratedColumn<String>(
+    'issuer',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountNameMeta = const VerificationMeta(
+    'accountName',
+  );
+  @override
+  late final GeneratedColumn<String> accountName = GeneratedColumn<String>(
+    'account_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _secretNonceMeta = const VerificationMeta(
+    'secretNonce',
+  );
+  @override
+  late final GeneratedColumn<String> secretNonce = GeneratedColumn<String>(
+    'secret_nonce',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _secretCipherMeta = const VerificationMeta(
     'secretCipher',
   );
   @override
   late final GeneratedColumn<String> secretCipher = GeneratedColumn<String>(
     'secret_cipher',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _secretTagMeta = const VerificationMeta(
+    'secretTag',
+  );
+  @override
+  late final GeneratedColumn<String> secretTag = GeneratedColumn<String>(
+    'secret_tag',
     aliasedName,
     false,
     type: DriftSqlType.string,
@@ -3933,6 +3987,17 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
     defaultValue: const Constant(30),
+  );
+  static const VerificationMeta _counterMeta = const VerificationMeta(
+    'counter',
+  );
+  @override
+  late final GeneratedColumn<int> counter = GeneratedColumn<int>(
+    'counter',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _categoryIdMeta = const VerificationMeta(
     'categoryId',
@@ -4004,10 +4069,16 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
     passwordId,
     name,
     description,
+    type,
+    issuer,
+    accountName,
+    secretNonce,
     secretCipher,
+    secretTag,
     algorithm,
     digits,
     period,
+    counter,
     categoryId,
     isFavorite,
     createdAt,
@@ -4052,6 +4123,32 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
         ),
       );
     }
+    if (data.containsKey('issuer')) {
+      context.handle(
+        _issuerMeta,
+        issuer.isAcceptableOrUnknown(data['issuer']!, _issuerMeta),
+      );
+    }
+    if (data.containsKey('account_name')) {
+      context.handle(
+        _accountNameMeta,
+        accountName.isAcceptableOrUnknown(
+          data['account_name']!,
+          _accountNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('secret_nonce')) {
+      context.handle(
+        _secretNonceMeta,
+        secretNonce.isAcceptableOrUnknown(
+          data['secret_nonce']!,
+          _secretNonceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_secretNonceMeta);
+    }
     if (data.containsKey('secret_cipher')) {
       context.handle(
         _secretCipherMeta,
@@ -4062,6 +4159,14 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
       );
     } else if (isInserting) {
       context.missing(_secretCipherMeta);
+    }
+    if (data.containsKey('secret_tag')) {
+      context.handle(
+        _secretTagMeta,
+        secretTag.isAcceptableOrUnknown(data['secret_tag']!, _secretTagMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_secretTagMeta);
     }
     if (data.containsKey('algorithm')) {
       context.handle(
@@ -4079,6 +4184,12 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
       context.handle(
         _periodMeta,
         period.isAcceptableOrUnknown(data['period']!, _periodMeta),
+      );
+    }
+    if (data.containsKey('counter')) {
+      context.handle(
+        _counterMeta,
+        counter.isAcceptableOrUnknown(data['counter']!, _counterMeta),
       );
     }
     if (data.containsKey('category_id')) {
@@ -4139,9 +4250,31 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       ),
+      type: $TotpsTable.$convertertype.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}type'],
+        )!,
+      ),
+      issuer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}issuer'],
+      ),
+      accountName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_name'],
+      ),
+      secretNonce: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}secret_nonce'],
+      )!,
       secretCipher: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}secret_cipher'],
+      )!,
+      secretTag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}secret_tag'],
       )!,
       algorithm: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -4155,6 +4288,10 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
         DriftSqlType.int,
         data['${effectivePrefix}period'],
       )!,
+      counter: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}counter'],
+      ),
       categoryId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}category_id'],
@@ -4182,6 +4319,9 @@ class $TotpsTable extends Totps with TableInfo<$TotpsTable, Totp> {
   $TotpsTable createAlias(String alias) {
     return $TotpsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<OtpType, String, String> $convertertype =
+      const EnumNameConverter<OtpType>(OtpType.values);
 }
 
 class Totp extends DataClass implements Insertable<Totp> {
@@ -4189,10 +4329,16 @@ class Totp extends DataClass implements Insertable<Totp> {
   final String? passwordId;
   final String name;
   final String? description;
+  final OtpType type;
+  final String? issuer;
+  final String? accountName;
+  final String secretNonce;
   final String secretCipher;
+  final String secretTag;
   final String algorithm;
   final int digits;
   final int period;
+  final int? counter;
   final String? categoryId;
   final bool isFavorite;
   final DateTime createdAt;
@@ -4203,10 +4349,16 @@ class Totp extends DataClass implements Insertable<Totp> {
     this.passwordId,
     required this.name,
     this.description,
+    required this.type,
+    this.issuer,
+    this.accountName,
+    required this.secretNonce,
     required this.secretCipher,
+    required this.secretTag,
     required this.algorithm,
     required this.digits,
     required this.period,
+    this.counter,
     this.categoryId,
     required this.isFavorite,
     required this.createdAt,
@@ -4224,10 +4376,24 @@ class Totp extends DataClass implements Insertable<Totp> {
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    {
+      map['type'] = Variable<String>($TotpsTable.$convertertype.toSql(type));
+    }
+    if (!nullToAbsent || issuer != null) {
+      map['issuer'] = Variable<String>(issuer);
+    }
+    if (!nullToAbsent || accountName != null) {
+      map['account_name'] = Variable<String>(accountName);
+    }
+    map['secret_nonce'] = Variable<String>(secretNonce);
     map['secret_cipher'] = Variable<String>(secretCipher);
+    map['secret_tag'] = Variable<String>(secretTag);
     map['algorithm'] = Variable<String>(algorithm);
     map['digits'] = Variable<int>(digits);
     map['period'] = Variable<int>(period);
+    if (!nullToAbsent || counter != null) {
+      map['counter'] = Variable<int>(counter);
+    }
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<String>(categoryId);
     }
@@ -4250,10 +4416,22 @@ class Totp extends DataClass implements Insertable<Totp> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      type: Value(type),
+      issuer: issuer == null && nullToAbsent
+          ? const Value.absent()
+          : Value(issuer),
+      accountName: accountName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountName),
+      secretNonce: Value(secretNonce),
       secretCipher: Value(secretCipher),
+      secretTag: Value(secretTag),
       algorithm: Value(algorithm),
       digits: Value(digits),
       period: Value(period),
+      counter: counter == null && nullToAbsent
+          ? const Value.absent()
+          : Value(counter),
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryId),
@@ -4276,10 +4454,18 @@ class Totp extends DataClass implements Insertable<Totp> {
       passwordId: serializer.fromJson<String?>(json['passwordId']),
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
+      type: $TotpsTable.$convertertype.fromJson(
+        serializer.fromJson<String>(json['type']),
+      ),
+      issuer: serializer.fromJson<String?>(json['issuer']),
+      accountName: serializer.fromJson<String?>(json['accountName']),
+      secretNonce: serializer.fromJson<String>(json['secretNonce']),
       secretCipher: serializer.fromJson<String>(json['secretCipher']),
+      secretTag: serializer.fromJson<String>(json['secretTag']),
       algorithm: serializer.fromJson<String>(json['algorithm']),
       digits: serializer.fromJson<int>(json['digits']),
       period: serializer.fromJson<int>(json['period']),
+      counter: serializer.fromJson<int?>(json['counter']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -4295,10 +4481,18 @@ class Totp extends DataClass implements Insertable<Totp> {
       'passwordId': serializer.toJson<String?>(passwordId),
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
+      'type': serializer.toJson<String>(
+        $TotpsTable.$convertertype.toJson(type),
+      ),
+      'issuer': serializer.toJson<String?>(issuer),
+      'accountName': serializer.toJson<String?>(accountName),
+      'secretNonce': serializer.toJson<String>(secretNonce),
       'secretCipher': serializer.toJson<String>(secretCipher),
+      'secretTag': serializer.toJson<String>(secretTag),
       'algorithm': serializer.toJson<String>(algorithm),
       'digits': serializer.toJson<int>(digits),
       'period': serializer.toJson<int>(period),
+      'counter': serializer.toJson<int?>(counter),
       'categoryId': serializer.toJson<String?>(categoryId),
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -4312,10 +4506,16 @@ class Totp extends DataClass implements Insertable<Totp> {
     Value<String?> passwordId = const Value.absent(),
     String? name,
     Value<String?> description = const Value.absent(),
+    OtpType? type,
+    Value<String?> issuer = const Value.absent(),
+    Value<String?> accountName = const Value.absent(),
+    String? secretNonce,
     String? secretCipher,
+    String? secretTag,
     String? algorithm,
     int? digits,
     int? period,
+    Value<int?> counter = const Value.absent(),
     Value<String?> categoryId = const Value.absent(),
     bool? isFavorite,
     DateTime? createdAt,
@@ -4326,10 +4526,16 @@ class Totp extends DataClass implements Insertable<Totp> {
     passwordId: passwordId.present ? passwordId.value : this.passwordId,
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
+    type: type ?? this.type,
+    issuer: issuer.present ? issuer.value : this.issuer,
+    accountName: accountName.present ? accountName.value : this.accountName,
+    secretNonce: secretNonce ?? this.secretNonce,
     secretCipher: secretCipher ?? this.secretCipher,
+    secretTag: secretTag ?? this.secretTag,
     algorithm: algorithm ?? this.algorithm,
     digits: digits ?? this.digits,
     period: period ?? this.period,
+    counter: counter.present ? counter.value : this.counter,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     isFavorite: isFavorite ?? this.isFavorite,
     createdAt: createdAt ?? this.createdAt,
@@ -4346,12 +4552,22 @@ class Totp extends DataClass implements Insertable<Totp> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      type: data.type.present ? data.type.value : this.type,
+      issuer: data.issuer.present ? data.issuer.value : this.issuer,
+      accountName: data.accountName.present
+          ? data.accountName.value
+          : this.accountName,
+      secretNonce: data.secretNonce.present
+          ? data.secretNonce.value
+          : this.secretNonce,
       secretCipher: data.secretCipher.present
           ? data.secretCipher.value
           : this.secretCipher,
+      secretTag: data.secretTag.present ? data.secretTag.value : this.secretTag,
       algorithm: data.algorithm.present ? data.algorithm.value : this.algorithm,
       digits: data.digits.present ? data.digits.value : this.digits,
       period: data.period.present ? data.period.value : this.period,
+      counter: data.counter.present ? data.counter.value : this.counter,
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
@@ -4375,10 +4591,16 @@ class Totp extends DataClass implements Insertable<Totp> {
           ..write('passwordId: $passwordId, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
+          ..write('type: $type, ')
+          ..write('issuer: $issuer, ')
+          ..write('accountName: $accountName, ')
+          ..write('secretNonce: $secretNonce, ')
           ..write('secretCipher: $secretCipher, ')
+          ..write('secretTag: $secretTag, ')
           ..write('algorithm: $algorithm, ')
           ..write('digits: $digits, ')
           ..write('period: $period, ')
+          ..write('counter: $counter, ')
           ..write('categoryId: $categoryId, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
@@ -4394,10 +4616,16 @@ class Totp extends DataClass implements Insertable<Totp> {
     passwordId,
     name,
     description,
+    type,
+    issuer,
+    accountName,
+    secretNonce,
     secretCipher,
+    secretTag,
     algorithm,
     digits,
     period,
+    counter,
     categoryId,
     isFavorite,
     createdAt,
@@ -4412,10 +4640,16 @@ class Totp extends DataClass implements Insertable<Totp> {
           other.passwordId == this.passwordId &&
           other.name == this.name &&
           other.description == this.description &&
+          other.type == this.type &&
+          other.issuer == this.issuer &&
+          other.accountName == this.accountName &&
+          other.secretNonce == this.secretNonce &&
           other.secretCipher == this.secretCipher &&
+          other.secretTag == this.secretTag &&
           other.algorithm == this.algorithm &&
           other.digits == this.digits &&
           other.period == this.period &&
+          other.counter == this.counter &&
           other.categoryId == this.categoryId &&
           other.isFavorite == this.isFavorite &&
           other.createdAt == this.createdAt &&
@@ -4428,10 +4662,16 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
   final Value<String?> passwordId;
   final Value<String> name;
   final Value<String?> description;
+  final Value<OtpType> type;
+  final Value<String?> issuer;
+  final Value<String?> accountName;
+  final Value<String> secretNonce;
   final Value<String> secretCipher;
+  final Value<String> secretTag;
   final Value<String> algorithm;
   final Value<int> digits;
   final Value<int> period;
+  final Value<int?> counter;
   final Value<String?> categoryId;
   final Value<bool> isFavorite;
   final Value<DateTime> createdAt;
@@ -4443,10 +4683,16 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
     this.passwordId = const Value.absent(),
     this.name = const Value.absent(),
     this.description = const Value.absent(),
+    this.type = const Value.absent(),
+    this.issuer = const Value.absent(),
+    this.accountName = const Value.absent(),
+    this.secretNonce = const Value.absent(),
     this.secretCipher = const Value.absent(),
+    this.secretTag = const Value.absent(),
     this.algorithm = const Value.absent(),
     this.digits = const Value.absent(),
     this.period = const Value.absent(),
+    this.counter = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -4459,10 +4705,16 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
     this.passwordId = const Value.absent(),
     required String name,
     this.description = const Value.absent(),
+    this.type = const Value.absent(),
+    this.issuer = const Value.absent(),
+    this.accountName = const Value.absent(),
+    required String secretNonce,
     required String secretCipher,
+    required String secretTag,
     this.algorithm = const Value.absent(),
     this.digits = const Value.absent(),
     this.period = const Value.absent(),
+    this.counter = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -4470,16 +4722,24 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
     this.lastAccessed = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : name = Value(name),
-       secretCipher = Value(secretCipher);
+       secretNonce = Value(secretNonce),
+       secretCipher = Value(secretCipher),
+       secretTag = Value(secretTag);
   static Insertable<Totp> custom({
     Expression<String>? id,
     Expression<String>? passwordId,
     Expression<String>? name,
     Expression<String>? description,
+    Expression<String>? type,
+    Expression<String>? issuer,
+    Expression<String>? accountName,
+    Expression<String>? secretNonce,
     Expression<String>? secretCipher,
+    Expression<String>? secretTag,
     Expression<String>? algorithm,
     Expression<int>? digits,
     Expression<int>? period,
+    Expression<int>? counter,
     Expression<String>? categoryId,
     Expression<bool>? isFavorite,
     Expression<DateTime>? createdAt,
@@ -4492,10 +4752,16 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
       if (passwordId != null) 'password_id': passwordId,
       if (name != null) 'name': name,
       if (description != null) 'description': description,
+      if (type != null) 'type': type,
+      if (issuer != null) 'issuer': issuer,
+      if (accountName != null) 'account_name': accountName,
+      if (secretNonce != null) 'secret_nonce': secretNonce,
       if (secretCipher != null) 'secret_cipher': secretCipher,
+      if (secretTag != null) 'secret_tag': secretTag,
       if (algorithm != null) 'algorithm': algorithm,
       if (digits != null) 'digits': digits,
       if (period != null) 'period': period,
+      if (counter != null) 'counter': counter,
       if (categoryId != null) 'category_id': categoryId,
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (createdAt != null) 'created_at': createdAt,
@@ -4510,10 +4776,16 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
     Value<String?>? passwordId,
     Value<String>? name,
     Value<String?>? description,
+    Value<OtpType>? type,
+    Value<String?>? issuer,
+    Value<String?>? accountName,
+    Value<String>? secretNonce,
     Value<String>? secretCipher,
+    Value<String>? secretTag,
     Value<String>? algorithm,
     Value<int>? digits,
     Value<int>? period,
+    Value<int?>? counter,
     Value<String?>? categoryId,
     Value<bool>? isFavorite,
     Value<DateTime>? createdAt,
@@ -4526,10 +4798,16 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
       passwordId: passwordId ?? this.passwordId,
       name: name ?? this.name,
       description: description ?? this.description,
+      type: type ?? this.type,
+      issuer: issuer ?? this.issuer,
+      accountName: accountName ?? this.accountName,
+      secretNonce: secretNonce ?? this.secretNonce,
       secretCipher: secretCipher ?? this.secretCipher,
+      secretTag: secretTag ?? this.secretTag,
       algorithm: algorithm ?? this.algorithm,
       digits: digits ?? this.digits,
       period: period ?? this.period,
+      counter: counter ?? this.counter,
       categoryId: categoryId ?? this.categoryId,
       isFavorite: isFavorite ?? this.isFavorite,
       createdAt: createdAt ?? this.createdAt,
@@ -4554,8 +4832,25 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (type.present) {
+      map['type'] = Variable<String>(
+        $TotpsTable.$convertertype.toSql(type.value),
+      );
+    }
+    if (issuer.present) {
+      map['issuer'] = Variable<String>(issuer.value);
+    }
+    if (accountName.present) {
+      map['account_name'] = Variable<String>(accountName.value);
+    }
+    if (secretNonce.present) {
+      map['secret_nonce'] = Variable<String>(secretNonce.value);
+    }
     if (secretCipher.present) {
       map['secret_cipher'] = Variable<String>(secretCipher.value);
+    }
+    if (secretTag.present) {
+      map['secret_tag'] = Variable<String>(secretTag.value);
     }
     if (algorithm.present) {
       map['algorithm'] = Variable<String>(algorithm.value);
@@ -4565,6 +4860,9 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
     }
     if (period.present) {
       map['period'] = Variable<int>(period.value);
+    }
+    if (counter.present) {
+      map['counter'] = Variable<int>(counter.value);
     }
     if (categoryId.present) {
       map['category_id'] = Variable<String>(categoryId.value);
@@ -4594,10 +4892,16 @@ class TotpsCompanion extends UpdateCompanion<Totp> {
           ..write('passwordId: $passwordId, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
+          ..write('type: $type, ')
+          ..write('issuer: $issuer, ')
+          ..write('accountName: $accountName, ')
+          ..write('secretNonce: $secretNonce, ')
           ..write('secretCipher: $secretCipher, ')
+          ..write('secretTag: $secretTag, ')
           ..write('algorithm: $algorithm, ')
           ..write('digits: $digits, ')
           ..write('period: $period, ')
+          ..write('counter: $counter, ')
           ..write('categoryId: $categoryId, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
@@ -4938,12 +5242,63 @@ class $TotpHistoriesTable extends TotpHistories
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _issuerMeta = const VerificationMeta('issuer');
+  @override
+  late final GeneratedColumn<String> issuer = GeneratedColumn<String>(
+    'issuer',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _accountNameMeta = const VerificationMeta(
+    'accountName',
+  );
+  @override
+  late final GeneratedColumn<String> accountName = GeneratedColumn<String>(
+    'account_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _secretNonceMeta = const VerificationMeta(
+    'secretNonce',
+  );
+  @override
+  late final GeneratedColumn<String> secretNonce = GeneratedColumn<String>(
+    'secret_nonce',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _secretCipherMeta = const VerificationMeta(
     'secretCipher',
   );
   @override
   late final GeneratedColumn<String> secretCipher = GeneratedColumn<String>(
     'secret_cipher',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _secretTagMeta = const VerificationMeta(
+    'secretTag',
+  );
+  @override
+  late final GeneratedColumn<String> secretTag = GeneratedColumn<String>(
+    'secret_tag',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -4973,6 +5328,17 @@ class $TotpHistoriesTable extends TotpHistories
   @override
   late final GeneratedColumn<int> period = GeneratedColumn<int>(
     'period',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _counterMeta = const VerificationMeta(
+    'counter',
+  );
+  @override
+  late final GeneratedColumn<int> counter = GeneratedColumn<int>(
+    'counter',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -5051,10 +5417,16 @@ class $TotpHistoriesTable extends TotpHistories
     action,
     name,
     description,
+    type,
+    issuer,
+    accountName,
+    secretNonce,
     secretCipher,
+    secretTag,
     algorithm,
     digits,
     period,
+    counter,
     categoryId,
     categoryName,
     tags,
@@ -5113,6 +5485,36 @@ class $TotpHistoriesTable extends TotpHistories
         ),
       );
     }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
+    if (data.containsKey('issuer')) {
+      context.handle(
+        _issuerMeta,
+        issuer.isAcceptableOrUnknown(data['issuer']!, _issuerMeta),
+      );
+    }
+    if (data.containsKey('account_name')) {
+      context.handle(
+        _accountNameMeta,
+        accountName.isAcceptableOrUnknown(
+          data['account_name']!,
+          _accountNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('secret_nonce')) {
+      context.handle(
+        _secretNonceMeta,
+        secretNonce.isAcceptableOrUnknown(
+          data['secret_nonce']!,
+          _secretNonceMeta,
+        ),
+      );
+    }
     if (data.containsKey('secret_cipher')) {
       context.handle(
         _secretCipherMeta,
@@ -5120,6 +5522,12 @@ class $TotpHistoriesTable extends TotpHistories
           data['secret_cipher']!,
           _secretCipherMeta,
         ),
+      );
+    }
+    if (data.containsKey('secret_tag')) {
+      context.handle(
+        _secretTagMeta,
+        secretTag.isAcceptableOrUnknown(data['secret_tag']!, _secretTagMeta),
       );
     }
     if (data.containsKey('algorithm')) {
@@ -5138,6 +5546,12 @@ class $TotpHistoriesTable extends TotpHistories
       context.handle(
         _periodMeta,
         period.isAcceptableOrUnknown(data['period']!, _periodMeta),
+      );
+    }
+    if (data.containsKey('counter')) {
+      context.handle(
+        _counterMeta,
+        counter.isAcceptableOrUnknown(data['counter']!, _counterMeta),
       );
     }
     if (data.containsKey('category_id')) {
@@ -5214,9 +5628,29 @@ class $TotpHistoriesTable extends TotpHistories
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       ),
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      ),
+      issuer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}issuer'],
+      ),
+      accountName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_name'],
+      ),
+      secretNonce: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}secret_nonce'],
+      ),
       secretCipher: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}secret_cipher'],
+      ),
+      secretTag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}secret_tag'],
       ),
       algorithm: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -5229,6 +5663,10 @@ class $TotpHistoriesTable extends TotpHistories
       period: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}period'],
+      ),
+      counter: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}counter'],
       ),
       categoryId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
@@ -5269,10 +5707,16 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
   final String action;
   final String name;
   final String? description;
+  final String? type;
+  final String? issuer;
+  final String? accountName;
+  final String? secretNonce;
   final String? secretCipher;
+  final String? secretTag;
   final String? algorithm;
   final int? digits;
   final int? period;
+  final int? counter;
   final String? categoryId;
   final String? categoryName;
   final String? tags;
@@ -5285,10 +5729,16 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
     required this.action,
     required this.name,
     this.description,
+    this.type,
+    this.issuer,
+    this.accountName,
+    this.secretNonce,
     this.secretCipher,
+    this.secretTag,
     this.algorithm,
     this.digits,
     this.period,
+    this.counter,
     this.categoryId,
     this.categoryName,
     this.tags,
@@ -5306,8 +5756,23 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    if (!nullToAbsent || type != null) {
+      map['type'] = Variable<String>(type);
+    }
+    if (!nullToAbsent || issuer != null) {
+      map['issuer'] = Variable<String>(issuer);
+    }
+    if (!nullToAbsent || accountName != null) {
+      map['account_name'] = Variable<String>(accountName);
+    }
+    if (!nullToAbsent || secretNonce != null) {
+      map['secret_nonce'] = Variable<String>(secretNonce);
+    }
     if (!nullToAbsent || secretCipher != null) {
       map['secret_cipher'] = Variable<String>(secretCipher);
+    }
+    if (!nullToAbsent || secretTag != null) {
+      map['secret_tag'] = Variable<String>(secretTag);
     }
     if (!nullToAbsent || algorithm != null) {
       map['algorithm'] = Variable<String>(algorithm);
@@ -5317,6 +5782,9 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
     }
     if (!nullToAbsent || period != null) {
       map['period'] = Variable<int>(period);
+    }
+    if (!nullToAbsent || counter != null) {
+      map['counter'] = Variable<int>(counter);
     }
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<String>(categoryId);
@@ -5346,9 +5814,22 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      type: type == null && nullToAbsent ? const Value.absent() : Value(type),
+      issuer: issuer == null && nullToAbsent
+          ? const Value.absent()
+          : Value(issuer),
+      accountName: accountName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountName),
+      secretNonce: secretNonce == null && nullToAbsent
+          ? const Value.absent()
+          : Value(secretNonce),
       secretCipher: secretCipher == null && nullToAbsent
           ? const Value.absent()
           : Value(secretCipher),
+      secretTag: secretTag == null && nullToAbsent
+          ? const Value.absent()
+          : Value(secretTag),
       algorithm: algorithm == null && nullToAbsent
           ? const Value.absent()
           : Value(algorithm),
@@ -5358,6 +5839,9 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
       period: period == null && nullToAbsent
           ? const Value.absent()
           : Value(period),
+      counter: counter == null && nullToAbsent
+          ? const Value.absent()
+          : Value(counter),
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryId),
@@ -5386,10 +5870,16 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
       action: serializer.fromJson<String>(json['action']),
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
+      type: serializer.fromJson<String?>(json['type']),
+      issuer: serializer.fromJson<String?>(json['issuer']),
+      accountName: serializer.fromJson<String?>(json['accountName']),
+      secretNonce: serializer.fromJson<String?>(json['secretNonce']),
       secretCipher: serializer.fromJson<String?>(json['secretCipher']),
+      secretTag: serializer.fromJson<String?>(json['secretTag']),
       algorithm: serializer.fromJson<String?>(json['algorithm']),
       digits: serializer.fromJson<int?>(json['digits']),
       period: serializer.fromJson<int?>(json['period']),
+      counter: serializer.fromJson<int?>(json['counter']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       categoryName: serializer.fromJson<String?>(json['categoryName']),
       tags: serializer.fromJson<String?>(json['tags']),
@@ -5411,10 +5901,16 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
       'action': serializer.toJson<String>(action),
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
+      'type': serializer.toJson<String?>(type),
+      'issuer': serializer.toJson<String?>(issuer),
+      'accountName': serializer.toJson<String?>(accountName),
+      'secretNonce': serializer.toJson<String?>(secretNonce),
       'secretCipher': serializer.toJson<String?>(secretCipher),
+      'secretTag': serializer.toJson<String?>(secretTag),
       'algorithm': serializer.toJson<String?>(algorithm),
       'digits': serializer.toJson<int?>(digits),
       'period': serializer.toJson<int?>(period),
+      'counter': serializer.toJson<int?>(counter),
       'categoryId': serializer.toJson<String?>(categoryId),
       'categoryName': serializer.toJson<String?>(categoryName),
       'tags': serializer.toJson<String?>(tags),
@@ -5430,10 +5926,16 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
     String? action,
     String? name,
     Value<String?> description = const Value.absent(),
+    Value<String?> type = const Value.absent(),
+    Value<String?> issuer = const Value.absent(),
+    Value<String?> accountName = const Value.absent(),
+    Value<String?> secretNonce = const Value.absent(),
     Value<String?> secretCipher = const Value.absent(),
+    Value<String?> secretTag = const Value.absent(),
     Value<String?> algorithm = const Value.absent(),
     Value<int?> digits = const Value.absent(),
     Value<int?> period = const Value.absent(),
+    Value<int?> counter = const Value.absent(),
     Value<String?> categoryId = const Value.absent(),
     Value<String?> categoryName = const Value.absent(),
     Value<String?> tags = const Value.absent(),
@@ -5446,10 +5948,16 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
     action: action ?? this.action,
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
+    type: type.present ? type.value : this.type,
+    issuer: issuer.present ? issuer.value : this.issuer,
+    accountName: accountName.present ? accountName.value : this.accountName,
+    secretNonce: secretNonce.present ? secretNonce.value : this.secretNonce,
     secretCipher: secretCipher.present ? secretCipher.value : this.secretCipher,
+    secretTag: secretTag.present ? secretTag.value : this.secretTag,
     algorithm: algorithm.present ? algorithm.value : this.algorithm,
     digits: digits.present ? digits.value : this.digits,
     period: period.present ? period.value : this.period,
+    counter: counter.present ? counter.value : this.counter,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     categoryName: categoryName.present ? categoryName.value : this.categoryName,
     tags: tags.present ? tags.value : this.tags,
@@ -5472,12 +5980,22 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
       description: data.description.present
           ? data.description.value
           : this.description,
+      type: data.type.present ? data.type.value : this.type,
+      issuer: data.issuer.present ? data.issuer.value : this.issuer,
+      accountName: data.accountName.present
+          ? data.accountName.value
+          : this.accountName,
+      secretNonce: data.secretNonce.present
+          ? data.secretNonce.value
+          : this.secretNonce,
       secretCipher: data.secretCipher.present
           ? data.secretCipher.value
           : this.secretCipher,
+      secretTag: data.secretTag.present ? data.secretTag.value : this.secretTag,
       algorithm: data.algorithm.present ? data.algorithm.value : this.algorithm,
       digits: data.digits.present ? data.digits.value : this.digits,
       period: data.period.present ? data.period.value : this.period,
+      counter: data.counter.present ? data.counter.value : this.counter,
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
@@ -5503,10 +6021,16 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
           ..write('action: $action, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
+          ..write('type: $type, ')
+          ..write('issuer: $issuer, ')
+          ..write('accountName: $accountName, ')
+          ..write('secretNonce: $secretNonce, ')
           ..write('secretCipher: $secretCipher, ')
+          ..write('secretTag: $secretTag, ')
           ..write('algorithm: $algorithm, ')
           ..write('digits: $digits, ')
           ..write('period: $period, ')
+          ..write('counter: $counter, ')
           ..write('categoryId: $categoryId, ')
           ..write('categoryName: $categoryName, ')
           ..write('tags: $tags, ')
@@ -5518,23 +6042,29 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     originalTotpId,
     action,
     name,
     description,
+    type,
+    issuer,
+    accountName,
+    secretNonce,
     secretCipher,
+    secretTag,
     algorithm,
     digits,
     period,
+    counter,
     categoryId,
     categoryName,
     tags,
     originalCreatedAt,
     originalModifiedAt,
     actionAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5544,10 +6074,16 @@ class TotpHistory extends DataClass implements Insertable<TotpHistory> {
           other.action == this.action &&
           other.name == this.name &&
           other.description == this.description &&
+          other.type == this.type &&
+          other.issuer == this.issuer &&
+          other.accountName == this.accountName &&
+          other.secretNonce == this.secretNonce &&
           other.secretCipher == this.secretCipher &&
+          other.secretTag == this.secretTag &&
           other.algorithm == this.algorithm &&
           other.digits == this.digits &&
           other.period == this.period &&
+          other.counter == this.counter &&
           other.categoryId == this.categoryId &&
           other.categoryName == this.categoryName &&
           other.tags == this.tags &&
@@ -5562,10 +6098,16 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
   final Value<String> action;
   final Value<String> name;
   final Value<String?> description;
+  final Value<String?> type;
+  final Value<String?> issuer;
+  final Value<String?> accountName;
+  final Value<String?> secretNonce;
   final Value<String?> secretCipher;
+  final Value<String?> secretTag;
   final Value<String?> algorithm;
   final Value<int?> digits;
   final Value<int?> period;
+  final Value<int?> counter;
   final Value<String?> categoryId;
   final Value<String?> categoryName;
   final Value<String?> tags;
@@ -5579,10 +6121,16 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
     this.action = const Value.absent(),
     this.name = const Value.absent(),
     this.description = const Value.absent(),
+    this.type = const Value.absent(),
+    this.issuer = const Value.absent(),
+    this.accountName = const Value.absent(),
+    this.secretNonce = const Value.absent(),
     this.secretCipher = const Value.absent(),
+    this.secretTag = const Value.absent(),
     this.algorithm = const Value.absent(),
     this.digits = const Value.absent(),
     this.period = const Value.absent(),
+    this.counter = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.categoryName = const Value.absent(),
     this.tags = const Value.absent(),
@@ -5597,10 +6145,16 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
     required String action,
     required String name,
     this.description = const Value.absent(),
+    this.type = const Value.absent(),
+    this.issuer = const Value.absent(),
+    this.accountName = const Value.absent(),
+    this.secretNonce = const Value.absent(),
     this.secretCipher = const Value.absent(),
+    this.secretTag = const Value.absent(),
     this.algorithm = const Value.absent(),
     this.digits = const Value.absent(),
     this.period = const Value.absent(),
+    this.counter = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.categoryName = const Value.absent(),
     this.tags = const Value.absent(),
@@ -5617,10 +6171,16 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
     Expression<String>? action,
     Expression<String>? name,
     Expression<String>? description,
+    Expression<String>? type,
+    Expression<String>? issuer,
+    Expression<String>? accountName,
+    Expression<String>? secretNonce,
     Expression<String>? secretCipher,
+    Expression<String>? secretTag,
     Expression<String>? algorithm,
     Expression<int>? digits,
     Expression<int>? period,
+    Expression<int>? counter,
     Expression<String>? categoryId,
     Expression<String>? categoryName,
     Expression<String>? tags,
@@ -5635,10 +6195,16 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
       if (action != null) 'action': action,
       if (name != null) 'name': name,
       if (description != null) 'description': description,
+      if (type != null) 'type': type,
+      if (issuer != null) 'issuer': issuer,
+      if (accountName != null) 'account_name': accountName,
+      if (secretNonce != null) 'secret_nonce': secretNonce,
       if (secretCipher != null) 'secret_cipher': secretCipher,
+      if (secretTag != null) 'secret_tag': secretTag,
       if (algorithm != null) 'algorithm': algorithm,
       if (digits != null) 'digits': digits,
       if (period != null) 'period': period,
+      if (counter != null) 'counter': counter,
       if (categoryId != null) 'category_id': categoryId,
       if (categoryName != null) 'category_name': categoryName,
       if (tags != null) 'tags': tags,
@@ -5656,10 +6222,16 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
     Value<String>? action,
     Value<String>? name,
     Value<String?>? description,
+    Value<String?>? type,
+    Value<String?>? issuer,
+    Value<String?>? accountName,
+    Value<String?>? secretNonce,
     Value<String?>? secretCipher,
+    Value<String?>? secretTag,
     Value<String?>? algorithm,
     Value<int?>? digits,
     Value<int?>? period,
+    Value<int?>? counter,
     Value<String?>? categoryId,
     Value<String?>? categoryName,
     Value<String?>? tags,
@@ -5674,10 +6246,16 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
       action: action ?? this.action,
       name: name ?? this.name,
       description: description ?? this.description,
+      type: type ?? this.type,
+      issuer: issuer ?? this.issuer,
+      accountName: accountName ?? this.accountName,
+      secretNonce: secretNonce ?? this.secretNonce,
       secretCipher: secretCipher ?? this.secretCipher,
+      secretTag: secretTag ?? this.secretTag,
       algorithm: algorithm ?? this.algorithm,
       digits: digits ?? this.digits,
       period: period ?? this.period,
+      counter: counter ?? this.counter,
       categoryId: categoryId ?? this.categoryId,
       categoryName: categoryName ?? this.categoryName,
       tags: tags ?? this.tags,
@@ -5706,8 +6284,23 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (issuer.present) {
+      map['issuer'] = Variable<String>(issuer.value);
+    }
+    if (accountName.present) {
+      map['account_name'] = Variable<String>(accountName.value);
+    }
+    if (secretNonce.present) {
+      map['secret_nonce'] = Variable<String>(secretNonce.value);
+    }
     if (secretCipher.present) {
       map['secret_cipher'] = Variable<String>(secretCipher.value);
+    }
+    if (secretTag.present) {
+      map['secret_tag'] = Variable<String>(secretTag.value);
     }
     if (algorithm.present) {
       map['algorithm'] = Variable<String>(algorithm.value);
@@ -5717,6 +6310,9 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
     }
     if (period.present) {
       map['period'] = Variable<int>(period.value);
+    }
+    if (counter.present) {
+      map['counter'] = Variable<int>(counter.value);
     }
     if (categoryId.present) {
       map['category_id'] = Variable<String>(categoryId.value);
@@ -5752,10 +6348,16 @@ class TotpHistoriesCompanion extends UpdateCompanion<TotpHistory> {
           ..write('action: $action, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
+          ..write('type: $type, ')
+          ..write('issuer: $issuer, ')
+          ..write('accountName: $accountName, ')
+          ..write('secretNonce: $secretNonce, ')
           ..write('secretCipher: $secretCipher, ')
+          ..write('secretTag: $secretTag, ')
           ..write('algorithm: $algorithm, ')
           ..write('digits: $digits, ')
           ..write('period: $period, ')
+          ..write('counter: $counter, ')
           ..write('categoryId: $categoryId, ')
           ..write('categoryName: $categoryName, ')
           ..write('tags: $tags, ')
@@ -11487,10 +12089,16 @@ typedef $$TotpsTableCreateCompanionBuilder =
       Value<String?> passwordId,
       required String name,
       Value<String?> description,
+      Value<OtpType> type,
+      Value<String?> issuer,
+      Value<String?> accountName,
+      required String secretNonce,
       required String secretCipher,
+      required String secretTag,
       Value<String> algorithm,
       Value<int> digits,
       Value<int> period,
+      Value<int?> counter,
       Value<String?> categoryId,
       Value<bool> isFavorite,
       Value<DateTime> createdAt,
@@ -11504,10 +12112,16 @@ typedef $$TotpsTableUpdateCompanionBuilder =
       Value<String?> passwordId,
       Value<String> name,
       Value<String?> description,
+      Value<OtpType> type,
+      Value<String?> issuer,
+      Value<String?> accountName,
+      Value<String> secretNonce,
       Value<String> secretCipher,
+      Value<String> secretTag,
       Value<String> algorithm,
       Value<int> digits,
       Value<int> period,
+      Value<int?> counter,
       Value<String?> categoryId,
       Value<bool> isFavorite,
       Value<DateTime> createdAt,
@@ -11615,8 +12229,34 @@ class $$TotpsTableFilterComposer extends Composer<_$HoplixiStore, $TotpsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnWithTypeConverterFilters<OtpType, OtpType, String> get type =>
+      $composableBuilder(
+        column: $table.type,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get issuer => $composableBuilder(
+    column: $table.issuer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get secretNonce => $composableBuilder(
+    column: $table.secretNonce,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get secretCipher => $composableBuilder(
     column: $table.secretCipher,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get secretTag => $composableBuilder(
+    column: $table.secretTag,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11632,6 +12272,11 @@ class $$TotpsTableFilterComposer extends Composer<_$HoplixiStore, $TotpsTable> {
 
   ColumnFilters<int> get period => $composableBuilder(
     column: $table.period,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get counter => $composableBuilder(
+    column: $table.counter,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11776,8 +12421,33 @@ class $$TotpsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get issuer => $composableBuilder(
+    column: $table.issuer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get secretNonce => $composableBuilder(
+    column: $table.secretNonce,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get secretCipher => $composableBuilder(
     column: $table.secretCipher,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get secretTag => $composableBuilder(
+    column: $table.secretTag,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -11793,6 +12463,11 @@ class $$TotpsTableOrderingComposer
 
   ColumnOrderings<int> get period => $composableBuilder(
     column: $table.period,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get counter => $composableBuilder(
+    column: $table.counter,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -11883,10 +12558,29 @@ class $$TotpsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumnWithTypeConverter<OtpType, String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get issuer =>
+      $composableBuilder(column: $table.issuer, builder: (column) => column);
+
+  GeneratedColumn<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get secretNonce => $composableBuilder(
+    column: $table.secretNonce,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get secretCipher => $composableBuilder(
     column: $table.secretCipher,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get secretTag =>
+      $composableBuilder(column: $table.secretTag, builder: (column) => column);
 
   GeneratedColumn<String> get algorithm =>
       $composableBuilder(column: $table.algorithm, builder: (column) => column);
@@ -11896,6 +12590,9 @@ class $$TotpsTableAnnotationComposer
 
   GeneratedColumn<int> get period =>
       $composableBuilder(column: $table.period, builder: (column) => column);
+
+  GeneratedColumn<int> get counter =>
+      $composableBuilder(column: $table.counter, builder: (column) => column);
 
   GeneratedColumn<bool> get isFavorite => $composableBuilder(
     column: $table.isFavorite,
@@ -12049,10 +12746,16 @@ class $$TotpsTableTableManager
                 Value<String?> passwordId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<OtpType> type = const Value.absent(),
+                Value<String?> issuer = const Value.absent(),
+                Value<String?> accountName = const Value.absent(),
+                Value<String> secretNonce = const Value.absent(),
                 Value<String> secretCipher = const Value.absent(),
+                Value<String> secretTag = const Value.absent(),
                 Value<String> algorithm = const Value.absent(),
                 Value<int> digits = const Value.absent(),
                 Value<int> period = const Value.absent(),
+                Value<int?> counter = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -12064,10 +12767,16 @@ class $$TotpsTableTableManager
                 passwordId: passwordId,
                 name: name,
                 description: description,
+                type: type,
+                issuer: issuer,
+                accountName: accountName,
+                secretNonce: secretNonce,
                 secretCipher: secretCipher,
+                secretTag: secretTag,
                 algorithm: algorithm,
                 digits: digits,
                 period: period,
+                counter: counter,
                 categoryId: categoryId,
                 isFavorite: isFavorite,
                 createdAt: createdAt,
@@ -12081,10 +12790,16 @@ class $$TotpsTableTableManager
                 Value<String?> passwordId = const Value.absent(),
                 required String name,
                 Value<String?> description = const Value.absent(),
+                Value<OtpType> type = const Value.absent(),
+                Value<String?> issuer = const Value.absent(),
+                Value<String?> accountName = const Value.absent(),
+                required String secretNonce,
                 required String secretCipher,
+                required String secretTag,
                 Value<String> algorithm = const Value.absent(),
                 Value<int> digits = const Value.absent(),
                 Value<int> period = const Value.absent(),
+                Value<int?> counter = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -12096,10 +12811,16 @@ class $$TotpsTableTableManager
                 passwordId: passwordId,
                 name: name,
                 description: description,
+                type: type,
+                issuer: issuer,
+                accountName: accountName,
+                secretNonce: secretNonce,
                 secretCipher: secretCipher,
+                secretTag: secretTag,
                 algorithm: algorithm,
                 digits: digits,
                 period: period,
+                counter: counter,
                 categoryId: categoryId,
                 isFavorite: isFavorite,
                 createdAt: createdAt,
@@ -12611,10 +13332,16 @@ typedef $$TotpHistoriesTableCreateCompanionBuilder =
       required String action,
       required String name,
       Value<String?> description,
+      Value<String?> type,
+      Value<String?> issuer,
+      Value<String?> accountName,
+      Value<String?> secretNonce,
       Value<String?> secretCipher,
+      Value<String?> secretTag,
       Value<String?> algorithm,
       Value<int?> digits,
       Value<int?> period,
+      Value<int?> counter,
       Value<String?> categoryId,
       Value<String?> categoryName,
       Value<String?> tags,
@@ -12630,10 +13357,16 @@ typedef $$TotpHistoriesTableUpdateCompanionBuilder =
       Value<String> action,
       Value<String> name,
       Value<String?> description,
+      Value<String?> type,
+      Value<String?> issuer,
+      Value<String?> accountName,
+      Value<String?> secretNonce,
       Value<String?> secretCipher,
+      Value<String?> secretTag,
       Value<String?> algorithm,
       Value<int?> digits,
       Value<int?> period,
+      Value<int?> counter,
       Value<String?> categoryId,
       Value<String?> categoryName,
       Value<String?> tags,
@@ -12677,8 +13410,33 @@ class $$TotpHistoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get issuer => $composableBuilder(
+    column: $table.issuer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get secretNonce => $composableBuilder(
+    column: $table.secretNonce,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get secretCipher => $composableBuilder(
     column: $table.secretCipher,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get secretTag => $composableBuilder(
+    column: $table.secretTag,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12694,6 +13452,11 @@ class $$TotpHistoriesTableFilterComposer
 
   ColumnFilters<int> get period => $composableBuilder(
     column: $table.period,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get counter => $composableBuilder(
+    column: $table.counter,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -12762,8 +13525,33 @@ class $$TotpHistoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get issuer => $composableBuilder(
+    column: $table.issuer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get secretNonce => $composableBuilder(
+    column: $table.secretNonce,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get secretCipher => $composableBuilder(
     column: $table.secretCipher,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get secretTag => $composableBuilder(
+    column: $table.secretTag,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12779,6 +13567,11 @@ class $$TotpHistoriesTableOrderingComposer
 
   ColumnOrderings<int> get period => $composableBuilder(
     column: $table.period,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get counter => $composableBuilder(
+    column: $table.counter,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12841,10 +13634,29 @@ class $$TotpHistoriesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get issuer =>
+      $composableBuilder(column: $table.issuer, builder: (column) => column);
+
+  GeneratedColumn<String> get accountName => $composableBuilder(
+    column: $table.accountName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get secretNonce => $composableBuilder(
+    column: $table.secretNonce,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get secretCipher => $composableBuilder(
     column: $table.secretCipher,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get secretTag =>
+      $composableBuilder(column: $table.secretTag, builder: (column) => column);
 
   GeneratedColumn<String> get algorithm =>
       $composableBuilder(column: $table.algorithm, builder: (column) => column);
@@ -12854,6 +13666,9 @@ class $$TotpHistoriesTableAnnotationComposer
 
   GeneratedColumn<int> get period =>
       $composableBuilder(column: $table.period, builder: (column) => column);
+
+  GeneratedColumn<int> get counter =>
+      $composableBuilder(column: $table.counter, builder: (column) => column);
 
   GeneratedColumn<String> get categoryId => $composableBuilder(
     column: $table.categoryId,
@@ -12918,10 +13733,16 @@ class $$TotpHistoriesTableTableManager
                 Value<String> action = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<String?> type = const Value.absent(),
+                Value<String?> issuer = const Value.absent(),
+                Value<String?> accountName = const Value.absent(),
+                Value<String?> secretNonce = const Value.absent(),
                 Value<String?> secretCipher = const Value.absent(),
+                Value<String?> secretTag = const Value.absent(),
                 Value<String?> algorithm = const Value.absent(),
                 Value<int?> digits = const Value.absent(),
                 Value<int?> period = const Value.absent(),
+                Value<int?> counter = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<String?> categoryName = const Value.absent(),
                 Value<String?> tags = const Value.absent(),
@@ -12935,10 +13756,16 @@ class $$TotpHistoriesTableTableManager
                 action: action,
                 name: name,
                 description: description,
+                type: type,
+                issuer: issuer,
+                accountName: accountName,
+                secretNonce: secretNonce,
                 secretCipher: secretCipher,
+                secretTag: secretTag,
                 algorithm: algorithm,
                 digits: digits,
                 period: period,
+                counter: counter,
                 categoryId: categoryId,
                 categoryName: categoryName,
                 tags: tags,
@@ -12954,10 +13781,16 @@ class $$TotpHistoriesTableTableManager
                 required String action,
                 required String name,
                 Value<String?> description = const Value.absent(),
+                Value<String?> type = const Value.absent(),
+                Value<String?> issuer = const Value.absent(),
+                Value<String?> accountName = const Value.absent(),
+                Value<String?> secretNonce = const Value.absent(),
                 Value<String?> secretCipher = const Value.absent(),
+                Value<String?> secretTag = const Value.absent(),
                 Value<String?> algorithm = const Value.absent(),
                 Value<int?> digits = const Value.absent(),
                 Value<int?> period = const Value.absent(),
+                Value<int?> counter = const Value.absent(),
                 Value<String?> categoryId = const Value.absent(),
                 Value<String?> categoryName = const Value.absent(),
                 Value<String?> tags = const Value.absent(),
@@ -12971,10 +13804,16 @@ class $$TotpHistoriesTableTableManager
                 action: action,
                 name: name,
                 description: description,
+                type: type,
+                issuer: issuer,
+                accountName: accountName,
+                secretNonce: secretNonce,
                 secretCipher: secretCipher,
+                secretTag: secretTag,
                 algorithm: algorithm,
                 digits: digits,
                 period: period,
+                counter: counter,
                 categoryId: categoryId,
                 categoryName: categoryName,
                 tags: tags,
