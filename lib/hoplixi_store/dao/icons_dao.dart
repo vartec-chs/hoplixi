@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'dart:typed_data';
 import '../hoplixi_store.dart';
 import '../tables/icons.dart';
 import '../dto/db_dto.dart';

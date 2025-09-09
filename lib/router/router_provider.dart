@@ -8,6 +8,9 @@ import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/core/secure_storage/index.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
+import 'package:hoplixi/hoplixi_store/state.dart';
+
 import 'package:universal_platform/universal_platform.dart';
 
 import 'routes_path.dart';
@@ -15,12 +18,13 @@ import 'routes.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: AppRoutes.dashboard,
+    initialLocation: AppRoutes.home,
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
 
     observers: [GoTransition.observer, LoggingRouteObserver()],
     redirect: (context, state) async {
       final initializationAsync = ref.watch(storageInitProvider);
+      final dbState = ref.watch(dbStatus);
 
       // final prefs = await SharedPreferences.getInstance();
       // final isFirstRun = prefs.getBool('is_first_run') ?? true;
@@ -34,6 +38,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // if (!isFirstRun && state.fullPath == '/setup') {
       //   return '/';
       // }
+
+      if (state.fullPath == AppRoutes.home &&
+          dbState.runtimeType.toString() == DatabaseStatus.open.toString()) {
+        return AppRoutes.dashboard; // Разрешаем доступ к экрану логов
+      }
 
       initializationAsync.when(
         data: (data) {

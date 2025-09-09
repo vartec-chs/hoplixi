@@ -8,4 +8,6 @@ class AppRoutes {
   static const String testDemo = '/test-demo';
   static const String dashboard = '/dashboard';
   static const String baseSettings = '/base-settings';
+  static const String categoryManager = '/category-manager';
+  static const String iconManager = '/icon-manager';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/auto_preferences/auto_settings_screen.dart';
 
@@ -10,28 +11,29 @@ import 'package:hoplixi/router/routes_path.dart';
 import 'home_controller.dart';
 import 'widgets/index.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  late final HomeController _controller;
-
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = HomeController();
-    _initializeController();
+    // Инициализируем контроллер после построения виджета
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeController();
+    });
   }
 
   Future<void> _initializeController() async {
-    await _controller.initialize();
+    final controller = ref.read(homeControllerProvider.notifier);
+    await controller.initialize();
 
     // Если пароль сохранен, предлагаем автоматическое открытие
-    if (await _controller.canAutoOpenAsync && mounted) {
+    if (await controller.canAutoOpenAsync && mounted) {
       _showAutoOpenDialog();
     }
   }
@@ -39,13 +41,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAutoOpenDialog() {
     if (!mounted) return;
 
+    final recentDatabase = ref.read(recentDatabaseProvider);
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text('Автоматическое открытие'),
         content: Text(
-          'Найдена недавно открытая база данных "${_controller.recentDatabase?.name}" с сохраненным паролем. Открыть автоматически?',
+          'Найдена недавно открытая база данных "${recentDatabase?.name}" с сохраненным паролем. Открыть автоматически?',
         ),
         actions: [
           TextButton(
@@ -67,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    // StateNotifier автоматически очищается Riverpod
     super.dispose();
   }
 
@@ -159,14 +163,15 @@ class _HomeScreenState extends State<HomeScreen> {
               const SliverToBoxAdapter(child: Divider(height: 2)),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),
               SliverToBoxAdapter(
-                child: ListenableBuilder(
-                  listenable: _controller,
-                  builder: (context, _) {
-                    if (_controller.hasRecentDatabase) {
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final homeState = ref.watch(homeControllerProvider);
+
+                    if (homeState.hasRecentDatabase) {
                       return RecentDatabaseCard(
-                        database: _controller.recentDatabase!,
-                        isLoading: _controller.isLoading,
-                        isAutoOpening: _controller.isAutoOpening,
+                        database: homeState.recentDatabase!,
+                        isLoading: homeState.isLoading,
+                        isAutoOpening: homeState.isAutoOpening,
                         onOpenAuto: _handleAutoOpen,
                         onOpenManual: _handleManualOpen,
                         onRemove: _handleRemove,
@@ -180,10 +185,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Показываем ошибки если есть
               SliverToBoxAdapter(
-                child: ListenableBuilder(
-                  listenable: _controller,
-                  builder: (context, _) {
-                    if (_controller.error != null) {
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final homeState = ref.watch(homeControllerProvider);
+
+                    if (homeState.error != null) {
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 16),
                         padding: const EdgeInsets.all(12),
@@ -200,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                _controller.error!,
+                                homeState.error!,
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.error,
                                 ),
@@ -222,7 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleAutoOpen() async {
-    final result = await _controller.autoOpenRecentDatabase();
+    final controller = ref.read(homeControllerProvider.notifier);
+    final result = await controller.autoOpenRecentDatabase();
     if (result != null && mounted) {
       // Переходим к экрану базы данных
       _navigateToDatabase();
@@ -230,19 +237,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleManualOpen() async {
-    if (!_controller.hasRecentDatabase) return;
+    final hasRecentDatabase = ref.read(hasRecentDatabaseProvider);
+    if (!hasRecentDatabase) return;
 
-    final result = await DatabasePasswordDialog.show(
-      context,
-      _controller.recentDatabase!,
-    );
+    final recentDatabase = ref.read(recentDatabaseProvider);
+    final result = await DatabasePasswordDialog.show(context, recentDatabase!);
 
     if (result != null && mounted) {
+      final controller = ref.read(homeControllerProvider.notifier);
       final dbResult = result.savePassword
-          ? await _controller.openRecentDatabaseWithPasswordAndSave(
+          ? await controller.openRecentDatabaseWithPasswordAndSave(
               result.password,
             )
-          : await _controller.openRecentDatabaseWithPassword(result.password);
+          : await controller.openRecentDatabaseWithPassword(result.password);
 
       if (dbResult != null && mounted) {
         _navigateToDatabase();
@@ -253,17 +260,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _handleRemove() async {
     final confirmed = await _showRemoveConfirmDialog();
     if (confirmed == true) {
-      await _controller.removeRecentDatabase();
+      final controller = ref.read(homeControllerProvider.notifier);
+      await controller.removeRecentDatabase();
     }
   }
 
   Future<bool?> _showRemoveConfirmDialog() {
+    final recentDatabase = ref.read(recentDatabaseProvider);
+
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Удалить из истории'),
         content: Text(
-          'Удалить "${_controller.recentDatabase?.name}" из истории недавно открытых баз данных?',
+          'Удалить "${recentDatabase?.name}" из истории недавно открытых баз данных?',
         ),
         actions: [
           TextButton(
@@ -284,12 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToDatabase() {
     // TODO: Добавить навигацию к главному экрану базы данных
     // context.go(AppRoutes.database);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('База данных успешно открыта!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    context.go(AppRoutes.dashboard);
   }
 
   Widget buildAppBar() {

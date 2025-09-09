@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hoplixi/router/routes_path.dart';
 import 'widgets/password_card.dart';
 import 'widgets/filter_modal.dart';
 import 'widgets/expandable_fab.dart';
@@ -382,9 +384,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             ).showSnackBar(const SnackBar(content: Text('Создать пароль')));
           },
           onCreateCategory: () {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Создать категорию')));
+            context.go(AppRoutes.categoryManager);
           },
           onCreateTag: () {
             ScaffoldMessenger.of(

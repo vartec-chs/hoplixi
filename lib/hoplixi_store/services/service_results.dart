@@ -18,58 +18,54 @@ class ServiceResult<T> {
 class CategoryResult extends ServiceResult<String> {
   final String? categoryId;
 
-  CategoryResult({required bool success, String? message, this.categoryId})
-    : super(success: success, message: message, data: categoryId);
+  CategoryResult({required super.success, super.message, this.categoryId})
+    : super(data: categoryId);
 
-  CategoryResult.success({String? categoryId, String? message})
+  CategoryResult.success({String? categoryId, super.message})
     : categoryId = categoryId,
-      super.success(data: categoryId, message: message);
+      super.success(data: categoryId);
 
-  CategoryResult.error(String message)
-    : categoryId = null,
-      super.error(message);
+  CategoryResult.error(super.message) : categoryId = null, super.error();
 }
 
 /// Результат операции с иконкой
 class IconResult extends ServiceResult<String> {
   final String? iconId;
 
-  IconResult({required bool success, String? message, this.iconId})
-    : super(success: success, message: message, data: iconId);
+  IconResult({required super.success, super.message, this.iconId})
+    : super(data: iconId);
 
-  IconResult.success({String? iconId, String? message})
+  IconResult.success({String? iconId, super.message})
     : iconId = iconId,
-      super.success(data: iconId, message: message);
+      super.success(data: iconId);
 
-  IconResult.error(String message) : iconId = null, super.error(message);
+  IconResult.error(super.message) : iconId = null, super.error();
 }
 
 /// Результат операции с тегом
 class TagResult extends ServiceResult<String> {
   final String? tagId;
 
-  TagResult({required bool success, String? message, this.tagId})
-    : super(success: success, message: message, data: tagId);
+  TagResult({required super.success, super.message, this.tagId})
+    : super(data: tagId);
 
-  TagResult.success({String? tagId, String? message})
+  TagResult.success({String? tagId, super.message})
     : tagId = tagId,
-      super.success(data: tagId, message: message);
+      super.success(data: tagId);
 
-  TagResult.error(String message) : tagId = null, super.error(message);
+  TagResult.error(super.message) : tagId = null, super.error();
 }
 
 /// Результат операции с паролем
 class PasswordResult extends ServiceResult<String> {
   final String? passwordId;
 
-  PasswordResult({required bool success, String? message, this.passwordId})
-    : super(success: success, message: message, data: passwordId);
+  PasswordResult({required super.success, super.message, this.passwordId})
+    : super(data: passwordId);
 
-  PasswordResult.success({String? passwordId, String? message})
+  PasswordResult.success({String? passwordId, super.message})
     : passwordId = passwordId,
-      super.success(data: passwordId, message: message);
+      super.success(data: passwordId);
 
-  PasswordResult.error(String message)
-    : passwordId = null,
-      super.error(message);
+  PasswordResult.error(super.message) : passwordId = null, super.error();
 }

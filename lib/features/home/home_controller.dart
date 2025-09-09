@@ -1,32 +1,84 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
-/// Контроллер для главного экрана
-class HomeController extends ChangeNotifier {
+/// Состояние главного экрана
+class HomeState {
+  final DatabaseEntry? recentDatabase;
+  final bool isLoading;
+  final String? error;
+  final bool isAutoOpening;
+
+  const HomeState({
+    this.recentDatabase,
+    this.isLoading = false,
+    this.error,
+    this.isAutoOpening = false,
+  });
+
+  /// Создание копии с измененными полями
+  HomeState copyWith({
+    DatabaseEntry? recentDatabase,
+    bool? hasRecentDatabase,
+    bool? isLoading,
+    String? error,
+    bool? clearError,
+    bool? isAutoOpening,
+  }) {
+    return HomeState(
+      recentDatabase: hasRecentDatabase == false
+          ? null
+          : (recentDatabase ?? this.recentDatabase),
+      isLoading: isLoading ?? this.isLoading,
+      error: clearError == true ? null : (error ?? this.error),
+      isAutoOpening: isAutoOpening ?? this.isAutoOpening,
+    );
+  }
+
+  // Computed properties
+  bool get hasRecentDatabase => recentDatabase != null;
+
+  bool get canAutoOpen =>
+      recentDatabase?.saveMasterPassword == true &&
+      recentDatabase?.masterPassword?.isNotEmpty == true;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is HomeState &&
+        other.recentDatabase == recentDatabase &&
+        other.isLoading == isLoading &&
+        other.error == error &&
+        other.isAutoOpening == isAutoOpening;
+  }
+
+  @override
+  int get hashCode {
+    return recentDatabase.hashCode ^
+        isLoading.hashCode ^
+        error.hashCode ^
+        isAutoOpening.hashCode;
+  }
+}
+
+/// StateNotifier для управления состоянием главного экрана
+class HomeController extends StateNotifier<HomeState> {
   final HoplixiStoreManager _storeManager;
 
-  DatabaseEntry? _recentDatabase;
-  bool _isLoading = false;
-  String? _error;
-  bool _isAutoOpening = false;
+  HomeController(this._storeManager) : super(const HomeState());
 
-  HomeController({HoplixiStoreManager? storeManager})
-    : _storeManager = storeManager ?? HoplixiStoreManager();
-
-  // Геттеры
-  DatabaseEntry? get recentDatabase => _recentDatabase;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  bool get isAutoOpening => _isAutoOpening;
-  bool get hasRecentDatabase => _recentDatabase != null;
-  bool get canAutoOpen =>
-      _recentDatabase?.saveMasterPassword == true &&
-      _recentDatabase?.masterPassword?.isNotEmpty == true;
+  // Геттеры для состояния
+  DatabaseEntry? get recentDatabase => state.recentDatabase;
+  bool get isLoading => state.isLoading;
+  String? get error => state.error;
+  bool get isAutoOpening => state.isAutoOpening;
+  bool get hasRecentDatabase => state.hasRecentDatabase;
+  bool get canAutoOpen => state.canAutoOpen;
 
   /// Инициализация контроллера
   Future<void> initialize() async {
@@ -42,17 +94,14 @@ class HomeController extends ChangeNotifier {
     if (autoOpenLastStorage != true) {
       return false;
     }
-    return _recentDatabase?.saveMasterPassword == true &&
-        _recentDatabase?.masterPassword?.isNotEmpty == true;
+    return state.recentDatabase?.saveMasterPassword == true &&
+        state.recentDatabase?.masterPassword?.isNotEmpty == true;
   }
-
-  //TODO: Warning: Failed to read record c:\users\vartec\documents\hoplixi\storages\test.hpl: SegmentCorruptError: Failed to read record c:\users\vartec\documents\hoplixi\storages\test.hpl: SegmentCorruptError: Checksum mismatch for record c:\users\vartec\documents\hoplixi\storages\test.hpl. Expected: 00f196da6deab6710e27613c6a2ecf6d49a274ac9661b267df82041d0fe6e06a, Got: 424a4d76e586a1f8bec3fba947ef5a1348267fd5f0ca30f8a8086fafa6465a04 исправить работу с конкурентными блокировками
 
   /// Загружает информацию о недавно открытой базе данных
   Future<void> _loadRecentDatabase() async {
     try {
-      _setLoading(true);
-      _clearError();
+      state = state.copyWith(isLoading: true, clearError: true);
 
       logDebug('Загрузка недавней базы данных', tag: 'HomeController');
 
@@ -60,29 +109,36 @@ class HomeController extends ChangeNotifier {
       final history = await _storeManager.getDatabaseHistory();
 
       if (history.isNotEmpty) {
-        _recentDatabase = history.first;
+        final recentDatabase = history.first;
+        state = state.copyWith(
+          recentDatabase: recentDatabase,
+          isLoading: false,
+        );
+
         logDebug(
-          'Найдена недавняя БД: ${_recentDatabase!.name}',
+          'Найдена недавняя БД: ${recentDatabase.name}',
           tag: 'HomeController',
           data: {
-            'path': _recentDatabase!.path,
-            'hasSavedPassword': _recentDatabase!.saveMasterPassword,
+            'path': recentDatabase.path,
+            'hasSavedPassword': recentDatabase.saveMasterPassword,
           },
         );
       } else {
-        _recentDatabase = null;
+        state = state.copyWith(hasRecentDatabase: false, isLoading: false);
         logDebug('Недавние базы данных не найдены', tag: 'HomeController');
       }
     } catch (e, stackTrace) {
-      _setError('Ошибка загрузки недавней базы данных: ${e.toString()}');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Ошибка загрузки недавней базы данных: ${e.toString()}',
+      );
+
       logError(
         'Ошибка загрузки недавней базы данных',
         error: e,
         stackTrace: stackTrace,
         tag: 'HomeController',
       );
-    } finally {
-      _setLoading(false);
     }
   }
 
@@ -94,25 +150,24 @@ class HomeController extends ChangeNotifier {
         tag: 'HomeController',
         data: {
           'hasRecentDb': hasRecentDatabase,
-          'hasSavedPassword': _recentDatabase?.saveMasterPassword ?? false,
+          'hasSavedPassword': state.recentDatabase?.saveMasterPassword ?? false,
         },
       );
       return null;
     }
 
     try {
-      _setAutoOpening(true);
-      _clearError();
+      state = state.copyWith(isAutoOpening: true, clearError: true);
 
       logInfo(
-        'Автоматическое открытие БД: ${_recentDatabase!.name}',
+        'Автоматическое открытие БД: ${state.recentDatabase!.name}',
         tag: 'HomeController',
-        data: {'path': _recentDatabase!.path},
+        data: {'path': state.recentDatabase!.path},
       );
 
       final openDto = OpenDatabaseDto(
-        path: _recentDatabase!.path,
-        masterPassword: _recentDatabase!.masterPassword!,
+        path: state.recentDatabase!.path,
+        masterPassword: state.recentDatabase!.masterPassword!,
         saveMasterPassword: true,
       );
 
@@ -130,41 +185,40 @@ class HomeController extends ChangeNotifier {
       return result;
     } catch (e, stackTrace) {
       final errorMessage = 'Ошибка автоматического открытия: ${e.toString()}';
-      _setError(errorMessage);
+      state = state.copyWith(isAutoOpening: false, error: errorMessage);
 
       logError(
         'Ошибка автоматического открытия БД',
         error: e,
         stackTrace: stackTrace,
         tag: 'HomeController',
-        data: {'path': _recentDatabase?.path},
+        data: {'path': state.recentDatabase?.path},
       );
 
       return null;
     } finally {
-      _setAutoOpening(false);
+      state = state.copyWith(isAutoOpening: false);
     }
   }
 
   /// Открытие базы данных с введенным паролем
   Future<DatabaseState?> openRecentDatabaseWithPassword(String password) async {
     if (!hasRecentDatabase) {
-      _setError('Недавняя база данных не найдена');
+      state = state.copyWith(error: 'Недавняя база данных не найдена');
       return null;
     }
 
     try {
-      _setLoading(true);
-      _clearError();
+      state = state.copyWith(isLoading: true, clearError: true);
 
       logInfo(
-        'Открытие БД с паролем: ${_recentDatabase!.name}',
+        'Открытие БД с паролем: ${state.recentDatabase!.name}',
         tag: 'HomeController',
-        data: {'path': _recentDatabase!.path},
+        data: {'path': state.recentDatabase!.path},
       );
 
       final openDto = OpenDatabaseDto(
-        path: _recentDatabase!.path,
+        path: state.recentDatabase!.path,
         masterPassword: password,
         saveMasterPassword: false, // Не сохраняем пароль по умолчанию
       );
@@ -183,19 +237,19 @@ class HomeController extends ChangeNotifier {
       return result;
     } catch (e, stackTrace) {
       final errorMessage = 'Ошибка открытия: ${e.toString()}';
-      _setError(errorMessage);
+      state = state.copyWith(isLoading: false, error: errorMessage);
 
       logError(
         'Ошибка открытия БД с паролем',
         error: e,
         stackTrace: stackTrace,
         tag: 'HomeController',
-        data: {'path': _recentDatabase?.path},
+        data: {'path': state.recentDatabase?.path},
       );
 
       return null;
     } finally {
-      _setLoading(false);
+      state = state.copyWith(isLoading: false);
     }
   }
 
@@ -204,22 +258,21 @@ class HomeController extends ChangeNotifier {
     String password,
   ) async {
     if (!hasRecentDatabase) {
-      _setError('Недавняя база данных не найдена');
+      state = state.copyWith(error: 'Недавняя база данных не найдена');
       return null;
     }
 
     try {
-      _setLoading(true);
-      _clearError();
+      state = state.copyWith(isLoading: true, clearError: true);
 
       logInfo(
-        'Открытие БД с сохранением пароля: ${_recentDatabase!.name}',
+        'Открытие БД с сохранением пароля: ${state.recentDatabase!.name}',
         tag: 'HomeController',
-        data: {'path': _recentDatabase!.path},
+        data: {'path': state.recentDatabase!.path},
       );
 
       final openDto = OpenDatabaseDto(
-        path: _recentDatabase!.path,
+        path: state.recentDatabase!.path,
         masterPassword: password,
         saveMasterPassword: true, // Сохраняем пароль
       );
@@ -238,19 +291,19 @@ class HomeController extends ChangeNotifier {
       return result;
     } catch (e, stackTrace) {
       final errorMessage = 'Ошибка открытия: ${e.toString()}';
-      _setError(errorMessage);
+      state = state.copyWith(isLoading: false, error: errorMessage);
 
       logError(
         'Ошибка открытия БД с сохранением пароля',
         error: e,
         stackTrace: stackTrace,
         tag: 'HomeController',
-        data: {'path': _recentDatabase?.path},
+        data: {'path': state.recentDatabase?.path},
       );
 
       return null;
     } finally {
-      _setLoading(false);
+      state = state.copyWith(isLoading: false);
     }
   }
 
@@ -259,21 +312,26 @@ class HomeController extends ChangeNotifier {
     if (!hasRecentDatabase) return;
 
     try {
-      _setLoading(true);
-      _clearError();
+      state = state.copyWith(isLoading: true, clearError: true);
 
-      await _storeManager.removeDatabaseHistoryEntry(_recentDatabase!.path);
+      await _storeManager.removeDatabaseHistoryEntry(
+        state.recentDatabase!.path,
+      );
 
       logInfo(
-        'БД удалена из истории: ${_recentDatabase!.name}',
+        'БД удалена из истории: ${state.recentDatabase!.name}',
         tag: 'HomeController',
-        data: {'path': _recentDatabase!.path},
+        data: {'path': state.recentDatabase!.path},
       );
 
       // Перезагружаем список
       await _safeReloadHistory();
     } catch (e, stackTrace) {
-      _setError('Ошибка удаления из истории: ${e.toString()}');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Ошибка удаления из истории: ${e.toString()}',
+      );
+
       logError(
         'Ошибка удаления БД из истории',
         error: e,
@@ -281,7 +339,7 @@ class HomeController extends ChangeNotifier {
         tag: 'HomeController',
       );
     } finally {
-      _setLoading(false);
+      state = state.copyWith(isLoading: false);
     }
   }
 
@@ -318,8 +376,7 @@ class HomeController extends ChangeNotifier {
             error: e,
             tag: 'HomeController',
           );
-          _recentDatabase = null;
-          notifyListeners();
+          state = state.copyWith(hasRecentDatabase: false);
           return;
         }
 
@@ -329,40 +386,74 @@ class HomeController extends ChangeNotifier {
     }
   }
 
-  /// Обновляет состояние загрузки
-  void _setLoading(bool loading) {
-    if (_isLoading != loading) {
-      _isLoading = loading;
-      notifyListeners();
-    }
+  /// Очистка ошибки
+  void clearError() {
+    state = state.copyWith(clearError: true);
   }
 
-  /// Обновляет состояние автоматического открытия
-  void _setAutoOpening(bool autoOpening) {
-    if (_isAutoOpening != autoOpening) {
-      _isAutoOpening = autoOpening;
-      notifyListeners();
-    }
-  }
-
-  /// Устанавливает ошибку
-  void _setError(String error) {
-    _error = error;
-    notifyListeners();
-  }
-
-  /// Очищает ошибку
-  void _clearError() {
-    if (_error != null) {
-      _error = null;
-      notifyListeners();
-    }
-  }
-
-  /// Освобождение ресурсов
-  @override
-  void dispose() {
-    // Здесь можно добавить очистку ресурсов если потребуется
-    super.dispose();
+  /// Установка ошибки
+  void setError(String error) {
+    state = state.copyWith(error: error);
   }
 }
+
+// =============================================================================
+// ПРОВАЙДЕРЫ
+// =============================================================================
+
+/// Провайдер для HomeController
+final homeControllerProvider = StateNotifierProvider<HomeController, HomeState>(
+  (ref) {
+    final storeManager = ref.read(hoplixiStoreManagerProvider);
+
+    return HomeController(storeManager);
+  },
+);
+
+/// Провайдер для недавней базы данных
+final recentDatabaseProvider = Provider<DatabaseEntry?>((ref) {
+  final homeState = ref.watch(homeControllerProvider);
+  return homeState.recentDatabase;
+});
+
+/// Провайдер для проверки наличия недавней базы данных
+final hasRecentDatabaseProvider = Provider<bool>((ref) {
+  final homeState = ref.watch(homeControllerProvider);
+  return homeState.hasRecentDatabase;
+});
+
+/// Провайдер для проверки возможности автоматического открытия
+final canAutoOpenProvider = Provider<bool>((ref) {
+  final homeState = ref.watch(homeControllerProvider);
+  return homeState.canAutoOpen;
+});
+
+/// Асинхронный провайдер для проверки возможности автоматического открытия с настройками
+final canAutoOpenAsyncProvider = FutureProvider<bool>((ref) async {
+  final homeController = ref.read(homeControllerProvider.notifier);
+  return await homeController.canAutoOpenAsync;
+});
+
+/// Провайдер для статистики истории
+final historyStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final homeController = ref.read(homeControllerProvider.notifier);
+  return await homeController.getHistoryStats();
+});
+
+/// Провайдер для состояния загрузки главного экрана
+final homeLoadingProvider = Provider<bool>((ref) {
+  final homeState = ref.watch(homeControllerProvider);
+  return homeState.isLoading;
+});
+
+/// Провайдер для ошибки главного экрана
+final homeErrorProvider = Provider<String?>((ref) {
+  final homeState = ref.watch(homeControllerProvider);
+  return homeState.error;
+});
+
+/// Провайдер для состояния автоматического открытия
+final homeAutoOpeningProvider = Provider<bool>((ref) {
+  final homeState = ref.watch(homeControllerProvider);
+  return homeState.isAutoOpening;
+});

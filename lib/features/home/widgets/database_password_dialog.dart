@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
-import 'package:hoplixi/common/button.dart';
 
 /// Результат модального окна ввода пароля
 class PasswordDialogResult {
