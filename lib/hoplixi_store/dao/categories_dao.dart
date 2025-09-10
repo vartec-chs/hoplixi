@@ -3,6 +3,7 @@ import '../hoplixi_store.dart';
 import '../tables/categories.dart';
 import '../dto/db_dto.dart';
 import '../enums/entity_types.dart';
+import '../utils/uuid_generator.dart';
 
 part 'categories_dao.g.dart';
 
@@ -13,7 +14,11 @@ class CategoriesDao extends DatabaseAccessor<HoplixiStore>
 
   /// Создание новой категории
   Future<String> createCategory(CreateCategoryDto dto) async {
+    // Генерируем UUID для новой записи
+    final id = UuidGenerator.generate();
+
     final companion = CategoriesCompanion(
+      id: Value(id),
       name: Value(dto.name),
       description: Value(dto.description),
       iconId: Value(dto.iconId),
@@ -25,8 +30,8 @@ class CategoriesDao extends DatabaseAccessor<HoplixiStore>
       attachedDatabase.categories,
     ).insert(companion, mode: InsertMode.insertOrIgnore);
 
-    // Возвращаем сгенерированный UUID из companion
-    return companion.id.value;
+    // Возвращаем сгенерированный UUID
+    return id;
   }
 
   /// Обновление категории
