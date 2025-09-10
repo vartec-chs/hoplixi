@@ -75,7 +75,11 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
 
   Future<void> _loadCurrentPage() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+
+    // Безопасно устанавливаем состояние загрузки
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
 
     try {
       final iconsDao = ref.read(iconsDaoProvider);
@@ -102,6 +106,7 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
         setState(() {
           _currentPageIcons = icons;
           _paginationInfo = paginationInfo;
+          _isLoading = false; // Устанавливаем загрузку в false здесь
         });
       }
     } catch (e) {
@@ -109,9 +114,6 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Ошибка загрузки иконок: $e')));
-      }
-    } finally {
-      if (mounted) {
         setState(() => _isLoading = false);
       }
     }
@@ -148,21 +150,26 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
   void _onTypeFilterChanged(IconType? type) {
     if (!mounted) return;
 
-    setState(() {
-      _selectedType = type;
-      _currentPage = 0;
+    // Используем post-frame callback для безопасного обновления состояния
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      setState(() {
+        _selectedType = type;
+        _currentPage = 0;
+      });
+
+      _loadCurrentPage();
+
+      // Переходим на первую страницу
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
     });
-
-    _loadCurrentPage();
-
-    // Переходим на первую страницу
-    if (_pageController.hasClients) {
-      _pageController.animateToPage(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
   }
 
   void _goToPage(int page) {
@@ -170,16 +177,21 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
     if (_paginationInfo != null &&
         page >= 0 &&
         page < _paginationInfo!.totalPages) {
-      setState(() => _currentPage = page);
-      _loadCurrentPage();
+      // Используем post-frame callback для безопасного обновления состояния
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
 
-      if (_pageController.hasClients) {
-        _pageController.animateToPage(
-          page,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      }
+        setState(() => _currentPage = page);
+        _loadCurrentPage();
+
+        if (_pageController.hasClients) {
+          _pageController.animateToPage(
+            page,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
     }
   }
 
