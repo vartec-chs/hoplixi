@@ -6,6 +6,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'icon_picker_modal.dart';
 
 /// Универсальная кнопка для выбора иконки
+///
+/// Примечание: Все вызовы setState() в связанных компонентах (IconPickerModal, примеры)
+/// были обернуты в SchedulerBinding.instance.addPostFrameCallback() или используют
+/// дебаунсинг для предотвращения ошибки "Build scheduled during frame".
 class IconPickerButton extends StatelessWidget {
   /// ID выбранной иконки
   final String? selectedIconId;

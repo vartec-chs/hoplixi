@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'package:hoplixi/hoplixi_store/dao/icons_dao.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'selectable_icon_card.dart';
@@ -40,34 +43,67 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
   final TextEditingController _searchController = TextEditingController();
   final PageController _pageController = PageController();
 
-  List<store.IconData> _allIcons = [];
-  List<store.IconData> _filteredIcons = [];
+  List<store.IconData> _currentPageIcons = [];
+  PaginationInfo? _paginationInfo;
   IconType? _selectedType;
   bool _isLoading = true;
   String _searchQuery = '';
   int _currentPage = 0;
-  int _totalPages = 0;
+  IconSortBy _sortBy = IconSortBy.name;
+  bool _ascending = true;
+
+  // Таймер для дебаунсинга поиска
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadIcons();
+    // Откладываем загрузку данных до завершения построения виджета
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadCurrentPage();
+    });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _pageController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadIcons() async {
+  Future<void> _loadCurrentPage() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     try {
-      final iconsService = ref.read(iconsServiceProvider);
-      _allIcons = await iconsService.getAllIcons();
-      _applyFilters();
+      final iconsDao = ref.read(iconsDaoProvider);
+
+      // Загружаем иконки для текущей страницы
+      final icons = await iconsDao.getIconsPaginated(
+        page: _currentPage,
+        pageSize: widget.pageSize,
+        searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+        typeFilter: _selectedType,
+        sortBy: _sortBy,
+        ascending: _ascending,
+      );
+
+      // Загружаем информацию о пагинации
+      final paginationInfo = await iconsDao.getPaginationInfo(
+        page: _currentPage,
+        pageSize: widget.pageSize,
+        searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+        typeFilter: _selectedType,
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentPageIcons = icons;
+          _paginationInfo = paginationInfo;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -81,29 +117,43 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
     }
   }
 
-  void _applyFilters() {
-    List<store.IconData> filtered = _allIcons;
+  void _onSearchChanged(String query) {
+    if (!mounted) return;
 
-    // Фильтр по типу
-    if (_selectedType != null) {
-      filtered = filtered.where((icon) => icon.type == _selectedType).toList();
-    }
+    // Отменяем предыдущий таймер если он есть
+    _debounceTimer?.cancel();
 
-    // Поиск по имени
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered
-          .where(
-            (icon) =>
-                icon.name.toLowerCase().contains(_searchQuery.toLowerCase()),
-          )
-          .toList();
-    }
+    // Устанавливаем новый таймер с задержкой 300ms
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+
+      setState(() {
+        _searchQuery = query;
+        _currentPage = 0;
+      });
+
+      _loadCurrentPage();
+
+      // Переходим на первую страницу
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  void _onTypeFilterChanged(IconType? type) {
+    if (!mounted) return;
 
     setState(() {
-      _filteredIcons = filtered;
-      _totalPages = (_filteredIcons.length / widget.pageSize).ceil();
+      _selectedType = type;
       _currentPage = 0;
     });
+
+    _loadCurrentPage();
 
     // Переходим на первую страницу
     if (_pageController.hasClients) {
@@ -115,36 +165,21 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
     }
   }
 
-  void _onSearchChanged(String query) {
-    setState(() => _searchQuery = query);
-    _applyFilters();
-  }
-
-  void _onTypeFilterChanged(IconType? type) {
-    setState(() => _selectedType = type);
-    _applyFilters();
-  }
-
-  List<store.IconData> _getCurrentPageIcons() {
-    final startIndex = _currentPage * widget.pageSize;
-    final endIndex = (startIndex + widget.pageSize).clamp(
-      0,
-      _filteredIcons.length,
-    );
-
-    if (startIndex >= _filteredIcons.length) return [];
-
-    return _filteredIcons.sublist(startIndex, endIndex);
-  }
-
   void _goToPage(int page) {
-    if (page >= 0 && page < _totalPages) {
+    if (!mounted) return;
+    if (_paginationInfo != null &&
+        page >= 0 &&
+        page < _paginationInfo!.totalPages) {
       setState(() => _currentPage = page);
-      _pageController.animateToPage(
-        page,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      _loadCurrentPage();
+
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          page,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
     }
   }
 
@@ -185,7 +220,7 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
           ),
 
           // Пагинация
-          if (_totalPages > 1) ...[
+          if (_paginationInfo != null && _paginationInfo!.totalPages > 1) ...[
             const SizedBox(height: 16),
             _buildPagination(context),
           ],
@@ -285,7 +320,7 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
   }
 
   Widget _buildIconGrid(BuildContext context, bool isMobile) {
-    if (_filteredIcons.isEmpty) {
+    if (_currentPageIcons.isEmpty && !_isLoading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -319,7 +354,6 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
     }
 
     final crossAxisCount = _getCrossAxisCount(context);
-    final currentPageIcons = _getCurrentPageIcons();
 
     return GridView.builder(
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -328,9 +362,9 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
         mainAxisSpacing: 8,
         childAspectRatio: 1,
       ),
-      itemCount: currentPageIcons.length,
+      itemCount: _currentPageIcons.length,
       itemBuilder: (context, index) {
-        final icon = currentPageIcons[index];
+        final icon = _currentPageIcons[index];
         return SelectableIconCard(
           icon: icon,
           isSelected: icon.id == widget.selectedIconId,
@@ -341,12 +375,16 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
   }
 
   Widget _buildPagination(BuildContext context) {
+    if (_paginationInfo == null) return const SizedBox.shrink();
+
+    final totalPages = _paginationInfo!.totalPages;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Предыдущая страница
         IconButton(
-          onPressed: _currentPage > 0
+          onPressed: _paginationInfo!.hasPreviousPage
               ? () => _goToPage(_currentPage - 1)
               : null,
           icon: const Icon(Icons.chevron_left),
@@ -354,17 +392,17 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
 
         // Номера страниц
         ...List.generate(
-          _totalPages.clamp(0, 5), // Показываем максимум 5 страниц
+          totalPages.clamp(0, 5), // Показываем максимум 5 страниц
           (index) {
             int pageIndex;
-            if (_totalPages <= 5) {
+            if (totalPages <= 5) {
               pageIndex = index;
             } else {
               // Умная пагинация для большого количества страниц
               if (_currentPage < 3) {
                 pageIndex = index;
-              } else if (_currentPage >= _totalPages - 3) {
-                pageIndex = _totalPages - 5 + index;
+              } else if (_currentPage >= totalPages - 3) {
+                pageIndex = totalPages - 5 + index;
               } else {
                 pageIndex = _currentPage - 2 + index;
               }
@@ -391,7 +429,7 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
 
         // Следующая страница
         IconButton(
-          onPressed: _currentPage < _totalPages - 1
+          onPressed: _paginationInfo!.hasNextPage
               ? () => _goToPage(_currentPage + 1)
               : null,
           icon: const Icon(Icons.chevron_right),

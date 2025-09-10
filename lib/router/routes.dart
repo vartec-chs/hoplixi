@@ -4,7 +4,7 @@ import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/password_manager/create_store/create_store.dart';
 import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/icons/icons_management_screen.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/icons_manager/icons_management_screen.dart';
 // import 'package:hoplixi/features/password_manager/dashboard/screens/category/category_manager_screen.dart';
 // import 'package:hoplixi/features/password_manager/dashboard/screens/icons/icon_manager_screen.dart';
 import 'package:hoplixi/features/password_manager/open_store/open_store.dart';

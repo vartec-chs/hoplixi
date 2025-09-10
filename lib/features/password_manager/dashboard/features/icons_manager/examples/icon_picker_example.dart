@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
@@ -188,19 +189,25 @@ class _IconPickerExampleState extends ConsumerState<IconPickerExample> {
       final iconsService = ref.read(iconsServiceProvider);
       final iconData = await iconsService.getIcon(iconId);
 
-      setState(() {
-        _selectedIconId = iconId;
-        _selectedIconData = iconData;
-      });
+      // Откладываем setState до завершения текущего кадра
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _selectedIconId = iconId;
+          _selectedIconData = iconData;
+        });
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Выбрана иконка: ${iconData?.name ?? 'Неизвестная'}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Выбрана иконка: ${iconData?.name ?? 'Неизвестная'}',
+              ),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -214,19 +221,23 @@ class _IconPickerExampleState extends ConsumerState<IconPickerExample> {
   }
 
   void _onIconCleared() {
-    setState(() {
-      _selectedIconId = null;
-      _selectedIconData = null;
-    });
+    // Откладываем setState до завершения текущего кадра
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {
+        _selectedIconId = null;
+        _selectedIconData = null;
+      });
 
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Иконка очищена'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Иконка очищена'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    });
   }
 
   void _loadRandomIcon() async {

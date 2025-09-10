@@ -123,5 +123,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 });
 
 void navigateBack(BuildContext context) {
-  GoRouter.of(context).go(AppRoutes.home);
+  if (GoRouter.of(context).canPop()) {
+    context.pop();
+  } else {
+    GoRouter.of(context).go(AppRoutes.home);
+  }
 }
