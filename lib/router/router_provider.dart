@@ -24,7 +24,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     observers: [GoTransition.observer, LoggingRouteObserver()],
     redirect: (context, state) async {
       final initializationAsync = ref.watch(storageInitProvider);
-      final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
+      // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
 
       const redirectDashboardPath = [
         AppRoutes.home,
@@ -50,14 +50,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // }
 
       // Если база данных не открыта и пользователь не на экране создания или открытия базы
-      if (!isDatabaseOpen && !redirectDashboardPath.contains(state.fullPath)) {
-        return AppRoutes
-            .home; // Перенаправляем на экран создания или открытия базы
-      } else if (isDatabaseOpen &&
-          redirectDashboardPath.contains(state.fullPath)) {
-        return AppRoutes
-            .dashboard; // Перенаправляем на дашборд, если база открыта
-      }
+      // if (!isDatabaseOpen && !redirectDashboardPath.contains(state.fullPath)) {
+      //   return AppRoutes
+      //       .home; // Перенаправляем на экран создания или открытия базы
+      // } else if (isDatabaseOpen &&
+      //     redirectDashboardPath.contains(state.fullPath)) {
+      //   return AppRoutes
+      //       .dashboard; // Перенаправляем на дашборд, если база открыта
+      // }
 
       initializationAsync.when(
         data: (data) {

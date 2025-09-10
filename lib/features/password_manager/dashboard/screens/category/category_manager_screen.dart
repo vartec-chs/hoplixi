@@ -59,6 +59,7 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
+          splashBorderRadius: BorderRadius.circular(12),
           isScrollable: true,
           tabs: CategoryType.values.map((type) {
             return Tab(
@@ -490,7 +491,6 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen>
 
         if (mounted) {
           if (result.success) {
-            
             ToastHelper.success(
               title: 'Категория удалена',
               context: context,
