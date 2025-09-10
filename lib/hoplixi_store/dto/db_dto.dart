@@ -165,6 +165,7 @@ abstract class UpdateCategoryDto with _$UpdateCategoryDto {
     String? iconId,
     String? color,
     CategoryType? type,
+    @Default(false) bool clearIcon, // Флаг для очистки иконки
   }) = _UpdateCategoryDto;
 }
 

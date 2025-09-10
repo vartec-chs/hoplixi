@@ -34,6 +34,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
   String? _selectedIconId;
   store.IconData? _selectedIcon;
   bool _isLoading = false;
+  bool _iconWasCleared = false; // Флаг для отслеживания очистки иконки
 
   bool get _isEditing => widget.category != null;
 
@@ -312,6 +313,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
         onIconSelected: (iconId) {
           setState(() {
             _selectedIconId = iconId;
+            _iconWasCleared = false; // Сбрасываем флаг при выборе новой иконки
           });
           _loadIconData(iconId);
         },
@@ -319,6 +321,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
           setState(() {
             _selectedIconId = null;
             _selectedIcon = null;
+            _iconWasCleared = true; // Устанавливаем флаг очистки
           });
         },
         label: 'Нажмите для выбора иконки',
@@ -412,10 +415,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
         // Ошибка будет показана через провайдер ошибок
         final error = ref.read(categoriesErrorProvider);
         if (error != null && mounted) {
-          ToastHelper.error(
-            title: 'Ошибка',
-            description: error,
-          );
+          ToastHelper.error(title: 'Ошибка', description: error);
         }
       }
     } finally {
