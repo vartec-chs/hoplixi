@@ -56,7 +56,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     final isReady = ref.watch(createStoreReadyProvider);
 
     // Слушаем изменения состояния базы данных
-    ref.listen<DatabaseState>(createStoreDatabaseStateProvider, (
+    ref.listen<DatabaseState>(createStorehoplixiStoreProvider, (
       previous,
       next,
     ) {
@@ -76,26 +76,17 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
           );
           context.go(AppRoutes.dashboard);
         });
-        // Toast.success('Хранилище успешно создано!');
       }
     });
 
     // Показываем ошибки
     if (formState.errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // ScaffoldMessenger.of(context).showSnackBar(
-        //   SnackBar(
-        //     content: Text(formState.errorMessage!),
-        //     backgroundColor: Colors.red,
-        //   ),
-        // );
-        // Toast.error(formState.errorMessage!);
         ToastHelper.error(
           // context: context,
           title: 'Ошибка',
           description: formState.errorMessage!,
         );
-        // Toast.error(formState.errorMessage!);
         controller.clearError();
       });
     }

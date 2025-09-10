@@ -155,7 +155,7 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
         saveMasterPassword: state.saveMasterPassword,
       );
 
-      await _ref.read(databaseStateProvider.notifier).openDatabase(dto);
+      await _ref.read(hoplixiStoreProvider.notifier).openDatabase(dto);
 
       // Отложенное логирование после завершения операции
       scheduleMicrotask(() {
@@ -165,8 +165,6 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
           data: {'path': state.databasePath},
         );
       });
-
-
 
       state = state.copyWith(isLoading: false);
     } catch (e, stackTrace) {
@@ -282,8 +280,8 @@ final openStoreControllerProvider =
     });
 
 /// Провайдер для получения состояния базы данных
-final openStoreDatabaseStateProvider = Provider<DatabaseState>((ref) {
-  return ref.watch(databaseStateProvider);
+final openStorehoplixiStoreProvider = Provider<DatabaseState>((ref) {
+  return ref.watch(hoplixiStoreProvider);
 });
 
 /// Провайдер для проверки готовности к открытию

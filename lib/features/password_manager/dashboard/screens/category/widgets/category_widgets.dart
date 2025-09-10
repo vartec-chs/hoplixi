@@ -36,7 +36,7 @@ class CategorySelector extends ConsumerWidget {
                 : allCategories;
 
             return DropdownButtonFormField<store.Category?>(
-              value: selectedCategory,
+              initialValue: selectedCategory,
               decoration: InputDecoration(
                 labelText: 'Категория',
                 hintText: hintText,
@@ -105,7 +105,7 @@ class CategorySelector extends ConsumerWidget {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
               ],
               onChanged: onCategorySelected,
               validator: allowEmpty
@@ -119,7 +119,7 @@ class CategorySelector extends ConsumerWidget {
             );
           },
           loading: () => DropdownButtonFormField<store.Category?>(
-            value: null,
+            initialValue: null,
             decoration: InputDecoration(
               labelText: 'Категория',
               hintText: 'Загрузка...',
@@ -136,7 +136,7 @@ class CategorySelector extends ConsumerWidget {
             onChanged: null,
           ),
           error: (error, stack) => DropdownButtonFormField<store.Category?>(
-            value: null,
+            initialValue: null,
             decoration: InputDecoration(
               labelText: 'Категория',
               hintText: 'Ошибка загрузки',

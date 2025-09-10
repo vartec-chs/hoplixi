@@ -52,7 +52,7 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
     final isReady = ref.watch(openStoreReadyProvider);
 
     // Слушаем изменения состояния базы данных
-    ref.listen<DatabaseState>(openStoreDatabaseStateProvider, (previous, next) {
+    ref.listen<DatabaseState>(openStorehoplixiStoreProvider, (previous, next) {
       if (next.isOpen && previous?.status != next.status) {
         // База данных успешно открыта, очищаем данные и показываем уведомление
         controller.clearAllData();

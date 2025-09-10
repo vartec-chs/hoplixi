@@ -295,7 +295,7 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
       );
 
       // Вызываем создание через провайдер базы данных
-      final databaseNotifier = _ref.read(databaseStateProvider.notifier);
+      final databaseNotifier = _ref.read(hoplixiStoreProvider.notifier);
       await databaseNotifier.createDatabase(dto);
 
       logInfo(
@@ -388,8 +388,8 @@ final createStoreControllerProvider =
     });
 
 /// Провайдер для получения состояния базы данных
-final createStoreDatabaseStateProvider = Provider<DatabaseState>((ref) {
-  return ref.watch(databaseStateProvider);
+final createStorehoplixiStoreProvider = Provider<DatabaseState>((ref) {
+  return ref.watch(hoplixiStoreProvider);
 });
 
 /// Провайдер для проверки готовности к созданию

@@ -21,8 +21,8 @@ class _TitleBarState extends ConsumerState<TitleBar> {
 
   @override
   Widget build(BuildContext context) {
-    final dbState = ref.watch(databaseStateProvider);
-    final dbNotifier = ref.read(databaseStateProvider.notifier);
+    final dbState = ref.watch(hoplixiStoreProvider);
+    final dbNotifier = ref.read(hoplixiStoreProvider.notifier);
     return DragToMoveArea(
       child: Container(
         height: 40,

@@ -5,7 +5,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 
 class IconUploadWidget extends ConsumerStatefulWidget {
   final Function(String iconId)? onIconUploaded;

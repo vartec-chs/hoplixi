@@ -5,7 +5,6 @@ import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
-import 'package:hoplixi/features/password_manager/dashboard/screens/category/category_manager_screen.dart';
 import 'widgets/icon_picker_modal.dart';
 
 class IconManagerScreen extends ConsumerStatefulWidget {

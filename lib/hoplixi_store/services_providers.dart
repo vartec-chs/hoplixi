@@ -2,7 +2,6 @@ library;
 
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/core/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
 import 'package:hoplixi/hoplixi_store/dao/icons_dao.dart';
@@ -18,14 +17,14 @@ import 'hoplixi_store_providers.dart';
 
 /// Провайдер для CategoriesDao
 final categoriesDaoProvider = Provider<CategoriesDao>((ref) {
-  final db = ref.watch(databaseStateProvider.notifier);
+  final db = ref.watch(hoplixiStoreProvider.notifier);
 
   return CategoriesDao(db.currentDatabase);
 });
 
 /// Провайдер для IconsDao
 final iconsDaoProvider = Provider<IconsDao>((ref) {
-  final db = ref.watch(databaseStateProvider.notifier);
+  final db = ref.watch(hoplixiStoreProvider.notifier);
 
   return IconsDao(db.currentDatabase);
 });
@@ -444,7 +443,7 @@ class CreateIconNotifier extends StateNotifier<AsyncValue<void>> {
 
 /// Провайдер для проверки доступности сервисов
 final servicesAvailableProvider = Provider<bool>((ref) {
-  final state = ref.watch(databaseStateProvider);
+  final state = ref.watch(hoplixiStoreProvider);
   return state.isOpen;
 });
 
