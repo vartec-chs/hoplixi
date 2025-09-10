@@ -295,6 +295,10 @@ class CategoriesManagerController
     state = state.copyWith(isUpdating: true, clearError: true);
 
     try {
+      logDebug(
+        'Обновление категории: $name, $description, $iconId, $color, $type',
+        tag: 'CategoriesManagerController',
+      );
       final result = await _categoriesService.updateCategory(
         id: id,
         name: name,

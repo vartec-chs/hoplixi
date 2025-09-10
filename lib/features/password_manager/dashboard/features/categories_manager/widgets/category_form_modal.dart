@@ -8,6 +8,7 @@ import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/icons_manager/widgets/icon_picker_button.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import '../categories_manager_control.dart';
 
 /// Форма для создания и редактирования категории
@@ -35,6 +36,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
   store.IconData? _selectedIcon;
   bool _isLoading = false;
   bool _iconWasCleared = false; // Флаг для отслеживания очистки иконки
+  String? _originalIconId; // Исходная иконка при редактировании
 
   bool get _isEditing => widget.category != null;
 
@@ -51,6 +53,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
       _descriptionController.text = category.description ?? '';
       _selectedType = category.type;
       _selectedIconId = category.iconId;
+      _originalIconId = category.iconId; // Сохраняем оригинальную иконку
 
       // Парсим цвет из HEX строки
       try {
@@ -321,7 +324,8 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
           setState(() {
             _selectedIconId = null;
             _selectedIcon = null;
-            _iconWasCleared = true; // Устанавливаем флаг очистки
+            // Устанавливаем флаг очистки только если изначально была иконка
+            _iconWasCleared = _originalIconId != null;
           });
         },
         label: 'Нажмите для выбора иконки',
@@ -378,13 +382,37 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
 
       bool success;
       if (_isEditing) {
+        // Определяем iconId для передачи в updateCategory
+        String? iconIdToSend;
+        if (_iconWasCleared) {
+          // Если иконка была очищена, передаем null для принудительной очистки
+          iconIdToSend = null;
+        } else if (_selectedIconId != _originalIconId) {
+          // Если иконка изменилась, передаем новую иконку
+          iconIdToSend = _selectedIconId;
+        } else {
+          // Если иконка не изменилась, не передаем это поле (оставляем как есть)
+          iconIdToSend = _selectedIconId;
+        }
+
+        logDebug(
+          'Сохранение категории: иконка',
+          tag: 'CategoryFormModal',
+          data: {
+            'originalIconId': _originalIconId,
+            'selectedIconId': _selectedIconId,
+            'iconWasCleared': _iconWasCleared,
+            'iconIdToSend': iconIdToSend,
+          },
+        );
+
         success = await controller.updateCategory(
           id: widget.category!.id,
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim().isEmpty
               ? null
               : _descriptionController.text.trim(),
-          iconId: _selectedIconId,
+          iconId: iconIdToSend,
           color: colorHex,
           type: _selectedType,
         );

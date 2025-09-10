@@ -89,7 +89,15 @@ class CategoriesService {
       logDebug(
         'Обновление категории',
         tag: 'CategoriesService',
-        data: {'id': id},
+        data: {
+          'id': id,
+          'name': name,
+          'description': description,
+          'iconId': iconId,
+          'color': color,
+          'type': type?.name,
+          'clearIcon': iconId == null,
+        },
       );
 
       // Проверка существования категории
@@ -130,6 +138,9 @@ class CategoriesService {
         iconId: iconId,
         color: color,
         type: type,
+        clearIcon:
+            iconId ==
+            null, // Если iconId равен null, значит иконку нужно очистить
       );
 
       final success = await _categoriesDao.updateCategory(dto);

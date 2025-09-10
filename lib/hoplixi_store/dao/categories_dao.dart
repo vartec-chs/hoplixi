@@ -42,7 +42,9 @@ class CategoriesDao extends DatabaseAccessor<HoplixiStore>
       description: dto.description != null
           ? Value(dto.description)
           : const Value.absent(),
-      iconId: dto.iconId != null ? Value(dto.iconId) : const Value.absent(),
+      iconId: dto.clearIcon
+          ? const Value(null) // Явно устанавливаем null для очистки иконки
+          : (dto.iconId != null ? Value(dto.iconId) : const Value.absent()),
       color: dto.color != null ? Value(dto.color!) : const Value.absent(),
       type: dto.type != null ? Value(dto.type!) : const Value.absent(),
       modifiedAt: Value(DateTime.now()),
