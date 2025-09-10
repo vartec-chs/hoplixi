@@ -6,7 +6,7 @@ export 'notes_dao.dart';
 export 'categories_dao.dart';
 export 'totps_dao.dart';
 export 'tags_dao.dart';
-export 'icons_dao.dart';
+export 'icons_dao.dart' hide PaginationInfo;
 export 'attachments_dao.dart';
 
 // DAO для связей многие-ко-многим

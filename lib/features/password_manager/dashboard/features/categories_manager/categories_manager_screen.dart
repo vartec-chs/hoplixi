@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:hoplixi/common/text_field.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/categories_manager/widgets/category_icon.dart';
+import './widgets/category_icon.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
 import 'categories_manager_control.dart';
 import 'widgets/category_form_modal.dart';
 
@@ -20,11 +21,34 @@ class CategoriesManagerScreen extends ConsumerStatefulWidget {
 class _CategoriesManagerScreenState
     extends ConsumerState<CategoriesManagerScreen> {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   bool _showSearch = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupScrollListener();
+  }
+
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        // Загружаем следующую страницу когда пользователь почти достиг конца
+        final hasNextPage = ref.read(categoriesHasNextPageProvider);
+        final isLoadingMore = ref.read(categoriesLoadingMoreProvider);
+
+        if (hasNextPage && !isLoadingMore) {
+          ref.read(categoriesManagerControllerProvider.notifier).loadNextPage();
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -33,8 +57,10 @@ class _CategoriesManagerScreenState
     final breakpoints = ResponsiveBreakpoints.of(context);
     final categories = ref.watch(categoriesListProvider);
     final isLoading = ref.watch(categoriesLoadingProvider);
+    final isLoadingMore = ref.watch(categoriesLoadingMoreProvider);
     final error = ref.watch(categoriesErrorProvider);
     final selectedType = ref.watch(categoriesSelectedTypeProvider);
+    final pagination = ref.watch(categoriesPaginationProvider);
 
     return Scaffold(
       appBar: _buildAppBar(context),
@@ -43,7 +69,15 @@ class _CategoriesManagerScreenState
           if (_showSearch) _buildSearchBar(),
           _buildFilters(selectedType),
           if (error != null) _buildErrorBanner(error),
-          Expanded(child: _buildContent(categories, isLoading, breakpoints)),
+          if (pagination != null) _buildPaginationInfo(pagination),
+          Expanded(
+            child: _buildContent(
+              categories,
+              isLoading,
+              breakpoints,
+              isLoadingMore,
+            ),
+          ),
         ],
       ),
       floatingActionButton: _buildFloatingActionButton(),
@@ -226,10 +260,51 @@ class _CategoriesManagerScreenState
     );
   }
 
+  Widget _buildPaginationInfo(PaginationInfo pagination) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Страница ${pagination.currentPage} из ${pagination.totalPages}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Text(
+            'Всего: ${pagination.totalItems}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          if (pagination.hasNextPage)
+            Text(
+              'Прокрутите для загрузки следующих',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildContent(
     List<store.Category> categories,
     bool isLoading,
     ResponsiveBreakpointsData breakpoints,
+    bool isLoadingMore,
   ) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -245,7 +320,20 @@ class _CategoriesManagerScreenState
       onRefresh: () async {
         await ref.read(categoriesManagerControllerProvider.notifier).refresh();
       },
-      child: isMobile ? _buildListView(categories) : _buildGridView(categories),
+      child: Column(
+        children: [
+          Expanded(
+            child: isMobile
+                ? _buildListView(categories)
+                : _buildGridView(categories),
+          ),
+          if (isLoadingMore)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+        ],
+      ),
     );
   }
 
@@ -286,6 +374,7 @@ class _CategoriesManagerScreenState
 
   Widget _buildListView(List<store.Category> categories) {
     return ListView.separated(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       itemCount: categories.length,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
@@ -298,6 +387,7 @@ class _CategoriesManagerScreenState
 
   Widget _buildGridView(List<store.Category> categories) {
     return GridView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,

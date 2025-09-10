@@ -172,7 +172,153 @@ class CategoriesDao extends DatabaseAccessor<HoplixiStore>
     });
   }
 
- 
+  /// Получение категорий с пагинацией
+  Future<PaginatedCategoriesResult> getCategoriesPaginated({
+    int page = 1,
+    int pageSize = 20,
+    String? searchTerm,
+    CategoryType? type,
+    CategorySortBy sortBy = CategorySortBy.name,
+    bool ascending = true,
+  }) async {
+    // Валидация параметров
+    if (page < 1) page = 1;
+    if (pageSize < 1) pageSize = 20;
+    if (pageSize > 100) pageSize = 100; // Максимальный размер страницы
+
+    final offset = (page - 1) * pageSize;
+
+    // Построение WHERE условий
+    final whereConditions = <String>[];
+    final variables = <Variable>[];
+
+    if (searchTerm != null && searchTerm.isNotEmpty) {
+      whereConditions.add('(name LIKE ? OR description LIKE ?)');
+      variables.add(Variable('%$searchTerm%'));
+      variables.add(Variable('%$searchTerm%'));
+    }
+
+    if (type != null) {
+      whereConditions.add('(type = ? OR type = ?)');
+      variables.add(Variable(type.name));
+      variables.add(Variable('mixed'));
+    }
+
+    final whereClause = whereConditions.isNotEmpty
+        ? 'WHERE ${whereConditions.join(' AND ')}'
+        : '';
+
+    // Определение сортировки
+    String orderByClause;
+    switch (sortBy) {
+      case CategorySortBy.name:
+        orderByClause = ascending ? 'ORDER BY name ASC' : 'ORDER BY name DESC';
+        break;
+      case CategorySortBy.type:
+        orderByClause = ascending
+            ? 'ORDER BY type ASC, name ASC'
+            : 'ORDER BY type DESC, name ASC';
+        break;
+      case CategorySortBy.createdAt:
+        orderByClause = ascending
+            ? 'ORDER BY created_at ASC'
+            : 'ORDER BY created_at DESC';
+        break;
+      case CategorySortBy.modifiedAt:
+        orderByClause = ascending
+            ? 'ORDER BY modified_at ASC'
+            : 'ORDER BY modified_at DESC';
+        break;
+    }
+
+    // Получение общего количества записей
+    final countQuery = customSelect(
+      'SELECT COUNT(*) as total FROM categories $whereClause',
+      variables: variables,
+    );
+
+    final countResult = await countQuery.getSingle();
+    final totalItems = countResult.read<int>('total');
+
+    // Получение данных для текущей страницы
+    final dataQuery = customSelect(
+      'SELECT * FROM categories $whereClause $orderByClause LIMIT ? OFFSET ?',
+      variables: [...variables, Variable(pageSize), Variable(offset)],
+    );
+
+    final dataResults = await dataQuery.get();
+    final categories = dataResults
+        .map(
+          (row) => Category(
+            id: row.read<String>('id'),
+            name: row.read<String>('name'),
+            description: row.read<String?>('description'),
+            iconId: row.read<String?>('icon_id'),
+            color: row.read<String>('color'),
+            type: CategoryType.values.firstWhere(
+              (e) => e.name == row.read<String>('type'),
+            ),
+            createdAt: row.read<DateTime>('created_at'),
+            modifiedAt: row.read<DateTime>('modified_at'),
+          ),
+        )
+        .toList();
+
+    // Расчет информации о пагинации
+    final totalPages = (totalItems / pageSize).ceil();
+    final hasNextPage = page < totalPages;
+    final hasPreviousPage = page > 1;
+
+    return PaginatedCategoriesResult(
+      categories: categories,
+      pagination: PaginationInfo(
+        currentPage: page,
+        pageSize: pageSize,
+        totalItems: totalItems,
+        totalPages: totalPages,
+        hasNextPage: hasNextPage,
+        hasPreviousPage: hasPreviousPage,
+        isFirstPage: page == 1,
+        isLastPage: page == totalPages || totalPages == 0,
+        startIndex: totalItems > 0 ? offset + 1 : 0,
+        endIndex: totalItems > 0 ? (offset + categories.length) : 0,
+      ),
+    );
+  }
+
+  /// Поиск категорий с пагинацией
+  Future<PaginatedCategoriesResult> searchCategoriesPaginated({
+    required String searchTerm,
+    int page = 1,
+    int pageSize = 20,
+    CategorySortBy sortBy = CategorySortBy.name,
+    bool ascending = true,
+  }) async {
+    return getCategoriesPaginated(
+      page: page,
+      pageSize: pageSize,
+      searchTerm: searchTerm,
+      sortBy: sortBy,
+      ascending: ascending,
+    );
+  }
+
+  /// Получение категорий по типу с пагинацией
+  Future<PaginatedCategoriesResult> getCategoriesByTypePaginated({
+    required CategoryType type,
+    int page = 1,
+    int pageSize = 20,
+    CategorySortBy sortBy = CategorySortBy.name,
+    bool ascending = true,
+  }) async {
+    return getCategoriesPaginated(
+      page: page,
+      pageSize: pageSize,
+      type: type,
+      sortBy: sortBy,
+      ascending: ascending,
+    );
+  }
 
   /// Получение категорий с подсчетом связанных элементов
   Future<List<CategoryWithItemCount>> getCategoriesWithItemCount(
@@ -271,4 +417,91 @@ class CategoryWithItemCount {
   final int itemCount;
 
   CategoryWithItemCount({required this.category, required this.itemCount});
+}
+
+/// Enum для сортировки категорий
+enum CategorySortBy { name, type, createdAt, modifiedAt }
+
+/// Класс для информации о пагинации
+class PaginationInfo {
+  final int currentPage;
+  final int pageSize;
+  final int totalItems;
+  final int totalPages;
+  final bool hasNextPage;
+  final bool hasPreviousPage;
+  final bool isFirstPage;
+  final bool isLastPage;
+  final int startIndex;
+  final int endIndex;
+
+  const PaginationInfo({
+    required this.currentPage,
+    required this.pageSize,
+    required this.totalItems,
+    required this.totalPages,
+    required this.hasNextPage,
+    required this.hasPreviousPage,
+    required this.isFirstPage,
+    required this.isLastPage,
+    required this.startIndex,
+    required this.endIndex,
+  });
+
+  /// Создание информации о пагинации из параметров
+  factory PaginationInfo.fromParams({
+    required int currentPage,
+    required int pageSize,
+    required int totalItems,
+  }) {
+    final totalPages = (totalItems / pageSize).ceil();
+    final hasNextPage = currentPage < totalPages;
+    final hasPreviousPage = currentPage > 1;
+    final offset = (currentPage - 1) * pageSize;
+
+    return PaginationInfo(
+      currentPage: currentPage,
+      pageSize: pageSize,
+      totalItems: totalItems,
+      totalPages: totalPages,
+      hasNextPage: hasNextPage,
+      hasPreviousPage: hasPreviousPage,
+      isFirstPage: currentPage == 1,
+      isLastPage: currentPage == totalPages || totalPages == 0,
+      startIndex: totalItems > 0 ? offset + 1 : 0,
+      endIndex: totalItems > 0
+          ? offset +
+                (currentPage * pageSize <= totalItems
+                    ? pageSize
+                    : totalItems % pageSize)
+          : 0,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'PaginationInfo(currentPage: $currentPage, pageSize: $pageSize, totalItems: $totalItems, totalPages: $totalPages)';
+  }
+}
+
+/// Результат пагинированного запроса категорий
+class PaginatedCategoriesResult {
+  final List<Category> categories;
+  final PaginationInfo pagination;
+
+  const PaginatedCategoriesResult({
+    required this.categories,
+    required this.pagination,
+  });
+
+  /// Проверка, есть ли данные
+  bool get hasData => categories.isNotEmpty;
+
+  /// Проверка, пустой ли результат
+  bool get isEmpty => categories.isEmpty;
+
+  @override
+  String toString() {
+    return 'PaginatedCategoriesResult(categories: ${categories.length}, pagination: $pagination)';
+  }
 }

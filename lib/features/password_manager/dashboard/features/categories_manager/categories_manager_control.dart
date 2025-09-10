@@ -5,30 +5,44 @@ import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services/categories_service.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
 
 /// Состояние экрана управления категориями
 class CategoriesManagerState {
   final List<Category> categories;
+  final PaginationInfo? pagination;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
   final String searchQuery;
   final CategoryType? selectedType;
   final bool isCreating;
   final bool isUpdating;
+  final CategorySortBy sortBy;
+  final bool ascending;
+  final int pageSize;
 
   const CategoriesManagerState({
     this.categories = const [],
+    this.pagination,
     this.isLoading = false,
+    this.isLoadingMore = false,
     this.error,
     this.searchQuery = '',
     this.selectedType,
     this.isCreating = false,
     this.isUpdating = false,
+    this.sortBy = CategorySortBy.name,
+    this.ascending = true,
+    this.pageSize = 20,
   });
 
   CategoriesManagerState copyWith({
     List<Category>? categories,
+    PaginationInfo? pagination,
+    bool clearPagination = false,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
     bool clearError = false,
     String? searchQuery,
@@ -36,10 +50,15 @@ class CategoriesManagerState {
     bool clearSelectedType = false,
     bool? isCreating,
     bool? isUpdating,
+    CategorySortBy? sortBy,
+    bool? ascending,
+    int? pageSize,
   }) {
     return CategoriesManagerState(
       categories: categories ?? this.categories,
+      pagination: clearPagination ? null : (pagination ?? this.pagination),
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: clearError ? null : (error ?? this.error),
       searchQuery: searchQuery ?? this.searchQuery,
       selectedType: clearSelectedType
@@ -47,8 +66,26 @@ class CategoriesManagerState {
           : (selectedType ?? this.selectedType),
       isCreating: isCreating ?? this.isCreating,
       isUpdating: isUpdating ?? this.isUpdating,
+      sortBy: sortBy ?? this.sortBy,
+      ascending: ascending ?? this.ascending,
+      pageSize: pageSize ?? this.pageSize,
     );
   }
+
+  /// Получение текущей страницы
+  int get currentPage => pagination?.currentPage ?? 1;
+
+  /// Есть ли следующая страница
+  bool get hasNextPage => pagination?.hasNextPage ?? false;
+
+  /// Есть ли предыдущая страница
+  bool get hasPreviousPage => pagination?.hasPreviousPage ?? false;
+
+  /// Общее количество элементов
+  int get totalItems => pagination?.totalItems ?? 0;
+
+  /// Общее количество страниц
+  int get totalPages => pagination?.totalPages ?? 0;
 }
 
 /// Контроллер для управления категориями
@@ -61,32 +98,63 @@ class CategoriesManagerController
     _loadCategories();
   }
 
-  /// Загрузка всех категорий
-  Future<void> _loadCategories() async {
-    state = state.copyWith(isLoading: true, clearError: true);
+  /// Загрузка категорий с пагинацией
+  Future<void> _loadCategories({int page = 1, bool append = false}) async {
+    if (append && !state.hasNextPage) return;
+
+    if (append) {
+      state = state.copyWith(isLoadingMore: true, clearError: true);
+    } else {
+      state = state.copyWith(isLoading: true, clearError: true);
+    }
 
     try {
-      List<Category> categories;
+      PaginatedCategoriesResult result;
 
       if (state.searchQuery.isNotEmpty) {
-        categories = await _categoriesService.searchCategories(
-          state.searchQuery,
+        result = await _categoriesService.searchCategoriesPaginated(
+          searchTerm: state.searchQuery,
+          page: page,
+          pageSize: state.pageSize,
+          sortBy: state.sortBy,
+          ascending: state.ascending,
         );
       } else if (state.selectedType != null) {
-        categories = await _categoriesService.getCategoriesByType(
-          state.selectedType!,
+        result = await _categoriesService.getCategoriesByTypePaginated(
+          type: state.selectedType!,
+          page: page,
+          pageSize: state.pageSize,
+          sortBy: state.sortBy,
+          ascending: state.ascending,
         );
       } else {
-        categories = await _categoriesService.getAllCategories();
+        result = await _categoriesService.getCategoriesPaginated(
+          page: page,
+          pageSize: state.pageSize,
+          sortBy: state.sortBy,
+          ascending: state.ascending,
+        );
       }
 
-      state = state.copyWith(categories: categories, isLoading: false);
+      final newCategories = append
+          ? [...state.categories, ...result.categories]
+          : result.categories;
+
+      state = state.copyWith(
+        categories: newCategories,
+        pagination: result.pagination,
+        isLoading: false,
+        isLoadingMore: false,
+      );
 
       logDebug(
         'Категории загружены',
         tag: 'CategoriesManagerController',
         data: {
-          'count': categories.length,
+          'count': result.categories.length,
+          'total': result.pagination.totalItems,
+          'page': page,
+          'append': append,
           'hasFilter': state.selectedType != null,
           'hasSearch': state.searchQuery.isNotEmpty,
         },
@@ -101,26 +169,60 @@ class CategoriesManagerController
 
       state = state.copyWith(
         isLoading: false,
+        isLoadingMore: false,
         error: 'Ошибка загрузки категорий: ${e.toString()}',
       );
     }
   }
 
+  /// Загрузка следующей страницы
+  Future<void> loadNextPage() async {
+    if (state.hasNextPage && !state.isLoadingMore) {
+      await _loadCategories(page: state.currentPage + 1, append: true);
+    }
+  }
+
+  /// Обновление сортировки
+  Future<void> updateSorting({CategorySortBy? sortBy, bool? ascending}) async {
+    state = state.copyWith(
+      sortBy: sortBy,
+      ascending: ascending,
+      clearPagination: true,
+    );
+    await _loadCategories();
+  }
+
+  /// Изменение размера страницы
+  Future<void> changePageSize(int newPageSize) async {
+    if (newPageSize != state.pageSize) {
+      state = state.copyWith(pageSize: newPageSize, clearPagination: true);
+      await _loadCategories();
+    }
+  }
+
   /// Поиск категорий
   Future<void> searchCategories(String query) async {
-    state = state.copyWith(searchQuery: query);
+    state = state.copyWith(searchQuery: query, clearPagination: true);
     await _loadCategories();
   }
 
   /// Фильтрация по типу
   Future<void> filterByType(CategoryType? type) async {
-    state = state.copyWith(selectedType: type, clearSelectedType: type == null);
+    state = state.copyWith(
+      selectedType: type,
+      clearSelectedType: type == null,
+      clearPagination: true,
+    );
     await _loadCategories();
   }
 
   /// Очистка фильтров
   Future<void> clearFilters() async {
-    state = state.copyWith(searchQuery: '', clearSelectedType: true);
+    state = state.copyWith(
+      searchQuery: '',
+      clearSelectedType: true,
+      clearPagination: true,
+    );
     await _loadCategories();
   }
 
@@ -330,4 +432,30 @@ final categoriesCreatingProvider = Provider<bool>((ref) {
 final categoriesUpdatingProvider = Provider<bool>((ref) {
   final state = ref.watch(categoriesManagerControllerProvider);
   return state.isUpdating;
+});
+
+final categoriesPaginationProvider = Provider<PaginationInfo?>((ref) {
+  final state = ref.watch(categoriesManagerControllerProvider);
+  return state.pagination;
+});
+
+final categoriesLoadingMoreProvider = Provider<bool>((ref) {
+  final state = ref.watch(categoriesManagerControllerProvider);
+  return state.isLoadingMore;
+});
+
+final categoriesHasNextPageProvider = Provider<bool>((ref) {
+  final state = ref.watch(categoriesManagerControllerProvider);
+  return state.hasNextPage;
+});
+
+final categoriesSortingProvider =
+    Provider<({CategorySortBy sortBy, bool ascending})>((ref) {
+      final state = ref.watch(categoriesManagerControllerProvider);
+      return (sortBy: state.sortBy, ascending: state.ascending);
+    });
+
+final categoriesPageSizeProvider = Provider<int>((ref) {
+  final state = ref.watch(categoriesManagerControllerProvider);
+  return state.pageSize;
 });

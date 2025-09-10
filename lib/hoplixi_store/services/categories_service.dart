@@ -407,4 +407,97 @@ class CategoriesService {
 
     return CategoryResult.success(message: 'Данные категории корректны');
   }
+
+  /// Получение категорий с пагинацией
+  Future<PaginatedCategoriesResult> getCategoriesPaginated({
+    int page = 1,
+    int pageSize = 20,
+    String? searchTerm,
+    CategoryType? type,
+    CategorySortBy sortBy = CategorySortBy.name,
+    bool ascending = true,
+  }) async {
+    try {
+      logDebug(
+        'Получение категорий с пагинацией',
+        tag: 'CategoriesService',
+        data: {
+          'page': page,
+          'pageSize': pageSize,
+          'searchTerm': searchTerm,
+          'type': type?.name,
+          'sortBy': sortBy.name,
+          'ascending': ascending,
+        },
+      );
+
+      return await _categoriesDao.getCategoriesPaginated(
+        page: page,
+        pageSize: pageSize,
+        searchTerm: searchTerm,
+        type: type,
+        sortBy: sortBy,
+        ascending: ascending,
+      );
+    } catch (e, s) {
+      logError(
+        'Ошибка получения категорий с пагинацией',
+        error: e,
+        stackTrace: s,
+        tag: 'CategoriesService',
+      );
+      // Возвращаем пустой результат в случае ошибки
+      return PaginatedCategoriesResult(
+        categories: <Category>[],
+        pagination: PaginationInfo.fromParams(
+          currentPage: page,
+          pageSize: pageSize,
+          totalItems: 0,
+        ),
+      );
+    }
+  }
+
+  /// Поиск категорий с пагинацией
+  Future<PaginatedCategoriesResult> searchCategoriesPaginated({
+    required String searchTerm,
+    int page = 1,
+    int pageSize = 20,
+    CategorySortBy sortBy = CategorySortBy.name,
+    bool ascending = true,
+  }) async {
+    if (searchTerm.trim().isEmpty) {
+      return getCategoriesPaginated(
+        page: page,
+        pageSize: pageSize,
+        sortBy: sortBy,
+        ascending: ascending,
+      );
+    }
+
+    return getCategoriesPaginated(
+      page: page,
+      pageSize: pageSize,
+      searchTerm: searchTerm.trim(),
+      sortBy: sortBy,
+      ascending: ascending,
+    );
+  }
+
+  /// Получение категорий по типу с пагинацией
+  Future<PaginatedCategoriesResult> getCategoriesByTypePaginated({
+    required CategoryType type,
+    int page = 1,
+    int pageSize = 20,
+    CategorySortBy sortBy = CategorySortBy.name,
+    bool ascending = true,
+  }) async {
+    return getCategoriesPaginated(
+      page: page,
+      pageSize: pageSize,
+      type: type,
+      sortBy: sortBy,
+      ascending: ascending,
+    );
+  }
 }
