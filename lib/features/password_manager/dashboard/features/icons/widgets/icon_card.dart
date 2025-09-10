@@ -73,7 +73,6 @@ class IconCard extends StatelessWidget {
           children: [
             // Превью иконки
             Expanded(
-              flex: 3,
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -89,7 +88,6 @@ class IconCard extends StatelessWidget {
 
             // Информация об иконке
             Expanded(
-              flex: 2,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
