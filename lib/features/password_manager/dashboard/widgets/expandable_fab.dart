@@ -9,6 +9,7 @@ class ExpandableFAB extends StatefulWidget {
     required this.onCreatePassword,
     required this.onCreateCategory,
     required this.onCreateTag,
+    required this.onIconCreate,
   });
 
   final bool? initialOpen;
@@ -16,6 +17,7 @@ class ExpandableFAB extends StatefulWidget {
   final VoidCallback onCreatePassword;
   final VoidCallback onCreateCategory;
   final VoidCallback onCreateTag;
+  final VoidCallback onIconCreate;
 
   @override
   State<ExpandableFAB> createState() => _ExpandableFABState();
@@ -118,6 +120,13 @@ class _ExpandableFABState extends State<ExpandableFAB>
         onPressed: () => _executeAction(widget.onCreateCategory),
         icon: const Icon(Icons.folder),
         label: 'Создать категорию',
+        backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+        foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
+      ),
+      ActionButton(
+        onPressed: () => _executeAction(widget.onIconCreate),
+        icon: const Icon(Icons.folder),
+        label: 'Создать иконку',
         backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
       ),

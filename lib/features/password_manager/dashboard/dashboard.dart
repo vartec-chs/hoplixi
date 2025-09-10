@@ -386,6 +386,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           onCreateCategory: () {
             context.go(AppRoutes.categoryManager);
           },
+          onIconCreate: () => context.go(AppRoutes.iconManager),
           onCreateTag: () {
             ScaffoldMessenger.of(
               context,

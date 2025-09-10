@@ -1,0 +1,845 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:responsive_framework/responsive_framework.dart';
+import 'dart:typed_data';
+
+import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
+import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'package:hoplixi/hoplixi_store/services/service_results.dart';
+
+/// Форма для добавления или редактирования иконки
+class IconFormWidget extends ConsumerStatefulWidget {
+  final store.IconData? existingIcon;
+
+  const IconFormWidget({super.key, this.existingIcon});
+
+  @override
+  ConsumerState<IconFormWidget> createState() => _IconFormWidgetState();
+}
+
+class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+
+  IconType _selectedType = IconType.png;
+  Uint8List? _selectedImageData;
+  String? _selectedFileName;
+  bool _isLoading = false;
+
+  bool get _isEditing => widget.existingIcon != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_isEditing) {
+      _initializeForEditing();
+    }
+  }
+
+  void _initializeForEditing() {
+    final icon = widget.existingIcon!;
+    _nameController.text = icon.name;
+    _selectedType = icon.type;
+    _selectedImageData = icon.data;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp', 'webp'],
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        final bytes = file.bytes;
+
+        if (bytes != null) {
+          // Проверяем размер файла (максимум 5 МБ для обычных изображений, 10 МБ для SVG)
+          final maxSize = file.extension?.toLowerCase() == 'svg'
+              ? 10 * 1024 * 1024
+              : 5 * 1024 * 1024;
+          if (bytes.length > maxSize) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Файл слишком большой. Максимальный размер: ${_formatFileSize(maxSize)}',
+                  ),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+              );
+            }
+            return;
+          }
+
+          // Определяем тип файла по расширению
+          final extension = file.extension?.toLowerCase() ?? '';
+          final IconType detectedType = _getIconTypeFromExtension(extension);
+
+          setState(() {
+            _selectedImageData = bytes;
+            _selectedFileName = file.name;
+            _selectedType = detectedType;
+            // Если имя не задано, используем имя файла без расширения
+            if (_nameController.text.isEmpty && file.name.isNotEmpty) {
+              final nameWithoutExtension = file.name.split('.').first;
+              _nameController.text = nameWithoutExtension;
+            }
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Файл "${file.name}" успешно загружен'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка выбора файла: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    // Для камеры используем специальную логику
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        final bytes = file.bytes;
+
+        if (bytes != null) {
+          setState(() {
+            _selectedImageData = bytes;
+            _selectedFileName = file.name;
+            _selectedType = IconType.jpg; // По умолчанию JPG для фото
+
+            // Если имя не задано, используем имя файла без расширения
+            if (_nameController.text.isEmpty && file.name.isNotEmpty) {
+              final nameWithoutExtension = file.name.split('.').first;
+              _nameController.text = nameWithoutExtension;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка выбора изображения: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_selectedImageData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Пожалуйста, выберите изображение')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final iconsService = ref.read(iconsServiceProvider);
+
+      late IconResult result;
+
+      if (_isEditing) {
+        result = await iconsService.updateIcon(
+          id: widget.existingIcon!.id,
+          name: _nameController.text.trim(),
+          type: _selectedType,
+          data: _selectedImageData,
+        );
+      } else {
+        result = await iconsService.createIcon(
+          name: _nameController.text.trim(),
+          type: _selectedType,
+          data: _selectedImageData!,
+        );
+      }
+
+      if (mounted) {
+        if (result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message ?? 'Операция выполнена'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+            ),
+          );
+          Navigator.of(context).pop();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message ?? 'Ошибка выполнения'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  IconType _getIconTypeFromExtension(String extension) {
+    switch (extension) {
+      case 'png':
+        return IconType.png;
+      case 'jpg':
+      case 'jpeg':
+        return IconType.jpg;
+      case 'svg':
+        return IconType.svg;
+      case 'gif':
+        return IconType.gif;
+      case 'bmp':
+        return IconType.bmp;
+      case 'webp':
+        return IconType.webp;
+      default:
+        return IconType.png; // По умолчанию PNG
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = ResponsiveBreakpoints.of(context).isMobile;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: isMobile ? _buildMobileAppBar() : null,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Заголовок для десктопа
+              if (!isMobile) _buildDesktopHeader(),
+
+              // Форма
+              _buildImageSection(),
+              const SizedBox(height: 24),
+              _buildNameField(),
+              const SizedBox(height: 24),
+              _buildActionButtons(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildMobileAppBar() {
+    return AppBar(
+      title: Text(_isEditing ? 'Редактировать иконку' : 'Добавить иконку'),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      actions: [
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        else
+          TextButton(onPressed: _submitForm, child: const Text('Сохранить')),
+      ],
+    );
+  }
+
+  Widget _buildDesktopHeader() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _isEditing ? 'Редактировать иконку' : 'Добавить иконку',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Divider(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildImageSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Изображение',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 12),
+
+        // Превью изображения
+        Container(
+          width: double.infinity,
+          height: 200,
+          decoration: BoxDecoration(
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceVariant.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: _selectedImageData != null
+              ? Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: _buildImagePreview(),
+                    ),
+                    // Кнопка удаления изображения
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _selectedImageData = null;
+                              _selectedFileName = null;
+                              _selectedType = IconType.png;
+                            });
+                          },
+                          icon: Icon(
+                            Icons.close,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
+                            size: 20,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 32,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.image_outlined,
+                      size: 64,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.4),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Выберите изображение',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Поддерживаемые форматы: PNG, JPG, SVG, GIF, BMP, WebP',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+        ),
+        const SizedBox(height: 12),
+
+        // Кнопки выбора изображения
+        _buildImagePickerButtons(),
+
+        // Информация о размере файла и имени
+        if (_selectedImageData != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Файл: ${_selectedFileName ?? 'Неизвестно'}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Text(
+                'Размер: ${_formatFileSize(_selectedImageData!.length)}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _selectedType.name.toUpperCase(),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildImagePickerButtons() {
+    final isMobile = ResponsiveBreakpoints.of(context).isMobile;
+
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickFile,
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Галерея'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickImageFromCamera,
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Фото'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          OutlinedButton.icon(
+            onPressed: _pickFile,
+            icon: const Icon(Icons.photo_library),
+            label: const Text('Выбрать файл'),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton.icon(
+            onPressed: _pickImageFromCamera,
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Фото'),
+          ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildNameField() {
+    return PrimaryTextFormField(
+      controller: _nameController,
+      label: 'Название иконки',
+      hintText: 'Введите название...',
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Пожалуйста, введите название иконки';
+        }
+        if (value.length > 100) {
+          return 'Название не должно превышать 100 символов';
+        }
+        return null;
+      },
+      maxLength: 100,
+    );
+  }
+
+  Widget _buildActionButtons() {
+    final isMobile = ResponsiveBreakpoints.of(context).isMobile;
+
+    if (isMobile) {
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _isLoading ? null : _submitForm,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      _isEditing ? 'Сохранить изменения' : 'Добавить иконку',
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+              child: const Text('Отмена'),
+            ),
+          ),
+        ],
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          OutlinedButton(
+            onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+            child: const Text('Отмена'),
+          ),
+          const SizedBox(width: 12),
+          FilledButton(
+            onPressed: _isLoading ? null : _submitForm,
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(_isEditing ? 'Сохранить' : 'Добавить'),
+          ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildImagePreview() {
+    if (_selectedImageData == null) return Container();
+
+    // Для SVG показываем специальную иконку, так как Image.memory не поддерживает SVG
+    if (_selectedType == IconType.svg) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              Theme.of(context).colorScheme.primary.withOpacity(0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: Icon(
+                Icons.code,
+                size: 48,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'SVG Векторное изображение',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _selectedFileName ?? 'svg-файл',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Для GIF показываем специальную иконку
+    if (_selectedType == IconType.gif) {
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.tertiary.withOpacity(0.1),
+              Theme.of(context).colorScheme.tertiary.withOpacity(0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.tertiary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  child: Icon(
+                    Icons.gif_box,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.tertiary,
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.error,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'GIF',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onError,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Анимированное изображение',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.tertiary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _selectedFileName ?? 'gif-файл',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onTertiaryContainer,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Для остальных форматов используем стандартное превью
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.memory(
+          _selectedImageData!,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.broken_image,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ошибка превью',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.error.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _selectedFileName ?? 'файл',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onErrorContainer.withOpacity(0.8),
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes Б';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} КБ';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ';
+  }
+}
