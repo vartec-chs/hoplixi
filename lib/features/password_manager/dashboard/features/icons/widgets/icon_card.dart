@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// Карточка для отображения иконки в списке или сетке
 class IconCard extends StatelessWidget {
@@ -33,7 +34,7 @@ class IconCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
+        contentPadding: const EdgeInsets.all(12),
         leading: _buildIconImage(context, size: 48),
         title: Text(
           icon.name,
@@ -152,27 +153,7 @@ class IconCard extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.memory(
-            icon.data,
-            width: size,
-            height: size,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.broken_image,
-                  size: size * 0.5,
-                  color: Theme.of(context).colorScheme.onErrorContainer,
-                ),
-              );
-            },
-          ),
+          child: _buildImageWidget(size),
         ),
       );
     } catch (e) {
@@ -188,6 +169,55 @@ class IconCard extends StatelessWidget {
           size: size * 0.5,
           color: Theme.of(context).colorScheme.onErrorContainer,
         ),
+      );
+    }
+  }
+
+  Widget _buildImageWidget(double size) {
+    // Проверяем тип иконки для выбора правильного виджета рендеринга
+    if (icon.type == IconType.svg) {
+      return SvgPicture.memory(
+        icon.data,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        placeholderBuilder: (context) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.image,
+              size: size * 0.4,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    } else {
+      return Image.memory(
+        icon.data,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.broken_image,
+              size: size * 0.5,
+              color: Theme.of(context).colorScheme.onErrorContainer,
+            ),
+          );
+        },
       );
     }
   }
@@ -286,7 +316,7 @@ class IconCard extends StatelessWidget {
 
   Widget _buildMobileActionBar(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
         border: Border(
@@ -314,7 +344,7 @@ class IconCard extends StatelessWidget {
             TextButton.icon(
               onPressed: onDelete,
               icon: const Icon(Icons.delete, size: 16),
-              label: const Text('Удалить'),
+              label: const Text(''),
               style: TextButton.styleFrom(
                 foregroundColor: Theme.of(context).colorScheme.error,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

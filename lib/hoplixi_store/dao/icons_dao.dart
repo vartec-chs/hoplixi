@@ -3,6 +3,7 @@ import '../hoplixi_store.dart';
 import '../tables/icons.dart';
 import '../dto/db_dto.dart';
 import '../enums/entity_types.dart';
+import '../utils/uuid_generator.dart';
 
 part 'icons_dao.g.dart';
 
@@ -12,9 +13,12 @@ class IconsDao extends DatabaseAccessor<HoplixiStore> with _$IconsDaoMixin {
 
   /// Создание новой иконки
   Future<String> createIcon(CreateIconDto dto) async {
+    final iconId = UuidGenerator.generate();
+
     final companion = IconsCompanion(
+      id: Value(iconId),
       name: Value(dto.name),
-      type: Value(dto.type),
+      type: Value(dto.type), // Drift автоматически конвертирует enum в строку
       data: Value(dto.data),
     );
 
@@ -22,8 +26,8 @@ class IconsDao extends DatabaseAccessor<HoplixiStore> with _$IconsDaoMixin {
       attachedDatabase.icons,
     ).insert(companion, mode: InsertMode.insertOrIgnore);
 
-    // Возвращаем сгенерированный UUID из companion
-    return companion.id.value;
+    // Возвращаем сгенерированный UUID
+    return iconId;
   }
 
   /// Обновление иконки
