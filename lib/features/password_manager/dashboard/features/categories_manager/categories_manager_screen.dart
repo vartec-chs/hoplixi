@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/categories_manager/widgets/category_icon.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'categories_manager_control.dart';
@@ -173,7 +174,17 @@ class _CategoriesManagerScreenState
                         .read(categoriesManagerControllerProvider.notifier)
                         .filterByType(selected ? type : null);
                   },
-                  avatar: Icon(_getCategoryTypeIcon(type), size: 18),
+                  avatar: CategoryIconWithData(
+                    category: store.Category(
+                      id: '', // Временный ID для виджета фильтра
+                      name: '',
+                      type: type,
+                      color: 'FFFFFF',
+                      createdAt: DateTime.now(),
+                      modifiedAt: DateTime.now(),
+                    ),
+                    size: 18,
+                  ),
                 ),
               );
             }),
@@ -307,9 +318,13 @@ class _CategoriesManagerScreenState
 
     return Card(
       child: ListTile(
-        leading: CircleAvatar(
+        leading: CategoryIconWithData(
+          category: category,
+          size: 48,
           backgroundColor: color.withOpacity(0.2),
-          child: Icon(_getCategoryTypeIcon(category.type), color: color),
+          borderRadius: BorderRadius.circular(24),
+          showBorder: true,
+          borderColor: color.withOpacity(0.3),
         ),
         title: Text(
           category.name,
@@ -327,8 +342,8 @@ class _CategoriesManagerScreenState
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(
-                  _getCategoryTypeIcon(category.type),
+                CategoryIconWithData(
+                  category: category,
                   size: 14,
                   color: Theme.of(
                     context,
@@ -391,17 +406,11 @@ class _CategoriesManagerScreenState
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _getCategoryTypeIcon(category.type),
-                      color: color,
-                    ),
+                  CategoryIconWithData(
+                    category: category,
+                    size: 40,
+                    backgroundColor: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   const Spacer(),
                   PopupMenuButton<String>(
@@ -462,8 +471,8 @@ class _CategoriesManagerScreenState
               const Spacer(),
               Row(
                 children: [
-                  Icon(
-                    _getCategoryTypeIcon(category.type),
+                  CategoryIconWithData(
+                    category: category,
                     size: 14,
                     color: Theme.of(
                       context,
@@ -597,19 +606,6 @@ class _CategoriesManagerScreenState
         return 'TOTP коды';
       case CategoryType.mixed:
         return 'Смешанная';
-    }
-  }
-
-  IconData _getCategoryTypeIcon(CategoryType type) {
-    switch (type) {
-      case CategoryType.password:
-        return Icons.lock;
-      case CategoryType.notes:
-        return Icons.note;
-      case CategoryType.totp:
-        return Icons.security;
-      case CategoryType.mixed:
-        return Icons.folder;
     }
   }
 

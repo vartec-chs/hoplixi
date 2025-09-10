@@ -172,6 +172,8 @@ class CategoriesDao extends DatabaseAccessor<HoplixiStore>
     });
   }
 
+ 
+
   /// Получение категорий с подсчетом связанных элементов
   Future<List<CategoryWithItemCount>> getCategoriesWithItemCount(
     CategoryType type,
