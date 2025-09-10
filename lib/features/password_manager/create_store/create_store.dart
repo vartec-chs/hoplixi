@@ -74,7 +74,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
             title: 'Успех',
             description: 'Хранилище успешно создано!',
           );
-          context.go(AppRoutes.home);
+          context.go(AppRoutes.dashboard);
         });
         // Toast.success('Хранилище успешно создано!');
       }

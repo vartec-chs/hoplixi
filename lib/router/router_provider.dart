@@ -39,10 +39,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       //   return '/';
       // }
 
-      if (state.fullPath == AppRoutes.home &&
-          dbState.runtimeType.toString() == DatabaseStatus.open.toString()) {
-        return AppRoutes.dashboard; // Разрешаем доступ к экрану логов
-      }
+      // if (state.fullPath == AppRoutes.home &&
+      //     dbState.runtimeType.toString() == DatabaseStatus.open.toString()) {
+      //   return AppRoutes.dashboard; // Разрешаем доступ к экрану логов
+      // }
 
       initializationAsync.when(
         data: (data) {

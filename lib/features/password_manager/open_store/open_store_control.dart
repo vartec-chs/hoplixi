@@ -166,6 +166,8 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
         );
       });
 
+
+
       state = state.copyWith(isLoading: false);
     } catch (e, stackTrace) {
       // Отложенное логирование для избежания проблем с build cycle

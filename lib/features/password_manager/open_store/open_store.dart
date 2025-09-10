@@ -61,16 +61,24 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
         _pathController.clear();
         _passwordController.clear();
 
-        Future.microtask(() {
-          if (mounted) {
-            ToastHelper.success(
-              title: 'Успех',
-              description: 'Хранилище успешно открыто!',
-            );
-            // Переходим на главный экран после успешного открытия
-            context.go(AppRoutes.home);
-          }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ToastHelper.success(
+            title: 'Успех',
+            description: 'Хранилище успешно открыто!',
+          );
+          context.go(AppRoutes.dashboard);
         });
+
+        // Future.microtask(() {
+        //   if (mounted) {
+        //     ToastHelper.success(
+        //       title: 'Успех',
+        //       description: 'Хранилище успешно открыто!',
+        //     );
+        //     // Переходим на главный экран после успешного открытия
+        //     context.go(AppRoutes.dashboard);
+        //   }
+        // });
       }
     });
 
