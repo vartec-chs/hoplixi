@@ -16,6 +16,9 @@ import 'package:toastification/toastification.dart';
 import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
 
+
+
+
 Future<void> main() async {
   if (UniversalPlatform.isWeb) {
     throw UnsupportedError(

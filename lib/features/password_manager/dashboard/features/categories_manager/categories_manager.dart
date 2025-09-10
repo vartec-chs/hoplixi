@@ -8,3 +8,6 @@
 export 'categories_manager_screen.dart';
 export 'categories_manager_control.dart';
 export 'widgets/category_form_modal.dart';
+
+
+//TODO: Провести рефакторинг и оптимизацию кода внутри этого модуля
