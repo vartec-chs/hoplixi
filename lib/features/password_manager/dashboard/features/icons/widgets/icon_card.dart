@@ -63,7 +63,25 @@ class IconCard extends StatelessWidget {
   }
 
   Widget _buildGridCard(BuildContext context) {
-    final isMobile = ResponsiveBreakpoints.of(context).isMobile;
+    final breakpoints = ResponsiveBreakpoints.of(context);
+    final isMobile = breakpoints.isMobile;
+    final isTablet = breakpoints.isTablet;
+    final isDesktop = breakpoints.isDesktop;
+
+    // Определяем размер иконки в зависимости от экрана
+    double iconSize;
+    if (isMobile) {
+      iconSize = 48;
+    } else if (isTablet) {
+      iconSize = 64;
+    } else {
+      iconSize = 80;
+    }
+
+    // Определяем тип отображения кнопок действий
+    final showCompactButtons = isDesktop;
+    final showBottomActionBar = isMobile;
+    final showPopupMenu = isTablet;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -74,23 +92,23 @@ class IconCard extends StatelessWidget {
           children: [
             // Превью иконки
             Expanded(
+              flex: showBottomActionBar ? 3 : 2,
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(isMobile ? 12 : 16),
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
                   ).colorScheme.surfaceVariant.withOpacity(0.3),
                 ),
-                child: Center(
-                  child: _buildIconImage(context, size: isMobile ? 64 : 80),
-                ),
+                child: Center(child: _buildIconImage(context, size: iconSize)),
               ),
             ),
 
             // Информация об иконке
             Expanded(
+              flex: showBottomActionBar ? 2 : 3,
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isMobile ? 8 : 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -99,11 +117,12 @@ class IconCard extends StatelessWidget {
                       icon.name,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w500,
+                        fontSize: isMobile ? 12 : null,
                       ),
-                      maxLines: 1,
+                      maxLines: isMobile ? 2 : 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: isMobile ? 2 : 4),
 
                     // Тип и размер
                     Row(
@@ -111,7 +130,7 @@ class IconCard extends StatelessWidget {
                         Expanded(child: _buildTypeChip(context, compact: true)),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: isMobile ? 2 : 4),
 
                     Text(
                       _formatFileSize(icon.data.length),
@@ -119,20 +138,29 @@ class IconCard extends StatelessWidget {
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: isMobile ? 10 : null,
                       ),
                     ),
 
                     const Spacer(),
 
-                    // Кнопки действий
-                    if (!isMobile) _buildActionButtons(context, compact: true),
+                    // Кнопки действий для десктопа
+                    if (showCompactButtons)
+                      _buildActionButtons(context, compact: true),
+
+                    // Popup меню для планшета
+                    if (showPopupMenu)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: _buildActionButtons(context),
+                      ),
                   ],
                 ),
               ),
             ),
 
             // Мобильные кнопки действий внизу
-            if (isMobile) _buildMobileActionBar(context),
+            if (showBottomActionBar) _buildMobileActionBar(context),
           ],
         ),
       ),
@@ -247,6 +275,8 @@ class IconCard extends StatelessWidget {
   }
 
   Widget _buildActionButtons(BuildContext context, {bool compact = false}) {
+    final breakpoints = ResponsiveBreakpoints.of(context);
+
     if (compact) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -255,8 +285,11 @@ class IconCard extends StatelessWidget {
             IconButton(
               onPressed: onEdit,
               icon: const Icon(Icons.edit),
-              iconSize: 18,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              iconSize: breakpoints.isMobile ? 16 : 18,
+              constraints: BoxConstraints(
+                minWidth: breakpoints.isMobile ? 28 : 32,
+                minHeight: breakpoints.isMobile ? 28 : 32,
+              ),
               padding: EdgeInsets.zero,
               tooltip: 'Редактировать',
             ),
@@ -264,8 +297,11 @@ class IconCard extends StatelessWidget {
             IconButton(
               onPressed: onDelete,
               icon: const Icon(Icons.delete),
-              iconSize: 18,
-              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              iconSize: breakpoints.isMobile ? 16 : 18,
+              constraints: BoxConstraints(
+                minWidth: breakpoints.isMobile ? 28 : 32,
+                minHeight: breakpoints.isMobile ? 28 : 32,
+              ),
               padding: EdgeInsets.zero,
               tooltip: 'Удалить',
               color: Theme.of(context).colorScheme.error,
@@ -275,6 +311,12 @@ class IconCard extends StatelessWidget {
     }
 
     return PopupMenuButton<String>(
+      iconSize: breakpoints.isTablet ? 20 : 24,
+      padding: EdgeInsets.zero,
+      constraints: BoxConstraints(
+        minWidth: breakpoints.isTablet ? 32 : 40,
+        minHeight: breakpoints.isTablet ? 32 : 40,
+      ),
       onSelected: (value) {
         switch (value) {
           case 'edit':
@@ -315,8 +357,14 @@ class IconCard extends StatelessWidget {
   }
 
   Widget _buildMobileActionBar(BuildContext context) {
+    final breakpoints = ResponsiveBreakpoints.of(context);
+    final isMobile = breakpoints.isMobile;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 4 : 8,
+        vertical: isMobile ? 4 : 6,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
         border: Border(
@@ -330,26 +378,44 @@ class IconCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           if (onEdit != null)
-            TextButton.icon(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit, size: 16),
-              label: const Text('Редактировать'),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            Expanded(
+              child: TextButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit, size: 16),
+                label: Text(
+                  isMobile ? 'Изменить' : 'Редактировать',
+                  style: TextStyle(fontSize: isMobile ? 11 : 12),
+                ),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 4 : 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
             ),
+          if (onEdit != null && onDelete != null)
+            SizedBox(width: isMobile ? 4 : 8),
           if (onDelete != null)
-            TextButton.icon(
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete, size: 16),
-              label: const Text(''),
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            Expanded(
+              child: TextButton.icon(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete, size: 16),
+                label: Text(
+                  'Удалить',
+                  style: TextStyle(fontSize: isMobile ? 11 : 12),
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 4 : 8,
+                    vertical: 4,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
             ),
         ],

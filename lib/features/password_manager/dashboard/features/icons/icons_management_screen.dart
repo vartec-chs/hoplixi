@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/icons/examples/icon_picker_example.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 
 import 'package:hoplixi/common/text_field.dart';
@@ -259,6 +260,17 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
             onPressed: _showAddIconDialog,
             icon: const Icon(Icons.add),
             tooltip: 'Добавить иконку',
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const IconPickerExample(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add),
+            tooltip: 'Пример выбора иконки',
           ),
         ],
       ),
