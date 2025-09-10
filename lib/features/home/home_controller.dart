@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';

@@ -7,6 +7,7 @@ import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
+import 'package:riverpod/legacy.dart';
 
 final hoplixiStoreManagerProvider = Provider<HoplixiStoreManager>((ref) {
   final manager = HoplixiStoreManager();
