@@ -1,7 +1,6 @@
 // Контроллер управления иконками
 // Этот файл может содержать дополнительную бизнес-логику для управления иконками
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 

@@ -106,7 +106,7 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
         query.orderBy([(t) => OrderingTerm.asc(t.name)]);
     }
 
-    query..limit(limit, offset: offset);
+    query.limit(limit, offset: offset);
 
     return await query.get();
   }
@@ -162,7 +162,7 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
         query.orderBy([(t) => OrderingTerm.asc(t.name)]);
     }
 
-    query..limit(limit, offset: offset);
+    query.limit(limit, offset: offset);
 
     return await query.get();
   }
@@ -233,7 +233,7 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
         query.orderBy([(t) => OrderingTerm.asc(t.name)]);
     }
 
-    query..limit(limit, offset: offset);
+    query.limit(limit, offset: offset);
 
     return await query.get();
   }

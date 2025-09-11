@@ -98,7 +98,7 @@ class IconCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
-                  ).colorScheme.surfaceVariant.withOpacity(0.3),
+                  ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
                 ),
                 child: Center(child: _buildIconImage(context, size: iconSize)),
               ),
@@ -213,7 +213,7 @@ class IconCard extends StatelessWidget {
           width: size,
           height: size,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
@@ -366,7 +366,7 @@ class IconCard extends StatelessWidget {
         vertical: isMobile ? 4 : 6,
       ),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
         border: Border(
           top: BorderSide(
             color: Theme.of(context).colorScheme.outline.withOpacity(0.2),

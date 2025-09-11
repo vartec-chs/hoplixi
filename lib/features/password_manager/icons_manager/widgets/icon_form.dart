@@ -366,7 +366,7 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
           decoration: BoxDecoration(
             color: Theme.of(
               context,
-            ).colorScheme.surfaceVariant.withOpacity(0.3),
+            ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
@@ -650,7 +650,7 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
       // Конвертируем bytes в строку для SVG
       final svgString = utf8.decode(_selectedImageData!);
 
-      logDebug('Рендеринг SVG файла: ${_selectedFileName}', tag: 'IconForm');
+      logDebug('Рендеринг SVG файла: $_selectedFileName', tag: 'IconForm');
 
       return Container(
         width: double.infinity,
@@ -855,7 +855,7 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.surfaceVariant.withOpacity(0.3),
+                    ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(

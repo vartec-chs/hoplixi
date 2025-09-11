@@ -143,7 +143,7 @@ class CategoryIcon extends StatelessWidget {
       width: size - (padding?.horizontal ?? size * 0.3),
       height: size - (padding?.horizontal ?? size * 0.3),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: borderRadius ?? BorderRadius.circular(4),
       ),
       child: Center(

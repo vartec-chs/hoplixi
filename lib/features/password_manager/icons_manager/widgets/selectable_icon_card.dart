@@ -108,7 +108,7 @@ class SelectableIconCard extends StatelessWidget {
         height: iconSize,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(6),
-          color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(6),
@@ -125,7 +125,7 @@ class SelectableIconCard extends StatelessWidget {
       width: iconSize,
       height: iconSize,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Center(

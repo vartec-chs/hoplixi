@@ -4,7 +4,7 @@ import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/password_field.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/password_manager/create_store/create_store_control.dart';
+import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';

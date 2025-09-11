@@ -8,11 +8,11 @@ class TagItemWidget extends StatelessWidget {
   final VoidCallback onDelete;
 
   const TagItemWidget({
-    Key? key,
+    super.key,
     required this.tag,
     required this.onEdit,
     required this.onDelete,
-  }) : super(key: key);
+  });
 
   Color get tagColor {
     if (tag.color != null && tag.color!.isNotEmpty) {

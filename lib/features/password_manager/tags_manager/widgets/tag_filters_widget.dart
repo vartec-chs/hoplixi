@@ -9,13 +9,13 @@ class TagFiltersWidget extends StatelessWidget {
   final ValueChanged<String> onSortChanged;
 
   const TagFiltersWidget({
-    Key? key,
+    super.key,
     this.selectedType,
     required this.selectedSort,
     required this.isAscending,
     required this.onTypeChanged,
     required this.onSortChanged,
-  }) : super(key: key);
+  });
 
   String _getTypeLabel(TagType? type) {
     switch (type) {
@@ -67,7 +67,7 @@ class TagFiltersWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border(
           top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
           bottom: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),

@@ -8,8 +8,6 @@ import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/core/secure_storage/index.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';
-import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
-import 'package:hoplixi/hoplixi_store/state.dart';
 
 import 'package:universal_platform/universal_platform.dart';
 

@@ -49,8 +49,8 @@ class _IconPickerModalState extends ConsumerState<IconPickerModal> {
   bool _isLoading = true;
   String _searchQuery = '';
   int _currentPage = 0;
-  IconSortBy _sortBy = IconSortBy.name;
-  bool _ascending = true;
+  final IconSortBy _sortBy = IconSortBy.name;
+  final bool _ascending = true;
 
   // Таймер для дебаунсинга поиска
   Timer? _debounceTimer;

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import '../../../../../hoplixi_store/hoplixi_store.dart' as store;
-import '../../../../../common/text_field.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'tags_management_control.dart';
 import 'widgets/tag_create_edit_modal.dart';
 import 'widgets/tag_item_widget.dart';
 import 'widgets/tag_filters_widget.dart';
 
 class TagsManagementScreen extends ConsumerStatefulWidget {
-  const TagsManagementScreen({Key? key}) : super(key: key);
+  const TagsManagementScreen({super.key});
 
   @override
   ConsumerState<TagsManagementScreen> createState() =>
@@ -114,7 +114,7 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
           // Статистика
           Container(
             padding: const EdgeInsets.all(16.0),
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

@@ -96,7 +96,7 @@ class IconPickerButton extends StatelessWidget {
 
     return Material(
       color: hasIcon
-          ? Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5)
+          ? Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5)
           : Theme.of(context).colorScheme.surface,
       borderRadius: borderRadius,
       elevation: hasIcon ? 1 : 0,

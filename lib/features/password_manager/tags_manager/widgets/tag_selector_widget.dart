@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
-import '../../../../../../common/text_field.dart';
 
 /// Универсальный виджет для выбора тегов
 class TagSelectorWidget extends ConsumerStatefulWidget {
@@ -17,7 +17,7 @@ class TagSelectorWidget extends ConsumerStatefulWidget {
   final bool allowMultiple;
 
   const TagSelectorWidget({
-    Key? key,
+    super.key,
     this.filterType,
     this.initialSelectedTagIds = const [],
     required this.onSelectionChanged,
@@ -25,7 +25,7 @@ class TagSelectorWidget extends ConsumerStatefulWidget {
     this.emptyWidget,
     this.showSelectedTags = true,
     this.allowMultiple = true,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<TagSelectorWidget> createState() => _TagSelectorWidgetState();

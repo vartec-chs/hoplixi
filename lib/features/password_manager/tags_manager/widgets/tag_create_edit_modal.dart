@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import '../../../../../../common/text_field.dart';
+
 import '../tags_management_control.dart';
 
 class TagCreateEditModal extends ConsumerStatefulWidget {
   final store.Tag? tag;
 
-  const TagCreateEditModal({Key? key, this.tag}) : super(key: key);
+  const TagCreateEditModal({super.key, this.tag});
 
   @override
   ConsumerState<TagCreateEditModal> createState() => _TagCreateEditModalState();
@@ -231,7 +232,7 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
 
             // Выбор типа
             DropdownButtonFormField<TagType>(
-              value: _selectedType,
+              initialValue: _selectedType,
               onChanged: (TagType? newValue) {
                 if (newValue != null) {
                   setState(() {
