@@ -4,6 +4,7 @@ import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
+import '../../../../../../common/text_field.dart';
 
 /// Универсальный виджет для выбора тегов
 class TagSelectorWidget extends ConsumerStatefulWidget {
@@ -50,9 +51,9 @@ class _TagSelectorWidgetState extends ConsumerState<TagSelectorWidget> {
     _selectedTagIds = Set.from(widget.initialSelectedTagIds);
     _scrollController.addListener(_onScroll);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeService();
-    });
+    // Инициализируем сервис и загружаем теги сразу, но через Future.microtask
+    // чтобы избежать "Build scheduled during frame"
+    Future.microtask(() => _initializeService());
   }
 
   void _initializeService() {
@@ -269,13 +270,10 @@ class _TagSelectorWidgetState extends ConsumerState<TagSelectorWidget> {
         ],
 
         // Поиск
-        TextField(
+        PrimaryTextField(
           controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Поиск тегов...',
-            prefixIcon: Icon(Icons.search),
-            border: OutlineInputBorder(),
-          ),
+          hintText: 'Поиск тегов...',
+          prefixIcon: const Icon(Icons.search),
           onChanged: _searchTags,
         ),
 

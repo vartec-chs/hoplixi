@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+import '../../../../../../common/text_field.dart';
 import '../tags_management_control.dart';
 
 class TagCreateEditModal extends ConsumerStatefulWidget {
@@ -208,14 +209,11 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
             const SizedBox(height: 16),
 
             // Поле имени
-            TextFormField(
+            PrimaryTextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Название тега',
-                hintText: 'Введите название тега',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.label),
-              ),
+              label: 'Название тега',
+              hintText: 'Введите название тега',
+              prefixIcon: const Icon(Icons.label),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Название не может быть пустым';
@@ -245,11 +243,10 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
                   });
                 }
               },
-              decoration: const InputDecoration(
+              decoration: primaryInputDecoration(
+                context,
                 labelText: 'Тип тега',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category),
-              ),
+              ).copyWith(prefixIcon: const Icon(Icons.category)),
               items: TagType.values.map((TagType type) {
                 return DropdownMenuItem<TagType>(
                   value: type,

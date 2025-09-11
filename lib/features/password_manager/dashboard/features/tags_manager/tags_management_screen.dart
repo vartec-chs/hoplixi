@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import '../../../../../hoplixi_store/hoplixi_store.dart' as store;
+import '../../../../../common/text_field.dart';
 import 'tags_management_control.dart';
 import 'widgets/tag_create_edit_modal.dart';
 import 'widgets/tag_item_widget.dart';
@@ -93,13 +94,10 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
           // Поиск
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: TextField(
+            child: PrimaryTextField(
               controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Поиск тегов...',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
+              hintText: 'Поиск тегов...',
+              prefixIcon: const Icon(Icons.search),
               onChanged: _onSearch,
             ),
           ),

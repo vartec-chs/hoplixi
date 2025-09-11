@@ -72,7 +72,9 @@ class TagsManagementNotifier extends Notifier<TagsManagementState> {
   @override
   TagsManagementState build() {
     _tagsService = ref.read(tagsServiceProvider);
-    loadTags();
+    // Не вызываем loadTags в build - это приведет к "Build scheduled during frame"
+    // Вместо этого инициализируем загрузку через Future.microtask
+    Future.microtask(() => loadTags());
     return const TagsManagementState();
   }
 
