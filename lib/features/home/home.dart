@@ -373,11 +373,15 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         ),
         background: Container(
           decoration: BoxDecoration(
+            backgroundBlendMode: BlendMode.overlay,
+            color: Theme.of(context).colorScheme.surface,
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                Theme.of(
+                  context,
+                ).colorScheme.secondaryContainer.withOpacity(0.1),
                 Theme.of(
                   context,
                 ).colorScheme.secondaryContainer.withOpacity(0.1),

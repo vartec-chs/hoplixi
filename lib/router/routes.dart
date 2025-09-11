@@ -9,6 +9,7 @@ import 'package:hoplixi/features/password_manager/icons_manager/icons_management
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
+import 'package:hoplixi/features/tag_filter/example/tag_filter_example_screen.dart';
 import 'package:hoplixi/features/test/test.dart';
 import 'routes_path.dart';
 
@@ -32,10 +33,6 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.createStore,
     builder: (context, state) => const CreateStoreScreen(),
-  ),
-  GoRoute(
-    path: AppRoutes.openStore,
-    builder: (context, state) => const OpenStoreScreen(),
   ),
   GoRoute(
     path: AppRoutes.testDemo,

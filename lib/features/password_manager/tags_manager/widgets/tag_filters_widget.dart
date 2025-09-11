@@ -18,18 +18,13 @@ class TagFiltersWidget extends StatelessWidget {
   });
 
   String _getTypeLabel(TagType? type) {
-    switch (type) {
-      case TagType.password:
-        return 'Пароли';
-      case TagType.notes:
-        return 'Заметки';
-      case TagType.totp:
-        return 'TOTP';
-      case TagType.mixed:
-        return 'Смешанный';
-      case null:
-        return 'Все типы';
-    }
+    return switch (type) {
+      TagType.password => 'Пароли',
+      TagType.notes => 'Заметки',
+      TagType.totp => 'TOTP',
+      TagType.mixed => 'Смешанный',
+      null => 'Все типы',
+    };
   }
 
   String _getSortLabel(String sort) {
@@ -48,18 +43,13 @@ class TagFiltersWidget extends StatelessWidget {
   }
 
   IconData _getTypeIcon(TagType? type) {
-    switch (type) {
-      case TagType.password:
-        return Icons.lock;
-      case TagType.notes:
-        return Icons.note;
-      case TagType.totp:
-        return Icons.security;
-      case TagType.mixed:
-        return Icons.category;
-      case null:
-        return Icons.all_inclusive;
-    }
+    return switch (type) {
+      TagType.password => Icons.lock,
+      TagType.notes => Icons.note,
+      TagType.totp => Icons.security,
+      TagType.mixed => Icons.category,
+      null => Icons.all_inclusive,
+    };
   }
 
   @override
@@ -67,7 +57,9 @@ class TagFiltersWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border(
           top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
           bottom: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
@@ -80,7 +72,9 @@ class TagFiltersWidget extends StatelessWidget {
             flex: 2,
             child: PopupMenuButton<TagType?>(
               initialValue: selectedType,
-              onSelected: onTypeChanged,
+              onSelected: (TagType? value) {
+                onTypeChanged(value);
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12.0,
@@ -112,12 +106,13 @@ class TagFiltersWidget extends StatelessWidget {
                 ),
               ),
               itemBuilder: (context) => [
-                const PopupMenuItem<TagType?>(
+                PopupMenuItem<TagType?>(
                   value: null,
                   child: ListTile(
-                    leading: Icon(Icons.all_inclusive),
-                    title: Text('Все типы'),
+                    leading: const Icon(Icons.all_inclusive),
+                    title: const Text('Все типы'),
                     contentPadding: EdgeInsets.zero,
+                    selected: selectedType == null,
                   ),
                 ),
                 ...TagType.values.map(
@@ -127,6 +122,7 @@ class TagFiltersWidget extends StatelessWidget {
                       leading: Icon(_getTypeIcon(type)),
                       title: Text(_getTypeLabel(type)),
                       contentPadding: EdgeInsets.zero,
+                      selected: selectedType == type,
                     ),
                   ),
                 ),
