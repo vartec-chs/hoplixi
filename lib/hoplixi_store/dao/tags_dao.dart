@@ -62,11 +62,105 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
     return await query.get();
   }
 
+  /// Получение тегов с пагинацией
+  Future<List<Tag>> getTagsPaginated({
+    int offset = 0,
+    int limit = 20,
+    String? orderBy = 'name',
+    bool ascending = true,
+  }) async {
+    final query = select(attachedDatabase.tags);
+
+    // Добавляем сортировку
+    switch (orderBy?.toLowerCase()) {
+      case 'name':
+        query.orderBy([
+          (t) =>
+              ascending ? OrderingTerm.asc(t.name) : OrderingTerm.desc(t.name),
+        ]);
+        break;
+      case 'created_at':
+        query.orderBy([
+          (t) => ascending
+              ? OrderingTerm.asc(t.createdAt)
+              : OrderingTerm.desc(t.createdAt),
+        ]);
+        break;
+      case 'modified_at':
+        query.orderBy([
+          (t) => ascending
+              ? OrderingTerm.asc(t.modifiedAt)
+              : OrderingTerm.desc(t.modifiedAt),
+        ]);
+        break;
+      case 'type':
+        query.orderBy([
+          (t) =>
+              ascending ? OrderingTerm.asc(t.type) : OrderingTerm.desc(t.type),
+        ]);
+        break;
+      default:
+        query.orderBy([(t) => OrderingTerm.asc(t.name)]);
+    }
+
+    query..limit(limit, offset: offset);
+
+    return await query.get();
+  }
+
   /// Получение тегов по типу
   Future<List<Tag>> getTagsByType(TagType type) async {
     final query = select(attachedDatabase.tags)
       ..where((tbl) => tbl.type.equals(type.name) | tbl.type.equals('mixed'))
       ..orderBy([(t) => OrderingTerm.asc(t.name)]);
+    return await query.get();
+  }
+
+  /// Получение тегов по типу с пагинацией
+  Future<List<Tag>> getTagsByTypePaginated(
+    TagType type, {
+    int offset = 0,
+    int limit = 20,
+    String? orderBy = 'name',
+    bool ascending = true,
+  }) async {
+    final query = select(attachedDatabase.tags)
+      ..where((tbl) => tbl.type.equals(type.name) | tbl.type.equals('mixed'));
+
+    // Добавляем сортировку
+    switch (orderBy?.toLowerCase()) {
+      case 'name':
+        query.orderBy([
+          (t) =>
+              ascending ? OrderingTerm.asc(t.name) : OrderingTerm.desc(t.name),
+        ]);
+        break;
+      case 'created_at':
+        query.orderBy([
+          (t) => ascending
+              ? OrderingTerm.asc(t.createdAt)
+              : OrderingTerm.desc(t.createdAt),
+        ]);
+        break;
+      case 'modified_at':
+        query.orderBy([
+          (t) => ascending
+              ? OrderingTerm.asc(t.modifiedAt)
+              : OrderingTerm.desc(t.modifiedAt),
+        ]);
+        break;
+      case 'type':
+        query.orderBy([
+          (t) =>
+              ascending ? OrderingTerm.asc(t.type) : OrderingTerm.desc(t.type),
+        ]);
+        break;
+      default:
+        query.orderBy([(t) => OrderingTerm.asc(t.name)]);
+    }
+
+    query..limit(limit, offset: offset);
+
     return await query.get();
   }
 
@@ -82,6 +176,62 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
     final query = select(attachedDatabase.tags)
       ..where((tbl) => tbl.name.like('%$searchTerm%'))
       ..orderBy([(t) => OrderingTerm.asc(t.name)]);
+    return await query.get();
+  }
+
+  /// Поиск тегов по имени с пагинацией
+  Future<List<Tag>> searchTagsPaginated(
+    String searchTerm, {
+    int offset = 0,
+    int limit = 20,
+    TagType? type,
+    String? orderBy = 'name',
+    bool ascending = true,
+  }) async {
+    final query = select(attachedDatabase.tags)
+      ..where((tbl) => tbl.name.like('%$searchTerm%'));
+
+    // Фильтрация по типу, если указан
+    if (type != null) {
+      query.where(
+        (tbl) => tbl.type.equals(type.name) | tbl.type.equals('mixed'),
+      );
+    }
+
+    // Добавляем сортировку
+    switch (orderBy?.toLowerCase()) {
+      case 'name':
+        query.orderBy([
+          (t) =>
+              ascending ? OrderingTerm.asc(t.name) : OrderingTerm.desc(t.name),
+        ]);
+        break;
+      case 'created_at':
+        query.orderBy([
+          (t) => ascending
+              ? OrderingTerm.asc(t.createdAt)
+              : OrderingTerm.desc(t.createdAt),
+        ]);
+        break;
+      case 'modified_at':
+        query.orderBy([
+          (t) => ascending
+              ? OrderingTerm.asc(t.modifiedAt)
+              : OrderingTerm.desc(t.modifiedAt),
+        ]);
+        break;
+      case 'type':
+        query.orderBy([
+          (t) =>
+              ascending ? OrderingTerm.asc(t.type) : OrderingTerm.desc(t.type),
+        ]);
+        break;
+      default:
+        query.orderBy([(t) => OrderingTerm.asc(t.name)]);
+    }
+
+    query..limit(limit, offset: offset);
+
     return await query.get();
   }
 
@@ -204,6 +354,203 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
         .toList();
   }
 
+  /// Получение тегов с подсчетом использования с пагинацией
+  Future<PaginatedTagsWithUsageResult> getTagsWithUsageCountPaginated(
+    TagType type, {
+    int offset = 0,
+    int limit = 20,
+    String? orderBy = 'name',
+    bool ascending = true,
+  }) async {
+    String joinTable;
+    String orderColumn;
+    String orderDirection = ascending ? 'ASC' : 'DESC';
+
+    // Определяем таблицу для джойна
+    switch (type) {
+      case TagType.password:
+        joinTable = 'password_tags';
+        break;
+      case TagType.notes:
+        joinTable = 'note_tags';
+        break;
+      case TagType.totp:
+        joinTable = 'totp_tags';
+        break;
+      case TagType.mixed:
+        return await _getTagsWithMixedUsageCountPaginated(
+          offset: offset,
+          limit: limit,
+          orderBy: orderBy,
+          ascending: ascending,
+        );
+    }
+
+    // Определяем колонку для сортировки
+    switch (orderBy?.toLowerCase()) {
+      case 'name':
+        orderColumn = 't.name';
+        break;
+      case 'created_at':
+        orderColumn = 't.created_at';
+        break;
+      case 'modified_at':
+        orderColumn = 't.modified_at';
+        break;
+      case 'type':
+        orderColumn = 't.type';
+        break;
+      case 'usage_count':
+        orderColumn = 'usage_count';
+        break;
+      default:
+        orderColumn = 't.name';
+    }
+
+    // Запрос для получения данных
+    final dataQuery = customSelect(
+      '''
+      SELECT t.*, COALESCE(COUNT(ut.tag_id), 0) as usage_count 
+      FROM tags t 
+      LEFT JOIN $joinTable ut ON t.id = ut.tag_id 
+      WHERE t.type = ? OR t.type = 'mixed'
+      GROUP BY t.id 
+      ORDER BY $orderColumn $orderDirection
+      LIMIT ? OFFSET ?
+    ''',
+      variables: [Variable(type.name), Variable(limit), Variable(offset)],
+    );
+
+    // Запрос для подсчета общего количества
+    final countQuery = customSelect(
+      '''
+      SELECT COUNT(DISTINCT t.id) as total_count
+      FROM tags t 
+      WHERE t.type = ? OR t.type = 'mixed'
+    ''',
+      variables: [Variable(type.name)],
+    );
+
+    final results = await dataQuery.get();
+    final countResult = await countQuery.getSingle();
+    final totalCount = countResult.read<int>('total_count');
+
+    final tags = results
+        .map(
+          (row) => TagWithUsageCount(
+            tag: Tag(
+              id: row.read<String>('id'),
+              name: row.read<String>('name'),
+              color: row.read<String?>('color'),
+              type: TagType.values.firstWhere(
+                (e) => e.name == row.read<String>('type'),
+              ),
+              createdAt: row.read<DateTime>('created_at'),
+              modifiedAt: row.read<DateTime>('modified_at'),
+            ),
+            usageCount: row.read<int>('usage_count'),
+          ),
+        )
+        .toList();
+
+    return PaginatedTagsWithUsageResult(
+      tags: tags,
+      totalCount: totalCount,
+      offset: offset,
+      limit: limit,
+    );
+  }
+
+  /// Получение всех тегов с пагинацией и общим количеством
+  Future<PaginatedTagsResult> getTagsPaginatedWithCount({
+    int offset = 0,
+    int limit = 20,
+    String? orderBy = 'name',
+    bool ascending = true,
+    TagType? type,
+    String? searchTerm,
+  }) async {
+    // Строим WHERE условие
+    String whereClause = '1=1';
+    List<Variable> variables = [];
+
+    if (type != null) {
+      whereClause += ' AND (t.type = ? OR t.type = \'mixed\')';
+      variables.add(Variable(type.name));
+    }
+
+    if (searchTerm != null && searchTerm.trim().isNotEmpty) {
+      whereClause += ' AND t.name LIKE ?';
+      variables.add(Variable('%${searchTerm.trim()}%'));
+    }
+
+    // Определяем колонку для сортировки
+    String orderColumn;
+    switch (orderBy?.toLowerCase()) {
+      case 'name':
+        orderColumn = 't.name';
+        break;
+      case 'created_at':
+        orderColumn = 't.created_at';
+        break;
+      case 'modified_at':
+        orderColumn = 't.modified_at';
+        break;
+      case 'type':
+        orderColumn = 't.type';
+        break;
+      default:
+        orderColumn = 't.name';
+    }
+
+    String orderDirection = ascending ? 'ASC' : 'DESC';
+
+    // Запрос для получения данных
+    final dataQuery = customSelect(
+      '''
+      SELECT t.*
+      FROM tags t 
+      WHERE $whereClause
+      ORDER BY $orderColumn $orderDirection
+      LIMIT ? OFFSET ?
+    ''',
+      variables: [...variables, Variable(limit), Variable(offset)],
+    );
+
+    // Запрос для подсчета общего количества
+    final countQuery = customSelect('''
+      SELECT COUNT(*) as total_count
+      FROM tags t 
+      WHERE $whereClause
+    ''', variables: variables);
+
+    final results = await dataQuery.get();
+    final countResult = await countQuery.getSingle();
+    final totalCount = countResult.read<int>('total_count');
+
+    final tags = results
+        .map(
+          (row) => Tag(
+            id: row.read<String>('id'),
+            name: row.read<String>('name'),
+            color: row.read<String?>('color'),
+            type: TagType.values.firstWhere(
+              (e) => e.name == row.read<String>('type'),
+            ),
+            createdAt: row.read<DateTime>('created_at'),
+            modifiedAt: row.read<DateTime>('modified_at'),
+          ),
+        )
+        .toList();
+
+    return PaginatedTagsResult(
+      tags: tags,
+      totalCount: totalCount,
+      offset: offset,
+      limit: limit,
+    );
+  }
+
   /// Получение mixed тегов с подсчетом использования во всех типах
   Future<List<TagWithUsageCount>> _getTagsWithMixedUsageCount() async {
     final query = customSelect('''
@@ -233,6 +580,88 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
           ),
         )
         .toList();
+  }
+
+  /// Получение mixed тегов с подсчетом использования во всех типах с пагинацией
+  Future<PaginatedTagsWithUsageResult> _getTagsWithMixedUsageCountPaginated({
+    int offset = 0,
+    int limit = 20,
+    String? orderBy = 'name',
+    bool ascending = true,
+  }) async {
+    String orderColumn;
+    String orderDirection = ascending ? 'ASC' : 'DESC';
+
+    // Определяем колонку для сортировки
+    switch (orderBy?.toLowerCase()) {
+      case 'name':
+        orderColumn = 't.name';
+        break;
+      case 'created_at':
+        orderColumn = 't.created_at';
+        break;
+      case 'modified_at':
+        orderColumn = 't.modified_at';
+        break;
+      case 'type':
+        orderColumn = 't.type';
+        break;
+      case 'usage_count':
+        orderColumn = 'usage_count';
+        break;
+      default:
+        orderColumn = 't.name';
+    }
+
+    // Запрос для получения данных
+    final dataQuery = customSelect(
+      '''
+      SELECT t.*, 
+             COALESCE(p.count, 0) + COALESCE(n.count, 0) + COALESCE(o.count, 0) as usage_count
+      FROM tags t 
+      LEFT JOIN (SELECT tag_id, COUNT(*) as count FROM password_tags GROUP BY tag_id) p ON t.id = p.tag_id
+      LEFT JOIN (SELECT tag_id, COUNT(*) as count FROM note_tags GROUP BY tag_id) n ON t.id = n.tag_id
+      LEFT JOIN (SELECT tag_id, COUNT(*) as count FROM totp_tags GROUP BY tag_id) o ON t.id = o.tag_id
+      WHERE t.type = 'mixed'
+      ORDER BY $orderColumn $orderDirection
+      LIMIT ? OFFSET ?
+    ''',
+      variables: [Variable(limit), Variable(offset)],
+    );
+
+    // Запрос для подсчета общего количества
+    final countQuery = customSelect('''
+      SELECT COUNT(*) as total_count
+      FROM tags t 
+      WHERE t.type = 'mixed'
+    ''');
+
+    final results = await dataQuery.get();
+    final countResult = await countQuery.getSingle();
+    final totalCount = countResult.read<int>('total_count');
+
+    final tags = results
+        .map(
+          (row) => TagWithUsageCount(
+            tag: Tag(
+              id: row.read<String>('id'),
+              name: row.read<String>('name'),
+              color: row.read<String?>('color'),
+              type: TagType.mixed,
+              createdAt: row.read<DateTime>('created_at'),
+              modifiedAt: row.read<DateTime>('modified_at'),
+            ),
+            usageCount: row.read<int>('usage_count'),
+          ),
+        )
+        .toList();
+
+    return PaginatedTagsWithUsageResult(
+      tags: tags,
+      totalCount: totalCount,
+      offset: offset,
+      limit: limit,
+    );
   }
 
   /// Получение популярных тегов (наиболее используемых)
@@ -307,4 +736,36 @@ class TagWithUsageCount {
   final int usageCount;
 
   TagWithUsageCount({required this.tag, required this.usageCount});
+}
+
+/// Класс для результатов пагинации
+class PaginatedTagsResult {
+  final List<Tag> tags;
+  final int totalCount;
+  final int offset;
+  final int limit;
+  final bool hasMore;
+
+  PaginatedTagsResult({
+    required this.tags,
+    required this.totalCount,
+    required this.offset,
+    required this.limit,
+  }) : hasMore = offset + tags.length < totalCount;
+}
+
+/// Класс для результатов пагинации с подсчетом использования
+class PaginatedTagsWithUsageResult {
+  final List<TagWithUsageCount> tags;
+  final int totalCount;
+  final int offset;
+  final int limit;
+  final bool hasMore;
+
+  PaginatedTagsWithUsageResult({
+    required this.tags,
+    required this.totalCount,
+    required this.offset,
+    required this.limit,
+  }) : hasMore = offset + tags.length < totalCount;
 }

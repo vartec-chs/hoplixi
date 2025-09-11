@@ -210,6 +210,71 @@ class TagsService {
     }
   }
 
+  /// Получение тегов с пагинацией
+  Future<PaginatedTagsResult> getTagsPaginated({
+    int page = 1,
+    int pageSize = 20,
+    String? orderBy = 'name',
+    bool ascending = true,
+    TagType? type,
+    String? searchTerm,
+  }) async {
+    try {
+      logDebug(
+        'Получение тегов с пагинацией',
+        tag: 'TagsService',
+        data: {
+          'page': page,
+          'pageSize': pageSize,
+          'orderBy': orderBy,
+          'ascending': ascending,
+          'type': type?.name,
+          'searchTerm': searchTerm,
+        },
+      );
+
+      if (page < 1) page = 1;
+      if (pageSize < 1) pageSize = 20;
+      if (pageSize > 100) pageSize = 100; // Ограничиваем размер страницы
+
+      final offset = (page - 1) * pageSize;
+
+      final result = await _tagsDao.getTagsPaginatedWithCount(
+        offset: offset,
+        limit: pageSize,
+        orderBy: orderBy,
+        ascending: ascending,
+        type: type,
+        searchTerm: searchTerm,
+      );
+
+      logDebug(
+        'Получены теги с пагинацией',
+        tag: 'TagsService',
+        data: {
+          'totalCount': result.totalCount,
+          'returnedCount': result.tags.length,
+        },
+      );
+
+      return result;
+    } catch (e, s) {
+      logError(
+        'Ошибка получения тегов с пагинацией',
+        error: e,
+        stackTrace: s,
+        tag: 'TagsService',
+        data: {'page': page, 'pageSize': pageSize, 'type': type?.name},
+      );
+      return PaginatedTagsResult(
+        tags: [],
+        totalCount: 0,
+        offset: 0,
+        limit: pageSize,
+      );
+    }
+  }
+
   /// Получение тегов по типу
   Future<List<Tag>> getTagsByType(TagType type) async {
     try {
@@ -221,6 +286,52 @@ class TagsService {
         stackTrace: s,
         tag: 'TagsService',
         data: {'type': type.name},
+      );
+      return [];
+    }
+  }
+
+  /// Получение тегов по типу с пагинацией
+  Future<List<Tag>> getTagsByTypePaginated(
+    TagType type, {
+    int page = 1,
+    int pageSize = 20,
+    String? orderBy = 'name',
+    bool ascending = true,
+  }) async {
+    try {
+      logDebug(
+        'Получение тегов по типу с пагинацией',
+        tag: 'TagsService',
+        data: {
+          'type': type.name,
+          'page': page,
+          'pageSize': pageSize,
+          'orderBy': orderBy,
+          'ascending': ascending,
+        },
+      );
+
+      if (page < 1) page = 1;
+      if (pageSize < 1) pageSize = 20;
+      if (pageSize > 100) pageSize = 100;
+
+      final offset = (page - 1) * pageSize;
+
+      return await _tagsDao.getTagsByTypePaginated(
+        type,
+        offset: offset,
+        limit: pageSize,
+        orderBy: orderBy,
+        ascending: ascending,
+      );
+    } catch (e, s) {
+      logError(
+        'Ошибка получения тегов по типу с пагинацией',
+        error: e,
+        stackTrace: s,
+        tag: 'TagsService',
+        data: {'type': type.name, 'page': page, 'pageSize': pageSize},
       );
       return [];
     }
@@ -245,6 +356,72 @@ class TagsService {
     }
   }
 
+  /// Поиск тегов с пагинацией
+  Future<List<Tag>> searchTagsPaginated(
+    String query, {
+    int page = 1,
+    int pageSize = 20,
+    TagType? type,
+    String? orderBy = 'name',
+    bool ascending = true,
+  }) async {
+    try {
+      logDebug(
+        'Поиск тегов с пагинацией',
+        tag: 'TagsService',
+        data: {
+          'query': query,
+          'page': page,
+          'pageSize': pageSize,
+          'type': type?.name,
+          'orderBy': orderBy,
+          'ascending': ascending,
+        },
+      );
+
+      if (page < 1) page = 1;
+      if (pageSize < 1) pageSize = 20;
+      if (pageSize > 100) pageSize = 100;
+
+      final offset = (page - 1) * pageSize;
+
+      if (query.trim().isEmpty) {
+        // Если поиск пустой, возвращаем все теги с пагинацией
+        final result = await _tagsDao.getTagsPaginatedWithCount(
+          offset: offset,
+          limit: pageSize,
+          orderBy: orderBy,
+          ascending: ascending,
+          type: type,
+        );
+        return result.tags;
+      }
+
+      return await _tagsDao.searchTagsPaginated(
+        query.trim(),
+        offset: offset,
+        limit: pageSize,
+        type: type,
+        orderBy: orderBy,
+        ascending: ascending,
+      );
+    } catch (e, s) {
+      logError(
+        'Ошибка поиска тегов с пагинацией',
+        error: e,
+        stackTrace: s,
+        tag: 'TagsService',
+        data: {
+          'query': query,
+          'page': page,
+          'pageSize': pageSize,
+          'type': type?.name,
+        },
+      );
+      return [];
+    }
+  }
+
   /// Получение тегов с подсчетом использования
   Future<List<TagWithUsageCount>> getTagsWithUsageCount(TagType type) async {
     try {
@@ -258,6 +435,68 @@ class TagsService {
         data: {'type': type.name},
       );
       return [];
+    }
+  }
+
+  /// Получение тегов с подсчетом использования с пагинацией
+  Future<PaginatedTagsWithUsageResult> getTagsWithUsageCountPaginated(
+    TagType type, {
+    int page = 1,
+    int pageSize = 20,
+    String? orderBy = 'name',
+    bool ascending = true,
+  }) async {
+    try {
+      logDebug(
+        'Получение тегов с подсчетом использования с пагинацией',
+        tag: 'TagsService',
+        data: {
+          'type': type.name,
+          'page': page,
+          'pageSize': pageSize,
+          'orderBy': orderBy,
+          'ascending': ascending,
+        },
+      );
+
+      if (page < 1) page = 1;
+      if (pageSize < 1) pageSize = 20;
+      if (pageSize > 100) pageSize = 100;
+
+      final offset = (page - 1) * pageSize;
+
+      final result = await _tagsDao.getTagsWithUsageCountPaginated(
+        type,
+        offset: offset,
+        limit: pageSize,
+        orderBy: orderBy,
+        ascending: ascending,
+      );
+
+      logDebug(
+        'Получены теги с подсчетом использования с пагинацией',
+        tag: 'TagsService',
+        data: {
+          'totalCount': result.totalCount,
+          'returnedCount': result.tags.length,
+        },
+      );
+
+      return result;
+    } catch (e, s) {
+      logError(
+        'Ошибка получения тегов с подсчетом использования с пагинацией',
+        error: e,
+        stackTrace: s,
+        tag: 'TagsService',
+        data: {'type': type.name, 'page': page, 'pageSize': pageSize},
+      );
+      return PaginatedTagsWithUsageResult(
+        tags: [],
+        totalCount: 0,
+        offset: 0,
+        limit: pageSize,
+      );
     }
   }
 
@@ -497,5 +736,118 @@ class TagsService {
   bool _isValidColor(String color) {
     final hexColorRegex = RegExp(r'^#[0-9A-Fa-f]{6}$');
     return hexColorRegex.hasMatch(color);
+  }
+
+  /// Вспомогательные методы для пагинации
+
+  /// Вычисление общего количества страниц
+  int calculateTotalPages(int totalCount, int pageSize) {
+    if (totalCount <= 0 || pageSize <= 0) return 0;
+    return (totalCount / pageSize).ceil();
+  }
+
+  /// Проверка корректности номера страницы
+  int validatePageNumber(int page, int totalPages) {
+    if (page < 1) return 1;
+    if (totalPages > 0 && page > totalPages) return totalPages;
+    return page;
+  }
+
+  /// Валидация размера страницы
+  int validatePageSize(int pageSize, {int minSize = 1, int maxSize = 100}) {
+    if (pageSize < minSize) return minSize;
+    if (pageSize > maxSize) return maxSize;
+    return pageSize;
+  }
+
+  /// Получение информации о пагинации
+  Map<String, dynamic> getPaginationInfo({
+    required int totalCount,
+    required int currentPage,
+    required int pageSize,
+  }) {
+    final validatedPageSize = validatePageSize(pageSize);
+    final totalPages = calculateTotalPages(totalCount, validatedPageSize);
+    final validatedCurrentPage = validatePageNumber(currentPage, totalPages);
+
+    final startItem = totalCount > 0
+        ? ((validatedCurrentPage - 1) * validatedPageSize) + 1
+        : 0;
+    final endItem = totalCount > 0
+        ? (validatedCurrentPage * validatedPageSize).clamp(1, totalCount)
+        : 0;
+
+    return {
+      'totalCount': totalCount,
+      'totalPages': totalPages,
+      'currentPage': validatedCurrentPage,
+      'pageSize': validatedPageSize,
+      'startItem': startItem,
+      'endItem': endItem,
+      'hasNextPage': validatedCurrentPage < totalPages,
+      'hasPreviousPage': validatedCurrentPage > 1,
+      'isFirstPage': validatedCurrentPage == 1,
+      'isLastPage': validatedCurrentPage == totalPages,
+    };
+  }
+
+  /// Получение тегов для автокомплита с пагинацией
+  Future<Map<String, dynamic>> getTagsForAutocomplete({
+    String query = '',
+    TagType? type,
+    int page = 1,
+    int pageSize = 10,
+  }) async {
+    try {
+      final result = await getTagsPaginated(
+        page: page,
+        pageSize: pageSize,
+        orderBy: 'name',
+        ascending: true,
+        type: type,
+        searchTerm: query.trim().isEmpty ? null : query.trim(),
+      );
+
+      final paginationInfo = getPaginationInfo(
+        totalCount: result.totalCount,
+        currentPage: page,
+        pageSize: pageSize,
+      );
+
+      return {
+        'tags': result.tags
+            .map(
+              (tag) => {
+                'id': tag.id,
+                'name': tag.name,
+                'color': tag.color,
+                'type': tag.type.name,
+              },
+            )
+            .toList(),
+        'pagination': paginationInfo,
+      };
+    } catch (e, s) {
+      logError(
+        'Ошибка получения тегов для автокомплита',
+        error: e,
+        stackTrace: s,
+        tag: 'TagsService',
+        data: {
+          'query': query,
+          'type': type?.name,
+          'page': page,
+          'pageSize': pageSize,
+        },
+      );
+      return {
+        'tags': <Map<String, dynamic>>[],
+        'pagination': getPaginationInfo(
+          totalCount: 0,
+          currentPage: page,
+          pageSize: pageSize,
+        ),
+      };
+    }
   }
 }
