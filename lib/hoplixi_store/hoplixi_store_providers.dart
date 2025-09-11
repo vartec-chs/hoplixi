@@ -151,4 +151,3 @@ class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
     state = DatabaseState(status: DatabaseStatus.error, error: error);
   }
 }
-

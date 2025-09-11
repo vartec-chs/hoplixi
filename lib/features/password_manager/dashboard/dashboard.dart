@@ -383,15 +383,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               context,
             ).showSnackBar(const SnackBar(content: Text('Создать пароль')));
           },
-          onCreateCategory: () {
-            context.push(AppRoutes.categoryManager);
-          },
+          onCreateCategory: () => context.push(AppRoutes.categoryManager),
           onIconCreate: () => context.push(AppRoutes.iconManager),
-          onCreateTag: () {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Создать тег')));
-          },
+          onCreateTag: () => context.push(AppRoutes.tagsManager),
         ),
       ),
     );

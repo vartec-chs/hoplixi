@@ -10,4 +10,5 @@ class AppRoutes {
   static const String baseSettings = '/base-settings';
   static const String categoryManager = '/category-manager';
   static const String iconManager = '/icon-manager';
+  static const String tagsManager = '/tags-manager';
 }
