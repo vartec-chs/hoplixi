@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/index.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'tags_management_control.dart';
@@ -250,9 +251,11 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
           .read(tagsManagementProvider.notifier)
           .deleteTag(tag.id);
       if (success && mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Тег "${tag.name}" удален')));
+        ToastHelper.success(
+          title: 'Тег удален',
+          description: 'Тег "${tag.name}" успешно удален.',
+          context: context,
+        );
       }
     }
   }

@@ -7,8 +7,7 @@ import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_manager_screen.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons_management_screen.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
-// import 'package:hoplixi/features/password_manager/dashboard/screens/category/category_manager_screen.dart';
-// import 'package:hoplixi/features/password_manager/dashboard/screens/icons/icon_manager_screen.dart';
+
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
 import 'package:hoplixi/features/test/test.dart';
 import 'routes_path.dart';
@@ -28,7 +27,7 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.home,
-    builder: (context, state) => const HomeScreen(),
+    builder: (context, state) => const ModernHomeScreen(),
   ),
   GoRoute(
     path: AppRoutes.createStore,

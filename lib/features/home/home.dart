@@ -11,29 +11,43 @@ import 'package:hoplixi/router/routes_path.dart';
 import 'home_controller.dart';
 import 'widgets/index.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+/// Современный главный экран с поддержкой slivers и модульной архитектуры
+class ModernHomeScreen extends ConsumerStatefulWidget {
+  const ModernHomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<ModernHomeScreen> createState() => _ModernHomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  late PageController _pageController;
+  late AnimationController _fabAnimationController;
+
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    // Инициализируем контроллер после построения виджета
+    _pageController = PageController();
+    _fabAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    // Инициализация с задержкой для плавной анимации
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeController();
+      _fabAnimationController.forward();
     });
   }
 
   Future<void> _initializeController() async {
-    final controller = ref.read(homeControllerProvider.notifier);
-    await controller.initialize();
+    // Инициализация уже происходит в build() метод контроллера
+    final canAutoOpen = await ref.read(canAutoOpenWithSettingsProvider.future);
 
-    // Если пароль сохранен, предлагаем автоматическое открытие
-    if (await controller.canAutoOpenAsync && mounted) {
+    if (canAutoOpen && mounted) {
       _showAutoOpenDialog();
     }
   }
@@ -47,7 +61,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Автоматическое открытие'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            const Text('Автоматическое открытие'),
+          ],
+        ),
         content: Text(
           'Найдена недавно открытая база данных "${recentDatabase?.name}" с сохраненным паролем. Открыть автоматически?',
         ),
@@ -71,153 +95,412 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
-    // StateNotifier автоматически очищается Riverpod
+    _pageController.dispose();
+    _fabAnimationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
+    super.build(context);
+
+    return Consumer(
+      builder: (context, ref, child) {
+        final selectedIndex = ref.watch(selectedBottomNavIndexProvider);
+
+        return Scaffold(
+          body: PageView(
+            controller: _pageController,
+            onPageChanged: (index) {
+              ref
+                  .read(homeControllerProvider.notifier)
+                  .setBottomNavIndex(index);
+            },
+            children: [
+              _buildHomeView(),
+              _buildSearchView(),
+              _buildFavoritesView(),
+              _buildSettingsView(),
+            ],
+          ),
+          bottomNavigationBar: _buildModernBottomNav(selectedIndex),
+          floatingActionButton: _buildFloatingActionButton(),
+        );
+      },
+    );
+  }
+
+  /// Строит главную страницу с использованием slivers
+  Widget _buildHomeView() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final widgets = ref.watch(homeWidgetsProvider);
+
+        return CustomScrollView(
+          slivers: [
+            _buildAppBar(),
+            _buildQuickActions(),
+            ...widgets.map(_buildHomeWidget),
+            _buildErrorMessage(),
+            // Добавляем отступ снизу для FAB
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Создает представление поиска (заглушка)
+  Widget _buildSearchView() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('Поиск', style: TextStyle(fontSize: 24, color: Colors.grey)),
+          SizedBox(height: 8),
+          Text(
+            'Функция будет добавлена в будущих версиях',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Создает представление избранного (заглушка)
+  Widget _buildFavoritesView() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.favorite, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('Избранное', style: TextStyle(fontSize: 24, color: Colors.grey)),
+          SizedBox(height: 8),
+          Text(
+            'Функция будет добавлена в будущих версиях',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Создает представление настроек (заглушка)
+  Widget _buildSettingsView() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.settings, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('Настройки', style: TextStyle(fontSize: 24, color: Colors.grey)),
+          SizedBox(height: 8),
+          Text(
+            'Функция будет добавлена в будущих версиях',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Создает современную нижнюю навигацию
+  Widget _buildModernBottomNav(int selectedIndex) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: selectedIndex,
+          onTap: (index) {
+            ref.read(homeControllerProvider.notifier).setBottomNavIndex(index);
+            _pageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          selectedItemColor: Theme.of(context).colorScheme.primary,
+          unselectedItemColor: Colors.grey,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              activeIcon: Icon(Icons.home),
+              label: 'Главная',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              activeIcon: Icon(Icons.search),
+              label: 'Поиск',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.favorite_outline),
+              activeIcon: Icon(Icons.favorite),
+              label: 'Избранное',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
+              label: 'Настройки',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Создает плавающую кнопку действия
+  Widget _buildFloatingActionButton() {
+    return AnimatedBuilder(
+      animation: _fabAnimationController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _fabAnimationController.value,
+          child: FloatingActionButton.extended(
+            onPressed: () {
+              // Показываем меню быстрых действий
+              _showQuickActionsBottomSheet();
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Быстро'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Показывает нижнее меню быстрых действий
+  void _showQuickActionsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Быстрые действия',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.file_open),
+              title: const Text('Открыть хранилище'),
+              onTap: () {
+                Navigator.pop(context);
+                context.go(AppRoutes.openStore);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_box),
+              title: const Text('Создать хранилище'),
+              onTap: () {
+                Navigator.pop(context);
+                context.go(AppRoutes.createStore);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Настройки'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => UniversalPlatform.isMobile
+                        ? const DynamicSettingsScreen()
+                        : const AutoSettingsScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Создает SliverAppBar с современным дизайном
+  Widget _buildAppBar() {
+    return SliverAppBar(
+      expandedHeight: 120,
+      floating: true,
+      snap: true,
+      pinned: false,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
+        title: Text(
+          MainConstants.appName,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 28,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                Theme.of(
+                  context,
+                ).colorScheme.secondaryContainer.withOpacity(0.1),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          onPressed: () {
+            // TODO: Показать уведомления
+          },
+          tooltip: 'Уведомления',
+        ),
+        IconButton(
+          icon: const Icon(Icons.tune),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => UniversalPlatform.isMobile
+                    ? const DynamicSettingsScreen()
+                    : const AutoSettingsScreen(),
+              ),
+            );
+          },
+          tooltip: 'Настройки',
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  /// Создает быстрые действия
+  Widget _buildQuickActions() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Быстрые действия',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuickActionCard(
+                    icon: Icons.file_open,
+                    label: 'Открыть хранилище',
+                    onTap: () => context.go(AppRoutes.openStore),
+                    isPrimary: true,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildQuickActionCard(
+                    icon: Icons.add_box,
+                    label: 'Создать хранилище',
+                    onTap: () => context.go(AppRoutes.createStore),
+                    isPrimary: false,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Создает карточку быстрого действия
+  Widget _buildQuickActionCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required bool isPrimary,
+  }) {
+    return Card(
+      elevation: isPrimary ? 4 : 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(8.0),
-          child: CustomScrollView(
-            shrinkWrap: true,
-            slivers: [
-              if (UniversalPlatform.isMobile)
-                SliverAppBar(
-                  pinned: true,
-                  centerTitle: true,
-                  title: const Text(
-                    MainConstants.appName,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const DynamicSettingsScreen(),
-                          ),
-                        );
-                      },
-                      tooltip: 'Настройки',
-                    ),
-                  ],
-                )
-              else
-                SliverAppBar(
-                  pinned: true,
-                  centerTitle: true,
-                  title: const Text(
-                    MainConstants.appName,
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const AutoSettingsScreen(),
-                          ),
-                        );
-                      },
-                      tooltip: 'Настройки',
-                    ),
-                  ],
-                ),
-
-              // Карточка недавней базы данных
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 2,
-                  children: [
-                    SmoothButton(
-                      onPressed: () {
-                        context.go(AppRoutes.openStore);
-                      },
-                      isFullWidth: true,
-                      label: 'Открыть хранилище',
-                      icon: const Icon(Icons.file_open_sharp, size: 32),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    SmoothButton(
-                      onPressed: () {
-                        context.go(AppRoutes.createStore);
-                      },
-                      isFullWidth: true,
-                      type: SmoothButtonType.outlined,
-                      label: 'Создать хранилище',
-                      icon: const Icon(Icons.add_box, size: 32),
-                    ),
-                  ],
-                ),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: isPrimary
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    ],
+                  )
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 32,
+                color: isPrimary
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).colorScheme.primary,
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-              const SliverToBoxAdapter(child: Divider(height: 2)),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-              SliverToBoxAdapter(
-                child: Consumer(
-                  builder: (context, ref, child) {
-                    final homeState = ref.watch(homeControllerProvider);
-
-                    if (homeState.hasRecentDatabase) {
-                      return RecentDatabaseCard(
-                        database: homeState.recentDatabase!,
-                        isLoading: homeState.isLoading,
-                        isAutoOpening: homeState.isAutoOpening,
-                        onOpenAuto: _handleAutoOpen,
-                        onOpenManual: _handleManualOpen,
-                        onRemove: _handleRemove,
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-              // Показываем ошибки если есть
-              SliverToBoxAdapter(
-                child: Consumer(
-                  builder: (context, ref, child) {
-                    final homeState = ref.watch(homeControllerProvider);
-
-                    if (homeState.error != null) {
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                homeState.error!,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: isPrimary
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -227,11 +510,196 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  /// Создает виджет на основе данных HomeWidgetData
+  Widget _buildHomeWidget(HomeWidgetData widget) {
+    switch (widget.type) {
+      case HomeWidgetType.recentDatabase:
+        return _buildRecentDatabaseWidget();
+      case HomeWidgetType.quickActions:
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      case HomeWidgetType.statistics:
+        return _buildStatisticsWidget();
+      case HomeWidgetType.shortcuts:
+        return _buildShortcutsWidget();
+      case HomeWidgetType.notifications:
+        return _buildNotificationsWidget();
+      case HomeWidgetType.customWidget:
+        return _buildCustomWidget(widget);
+    }
+  }
+
+  /// Создает виджет недавней базы данных
+  Widget _buildRecentDatabaseWidget() {
+    return SliverToBoxAdapter(
+      child: Consumer(
+        builder: (context, ref, child) {
+          final homeState = ref.watch(homeControllerProvider);
+
+          if (!homeState.hasRecentDatabase) {
+            return const SizedBox.shrink();
+          }
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Недавние базы данных',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                RecentDatabaseCard(
+                  database: homeState.recentDatabase!,
+                  isLoading: homeState.isLoading,
+                  isAutoOpening: homeState.isAutoOpening,
+                  onOpenAuto: _handleAutoOpen,
+                  onOpenManual: _handleManualOpen,
+                  onRemove: _handleRemove,
+                ),
+                const SizedBox(height: 24),
+                const Divider(),
+                const SizedBox(height: 24),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Создает виджет статистики
+  Widget _buildStatisticsWidget() {
+    return SliverToBoxAdapter(
+      child: Consumer(
+        builder: (context, ref, child) {
+          final historyStats = ref.watch(historyStatsProvider);
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Статистика',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    historyStats.when(
+                      data: (stats) => Column(
+                        children: [
+                          _buildStatItem(
+                            'Всего записей',
+                            stats['totalEntries'].toString(),
+                          ),
+                          _buildStatItem(
+                            'С сохраненными паролями',
+                            stats['entriesWithSavedPasswords'].toString(),
+                          ),
+                        ],
+                      ),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, stack) => Text(
+                        'Ошибка загрузки статистики',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  /// Заглушки для остальных виджетов
+  Widget _buildShortcutsWidget() {
+    return const SliverToBoxAdapter(child: SizedBox.shrink());
+  }
+
+  Widget _buildNotificationsWidget() {
+    return const SliverToBoxAdapter(child: SizedBox.shrink());
+  }
+
+  Widget _buildCustomWidget(HomeWidgetData widget) {
+    return const SliverToBoxAdapter(child: SizedBox.shrink());
+  }
+
+  /// Показывает ошибки если есть
+  Widget _buildErrorMessage() {
+    return SliverToBoxAdapter(
+      child: Consumer(
+        builder: (context, ref, child) {
+          final homeState = ref.watch(homeControllerProvider);
+
+          if (homeState.error == null) {
+            return const SizedBox.shrink();
+          }
+
+          return Container(
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    homeState.error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget buildAppBar() {
+    return SliverAppBar(pinned: true, title: const Text(MainConstants.appName));
+  }
+
+  // Обработчики событий
   Future<void> _handleAutoOpen() async {
     final controller = ref.read(homeControllerProvider.notifier);
     final result = await controller.autoOpenRecentDatabase();
-    if (result != null && mounted) {
-      // Переходим к экрану базы данных
+    if (result != null && context.mounted) {
       _navigateToDatabase();
     }
   }
@@ -243,7 +711,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final recentDatabase = ref.read(recentDatabaseProvider);
     final result = await DatabasePasswordDialog.show(context, recentDatabase!);
 
-    if (result != null && mounted) {
+    if (result != null && context.mounted) {
       final controller = ref.read(homeControllerProvider.notifier);
       final dbResult = result.savePassword
           ? await controller.openRecentDatabaseWithPasswordAndSave(
@@ -251,7 +719,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             )
           : await controller.openRecentDatabaseWithPassword(result.password);
 
-      if (dbResult != null && mounted) {
+      if (dbResult != null && context.mounted) {
         _navigateToDatabase();
       }
     }
@@ -271,6 +739,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Удалить из истории'),
         content: Text(
           'Удалить "${recentDatabase?.name}" из истории недавно открытых баз данных?',
@@ -292,13 +761,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _navigateToDatabase() {
-    // TODO: Добавить навигацию к главному экрану базы данных
-    // context.go(AppRoutes.database);
     context.go(AppRoutes.dashboard);
-  }
-
-  Widget buildAppBar() {
-    return SliverAppBar(pinned: true, title: const Text(MainConstants.appName));
   }
 }
 

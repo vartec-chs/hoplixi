@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
@@ -14,12 +13,16 @@ class HomeState {
   final bool isLoading;
   final String? error;
   final bool isAutoOpening;
+  final int selectedBottomNavIndex;
+  final List<HomeWidgetData> widgets;
 
   const HomeState({
     this.recentDatabase,
     this.isLoading = false,
     this.error,
     this.isAutoOpening = false,
+    this.selectedBottomNavIndex = 0,
+    this.widgets = const [],
   });
 
   /// Создание копии с измененными полями
@@ -30,6 +33,8 @@ class HomeState {
     String? error,
     bool? clearError,
     bool? isAutoOpening,
+    int? selectedBottomNavIndex,
+    List<HomeWidgetData>? widgets,
   }) {
     return HomeState(
       recentDatabase: hasRecentDatabase == false
@@ -38,6 +43,9 @@ class HomeState {
       isLoading: isLoading ?? this.isLoading,
       error: clearError == true ? null : (error ?? this.error),
       isAutoOpening: isAutoOpening ?? this.isAutoOpening,
+      selectedBottomNavIndex:
+          selectedBottomNavIndex ?? this.selectedBottomNavIndex,
+      widgets: widgets ?? this.widgets,
     );
   }
 
@@ -55,7 +63,9 @@ class HomeState {
         other.recentDatabase == recentDatabase &&
         other.isLoading == isLoading &&
         other.error == error &&
-        other.isAutoOpening == isAutoOpening;
+        other.isAutoOpening == isAutoOpening &&
+        other.selectedBottomNavIndex == selectedBottomNavIndex &&
+        other.widgets.length == widgets.length;
   }
 
   @override
@@ -63,15 +73,94 @@ class HomeState {
     return recentDatabase.hashCode ^
         isLoading.hashCode ^
         error.hashCode ^
-        isAutoOpening.hashCode;
+        isAutoOpening.hashCode ^
+        selectedBottomNavIndex.hashCode ^
+        widgets.length.hashCode;
   }
 }
 
-/// StateNotifier для управления состоянием главного экрана
-class HomeController extends StateNotifier<HomeState> {
-  final HoplixiStoreManager _storeManager;
+/// Данные для виджета на главном экране
+class HomeWidgetData {
+  final String id;
+  final String title;
+  final HomeWidgetType type;
+  final Map<String, dynamic> data;
+  final bool isVisible;
+  final int order;
 
-  HomeController(this._storeManager) : super(const HomeState());
+  const HomeWidgetData({
+    required this.id,
+    required this.title,
+    required this.type,
+    this.data = const {},
+    this.isVisible = true,
+    this.order = 0,
+  });
+
+  HomeWidgetData copyWith({
+    String? id,
+    String? title,
+    HomeWidgetType? type,
+    Map<String, dynamic>? data,
+    bool? isVisible,
+    int? order,
+  }) {
+    return HomeWidgetData(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      data: data ?? this.data,
+      isVisible: isVisible ?? this.isVisible,
+      order: order ?? this.order,
+    );
+  }
+}
+
+/// Типы виджетов на главном экране
+enum HomeWidgetType {
+  recentDatabase,
+  quickActions,
+  statistics,
+  shortcuts,
+  notifications,
+  customWidget,
+}
+
+/// Современный контроллер главного экрана с использованием Riverpod 3.0 Notifier API
+class HomeController extends Notifier<HomeState> {
+  HoplixiStoreManager get _storeManager =>
+      ref.read(hoplixiStoreManagerProvider);
+
+  @override
+  HomeState build() {
+    // Инициализация состояния с виджетами по умолчанию
+    final initialWidgets = [
+      const HomeWidgetData(
+        id: 'recent_database',
+        title: 'Недавние базы данных',
+        type: HomeWidgetType.recentDatabase,
+        order: 0,
+      ),
+      const HomeWidgetData(
+        id: 'quick_actions',
+        title: 'Быстрые действия',
+        type: HomeWidgetType.quickActions,
+        order: 1,
+      ),
+      const HomeWidgetData(
+        id: 'statistics',
+        title: 'Статистика',
+        type: HomeWidgetType.statistics,
+        order: 2,
+        isVisible: false, // По умолчанию скрыт
+      ),
+    ];
+
+    // Загружаем данные асинхронно
+    _loadInitialData();
+
+    return HomeState(widgets: initialWidgets);
+  }
 
   // Геттеры для состояния
   DatabaseEntry? get recentDatabase => state.recentDatabase;
@@ -80,27 +169,26 @@ class HomeController extends StateNotifier<HomeState> {
   bool get isAutoOpening => state.isAutoOpening;
   bool get hasRecentDatabase => state.hasRecentDatabase;
   bool get canAutoOpen => state.canAutoOpen;
+  int get selectedBottomNavIndex => state.selectedBottomNavIndex;
+  List<HomeWidgetData> get widgets =>
+      state.widgets.where((w) => w.isVisible).toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
 
-  /// Инициализация контроллера
-  Future<void> initialize() async {
-    await _loadRecentDatabase();
-  }
-
-  Future<bool> get canAutoOpenAsync async {
+  /// Проверяет возможность автоматического открытия с учетом настроек
+  Future<bool> get canAutoOpenWithSettings async {
     if (!hasRecentDatabase) return false;
     final manager = AutoPreferencesManager.instance;
     final autoOpenLastStorage = manager.getValue<bool>(
       'auto_open_last_storage',
     );
-    if (autoOpenLastStorage != true) {
-      return false;
-    }
+    if (autoOpenLastStorage != true) return false;
+
     return state.recentDatabase?.saveMasterPassword == true &&
         state.recentDatabase?.masterPassword?.isNotEmpty == true;
   }
 
   /// Загружает информацию о недавно открытой базе данных
-  Future<void> _loadRecentDatabase() async {
+  Future<void> _loadInitialData() async {
     try {
       state = state.copyWith(isLoading: true, clearError: true);
 
@@ -141,6 +229,46 @@ class HomeController extends StateNotifier<HomeState> {
         tag: 'HomeController',
       );
     }
+  }
+
+  /// Устанавливает выбранный индекс нижней навигации
+  void setBottomNavIndex(int index) {
+    state = state.copyWith(selectedBottomNavIndex: index);
+  }
+
+  /// Добавляет новый виджет на главный экран
+  void addWidget(HomeWidgetData widget) {
+    final updatedWidgets = List<HomeWidgetData>.from(state.widgets);
+    updatedWidgets.add(widget);
+    state = state.copyWith(widgets: updatedWidgets);
+  }
+
+  /// Удаляет виджет с главного экрана
+  void removeWidget(String widgetId) {
+    final updatedWidgets = state.widgets
+        .where((w) => w.id != widgetId)
+        .toList();
+    state = state.copyWith(widgets: updatedWidgets);
+  }
+
+  /// Переключает видимость виджета
+  void toggleWidgetVisibility(String widgetId) {
+    final updatedWidgets = state.widgets.map((w) {
+      if (w.id == widgetId) {
+        return w.copyWith(isVisible: !w.isVisible);
+      }
+      return w;
+    }).toList();
+    state = state.copyWith(widgets: updatedWidgets);
+  }
+
+  /// Обновляет порядок виджетов
+  void reorderWidgets(List<HomeWidgetData> newOrder) {
+    final updatedWidgets = newOrder.map((widget) {
+      final index = newOrder.indexOf(widget);
+      return widget.copyWith(order: index);
+    }).toList();
+    state = state.copyWith(widgets: updatedWidgets);
   }
 
   /// Автоматическое открытие базы данных (если пароль сохранен)
@@ -221,7 +349,7 @@ class HomeController extends StateNotifier<HomeState> {
       final openDto = OpenDatabaseDto(
         path: state.recentDatabase!.path,
         masterPassword: password,
-        saveMasterPassword: false, // Не сохраняем пароль по умолчанию
+        saveMasterPassword: false,
       );
 
       final result = await _storeManager.openDatabase(openDto);
@@ -232,9 +360,7 @@ class HomeController extends StateNotifier<HomeState> {
         data: {'status': result.status.toString()},
       );
 
-      // Обновляем информацию о недавней базе данных
       await _safeReloadHistory();
-
       return result;
     } catch (e, stackTrace) {
       final errorMessage = 'Ошибка открытия: ${e.toString()}';
@@ -275,7 +401,7 @@ class HomeController extends StateNotifier<HomeState> {
       final openDto = OpenDatabaseDto(
         path: state.recentDatabase!.path,
         masterPassword: password,
-        saveMasterPassword: true, // Сохраняем пароль
+        saveMasterPassword: true,
       );
 
       final result = await _storeManager.openDatabase(openDto);
@@ -286,9 +412,7 @@ class HomeController extends StateNotifier<HomeState> {
         data: {'status': result.status.toString()},
       );
 
-      // Обновляем информацию о недавней базе данных
       await _safeReloadHistory();
-
       return result;
     } catch (e, stackTrace) {
       final errorMessage = 'Ошибка открытия: ${e.toString()}';
@@ -325,7 +449,6 @@ class HomeController extends StateNotifier<HomeState> {
         data: {'path': state.recentDatabase!.path},
       );
 
-      // Перезагружаем список
       await _safeReloadHistory();
     } catch (e, stackTrace) {
       state = state.copyWith(
@@ -367,11 +490,10 @@ class HomeController extends StateNotifier<HomeState> {
   Future<void> _safeReloadHistory({int maxRetries = 3}) async {
     for (int attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        await _loadRecentDatabase();
-        return; // Успешно загружено
+        await _loadInitialData();
+        return;
       } catch (e) {
         if (attempt == maxRetries - 1) {
-          // Последняя попытка не удалась
           logError(
             'Не удалось загрузить историю БД после $maxRetries попыток',
             error: e,
@@ -380,8 +502,6 @@ class HomeController extends StateNotifier<HomeState> {
           state = state.copyWith(hasRecentDatabase: false);
           return;
         }
-
-        // Ждем перед следующей попыткой
         await Future.delayed(Duration(milliseconds: 200 * (attempt + 1)));
       }
     }
@@ -399,16 +519,12 @@ class HomeController extends StateNotifier<HomeState> {
 }
 
 // =============================================================================
-// ПРОВАЙДЕРЫ
+// ПРОВАЙДЕРЫ RIVERPOD 3.0
 // =============================================================================
 
-/// Провайдер для HomeController
-final homeControllerProvider = StateNotifierProvider<HomeController, HomeState>(
-  (ref) {
-    final storeManager = ref.read(hoplixiStoreManagerProvider);
-
-    return HomeController(storeManager);
-  },
+/// Провайдер для HomeController с использованием Notifier API
+final homeControllerProvider = NotifierProvider<HomeController, HomeState>(
+  HomeController.new,
 );
 
 /// Провайдер для недавней базы данных
@@ -430,9 +546,9 @@ final canAutoOpenProvider = Provider<bool>((ref) {
 });
 
 /// Асинхронный провайдер для проверки возможности автоматического открытия с настройками
-final canAutoOpenAsyncProvider = FutureProvider<bool>((ref) async {
+final canAutoOpenWithSettingsProvider = FutureProvider<bool>((ref) async {
   final homeController = ref.read(homeControllerProvider.notifier);
-  return await homeController.canAutoOpenAsync;
+  return await homeController.canAutoOpenWithSettings;
 });
 
 /// Провайдер для статистики истории
@@ -458,3 +574,25 @@ final homeAutoOpeningProvider = Provider<bool>((ref) {
   final homeState = ref.watch(homeControllerProvider);
   return homeState.isAutoOpening;
 });
+
+/// Провайдер для выбранного индекса нижней навигации
+final selectedBottomNavIndexProvider = Provider<int>((ref) {
+  final homeState = ref.watch(homeControllerProvider);
+  return homeState.selectedBottomNavIndex;
+});
+
+/// Провайдер для видимых виджетов главного экрана
+final homeWidgetsProvider = Provider<List<HomeWidgetData>>((ref) {
+  final homeController = ref.read(homeControllerProvider.notifier);
+  return homeController.widgets;
+});
+
+/// Провайдер для конкретного типа виджета
+final homeWidgetByTypeProvider =
+    Provider.family<HomeWidgetData?, HomeWidgetType>((ref, type) {
+      final widgets = ref.watch(homeWidgetsProvider);
+      return widgets.cast<HomeWidgetData?>().firstWhere(
+        (widget) => widget?.type == type,
+        orElse: () => null,
+      );
+    });
