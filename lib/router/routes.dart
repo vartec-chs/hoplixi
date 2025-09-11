@@ -36,12 +36,12 @@ final List<GoRoute> appRoutes = [
     builder: (context, state) => const CreateStoreScreen(),
   ),
   GoRoute(
-    path: AppRoutes.testDemo,
-    builder: (context, state) => const TestScreen(),
+    path: AppRoutes.openStore,
+    builder: (context, state) => const OpenStoreScreen(),
   ),
   GoRoute(
     path: AppRoutes.dashboard,
-    builder: (context, state) => const CategoryFilterExampleScreen(),
+    builder: (context, state) => const DashboardScreen(),
   ),
   GoRoute(
     path: AppRoutes.baseSettings,

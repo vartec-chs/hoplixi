@@ -156,35 +156,36 @@ class HomeController extends Notifier<HomeState> {
       ),
     ];
 
-    // Загружаем данные асинхронно
-    _loadInitialData();
+    // Загружаем данные асинхронно после инициализации
+    Future.microtask(() => _loadInitialData());
 
     return HomeState(widgets: initialWidgets);
   }
 
-  // Геттеры для состояния
-  DatabaseEntry? get recentDatabase => state.recentDatabase;
-  bool get isLoading => state.isLoading;
-  String? get error => state.error;
-  bool get isAutoOpening => state.isAutoOpening;
-  bool get hasRecentDatabase => state.hasRecentDatabase;
-  bool get canAutoOpen => state.canAutoOpen;
-  int get selectedBottomNavIndex => state.selectedBottomNavIndex;
-  List<HomeWidgetData> get widgets =>
-      state.widgets.where((w) => w.isVisible).toList()
-        ..sort((a, b) => a.order.compareTo(b.order));
-
   /// Проверяет возможность автоматического открытия с учетом настроек
-  Future<bool> get canAutoOpenWithSettings async {
-    if (!hasRecentDatabase) return false;
-    final manager = AutoPreferencesManager.instance;
-    final autoOpenLastStorage = manager.getValue<bool>(
-      'auto_open_last_storage',
-    );
-    if (autoOpenLastStorage != true) return false;
+  static Future<bool> checkCanAutoOpenWithSettings(
+    DatabaseEntry? recentDatabase,
+  ) async {
+    if (recentDatabase == null) return false;
 
-    return state.recentDatabase?.saveMasterPassword == true &&
-        state.recentDatabase?.masterPassword?.isNotEmpty == true;
+    try {
+      final manager = AutoPreferencesManager.instance;
+      final autoOpenLastStorage = manager.getValue<bool>(
+        'auto_open_last_storage',
+      );
+      if (autoOpenLastStorage != true) return false;
+
+      return recentDatabase.saveMasterPassword == true &&
+          recentDatabase.masterPassword?.isNotEmpty == true;
+    } catch (e) {
+      // В случае ошибки возвращаем false, чтобы не блокировать UI
+      logError(
+        'Ошибка проверки настроек автооткрытия',
+        error: e,
+        tag: 'HomeController.checkCanAutoOpenWithSettings',
+      );
+      return false;
+    }
   }
 
   /// Загружает информацию о недавно открытой базе данных
@@ -273,12 +274,16 @@ class HomeController extends Notifier<HomeState> {
 
   /// Автоматическое открытие базы данных (если пароль сохранен)
   Future<DatabaseState?> autoOpenRecentDatabase() async {
+    final canAutoOpen =
+        state.recentDatabase?.saveMasterPassword == true &&
+        state.recentDatabase?.masterPassword?.isNotEmpty == true;
+
     if (!canAutoOpen) {
       logWarning(
         'Автоматическое открытие недоступно',
         tag: 'HomeController',
         data: {
-          'hasRecentDb': hasRecentDatabase,
+          'hasRecentDb': state.hasRecentDatabase,
           'hasSavedPassword': state.recentDatabase?.saveMasterPassword ?? false,
         },
       );
@@ -332,7 +337,7 @@ class HomeController extends Notifier<HomeState> {
 
   /// Открытие базы данных с введенным паролем
   Future<DatabaseState?> openRecentDatabaseWithPassword(String password) async {
-    if (!hasRecentDatabase) {
+    if (!state.hasRecentDatabase) {
       state = state.copyWith(error: 'Недавняя база данных не найдена');
       return null;
     }
@@ -384,7 +389,7 @@ class HomeController extends Notifier<HomeState> {
   Future<DatabaseState?> openRecentDatabaseWithPasswordAndSave(
     String password,
   ) async {
-    if (!hasRecentDatabase) {
+    if (!state.hasRecentDatabase) {
       state = state.copyWith(error: 'Недавняя база данных не найдена');
       return null;
     }
@@ -434,7 +439,7 @@ class HomeController extends Notifier<HomeState> {
 
   /// Удаляет недавнюю базу данных из истории
   Future<void> removeRecentDatabase() async {
-    if (!hasRecentDatabase) return;
+    if (!state.hasRecentDatabase) return;
 
     try {
       state = state.copyWith(isLoading: true, clearError: true);
@@ -529,26 +534,38 @@ final homeControllerProvider = NotifierProvider<HomeController, HomeState>(
 
 /// Провайдер для недавней базы данных
 final recentDatabaseProvider = Provider<DatabaseEntry?>((ref) {
-  final homeState = ref.watch(homeControllerProvider);
-  return homeState.recentDatabase;
+  final homeState = ref.watch(
+    homeControllerProvider.select((state) => state.recentDatabase),
+  );
+  return homeState;
 });
 
 /// Провайдер для проверки наличия недавней базы данных
 final hasRecentDatabaseProvider = Provider<bool>((ref) {
-  final homeState = ref.watch(homeControllerProvider);
-  return homeState.hasRecentDatabase;
+  final recentDatabase = ref.watch(recentDatabaseProvider);
+  return recentDatabase != null;
 });
 
 /// Провайдер для проверки возможности автоматического открытия
 final canAutoOpenProvider = Provider<bool>((ref) {
-  final homeState = ref.watch(homeControllerProvider);
-  return homeState.canAutoOpen;
+  final recentDatabase = ref.watch(recentDatabaseProvider);
+  return recentDatabase?.saveMasterPassword == true &&
+      recentDatabase?.masterPassword?.isNotEmpty == true;
 });
 
 /// Асинхронный провайдер для проверки возможности автоматического открытия с настройками
 final canAutoOpenWithSettingsProvider = FutureProvider<bool>((ref) async {
-  final homeController = ref.read(homeControllerProvider.notifier);
-  return await homeController.canAutoOpenWithSettings;
+  // Следим за состоянием, но не читаем его во время инициализации
+  final homeState = ref.watch(homeControllerProvider);
+
+  // Если контроллер еще инициализируется, возвращаем false
+  if (homeState.isLoading && homeState.recentDatabase == null) {
+    return false;
+  }
+
+  return await HomeController.checkCanAutoOpenWithSettings(
+    homeState.recentDatabase,
+  );
 });
 
 /// Провайдер для статистики истории
@@ -559,32 +576,35 @@ final historyStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
 
 /// Провайдер для состояния загрузки главного экрана
 final homeLoadingProvider = Provider<bool>((ref) {
-  final homeState = ref.watch(homeControllerProvider);
-  return homeState.isLoading;
+  return ref.watch(homeControllerProvider.select((state) => state.isLoading));
 });
 
 /// Провайдер для ошибки главного экрана
 final homeErrorProvider = Provider<String?>((ref) {
-  final homeState = ref.watch(homeControllerProvider);
-  return homeState.error;
+  return ref.watch(homeControllerProvider.select((state) => state.error));
 });
 
 /// Провайдер для состояния автоматического открытия
 final homeAutoOpeningProvider = Provider<bool>((ref) {
-  final homeState = ref.watch(homeControllerProvider);
-  return homeState.isAutoOpening;
+  return ref.watch(
+    homeControllerProvider.select((state) => state.isAutoOpening),
+  );
 });
 
 /// Провайдер для выбранного индекса нижней навигации
 final selectedBottomNavIndexProvider = Provider<int>((ref) {
-  final homeState = ref.watch(homeControllerProvider);
-  return homeState.selectedBottomNavIndex;
+  return ref.watch(
+    homeControllerProvider.select((state) => state.selectedBottomNavIndex),
+  );
 });
 
 /// Провайдер для видимых виджетов главного экрана
 final homeWidgetsProvider = Provider<List<HomeWidgetData>>((ref) {
-  final homeController = ref.read(homeControllerProvider.notifier);
-  return homeController.widgets;
+  final widgets = ref.watch(
+    homeControllerProvider.select((state) => state.widgets),
+  );
+  return widgets.where((w) => w.isVisible).toList()
+    ..sort((a, b) => a.order.compareTo(b.order));
 });
 
 /// Провайдер для конкретного типа виджета

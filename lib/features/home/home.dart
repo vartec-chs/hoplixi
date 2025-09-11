@@ -38,18 +38,9 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
     // Инициализация с задержкой для плавной анимации
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeController();
       _fabAnimationController.forward();
+      // Убираем инициализацию контроллера отсюда, чтобы избежать циклической зависимости
     });
-  }
-
-  Future<void> _initializeController() async {
-    // Инициализация уже происходит в build() метод контроллера
-    final canAutoOpen = await ref.read(canAutoOpenWithSettingsProvider.future);
-
-    if (canAutoOpen && mounted) {
-      _showAutoOpenDialog();
-    }
   }
 
   void _showAutoOpenDialog() {
@@ -107,6 +98,22 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     return Consumer(
       builder: (context, ref, child) {
         final selectedIndex = ref.watch(selectedBottomNavIndexProvider);
+
+        // Проверяем возможность автооткрытия после инициализации
+        ref.listen<AsyncValue<bool>>(canAutoOpenWithSettingsProvider, (
+          previous,
+          next,
+        ) {
+          next.whenOrNull(
+            data: (canAutoOpen) {
+              if (canAutoOpen && mounted) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _showAutoOpenDialog();
+                });
+              }
+            },
+          );
+        });
 
         return Scaffold(
           body: PageView(
