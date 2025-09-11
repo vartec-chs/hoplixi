@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
+import 'package:hoplixi/features/filters/category_filter/example/category_filter_example_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
 import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
@@ -9,7 +10,7 @@ import 'package:hoplixi/features/password_manager/icons_manager/icons_management
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
-import 'package:hoplixi/features/tag_filter/example/tag_filter_example_screen.dart';
+import 'package:hoplixi/features/filters/tag_filter/example/tag_filter_example_screen.dart';
 import 'package:hoplixi/features/test/test.dart';
 import 'routes_path.dart';
 
@@ -40,7 +41,7 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.dashboard,
-    builder: (context, state) => const DashboardScreen(),
+    builder: (context, state) => const CategoryFilterExampleScreen(),
   ),
   GoRoute(
     path: AppRoutes.baseSettings,
