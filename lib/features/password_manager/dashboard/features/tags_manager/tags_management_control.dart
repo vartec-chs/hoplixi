@@ -171,7 +171,7 @@ class TagsManagementNotifier extends Notifier<TagsManagementState> {
     String? color,
     required TagType type,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(clearError: true);
 
     try {
       final result = await _tagsService.createTag(
@@ -184,14 +184,11 @@ class TagsManagementNotifier extends Notifier<TagsManagementState> {
         await refresh();
         return true;
       } else {
-        state = state.copyWith(isLoading: false, error: result.message);
+        state = state.copyWith(error: result.message);
         return false;
       }
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Ошибка создания тега: ${e.toString()}',
-      );
+      state = state.copyWith(error: 'Ошибка создания тега: ${e.toString()}');
       return false;
     }
   }
@@ -203,7 +200,7 @@ class TagsManagementNotifier extends Notifier<TagsManagementState> {
     String? color,
     TagType? type,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(clearError: true);
 
     try {
       final result = await _tagsService.updateTag(
@@ -217,14 +214,11 @@ class TagsManagementNotifier extends Notifier<TagsManagementState> {
         await refresh();
         return true;
       } else {
-        state = state.copyWith(isLoading: false, error: result.message);
+        state = state.copyWith(error: result.message);
         return false;
       }
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Ошибка обновления тега: ${e.toString()}',
-      );
+      state = state.copyWith(error: 'Ошибка обновления тега: ${e.toString()}');
       return false;
     }
   }

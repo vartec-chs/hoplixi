@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import '../hoplixi_store.dart';
 import '../tables/tags.dart';
 import '../dto/db_dto.dart';
@@ -12,7 +13,9 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
 
   /// Создание нового тега
   Future<String> createTag(CreateTagDto dto) async {
+    final iconId = UuidGenerator.generate();
     final companion = TagsCompanion(
+      id: Value(iconId),
       name: Value(dto.name),
       color: Value(dto.color),
       type: Value(dto.type),
@@ -23,7 +26,7 @@ class TagsDao extends DatabaseAccessor<HoplixiStore> with _$TagsDaoMixin {
     ).insert(companion, mode: InsertMode.insertOrIgnore);
 
     // Возвращаем сгенерированный UUID из companion
-    return companion.id.value;
+    return iconId;
   }
 
   /// Обновление тега
