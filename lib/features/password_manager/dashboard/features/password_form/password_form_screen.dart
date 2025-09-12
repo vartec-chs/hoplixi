@@ -21,7 +21,6 @@ class PasswordFormScreen extends ConsumerStatefulWidget {
 
 class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
     with WidgetsBindingObserver {
-  PasswordFormState? _formState;
   bool _showPasswordGenerator = false;
 
   @override
@@ -33,19 +32,14 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    // Безопасная очистка при выходе с экрана
-    _formState?.clearSensitiveData();
+    // Очистка ресурсов теперь управляется через Notifier автоматически
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Очистка данных при сворачивании/закрытии приложения
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      _formState?.clearSensitiveData();
-    }
+    // Очистка данных при сворачивании/закрытии приложения управляется через Notifier
   }
 
   /// Валидатор для обязательных полей
@@ -84,9 +78,10 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
   /// Сохранение пароля
   Future<void> _savePassword() async {
-    if (_formState == null) return;
-
-    final success = await _formState!.savePassword();
+    final notifier = ref.read(
+      passwordFormStateProvider(widget.passwordId).notifier,
+    );
+    final success = await notifier.savePassword();
     if (success && mounted) {
       Navigator.of(context).pop(true); // Возвращаем true для обновления списка
     }
@@ -94,14 +89,16 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
   /// Отмена и возврат
   void _cancel() {
-    _formState?.clearSensitiveData();
     Navigator.of(context).pop(false);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    _formState = ref.watch(passwordFormStateProvider(widget.passwordId));
+    final formState = ref.watch(passwordFormStateProvider(widget.passwordId));
+    final notifier = ref.read(
+      passwordFormStateProvider(widget.passwordId).notifier,
+    );
 
     return PopScope(
       canPop: false,
@@ -112,281 +109,251 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_formState?.screenTitle ?? 'Пароль'),
+          title: Text(notifier.screenTitle),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: _cancel,
           ),
           actions: [
             // Кнопка избранного
-            Consumer(
-              builder: (context, ref, _) {
-                final formState = ref.watch(
-                  passwordFormStateProvider(widget.passwordId),
-                );
-                return IconButton(
-                  icon: Icon(
-                    formState.isFavorite ? Icons.star : Icons.star_border,
-                    color: formState.isFavorite ? Colors.amber : null,
-                  ),
-                  onPressed: () {
-                    formState.toggleFavorite();
-                  },
-                );
+            IconButton(
+              icon: Icon(
+                formState.isFavorite ? Icons.star : Icons.star_border,
+                color: formState.isFavorite ? Colors.amber : null,
+              ),
+              onPressed: () {
+                notifier.toggleFavorite();
               },
             ),
           ],
         ),
-        body: _formState == null
-            ? const Center(child: CircularProgressIndicator())
-            : Form(
-                key: _formState!.formKey,
-                child: Column(
-                  children: [
-                    // Основная скроллируемая область с полями
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+        body: Form(
+          key: formState.formKey,
+          child: Column(
+            children: [
+              // Основная скроллируемая область с полями
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Название
+                      PrimaryTextFormField(
+                        controller: formState.nameController,
+                        label: 'Название',
+                        hintText: 'Введите название пароля',
+                        validator: _requiredValidator,
+                        textInputAction: TextInputAction.next,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Описание
+                      PrimaryTextFormField(
+                        controller: formState.descriptionController,
+                        label: 'Описание',
+                        hintText: 'Дополнительное описание (необязательно)',
+                        textInputAction: TextInputAction.next,
+                        maxLines: 2,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // URL
+                      PrimaryTextFormField(
+                        controller: formState.urlController,
+                        label: 'URL сайта',
+                        hintText: 'https://example.com',
+                        validator: _urlValidator,
+                        keyboardType: TextInputType.url,
+                        textInputAction: TextInputAction.next,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Логин
+                      PrimaryTextFormField(
+                        controller: formState.loginController,
+                        label: 'Логин',
+                        hintText: 'Имя пользователя',
+                        textInputAction: TextInputAction.next,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Email
+                      PrimaryTextFormField(
+                        controller: formState.emailController,
+                        label: 'Email',
+                        hintText: 'user@example.com',
+                        validator: _emailValidator,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Пароль
+                      PrimaryTextFormField(
+                        controller: formState.passwordController,
+                        label: 'Пароль',
+                        hintText: 'Введите пароль',
+                        validator: _requiredValidator,
+                        obscureText: !formState.isPasswordVisible,
+                        textInputAction: TextInputAction.next,
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Название
-                            PrimaryTextFormField(
-                              controller: _formState!.nameController,
-                              label: 'Название',
-                              hintText: 'Введите название пароля',
-                              validator: _requiredValidator,
-                              textInputAction: TextInputAction.next,
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // Описание
-                            PrimaryTextFormField(
-                              controller: _formState!.descriptionController,
-                              label: 'Описание',
-                              hintText:
-                                  'Дополнительное описание (необязательно)',
-                              textInputAction: TextInputAction.next,
-                              maxLines: 2,
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // URL
-                            PrimaryTextFormField(
-                              controller: _formState!.urlController,
-                              label: 'URL сайта',
-                              hintText: 'https://example.com',
-                              validator: _urlValidator,
-                              keyboardType: TextInputType.url,
-                              textInputAction: TextInputAction.next,
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // Логин
-                            PrimaryTextFormField(
-                              controller: _formState!.loginController,
-                              label: 'Логин',
-                              hintText: 'Имя пользователя',
-                              textInputAction: TextInputAction.next,
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // Email
-                            PrimaryTextFormField(
-                              controller: _formState!.emailController,
-                              label: 'Email',
-                              hintText: 'user@example.com',
-                              validator: _emailValidator,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // Пароль
-                            Consumer(
-                              builder: (context, ref, _) {
-                                final formState = ref.watch(
-                                  passwordFormStateProvider(widget.passwordId),
-                                );
-                                return PrimaryTextFormField(
-                                  controller: formState.passwordController,
-                                  label: 'Пароль',
-                                  hintText: 'Введите пароль',
-                                  validator: _requiredValidator,
-                                  obscureText: !formState.isPasswordVisible,
-                                  textInputAction: TextInputAction.next,
-                                  suffixIcon: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Кнопка генератора паролей
-                                      IconButton(
-                                        icon: const Icon(Icons.auto_awesome),
-                                        tooltip: 'Генератор паролей',
-                                        onPressed: () {
-                                          setState(() {
-                                            _showPasswordGenerator =
-                                                !_showPasswordGenerator;
-                                          });
-                                        },
-                                      ),
-                                      // Кнопка видимости пароля
-                                      IconButton(
-                                        icon: Icon(
-                                          formState.isPasswordVisible
-                                              ? Icons.visibility_off
-                                              : Icons.visibility,
-                                        ),
-                                        tooltip: formState.isPasswordVisible
-                                            ? 'Скрыть пароль'
-                                            : 'Показать пароль',
-                                        onPressed: () {
-                                          formState.togglePasswordVisibility();
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                );
+                            // Кнопка генератора паролей
+                            IconButton(
+                              icon: const Icon(Icons.auto_awesome),
+                              tooltip: 'Генератор паролей',
+                              onPressed: () {
+                                setState(() {
+                                  _showPasswordGenerator =
+                                      !_showPasswordGenerator;
+                                });
                               },
                             ),
-
-                            // Генератор паролей (показывается при нажатии на кнопку)
-                            if (_showPasswordGenerator) ...[
-                              const SizedBox(height: 16),
-                              PasswordGenerator(
-                                onPasswordGenerated: (password) {
-                                  _formState!.passwordController.text =
-                                      password;
-                                  setState(() {
-                                    _showPasswordGenerator = false;
-                                  });
-                                },
+                            // Кнопка видимости пароля
+                            IconButton(
+                              icon: Icon(
+                                formState.isPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                               ),
-                            ],
-
-                            const SizedBox(height: 16),
-
-                            // Заметки
-                            PrimaryTextFormField(
-                              controller: _formState!.notesController,
-                              label: 'Заметки',
-                              hintText:
-                                  'Дополнительные заметки (необязательно)',
-                              textInputAction: TextInputAction.done,
-                              maxLines: 3,
+                              tooltip: formState.isPasswordVisible
+                                  ? 'Скрыть пароль'
+                                  : 'Показать пароль',
+                              onPressed: () {
+                                notifier.togglePasswordVisibility();
+                              },
                             ),
-
-                            const SizedBox(height: 24),
-
-                            // Выбор категории
-                            Text(
-                              'Категория',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            CategoriesPicker(
-                              categoryType: CategoryType.password,
-                              maxSelection: 1,
-                              selectedCategoryIds:
-                                  _formState!.selectedCategoryId != null
-                                  ? [_formState!.selectedCategoryId!]
-                                  : [],
-                              onSelect: _formState!.updateSelectedCategory,
-                              labelText: 'Категория пароля',
-                              hintText: 'Выберите категорию',
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // Выбор тегов
-                            Text(
-                              'Теги',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TagsPicker(
-                              tagType: TagType.password,
-                              maxSelection: 5,
-                              selectedTagIds: _formState!.selectedTagIds,
-                              onSelect: _formState!.updateSelectedTags,
-                              labelText: 'Теги пароля',
-                              hintText: 'Выберите теги',
-                            ),
-
-                            const SizedBox(height: 32),
                           ],
                         ),
                       ),
-                    ),
 
-                    // Нижняя панель с кнопкой сохранения
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        border: Border(
-                          top: BorderSide(
-                            color: theme.colorScheme.outline.withOpacity(0.2),
-                            width: 1,
-                          ),
+                      // Генератор паролей (показывается при нажатии на кнопку)
+                      if (_showPasswordGenerator) ...[
+                        const SizedBox(height: 16),
+                        PasswordGenerator(
+                          onPasswordGenerated: (password) {
+                            formState.passwordController.text = password;
+                            setState(() {
+                              _showPasswordGenerator = false;
+                            });
+                          },
+                        ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Заметки
+                      PrimaryTextFormField(
+                        controller: formState.notesController,
+                        label: 'Заметки',
+                        hintText: 'Дополнительные заметки (необязательно)',
+                        textInputAction: TextInputAction.done,
+                        maxLines: 3,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Выбор категории
+                      Text(
+                        'Категория',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        16,
-                        16,
-                        MediaQuery.of(context).padding.bottom + 16,
+                      const SizedBox(height: 8),
+                      CategoriesPicker(
+                        categoryType: CategoryType.password,
+                        maxSelection: 1,
+                        selectedCategoryIds:
+                            formState.selectedCategoryId != null
+                            ? [formState.selectedCategoryId!]
+                            : [],
+                        onSelect: notifier.updateSelectedCategory,
+                        labelText: 'Категория пароля',
+                        hintText: 'Выберите категорию',
                       ),
-                      child: Consumer(
-                        builder: (context, ref, _) {
-                          final formState = ref.watch(
-                            passwordFormStateProvider(widget.passwordId),
-                          );
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Индикатор требований для валидации
-                              if (!formState.isFormValid &&
-                                  !formState.isLoading)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Text(
-                                    'Заполните обязательные поля: название, пароль и логин или email',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurface
-                                          .withOpacity(0.6),
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              SmoothButton(
-                                label: formState.saveButtonText,
-                                onPressed:
-                                    formState.isLoading ||
-                                        !formState.isFormValid
-                                    ? null
-                                    : _savePassword,
-                                loading: formState.isLoading,
-                                type: SmoothButtonType.filled,
-                                size: SmoothButtonSize.large,
-                                isFullWidth: true,
-                                bold: true,
-                              ),
-                            ],
-                          );
-                        },
+
+                      const SizedBox(height: 24),
+
+                      // Выбор тегов
+                      Text(
+                        'Теги',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
+                      const SizedBox(height: 8),
+                      TagsPicker(
+                        tagType: TagType.password,
+                        maxSelection: 5,
+                        selectedTagIds: formState.selectedTagIds,
+                        onSelect: notifier.updateSelectedTags,
+                        labelText: 'Теги пароля',
+                        hintText: 'Выберите теги',
+                      ),
+
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Нижняя панель с кнопкой сохранения
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  border: Border(
+                    top: BorderSide(
+                      color: theme.colorScheme.outline.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  MediaQuery.of(context).padding.bottom + 16,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Индикатор требований для валидации
+                    if (!formState.isFormValid && !formState.isLoading)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'Заполните обязательные поля: название, пароль и логин или email',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    SmoothButton(
+                      label: notifier.saveButtonText,
+                      onPressed: formState.isLoading || !formState.isFormValid
+                          ? null
+                          : _savePassword,
+                      loading: formState.isLoading,
+                      type: SmoothButtonType.filled,
+                      size: SmoothButtonSize.large,
+                      isFullWidth: true,
+                      bold: true,
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
       ),
     );
   }

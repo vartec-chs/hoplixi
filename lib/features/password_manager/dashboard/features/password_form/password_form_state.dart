@@ -6,9 +6,7 @@ import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 
 /// Состояние формы пароля - безопасная модель с автоочисткой
-class PasswordFormState extends ChangeNotifier {
-  final Ref _ref;
-
+class PasswordFormState {
   // Контроллеры для полей ввода
   late final TextEditingController nameController;
   late final TextEditingController descriptionController;
@@ -22,30 +20,51 @@ class PasswordFormState extends ChangeNotifier {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   // Состояние формы
-  String? _selectedCategoryId;
-  List<String> _selectedTagIds = [];
-  bool _isFavorite = false;
-  bool _isPasswordVisible = false;
+  String? selectedCategoryId;
+  List<String> selectedTagIds = [];
+  bool isFavorite = false;
+  bool isPasswordVisible = false;
 
   // ID редактируемого пароля (null для создания нового)
-  final String? _editingPasswordId;
+  final String? editingPasswordId;
 
   // Состояние загрузки
-  bool _isLoading = false;
-  String? _error;
-  bool _isFormValid = false;
+  bool isLoading = false;
+  String? error;
+  bool isFormValid = false;
 
-  // Геттеры для состояния
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  bool get isFormValid => _isFormValid;
-
-  PasswordFormState(this._ref, [this._editingPasswordId]) {
+  PasswordFormState({
+    required this.editingPasswordId,
+    this.selectedCategoryId,
+    this.selectedTagIds = const [],
+    this.isFavorite = false,
+    this.isPasswordVisible = false,
+    this.isLoading = false,
+    this.error,
+    this.isFormValid = false,
+  }) {
     _initializeControllers();
-    _addListenersToControllers();
-    if (_editingPasswordId != null) {
-      _loadPasswordForEditing();
-    }
+  }
+
+  PasswordFormState copyWith({
+    String? selectedCategoryId,
+    List<String>? selectedTagIds,
+    bool? isFavorite,
+    bool? isPasswordVisible,
+    bool? isLoading,
+    String? error,
+    bool? isFormValid,
+  }) {
+    return PasswordFormState(
+      editingPasswordId: editingPasswordId,
+      selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
+      selectedTagIds: selectedTagIds ?? this.selectedTagIds,
+      isFavorite: isFavorite ?? this.isFavorite,
+      isPasswordVisible: isPasswordVisible ?? this.isPasswordVisible,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+      isFormValid: isFormValid ?? this.isFormValid,
+    );
   }
 
   /// Инициализация контроллеров
@@ -58,68 +77,99 @@ class PasswordFormState extends ChangeNotifier {
     loginController = TextEditingController();
     emailController = TextEditingController();
   }
+}
+
+/// Notifier для управления состоянием формы пароля в Riverpod v3
+class PasswordFormNotifier extends Notifier<PasswordFormState> {
+  // Family параметр - ID редактируемого пароля
+  final String? passwordId;
+
+  PasswordFormNotifier(this.passwordId);
+
+  @override
+  PasswordFormState build() {
+    // Создаем начальное состояние
+    final initialState = PasswordFormState(editingPasswordId: passwordId);
+
+    // Добавляем слушатели для валидации
+    _addListenersToControllers(initialState);
+
+    // Настраиваем очистку ресурсов
+    ref.onDispose(() {
+      _clearSensitiveData(initialState);
+      _disposeControllers(initialState);
+    });
+
+    // Загружаем данные для редактирования, если нужно
+    if (passwordId != null) {
+      _loadPasswordForEditing(initialState);
+    }
+
+    return initialState;
+  }
 
   /// Добавление слушателей к контроллерам для валидации в реальном времени
-  void _addListenersToControllers() {
-    nameController.addListener(_validateForm);
-    passwordController.addListener(_validateForm);
-    loginController.addListener(_validateForm);
-    emailController.addListener(_validateForm);
+  void _addListenersToControllers(PasswordFormState currentState) {
+    currentState.nameController.addListener(() => _validateForm());
+    currentState.passwordController.addListener(() => _validateForm());
+    currentState.loginController.addListener(() => _validateForm());
+    currentState.emailController.addListener(() => _validateForm());
   }
 
   /// Проверка валидности формы в реальном времени
   void _validateForm() {
-    final hasName = nameController.text.trim().isNotEmpty;
-    final hasPassword = passwordController.text.trim().isNotEmpty;
-    final hasLogin = loginController.text.trim().isNotEmpty;
-    final hasEmail = emailController.text.trim().isNotEmpty;
+    final currentState = state;
+    final hasName = currentState.nameController.text.trim().isNotEmpty;
+    final hasPassword = currentState.passwordController.text.trim().isNotEmpty;
+    final hasLogin = currentState.loginController.text.trim().isNotEmpty;
+    final hasEmail = currentState.emailController.text.trim().isNotEmpty;
     final hasLoginOrEmail = hasLogin || hasEmail;
 
-    final wasValid = _isFormValid;
-    _isFormValid = hasName && hasPassword && hasLoginOrEmail;
+    final wasValid = currentState.isFormValid;
+    final newIsValid = hasName && hasPassword && hasLoginOrEmail;
 
-    // Уведомляем только если состояние валидности изменилось
-    if (wasValid != _isFormValid) {
-      notifyListeners();
+    // Обновляем состояние только если валидность изменилась
+    if (wasValid != newIsValid) {
+      state = state.copyWith(isFormValid: newIsValid);
     }
   }
 
   /// Загрузка пароля для редактирования
-  Future<void> _loadPasswordForEditing() async {
-    if (_editingPasswordId == null) return;
+  Future<void> _loadPasswordForEditing(PasswordFormState currentState) async {
+    if (passwordId == null) return;
 
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
+      state = state.copyWith(isLoading: true, error: null);
 
-      final passwordsDao = _ref.read(passwordsDaoProvider);
-      final password = await passwordsDao.getPasswordById(_editingPasswordId);
+      final passwordsDao = ref.read(passwordsDaoProvider);
+      final password = await passwordsDao.getPasswordById(passwordId!);
 
       if (password != null) {
-        nameController.text = password.name;
-        descriptionController.text = password.description ?? '';
-        passwordController.text = password.password;
-        urlController.text = password.url ?? '';
-        notesController.text = password.notes ?? '';
-        loginController.text = password.login ?? '';
-        emailController.text = password.email ?? '';
-        _selectedCategoryId = password.categoryId;
-        _isFavorite = password.isFavorite;
+        currentState.nameController.text = password.name;
+        currentState.descriptionController.text = password.description ?? '';
+        currentState.passwordController.text = password.password;
+        currentState.urlController.text = password.url ?? '';
+        currentState.notesController.text = password.notes ?? '';
+        currentState.loginController.text = password.login ?? '';
+        currentState.emailController.text = password.email ?? '';
 
         // Загрузить связанные теги
         await _loadAssociatedTags();
 
+        // Обновить состояние с загруженными данными
+        state = state.copyWith(
+          selectedCategoryId: password.categoryId,
+          isFavorite: password.isFavorite,
+          isLoading: false,
+        );
+
         // Проверить валидность формы после загрузки
         _validateForm();
+      } else {
+        state = state.copyWith(isLoading: false);
       }
-
-      _isLoading = false;
-      notifyListeners();
     } catch (error, stackTrace) {
-      _error = error.toString();
-      _isLoading = false;
-      notifyListeners();
+      state = state.copyWith(error: error.toString(), isLoading: false);
       logError(
         'Ошибка загрузки пароля для редактирования: $error',
         stackTrace: stackTrace,
@@ -129,13 +179,14 @@ class PasswordFormState extends ChangeNotifier {
 
   /// Загрузка тегов, связанных с паролем
   Future<void> _loadAssociatedTags() async {
-    if (_editingPasswordId == null) return;
+    if (passwordId == null) return;
 
     try {
-      final passwordTagsDao = _ref.read(passwordTagsDaoProvider);
-      final tags = await passwordTagsDao.getTagsForPassword(_editingPasswordId);
-      _selectedTagIds = tags.map((tag) => tag.id).toList();
-      notifyListeners(); // Обновляем UI после загрузки тегов
+      final passwordTagsDao = ref.read(passwordTagsDaoProvider);
+      final tags = await passwordTagsDao.getTagsForPassword(passwordId!);
+      state = state.copyWith(
+        selectedTagIds: tags.map((tag) => tag.id).toList(),
+      );
     } catch (error, stackTrace) {
       logError(
         'Ошибка загрузки связанных тегов: $error',
@@ -147,12 +198,12 @@ class PasswordFormState extends ChangeNotifier {
 
   /// Создание связей пароля с тегами (для нового пароля)
   Future<void> _createPasswordTags(String passwordId) async {
-    if (_selectedTagIds.isEmpty) return;
+    if (state.selectedTagIds.isEmpty) return;
 
     try {
-      final passwordTagsDao = _ref.read(passwordTagsDaoProvider);
+      final passwordTagsDao = ref.read(passwordTagsDaoProvider);
 
-      for (final tagId in _selectedTagIds) {
+      for (final tagId in state.selectedTagIds) {
         await passwordTagsDao.addTagToPassword(passwordId, tagId);
       }
     } catch (error, stackTrace) {
@@ -168,10 +219,13 @@ class PasswordFormState extends ChangeNotifier {
   /// Обновление связей пароля с тегами (для существующего пароля)
   Future<void> _updatePasswordTags(String passwordId) async {
     try {
-      final passwordTagsDao = _ref.read(passwordTagsDaoProvider);
+      final passwordTagsDao = ref.read(passwordTagsDaoProvider);
 
       // Заменяем все теги новыми
-      await passwordTagsDao.replacePasswordTags(passwordId, _selectedTagIds);
+      await passwordTagsDao.replacePasswordTags(
+        passwordId,
+        state.selectedTagIds,
+      );
     } catch (error, stackTrace) {
       logError(
         'Ошибка обновления связей с тегами: $error',
@@ -183,7 +237,7 @@ class PasswordFormState extends ChangeNotifier {
   }
 
   /// Проверяет, является ли форма редактированием существующего пароля
-  bool get isEditing => _editingPasswordId != null;
+  bool get isEditing => passwordId != null;
 
   /// Текст для кнопки сохранения
   String get saveButtonText => isEditing ? 'Обновить' : 'Создать';
@@ -192,44 +246,37 @@ class PasswordFormState extends ChangeNotifier {
   String get screenTitle =>
       isEditing ? 'Редактирование пароля' : 'Новый пароль';
 
-  // Геттеры для состояния
-  String? get selectedCategoryId => _selectedCategoryId;
-  List<String> get selectedTagIds => List.unmodifiable(_selectedTagIds);
-  bool get isFavorite => _isFavorite;
-  bool get isPasswordVisible => _isPasswordVisible;
-
   /// Обновление выбранной категории
   void updateSelectedCategory(List<String> categoryIds) {
-    _selectedCategoryId = categoryIds.isNotEmpty ? categoryIds.first : null;
-    notifyListeners();
+    state = state.copyWith(
+      selectedCategoryId: categoryIds.isNotEmpty ? categoryIds.first : null,
+    );
   }
 
   /// Обновление выбранных тегов
   void updateSelectedTags(List<String> tagIds) {
-    _selectedTagIds = List.from(tagIds);
-    notifyListeners();
+    state = state.copyWith(selectedTagIds: List.from(tagIds));
   }
 
   /// Переключение избранного
   void toggleFavorite() {
-    _isFavorite = !_isFavorite;
-    notifyListeners();
+    state = state.copyWith(isFavorite: !state.isFavorite);
   }
 
   /// Переключение видимости пароля
   void togglePasswordVisibility() {
-    _isPasswordVisible = !_isPasswordVisible;
-    notifyListeners();
+    state = state.copyWith(isPasswordVisible: !state.isPasswordVisible);
   }
 
   /// Валидация формы
   bool validateForm() {
+    final formKey = state.formKey;
     final isValid = formKey.currentState?.validate() ?? false;
 
     // Дополнительная проверка: должен быть указан логин ИЛИ email
     if (isValid) {
-      final hasLogin = loginController.text.trim().isNotEmpty;
-      final hasEmail = emailController.text.trim().isNotEmpty;
+      final hasLogin = state.loginController.text.trim().isNotEmpty;
+      final hasEmail = state.emailController.text.trim().isNotEmpty;
 
       if (!hasLogin && !hasEmail) {
         ToastHelper.error(
@@ -248,42 +295,40 @@ class PasswordFormState extends ChangeNotifier {
     if (!validateForm()) return false;
 
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
+      state = state.copyWith(isLoading: true, error: null);
 
-      final passwordsDao = _ref.read(passwordsDaoProvider);
+      final passwordsDao = ref.read(passwordsDaoProvider);
 
       if (isEditing) {
         // Обновление существующего пароля
         final updateDto = UpdatePasswordDto(
-          id: _editingPasswordId!,
-          name: nameController.text.trim(),
-          description: descriptionController.text.trim().isEmpty
+          id: passwordId!,
+          name: state.nameController.text.trim(),
+          description: state.descriptionController.text.trim().isEmpty
               ? null
-              : descriptionController.text.trim(),
-          password: passwordController.text,
-          url: urlController.text.trim().isEmpty
+              : state.descriptionController.text.trim(),
+          password: state.passwordController.text,
+          url: state.urlController.text.trim().isEmpty
               ? null
-              : urlController.text.trim(),
-          notes: notesController.text.trim().isEmpty
+              : state.urlController.text.trim(),
+          notes: state.notesController.text.trim().isEmpty
               ? null
-              : notesController.text.trim(),
-          login: loginController.text.trim().isEmpty
+              : state.notesController.text.trim(),
+          login: state.loginController.text.trim().isEmpty
               ? null
-              : loginController.text.trim(),
-          email: emailController.text.trim().isEmpty
+              : state.loginController.text.trim(),
+          email: state.emailController.text.trim().isEmpty
               ? null
-              : emailController.text.trim(),
-          categoryId: _selectedCategoryId,
-          isFavorite: _isFavorite,
+              : state.emailController.text.trim(),
+          categoryId: state.selectedCategoryId,
+          isFavorite: state.isFavorite,
         );
 
         final success = await passwordsDao.updatePassword(updateDto);
 
         if (success) {
           // Обновить связи с тегами
-          await _updatePasswordTags(_editingPasswordId);
+          await _updatePasswordTags(passwordId!);
           ToastHelper.success(title: 'Успешно', description: 'Пароль обновлен');
         } else {
           throw Exception('Не удалось обновить пароль');
@@ -291,41 +336,38 @@ class PasswordFormState extends ChangeNotifier {
       } else {
         // Создание нового пароля
         final createDto = CreatePasswordDto(
-          name: nameController.text.trim(),
-          description: descriptionController.text.trim().isEmpty
+          name: state.nameController.text.trim(),
+          description: state.descriptionController.text.trim().isEmpty
               ? null
-              : descriptionController.text.trim(),
-          password: passwordController.text,
-          url: urlController.text.trim().isEmpty
+              : state.descriptionController.text.trim(),
+          password: state.passwordController.text,
+          url: state.urlController.text.trim().isEmpty
               ? null
-              : urlController.text.trim(),
-          notes: notesController.text.trim().isEmpty
+              : state.urlController.text.trim(),
+          notes: state.notesController.text.trim().isEmpty
               ? null
-              : notesController.text.trim(),
-          login: loginController.text.trim().isEmpty
+              : state.notesController.text.trim(),
+          login: state.loginController.text.trim().isEmpty
               ? null
-              : loginController.text.trim(),
-          email: emailController.text.trim().isEmpty
+              : state.loginController.text.trim(),
+          email: state.emailController.text.trim().isEmpty
               ? null
-              : emailController.text.trim(),
-          categoryId: _selectedCategoryId,
-          isFavorite: _isFavorite,
+              : state.emailController.text.trim(),
+          categoryId: state.selectedCategoryId,
+          isFavorite: state.isFavorite,
         );
 
-        final passwordId = await passwordsDao.createPassword(createDto);
+        final newPasswordId = await passwordsDao.createPassword(createDto);
 
         // Создать связи с тегами
-        await _createPasswordTags(passwordId);
+        await _createPasswordTags(newPasswordId);
         ToastHelper.success(title: 'Успешно', description: 'Пароль создан');
       }
 
-      _isLoading = false;
-      notifyListeners();
+      state = state.copyWith(isLoading: false);
       return true;
     } catch (error, _) {
-      _error = error.toString();
-      _isLoading = false;
-      notifyListeners();
+      state = state.copyWith(error: error.toString(), isLoading: false);
 
       print('Ошибка сохранения пароля: $error');
 
@@ -339,21 +381,15 @@ class PasswordFormState extends ChangeNotifier {
   }
 
   /// Безопасная очистка всех чувствительных данных
-  void clearSensitiveData() {
+  void _clearSensitiveData(PasswordFormState currentState) {
     // Очистка паролей из памяти
-    _clearTextControllerSecurely(passwordController);
-    _clearTextControllerSecurely(nameController);
-    _clearTextControllerSecurely(descriptionController);
-    _clearTextControllerSecurely(urlController);
-    _clearTextControllerSecurely(notesController);
-    _clearTextControllerSecurely(loginController);
-    _clearTextControllerSecurely(emailController);
-
-    // Очистка состояния
-    _selectedCategoryId = null;
-    _selectedTagIds.clear();
-    _isFavorite = false;
-    _isPasswordVisible = false;
+    _clearTextControllerSecurely(currentState.passwordController);
+    _clearTextControllerSecurely(currentState.nameController);
+    _clearTextControllerSecurely(currentState.descriptionController);
+    _clearTextControllerSecurely(currentState.urlController);
+    _clearTextControllerSecurely(currentState.notesController);
+    _clearTextControllerSecurely(currentState.loginController);
+    _clearTextControllerSecurely(currentState.emailController);
 
     print('Чувствительные данные формы пароля очищены');
   }
@@ -379,34 +415,26 @@ class PasswordFormState extends ChangeNotifier {
     }
   }
 
-  @override
-  void dispose() {
+  /// Освобождение контроллеров
+  void _disposeControllers(PasswordFormState currentState) {
     // Удаляем слушатели перед очисткой
-    nameController.removeListener(_validateForm);
-    passwordController.removeListener(_validateForm);
-    loginController.removeListener(_validateForm);
-    emailController.removeListener(_validateForm);
+    currentState.nameController.removeListener(_validateForm);
+    currentState.passwordController.removeListener(_validateForm);
+    currentState.loginController.removeListener(_validateForm);
+    currentState.emailController.removeListener(_validateForm);
 
-    clearSensitiveData();
-
-    nameController.dispose();
-    descriptionController.dispose();
-    passwordController.dispose();
-    urlController.dispose();
-    notesController.dispose();
-    loginController.dispose();
-    emailController.dispose();
-
-    super.dispose();
+    currentState.nameController.dispose();
+    currentState.descriptionController.dispose();
+    currentState.passwordController.dispose();
+    currentState.urlController.dispose();
+    currentState.notesController.dispose();
+    currentState.loginController.dispose();
+    currentState.emailController.dispose();
   }
 }
 
-/// Провайдер для состояния формы пароля
-final passwordFormStateProvider = Provider.autoDispose
-    .family<PasswordFormState, String?>((ref, passwordId) {
-      final state = PasswordFormState(ref, passwordId);
-      ref.onDispose(() {
-        state.dispose();
-      });
-      return state;
-    });
+/// Провайдер для состояния формы пароля с новым API Riverpod v3
+final passwordFormStateProvider = NotifierProvider.autoDispose
+    .family<PasswordFormNotifier, PasswordFormState, String?>(
+      PasswordFormNotifier.new,
+    );
