@@ -117,7 +117,7 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
     // Настраиваем очистку ресурсов
     ref.onDispose(() {
       // _clearSensitiveData(initialState);
-      // _disposeControllers(initialState);
+      _disposeControllers(initialState);
     });
 
     // Загружаем данные для редактирования асинхронно, если нужно
@@ -501,23 +501,7 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
 
   /// Безопасная очистка TextController
   void _clearTextControllerSecurely(TextEditingController controller) {
-    try {
-      // Заполняем случайными символами для затирания данных из памяти
-      final originalLength = controller.text.length;
-      if (originalLength > 0) {
-        final randomData = List.generate(
-          originalLength,
-          (index) => String.fromCharCode(
-            48 + (DateTime.now().millisecondsSinceEpoch + index) % 75,
-          ),
-        );
-        controller.text = randomData.join();
-        controller.clear();
-      }
-    } catch (e) {
-      logDebug('Ошибка при безопасной очистке контроллера: $e');
-      controller.clear();
-    }
+    controller.clear();
   }
 
   /// Освобождение контроллеров
