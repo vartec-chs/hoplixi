@@ -119,13 +119,20 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
           ),
           actions: [
             // Кнопка избранного
-            IconButton(
-              icon: Icon(
-                _formState?.isFavorite == true ? Icons.star : Icons.star_border,
-                color: _formState?.isFavorite == true ? Colors.amber : null,
-              ),
-              onPressed: () {
-                _formState?.toggleFavorite();
+            Consumer(
+              builder: (context, ref, _) {
+                final formState = ref.watch(
+                  passwordFormStateProvider(widget.passwordId),
+                );
+                return IconButton(
+                  icon: Icon(
+                    formState.isFavorite ? Icons.star : Icons.star_border,
+                    color: formState.isFavorite ? Colors.amber : null,
+                  ),
+                  onPressed: () {
+                    formState.toggleFavorite();
+                  },
+                );
               },
             ),
           ],
@@ -201,43 +208,50 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
                             const SizedBox(height: 16),
 
                             // Пароль
-                            PrimaryTextFormField(
-                              controller: _formState!.passwordController,
-                              label: 'Пароль',
-                              hintText: 'Введите пароль',
-                              validator: _requiredValidator,
-                              obscureText: !_formState!.isPasswordVisible,
-                              textInputAction: TextInputAction.next,
-                              suffixIcon: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Кнопка генератора паролей
-                                  IconButton(
-                                    icon: const Icon(Icons.auto_awesome),
-                                    tooltip: 'Генератор паролей',
-                                    onPressed: () {
-                                      setState(() {
-                                        _showPasswordGenerator =
-                                            !_showPasswordGenerator;
-                                      });
-                                    },
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final formState = ref.watch(
+                                  passwordFormStateProvider(widget.passwordId),
+                                );
+                                return PrimaryTextFormField(
+                                  controller: formState.passwordController,
+                                  label: 'Пароль',
+                                  hintText: 'Введите пароль',
+                                  validator: _requiredValidator,
+                                  obscureText: !formState.isPasswordVisible,
+                                  textInputAction: TextInputAction.next,
+                                  suffixIcon: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Кнопка генератора паролей
+                                      IconButton(
+                                        icon: const Icon(Icons.auto_awesome),
+                                        tooltip: 'Генератор паролей',
+                                        onPressed: () {
+                                          setState(() {
+                                            _showPasswordGenerator =
+                                                !_showPasswordGenerator;
+                                          });
+                                        },
+                                      ),
+                                      // Кнопка видимости пароля
+                                      IconButton(
+                                        icon: Icon(
+                                          formState.isPasswordVisible
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                        ),
+                                        tooltip: formState.isPasswordVisible
+                                            ? 'Скрыть пароль'
+                                            : 'Показать пароль',
+                                        onPressed: () {
+                                          formState.togglePasswordVisibility();
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                  // Кнопка видимости пароля
-                                  IconButton(
-                                    icon: Icon(
-                                      _formState!.isPasswordVisible
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                    ),
-                                    tooltip: _formState!.isPasswordVisible
-                                        ? 'Скрыть пароль'
-                                        : 'Показать пароль',
-                                    onPressed: () {
-                                      _formState?.togglePasswordVisibility();
-                                    },
-                                  ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
 
                             // Генератор паролей (показывается при нажатии на кнопку)
@@ -330,16 +344,44 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
                         16,
                         MediaQuery.of(context).padding.bottom + 16,
                       ),
-                      child: SmoothButton(
-                        label: _formState?.saveButtonText ?? 'Сохранить',
-                        onPressed: _formState?.isLoading == true
-                            ? null
-                            : _savePassword,
-                        loading: _formState?.isLoading == true,
-                        type: SmoothButtonType.filled,
-                        size: SmoothButtonSize.large,
-                        isFullWidth: true,
-                        bold: true,
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final formState = ref.watch(
+                            passwordFormStateProvider(widget.passwordId),
+                          );
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Индикатор требований для валидации
+                              if (!formState.isFormValid &&
+                                  !formState.isLoading)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Text(
+                                    'Заполните обязательные поля: название, пароль и логин или email',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.6),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              SmoothButton(
+                                label: formState.saveButtonText,
+                                onPressed:
+                                    formState.isLoading ||
+                                        !formState.isFormValid
+                                    ? null
+                                    : _savePassword,
+                                loading: formState.isLoading,
+                                type: SmoothButtonType.filled,
+                                size: SmoothButtonSize.large,
+                                isFullWidth: true,
+                                bold: true,
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ],

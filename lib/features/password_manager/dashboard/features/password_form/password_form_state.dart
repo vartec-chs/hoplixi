@@ -33,13 +33,16 @@ class PasswordFormState extends ChangeNotifier {
   // Состояние загрузки
   bool _isLoading = false;
   String? _error;
+  bool _isFormValid = false;
 
   // Геттеры для состояния
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get isFormValid => _isFormValid;
 
   PasswordFormState(this._ref, [this._editingPasswordId]) {
     _initializeControllers();
+    _addListenersToControllers();
     if (_editingPasswordId != null) {
       _loadPasswordForEditing();
     }
@@ -54,6 +57,31 @@ class PasswordFormState extends ChangeNotifier {
     notesController = TextEditingController();
     loginController = TextEditingController();
     emailController = TextEditingController();
+  }
+
+  /// Добавление слушателей к контроллерам для валидации в реальном времени
+  void _addListenersToControllers() {
+    nameController.addListener(_validateForm);
+    passwordController.addListener(_validateForm);
+    loginController.addListener(_validateForm);
+    emailController.addListener(_validateForm);
+  }
+
+  /// Проверка валидности формы в реальном времени
+  void _validateForm() {
+    final hasName = nameController.text.trim().isNotEmpty;
+    final hasPassword = passwordController.text.trim().isNotEmpty;
+    final hasLogin = loginController.text.trim().isNotEmpty;
+    final hasEmail = emailController.text.trim().isNotEmpty;
+    final hasLoginOrEmail = hasLogin || hasEmail;
+
+    final wasValid = _isFormValid;
+    _isFormValid = hasName && hasPassword && hasLoginOrEmail;
+
+    // Уведомляем только если состояние валидности изменилось
+    if (wasValid != _isFormValid) {
+      notifyListeners();
+    }
   }
 
   /// Загрузка пароля для редактирования
@@ -81,6 +109,9 @@ class PasswordFormState extends ChangeNotifier {
 
         // Загрузить связанные теги
         await _loadAssociatedTags();
+
+        // Проверить валидность формы после загрузки
+        _validateForm();
       }
 
       _isLoading = false;
@@ -350,6 +381,12 @@ class PasswordFormState extends ChangeNotifier {
 
   @override
   void dispose() {
+    // Удаляем слушатели перед очисткой
+    nameController.removeListener(_validateForm);
+    passwordController.removeListener(_validateForm);
+    loginController.removeListener(_validateForm);
+    emailController.removeListener(_validateForm);
+
     clearSensitiveData();
 
     nameController.dispose();
