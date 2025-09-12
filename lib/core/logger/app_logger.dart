@@ -208,9 +208,13 @@ class AppLogger {
 
     // Console output
     if (_config.enableConsoleOutput) {
-      final logMessage = tag != null ? '[$tag] $message' : message;
+      var logMessage = tag != null ? '[$tag] $message' : message;
+
       switch (level) {
         case LogLevel.debug:
+          if (additionalData != null && additionalData.isNotEmpty) {
+            logMessage += ' | Data: $additionalData';
+          }
           _consoleLogger.d(logMessage, error: error, stackTrace: stackTrace);
           break;
         case LogLevel.info:

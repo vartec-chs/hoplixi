@@ -24,12 +24,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final initializationAsync = ref.watch(storageInitProvider);
       // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
 
-      const redirectDashboardPath = [
-        AppRoutes.home,
-        AppRoutes.openStore,
-        AppRoutes.createStore,
-      ];
-
       // final prefs = await SharedPreferences.getInstance();
       // final isFirstRun = prefs.getBool('is_first_run') ?? true;
 
@@ -120,10 +114,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
+const beforeOpenDBPath = [
+  AppRoutes.home,
+  AppRoutes.createStore,
+  AppRoutes.openStore,
+  AppRoutes.splash,
+  AppRoutes.setup,
+];
+
 void navigateBack(BuildContext context) {
   if (GoRouter.of(context).canPop()) {
     context.pop();
-  } else {
+  } else if (beforeOpenDBPath.contains(GoRouter.of(context).state.path)) {
     GoRouter.of(context).go(AppRoutes.home);
+  } else {
+    GoRouter.of(context).go(AppRoutes.dashboard);
   }
 }

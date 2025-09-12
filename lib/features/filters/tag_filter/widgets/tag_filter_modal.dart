@@ -274,13 +274,30 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
 
   void _applyFilter() {
     // Применяем изменения к родительскому виджету
+    // Используем ID для сравнения тегов, а не прямое сравнение объектов
+    final selectedTagIds = widget.selectedTags.map((tag) => tag.id).toSet();
+    final localSelectedTagIds = _localSelectedTags.map((tag) => tag.id).toSet();
+
     final removedTags = widget.selectedTags
-        .where((tag) => !_localSelectedTags.contains(tag))
+        .where((tag) => !localSelectedTagIds.contains(tag.id))
         .toList();
 
     final addedTags = _localSelectedTags
-        .where((tag) => !widget.selectedTags.contains(tag))
+        .where((tag) => !selectedTagIds.contains(tag.id))
         .toList();
+
+    logDebug(
+      'Подготовка к применению фильтра тегов',
+      tag: 'TagFilterModal',
+      data: {
+        'tagType': widget.tagType.name,
+        'selectedCount': _localSelectedTags.length,
+        'addedCount': addedTags.length,
+        'removedCount': removedTags.length,
+        'removedTagIds': removedTags.map((tag) => tag.id).toList(),
+        'addedTagIds': addedTags.map((tag) => tag.id).toList(),
+      },
+    );
 
     // Удаляем старые теги
     for (final tag in removedTags) {

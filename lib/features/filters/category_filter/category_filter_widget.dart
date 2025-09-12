@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/text_field.dart';
@@ -86,6 +88,9 @@ class CategoryFilterWidget extends ConsumerStatefulWidget {
 class _CategoryFilterWidgetState extends ConsumerState<CategoryFilterWidget> {
   final TextEditingController _controller = TextEditingController();
 
+  // Timer для дебаунсинга обновлений
+  Timer? _updateTimer;
+
   @override
   void initState() {
     super.initState();
@@ -95,26 +100,178 @@ class _CategoryFilterWidgetState extends ConsumerState<CategoryFilterWidget> {
   @override
   void didUpdateWidget(CategoryFilterWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedCategories.length !=
-        widget.selectedCategories.length) {
-      _updateDisplayText();
+
+    logDebug(
+      'Обновление CategoryFilterWidget',
+      tag: 'CategoryFilterWidget',
+      data: {
+        'oldSelectedCount': oldWidget.selectedCategories.length,
+        'newSelectedCount': widget.selectedCategories.length,
+        'oldCategoryNames': oldWidget.selectedCategories
+            .map((cat) => cat.name)
+            .toList(),
+        'newCategoryNames': widget.selectedCategories
+            .map((cat) => cat.name)
+            .toList(),
+        'identical': identical(
+          oldWidget.selectedCategories,
+          widget.selectedCategories,
+        ),
+        'listEquals': oldWidget.selectedCategories == widget.selectedCategories,
+      },
+    );
+
+    // Если это тот же объект списка, но произошли изменения,
+    // всегда обновляем текст для безопасности
+    if (identical(oldWidget.selectedCategories, widget.selectedCategories)) {
+      logDebug(
+        'Обнаружен тот же объект списка категорий, принудительное обновление текста',
+        tag: 'CategoryFilterWidget',
+      );
+      _scheduleUpdate();
+      return;
     }
+
+    // Проверяем изменения в списке категорий более детально
+    if (_categoriesChanged(
+      oldWidget.selectedCategories,
+      widget.selectedCategories,
+    )) {
+      logDebug(
+        'Изменение в списке выбранных категорий обнаружено, планирование обновления текста',
+        tag: 'CategoryFilterWidget',
+      );
+      _scheduleUpdate();
+    } else {
+      logDebug(
+        'Изменений в списке выбранных категорий не обнаружено',
+        tag: 'CategoryFilterWidget',
+      );
+    }
+  }
+
+  void _scheduleUpdate() {
+    // Отменяем предыдущий таймер, если он есть
+    _updateTimer?.cancel();
+
+    // Планируем обновление с небольшой задержкой
+    _updateTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        logDebug(
+          'Выполнение отложенного обновления текста категорий',
+          tag: 'CategoryFilterWidget',
+        );
+        _updateDisplayText();
+      }
+    });
+  }
+
+  /// Проверяет, изменился ли список категорий
+  bool _categoriesChanged(
+    List<store.Category> oldCategories,
+    List<store.Category> newCategories,
+  ) {
+    logDebug(
+      'Проверка изменений в списке категорий',
+      tag: 'CategoryFilterWidget',
+      data: {
+        'oldCategories': oldCategories.map((cat) => cat.name).toList(),
+        'newCategories': newCategories.map((cat) => cat.name).toList(),
+      },
+    );
+
+    // Если оба списка пусты, изменений нет
+    if (oldCategories.isEmpty && newCategories.isEmpty) {
+      return false;
+    }
+
+    // Сначала проверяем длину
+    if (oldCategories.length != newCategories.length) {
+      logDebug(
+        'Длина списков категорий различается',
+        tag: 'CategoryFilterWidget',
+        data: {
+          'oldLength': oldCategories.length,
+          'newLength': newCategories.length,
+        },
+      );
+      return true;
+    }
+
+    // Если длина одинаковая, сравниваем ID категорий
+    final oldCategoryIds = oldCategories.map((cat) => cat.id).toSet();
+    final newCategoryIds = newCategories.map((cat) => cat.id).toSet();
+
+    // Проверяем, есть ли разница в множествах ID
+    final hasChanges =
+        oldCategoryIds.difference(newCategoryIds).isNotEmpty ||
+        newCategoryIds.difference(oldCategoryIds).isNotEmpty;
+
+    if (hasChanges) {
+      logDebug(
+        'ID категорий изменились',
+        tag: 'CategoryFilterWidget',
+        data: {
+          'oldCategoryIds': oldCategoryIds.toList(),
+          'newCategoryIds': newCategoryIds.toList(),
+          'added': newCategoryIds.difference(oldCategoryIds).toList(),
+          'removed': oldCategoryIds.difference(newCategoryIds).toList(),
+        },
+      );
+    }
+
+    return hasChanges;
   }
 
   void _updateDisplayText() {
     final count = widget.selectedCategories.length;
+    logDebug(
+      'Обновление текста фильтра категорий',
+      tag: 'CategoryFilterWidget',
+      data: {'categoryType': widget.categoryType.name, 'selectedCount': count},
+    );
+
+    String newText;
     if (count == 0) {
-      _controller.text = widget.searchPlaceholder ?? _getDefaultPlaceholder();
+      newText = widget.searchPlaceholder ?? _getDefaultPlaceholder();
     } else {
       final categoryNames = widget.selectedCategories
           .take(2)
           .map((category) => category.name)
           .join(', ');
       if (count > 2) {
-        _controller.text = '$categoryNames и ещё ${count - 2}';
+        newText = '$categoryNames и ещё ${count - 2}';
       } else {
-        _controller.text = categoryNames;
+        newText = categoryNames;
       }
+    }
+
+    logDebug(
+      'Сравнение текста для обновления',
+      tag: 'CategoryFilterWidget',
+      data: {
+        'currentText': _controller.text,
+        'newText': newText,
+        'needsUpdate': _controller.text != newText,
+      },
+    );
+
+    // Обновляем текст только если он действительно изменился
+    if (_controller.text != newText) {
+      logDebug(
+        'Текст изменился, обновление',
+        tag: 'CategoryFilterWidget',
+        data: {'oldText': _controller.text, 'newText': newText},
+      );
+      setState(() {
+        _controller.text = newText;
+      });
+    } else {
+      logDebug(
+        'Текст не изменился, пропуск обновления',
+        tag: 'CategoryFilterWidget',
+        data: {'text': newText},
+      );
     }
   }
 
@@ -322,6 +479,7 @@ class _CategoryFilterWidgetState extends ConsumerState<CategoryFilterWidget> {
 
   @override
   void dispose() {
+    _updateTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

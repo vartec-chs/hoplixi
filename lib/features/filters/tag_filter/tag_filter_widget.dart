@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/text_field.dart';
@@ -72,6 +74,9 @@ class TagFilterWidget extends ConsumerStatefulWidget {
 class _TagFilterWidgetState extends ConsumerState<TagFilterWidget> {
   final TextEditingController _controller = TextEditingController();
 
+  // Timer для дебаунсинга обновлений
+  Timer? _updateTimer;
+
   @override
   void initState() {
     super.initState();
@@ -81,26 +86,161 @@ class _TagFilterWidgetState extends ConsumerState<TagFilterWidget> {
   @override
   void didUpdateWidget(TagFilterWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedTags.length != widget.selectedTags.length) {
-      _updateDisplayText();
+
+    logDebug(
+      'Обновление TagFilterWidget',
+      tag: 'TagFilterWidget',
+      data: {
+        'oldSelectedCount': oldWidget.selectedTags.length,
+        'newSelectedCount': widget.selectedTags.length,
+        'oldTagNames': oldWidget.selectedTags.map((tag) => tag.name).toList(),
+        'newTagNames': widget.selectedTags.map((tag) => tag.name).toList(),
+        'identical': identical(oldWidget.selectedTags, widget.selectedTags),
+        'listEquals': oldWidget.selectedTags == widget.selectedTags,
+      },
+    );
+
+    // Если это тот же объект списка, но произошли изменения,
+    // всегда обновляем текст для безопасности
+    if (identical(oldWidget.selectedTags, widget.selectedTags)) {
+      logDebug(
+        'Обнаружен тот же объект списка, принудительное обновление текста',
+        tag: 'TagFilterWidget',
+      );
+      _scheduleUpdate();
+      return;
     }
+
+    // Проверяем изменения в списке тегов более детально
+    if (_tagsChanged(oldWidget.selectedTags, widget.selectedTags)) {
+      logDebug(
+        'Изменение в списке выбранных тегов обнаружено, планирование обновления текста',
+        tag: 'TagFilterWidget',
+      );
+      _scheduleUpdate();
+    } else {
+      logDebug(
+        'Изменений в списке выбранных тегов не обнаружено',
+        tag: 'TagFilterWidget',
+      );
+    }
+  }
+
+  void _scheduleUpdate() {
+    // Отменяем предыдущий таймер, если он есть
+    _updateTimer?.cancel();
+
+    // Планируем обновление с небольшой задержкой
+    _updateTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        logDebug(
+          'Выполнение отложенного обновления текста',
+          tag: 'TagFilterWidget',
+        );
+        _updateDisplayText();
+      }
+    });
+  }
+
+  /// Проверяет, изменился ли список тегов
+  bool _tagsChanged(List<store.Tag> oldTags, List<store.Tag> newTags) {
+    logDebug(
+      'Проверка изменений в списке тегов',
+      tag: 'TagFilterWidget',
+      data: {
+        'oldTags': oldTags.map((tag) => tag.name).toList(),
+        'newTags': newTags.map((tag) => tag.name).toList(),
+      },
+    );
+    // Если оба списка пусты, изменений нет
+    if (oldTags.isEmpty && newTags.isEmpty) {
+      return false;
+    }
+
+    // Сначала проверяем длину
+    if (oldTags.length != newTags.length) {
+      logDebug(
+        'Длина списков тегов различается',
+        tag: 'TagFilterWidget',
+        data: {'oldLength': oldTags.length, 'newLength': newTags.length},
+      );
+      return true;
+    }
+
+    // Если длина одинаковая, сравниваем ID тегов
+    final oldTagIds = oldTags.map((tag) => tag.id).toSet();
+    final newTagIds = newTags.map((tag) => tag.id).toSet();
+
+    // Проверяем, есть ли разница в множествах ID
+    final hasChanges =
+        oldTagIds.difference(newTagIds).isNotEmpty ||
+        newTagIds.difference(oldTagIds).isNotEmpty;
+
+    if (hasChanges) {
+      logDebug(
+        'ID тегов изменились',
+        tag: 'TagFilterWidget',
+        data: {
+          'oldTagIds': oldTagIds.toList(),
+          'newTagIds': newTagIds.toList(),
+          'added': newTagIds.difference(oldTagIds).toList(),
+          'removed': oldTagIds.difference(newTagIds).toList(),
+        },
+      );
+    }
+
+    return hasChanges;
   }
 
   void _updateDisplayText() {
     final count = widget.selectedTags.length;
+    logDebug(
+      'Обновление текста фильтра тегов',
+      tag: 'TagFilterWidget',
+      data: {'tagType': widget.tagType.name, 'selectedCount': count},
+    );
+
+    String newText;
     if (count == 0) {
-      _controller.text =
-          widget.searchPlaceholder ?? 'Выберите теги для фильтрации';
+      newText = widget.searchPlaceholder ?? 'Выберите теги для фильтрации';
     } else {
       final tagNames = widget.selectedTags
           .take(2)
           .map((tag) => tag.name)
           .join(', ');
       if (count > 2) {
-        _controller.text = '$tagNames и ещё ${count - 2}';
+        newText = '$tagNames и ещё ${count - 2}';
       } else {
-        _controller.text = tagNames;
+        newText = tagNames;
       }
+    }
+
+    logDebug(
+      'Сравнение текста для обновления',
+      tag: 'TagFilterWidget',
+      data: {
+        'currentText': _controller.text,
+        'newText': newText,
+        'needsUpdate': _controller.text != newText,
+      },
+    );
+
+    // Обновляем текст только если он действительно изменился
+    if (_controller.text != newText) {
+      logDebug(
+        'Текст изменился, обновление',
+        tag: 'TagFilterWidget',
+        data: {'oldText': _controller.text, 'newText': newText},
+      );
+      setState(() {
+        _controller.text = newText;
+      });
+    } else {
+      logDebug(
+        'Текст не изменился, пропуск обновления',
+        tag: 'TagFilterWidget',
+        data: {'text': newText},
+      );
     }
   }
 
@@ -121,6 +261,7 @@ class _TagFilterWidgetState extends ConsumerState<TagFilterWidget> {
 
       if (result != null && widget.onApplyFilter != null) {
         widget.onApplyFilter!(result);
+
         logDebug(
           'Применен фильтр тегов',
           tag: 'TagFilterWidget',
@@ -165,7 +306,7 @@ class _TagFilterWidgetState extends ConsumerState<TagFilterWidget> {
         context: context,
         builder: (context) => Dialog(
           backgroundColor: Colors.transparent,
-          child: Container(
+          child: SizedBox(
             width: 600,
             height: 700,
             child: TagFilterModal(
@@ -216,7 +357,7 @@ class _TagFilterWidgetState extends ConsumerState<TagFilterWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
+    return SizedBox(
       height: widget.height ?? 56,
       width: widget.width,
       child: Row(
@@ -228,6 +369,8 @@ class _TagFilterWidgetState extends ConsumerState<TagFilterWidget> {
               child: AbsorbPointer(
                 child: PrimaryTextField(
                   controller: _controller,
+                  maxLines: 3,
+                  minLines: 1,
                   label: 'Фильтр по тегам',
                   readOnly: true,
                   suffixIcon: Row(
@@ -289,6 +432,7 @@ class _TagFilterWidgetState extends ConsumerState<TagFilterWidget> {
 
   @override
   void dispose() {
+    _updateTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }

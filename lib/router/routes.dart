@@ -41,7 +41,7 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.dashboard,
-    builder: (context, state) => const DashboardScreen(),
+    builder: (context, state) => const CategoryFilterExampleScreen(),
   ),
   GoRoute(
     path: AppRoutes.baseSettings,
