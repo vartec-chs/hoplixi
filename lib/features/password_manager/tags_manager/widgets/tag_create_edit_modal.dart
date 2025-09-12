@@ -105,6 +105,8 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
         content: SingleChildScrollView(
           child: ColorPicker(
             pickerColor: _selectedColor,
+            paletteType: PaletteType.hsv,
+
             onColorChanged: (color) => pickedColor = color,
             pickerAreaHeightPercent: 0.8,
           ),
