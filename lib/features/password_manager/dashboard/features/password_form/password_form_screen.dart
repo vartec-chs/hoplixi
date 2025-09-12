@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_picker/categories_picker.dart';
@@ -83,13 +84,13 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
     );
     final success = await notifier.savePassword();
     if (success && mounted) {
-      Navigator.of(context).pop(true); // Возвращаем true для обновления списка
+      context.pop(true); // Возвращаем true для обновления списка
     }
   }
 
   /// Отмена и возврат
   void _cancel() {
-    Navigator.of(context).pop(false);
+    context.pop(false);
   }
 
   @override

@@ -4,7 +4,6 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/hoplixi_store/dao/password_tags_dao.dart';
-import 'package:hoplixi/core/utils/toastification.dart';
 
 /// Состояние формы пароля - безопасная модель с автоочисткой
 class PasswordFormState {
@@ -117,13 +116,31 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
 
     // Настраиваем очистку ресурсов
     ref.onDispose(() {
-      _clearSensitiveData(initialState);
-      _disposeControllers(initialState);
+      // _clearSensitiveData(initialState);
+      // _disposeControllers(initialState);
     });
 
-    // Загружаем данные для редактирования, если нужно
+    // Загружаем данные для редактирования асинхронно, если нужно
     if (passwordId != null) {
-      _loadPasswordForEditing(initialState);
+      // Отложим загрузку данных, чтобы не блокировать build()
+      Future.microtask(() async {
+        // Проверяем, что провайдер еще не disposed
+        try {
+          if (ref.mounted) {
+            // Получаем зависимости синхронно
+            final passwordsDao = ref.read(passwordsDaoProvider);
+            final passwordTagsDao = ref.read(passwordTagsDaoProvider);
+            await _loadPasswordForEditing(
+              initialState,
+              passwordsDao,
+              passwordTagsDao,
+            );
+          }
+        } catch (e) {
+          // Провайдер мог быть disposed во время загрузки
+          logError('Провайдер был disposed во время загрузки: $e');
+        }
+      });
     }
 
     return initialState;
@@ -177,15 +194,21 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
   }
 
   /// Загрузка пароля для редактирования
-  Future<void> _loadPasswordForEditing(PasswordFormState currentState) async {
+  Future<void> _loadPasswordForEditing(
+    PasswordFormState currentState,
+    dynamic passwordsDao,
+    PasswordTagsDao passwordTagsDao,
+  ) async {
     if (passwordId == null) return;
 
     try {
+      if (!ref.mounted) return;
       state = state.copyWith(isLoading: true, error: null);
 
-      final passwordsDao = ref.read(passwordsDaoProvider);
-      final passwordTagsDao = ref.read(passwordTagsDaoProvider);
       final password = await passwordsDao.getPasswordById(passwordId!);
+
+      // Проверяем, что провайдер еще смонтирован после await
+      if (!ref.mounted) return;
 
       if (password != null) {
         currentState.nameController.text = password.name;
@@ -198,6 +221,9 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
 
         // Загрузить связанные теги
         await _loadAssociatedTags(passwordTagsDao);
+
+        // Проверяем, что провайдер еще смонтирован после await
+        if (!ref.mounted) return;
 
         // Обновить состояние с загруженными данными
         state = state.copyWith(
@@ -212,14 +238,18 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
         // Проверить валидность формы после загрузки
         _validateForm();
       } else {
-        state = state.copyWith(isLoading: false);
+        if (ref.mounted) {
+          state = state.copyWith(isLoading: false);
+        }
       }
     } catch (error, stackTrace) {
-      state = state.copyWith(error: error.toString(), isLoading: false);
-      logError(
-        'Ошибка загрузки пароля для редактирования: $error',
-        stackTrace: stackTrace,
-      );
+      if (ref.mounted) {
+        state = state.copyWith(error: error.toString(), isLoading: false);
+        logError(
+          'Ошибка загрузки пароля для редактирования: $error',
+          stackTrace: stackTrace,
+        );
+      }
     }
   }
 
@@ -259,7 +289,6 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
         stackTrace: stackTrace,
       );
       // Не блокируем сохранение пароля из-за ошибки тегов
-      throw Exception('Пароль создан, но не удалось связать с тегами: $error');
     }
   }
 
@@ -346,11 +375,15 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
   Future<bool> savePassword() async {
     if (!validateForm()) return false;
 
-    try {
-      state = state.copyWith(isLoading: true, error: null);
+    // Получаем зависимости синхронно ПЕРЕД началом асинхронных операций
+    final passwordsDao = ref.read(passwordsDaoProvider);
+    final passwordTagsDao = ref.read(passwordTagsDaoProvider);
 
-      final passwordsDao = ref.read(passwordsDaoProvider);
-      final passwordTagsDao = ref.read(passwordTagsDaoProvider);
+    try {
+      // Проверяем, что провайдер еще смонтирован
+      if (!ref.mounted) return false;
+
+      state = state.copyWith(isLoading: true, error: null);
 
       if (isEditing) {
         // Обновление существующего пароля
@@ -379,10 +412,19 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
 
         final success = await passwordsDao.updatePassword(updateDto);
 
+        // Проверяем, что провайдер еще смонтирован после await
+        if (!ref.mounted) return false;
+
         if (success) {
           // Обновить связи с тегами
           await _updatePasswordTags(passwordId!, passwordTagsDao);
-          ToastHelper.success(title: 'Успешно', description: 'Пароль обновлен');
+
+          if (ref.mounted) {
+            ToastHelper.success(
+              title: 'Успешно',
+              description: 'Пароль обновлен',
+            );
+          }
         } else {
           throw Exception('Не удалось обновить пароль');
         }
@@ -412,22 +454,32 @@ class PasswordFormNotifier extends Notifier<PasswordFormState> {
 
         final newPasswordId = await passwordsDao.createPassword(createDto);
 
+        // Проверяем, что провайдер еще смонтирован после await
+        if (!ref.mounted) return false;
+
         // Создать связи с тегами
         await _createPasswordTags(newPasswordId, passwordTagsDao);
-        ToastHelper.success(title: 'Успешно', description: 'Пароль создан');
+
+        if (ref.mounted) {
+          ToastHelper.success(title: 'Успешно', description: 'Пароль создан');
+        }
       }
 
-      state = state.copyWith(isLoading: false);
+      if (ref.mounted) {
+        state = state.copyWith(isLoading: false);
+      }
       return true;
     } catch (error, _) {
-      state = state.copyWith(error: error.toString(), isLoading: false);
+      if (ref.mounted) {
+        state = state.copyWith(error: error.toString(), isLoading: false);
 
-      print('Ошибка сохранения пароля: $error');
+        logError('Ошибка сохранения пароля: $error');
 
-      ToastHelper.error(
-        title: 'Ошибка',
-        description: 'Не удалось сохранить пароль: ${error.toString()}',
-      );
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Не удалось сохранить пароль: ${error.toString()}',
+        );
+      }
 
       return false;
     }
