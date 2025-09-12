@@ -84,7 +84,7 @@ class _CategoriesPickerExampleState
             ),
             const SizedBox(height: 8),
             CategoriesPicker(
-              categoryType: CategoryType.mixed,
+              categoryType: CategoryType.password,
               maxSelection: 3,
               selectedCategoryIds: _selectedMultipleCategories,
               labelText: 'Категории',

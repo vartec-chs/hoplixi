@@ -11,4 +11,6 @@ class AppRoutes {
   static const String categoryManager = '/category-manager';
   static const String iconManager = '/icon-manager';
   static const String tagsManager = '/tags-manager';
+  static const String passwordForm = '/password-form';
+  
 }

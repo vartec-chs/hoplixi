@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import '../hoplixi_store.dart';
 import '../tables/passwords.dart';
 import '../dto/db_dto.dart';
@@ -12,7 +13,9 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
 
   /// Создание нового пароля
   Future<String> createPassword(CreatePasswordDto dto) async {
+    final id = UuidGenerator.generate();
     final companion = PasswordsCompanion(
+      id: Value(id),
       name: Value(dto.name),
       description: Value(dto.description),
       password: Value(dto.password),
@@ -29,7 +32,7 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
     ).insert(companion, mode: InsertMode.insertOrIgnore);
 
     // Возвращаем сгенерированный UUID из companion
-    return companion.id.value;
+    return id;
   }
 
   /// Обновление пароля

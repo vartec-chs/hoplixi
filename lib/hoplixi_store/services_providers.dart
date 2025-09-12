@@ -42,6 +42,13 @@ final passwordsDaoProvider = Provider<PasswordsDao>((ref) {
 
   return PasswordsDao(db.currentDatabase);
 });
+
+// PasswordTagsDao
+final passwordTagsDaoProvider = Provider<PasswordTagsDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  return PasswordTagsDao(db.currentDatabase);
+});
 // =============================================================================
 // СЕРВИС ПРОВАЙДЕРЫ
 // =============================================================================

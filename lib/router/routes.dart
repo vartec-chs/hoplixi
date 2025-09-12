@@ -7,12 +7,12 @@ import 'package:hoplixi/features/password_manager/before_opening/create_store/cr
 import 'package:hoplixi/features/password_manager/categories_manager/categories_picker/categories_picker_example.dart';
 import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_manager_screen.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/password_form/password_form_screen.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons_management_screen.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
 import 'package:hoplixi/features/filters/tag_filter/example/tag_filter_example_screen.dart';
-import 'package:hoplixi/features/password_manager/tags_manager/tags_picker/tags_picker_example.dart';
 import 'package:hoplixi/features/test/test.dart';
 import 'routes_path.dart';
 
@@ -43,7 +43,7 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.dashboard,
-    builder: (context, state) => const TagsPickerExample(),
+    builder: (context, state) => const DashboardScreen(),
   ),
   GoRoute(
     path: AppRoutes.baseSettings,
@@ -60,6 +60,17 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.tagsManager,
     builder: (context, state) => const TagsManagementScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.passwordForm,
+    builder: (context, state) => const PasswordFormScreen(),
+  ),
+  GoRoute(
+    path: '${AppRoutes.passwordForm}/:passwordId',
+    builder: (context, state) {
+      final passwordId = state.pathParameters['passwordId'];
+      return PasswordFormScreen(passwordId: passwordId);
+    },
   ),
 ];
 

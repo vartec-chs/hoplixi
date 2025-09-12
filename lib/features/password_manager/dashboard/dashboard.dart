@@ -378,11 +378,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
         floatingActionButton: ExpandableFAB(
-          onCreatePassword: () {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Создать пароль')));
-          },
+          onCreatePassword: () => context.push(AppRoutes.passwordForm),
           onCreateCategory: () => context.push(AppRoutes.categoryManager),
           onIconCreate: () => context.push(AppRoutes.iconManager),
           onCreateTag: () => context.push(AppRoutes.tagsManager),
