@@ -128,11 +128,15 @@ enum HomeWidgetType {
 
 /// Современный контроллер главного экрана с использованием Riverpod 3.0 Notifier API
 class HomeController extends Notifier<HomeState> {
-  HoplixiStoreManager get _storeManager =>
-      ref.read(hoplixiStoreManagerProvider);
+  late final HoplixiStoreManager _storeManager;
+  late final DatabaseAsyncNotifier _hoplixiStoreNotifier;
 
   @override
   HomeState build() {
+    _storeManager = ref.read(hoplixiStoreManagerProvider);
+
+    _hoplixiStoreNotifier = ref.read(hoplixiStoreProvider.notifier);
+
     // Инициализация состояния с виджетами по умолчанию
     final initialWidgets = [
       const HomeWidgetData(
@@ -357,16 +361,17 @@ class HomeController extends Notifier<HomeState> {
         saveMasterPassword: false,
       );
 
-      final result = await _storeManager.openDatabase(openDto);
+      await _hoplixiStoreNotifier.openDatabase(openDto);
+      final hoplixiStoreState = ref.watch(hoplixiStoreProvider);
 
       logInfo(
         'БД открыта успешно с введенным паролем',
         tag: 'HomeController',
-        data: {'status': result.status.toString()},
+        data: {'status': hoplixiStoreState.value?.status.toString()},
       );
-
       await _safeReloadHistory();
-      return result;
+
+      return hoplixiStoreState.value;
     } catch (e, stackTrace) {
       final errorMessage = 'Ошибка открытия: ${e.toString()}';
       state = state.copyWith(isLoading: false, error: errorMessage);
@@ -409,16 +414,17 @@ class HomeController extends Notifier<HomeState> {
         saveMasterPassword: true,
       );
 
-      final result = await _storeManager.openDatabase(openDto);
+      await _hoplixiStoreNotifier.openDatabase(openDto);
+      final hoplixiStoreState = ref.watch(hoplixiStoreProvider);
 
       logInfo(
         'БД открыта успешно с сохранением пароля',
         tag: 'HomeController',
-        data: {'status': result.status.toString()},
+        data: {'status': hoplixiStoreState.value?.status.toString()},
       );
 
       await _safeReloadHistory();
-      return result;
+      return hoplixiStoreState.value;
     } catch (e, stackTrace) {
       final errorMessage = 'Ошибка открытия: ${e.toString()}';
       state = state.copyWith(isLoading: false, error: errorMessage);
