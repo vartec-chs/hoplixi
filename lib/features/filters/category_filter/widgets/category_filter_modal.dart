@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/common/debouncer.dart';
+import 'package:hoplixi/common/shimmer_effect.dart';
 import 'package:hoplixi/core/theme/colors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
@@ -76,6 +78,9 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  // Debouncer для поиска
+  late final Debouncer _searchDebouncer;
+
   List<store.Category> _availableCategories = [];
   List<store.Category> _filteredCategories = [];
   List<store.Category> _localSelectedCategories = [];
@@ -88,10 +93,14 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
   int _currentPage = 1;
   bool _hasMoreData = true;
 
+  // Кэш запросов для избежания дублирования
+  final Set<String> _loadingQueries = {};
+
   @override
   void initState() {
     super.initState();
     _localSelectedCategories = List.from(widget.selectedCategories);
+    _searchDebouncer = Debouncer(delay: const Duration(milliseconds: 300));
     _loadCategories();
     _setupScrollController();
     _searchController.addListener(_onSearchChanged);
@@ -108,22 +117,31 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
 
   void _onSearchChanged() {
     final query = _searchController.text.trim();
-    if (_searchQuery != query) {
-      setState(() {
-        _searchQuery = query;
-        _currentPage = 1;
-        _hasMoreData = true;
-      });
-      _loadCategories();
-    }
+    if (_searchQuery == query) return;
+
+    _searchDebouncer.run(() {
+      if (mounted) {
+        setState(() {
+          _searchQuery = query;
+          _currentPage = 1;
+          _hasMoreData = true;
+        });
+        _loadCategories();
+      }
+    });
   }
 
   Future<void> _loadCategories() async {
     if (_isLoading) return;
 
+    final queryKey = '${_searchQuery}_${_currentPage}';
+    if (_loadingQueries.contains(queryKey)) return;
+
     setState(() {
       _isLoading = true;
     });
+
+    _loadingQueries.add(queryKey);
 
     try {
       final categoriesService = ref.read(categoriesServiceProvider);
@@ -136,6 +154,8 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
         sortBy: widget.sortBy,
         ascending: widget.ascending,
       );
+
+      if (!mounted) return;
 
       setState(() {
         if (_currentPage == 1) {
@@ -172,19 +192,28 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
         },
       );
 
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } finally {
+      _loadingQueries.remove(queryKey);
     }
   }
 
   Future<void> _loadMoreCategories() async {
     if (_isLoadingMore || !_hasMoreData || _isLoading) return;
 
+    final queryKey = '${_searchQuery}_${_currentPage + 1}';
+    if (_loadingQueries.contains(queryKey)) return;
+
     setState(() {
       _isLoadingMore = true;
       _currentPage++;
     });
+
+    _loadingQueries.add(queryKey);
 
     try {
       final categoriesService = ref.read(categoriesServiceProvider);
@@ -197,6 +226,8 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
         sortBy: widget.sortBy,
         ascending: widget.ascending,
       );
+
+      if (!mounted) return;
 
       setState(() {
         _availableCategories.addAll(result.categories);
@@ -222,10 +253,14 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
         tag: 'CategoryFilterModal',
       );
 
-      setState(() {
-        _isLoadingMore = false;
-        _currentPage--;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+          _currentPage--;
+        });
+      }
+    } finally {
+      _loadingQueries.remove(queryKey);
     }
   }
 
@@ -521,7 +556,7 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
 
   Widget _buildCategoriesList(ThemeData theme) {
     if (_isLoading && _currentPage == 1) {
-      return const Center(child: CircularProgressIndicator());
+      return const CategoryListShimmer(itemCount: 8);
     }
 
     if (_filteredCategories.isEmpty && !_isLoading) {
@@ -555,7 +590,11 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
             padding: const EdgeInsets.all(16),
             alignment: Alignment.center,
             child: _isLoadingMore
-                ? const CircularProgressIndicator()
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const SizedBox.shrink(),
           );
         }
@@ -739,6 +778,7 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _searchDebouncer.dispose();
     super.dispose();
   }
 }

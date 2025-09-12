@@ -2,19 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/common/debouncer.dart';
+import 'package:hoplixi/common/shimmer_effect.dart';
 import 'package:hoplixi/core/theme/colors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
-import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
-
-/// Провайдер для сервиса тегов
-final tagsServiceProvider = Provider<TagsService>((ref) {
-  final dbNotifier = ref.watch(hoplixiStoreProvider.notifier);
-  final store = dbNotifier.currentDatabase;
-  return TagsService(store.tagsDao);
-});
+import 'package:hoplixi/hoplixi_store/providers.dart';
 
 /// Модальное окно для фильтрации тегов
 class TagFilterModal extends ConsumerStatefulWidget {
@@ -62,6 +56,9 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  // Debouncer для поиска
+  late final Debouncer _searchDebouncer;
+
   List<store.Tag> _availableTags = [];
   List<store.Tag> _filteredTags = [];
   List<store.Tag> _localSelectedTags = [];
@@ -75,10 +72,14 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
   final int _pageSize = 20;
   bool _hasMoreData = true;
 
+  // Кэш запросов для избежания дублирования
+  final Set<String> _loadingQueries = {};
+
   @override
   void initState() {
     super.initState();
     _localSelectedTags = List.from(widget.selectedTags);
+    _searchDebouncer = Debouncer(delay: const Duration(milliseconds: 300));
     _loadTags();
     _setupScrollController();
     _searchController.addListener(_onSearchChanged);
@@ -95,22 +96,31 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
 
   void _onSearchChanged() {
     final query = _searchController.text.trim();
-    if (_searchQuery != query) {
-      setState(() {
-        _searchQuery = query;
-        _currentPage = 1;
-        _hasMoreData = true;
-      });
-      _loadTags();
-    }
+    if (_searchQuery == query) return;
+
+    _searchDebouncer.run(() {
+      if (mounted) {
+        setState(() {
+          _searchQuery = query;
+          _currentPage = 1;
+          _hasMoreData = true;
+        });
+        _loadTags();
+      }
+    });
   }
 
   Future<void> _loadTags() async {
     if (_isLoading) return;
 
+    final queryKey = '${_searchQuery}_${_currentPage}';
+    if (_loadingQueries.contains(queryKey)) return;
+
     setState(() {
       _isLoading = true;
     });
+
+    _loadingQueries.add(queryKey);
 
     try {
       final tagsService = ref.read(tagsServiceProvider);
@@ -123,6 +133,8 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
         orderBy: 'name',
         ascending: true,
       );
+
+      if (!mounted) return;
 
       setState(() {
         if (_currentPage == 1) {
@@ -159,19 +171,28 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
         },
       );
 
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } finally {
+      _loadingQueries.remove(queryKey);
     }
   }
 
   Future<void> _loadMoreTags() async {
     if (_isLoadingMore || !_hasMoreData || _isLoading) return;
 
+    final queryKey = '${_searchQuery}_${_currentPage + 1}';
+    if (_loadingQueries.contains(queryKey)) return;
+
     setState(() {
       _isLoadingMore = true;
       _currentPage++;
     });
+
+    _loadingQueries.add(queryKey);
 
     try {
       final tagsService = ref.read(tagsServiceProvider);
@@ -184,6 +205,8 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
         orderBy: 'name',
         ascending: true,
       );
+
+      if (!mounted) return;
 
       setState(() {
         _availableTags.addAll(result.tags);
@@ -209,10 +232,14 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
         tag: 'TagFilterModal',
       );
 
-      setState(() {
-        _isLoadingMore = false;
-        _currentPage--;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+          _currentPage--;
+        });
+      }
+    } finally {
+      _loadingQueries.remove(queryKey);
     }
   }
 
@@ -518,7 +545,7 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
 
   Widget _buildTagsList(ThemeData theme) {
     if (_isLoading && _currentPage == 1) {
-      return const Center(child: CircularProgressIndicator());
+      return const TagListShimmer(itemCount: 8);
     }
 
     if (_filteredTags.isEmpty && !_isLoading) {
@@ -552,7 +579,11 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
             padding: const EdgeInsets.all(16),
             alignment: Alignment.center,
             child: _isLoadingMore
-                ? const CircularProgressIndicator()
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const SizedBox.shrink(),
           );
         }
@@ -686,6 +717,7 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _searchDebouncer.dispose();
     super.dispose();
   }
 }
