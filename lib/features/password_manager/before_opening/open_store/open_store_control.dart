@@ -8,7 +8,6 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/dto/database_file_info.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
-import 'package:hoplixi/hoplixi_store/state.dart';
 import 'package:file_picker/file_picker.dart';
 
 /// Состояние формы открытия хранилища
@@ -245,6 +244,10 @@ class OpenStoreController extends StateNotifier<OpenStoreFormState> {
     state = const OpenStoreFormState();
   }
 
+  void setLoading(bool isLoading) {
+    state = state.copyWith(isLoading: isLoading);
+  }
+
   /// Полная очистка всех данных
   void clearAllData() {
     // Очищаем состояние
@@ -280,10 +283,6 @@ final openStoreControllerProvider =
       return OpenStoreController(ref);
     });
 
-/// Провайдер для получения состояния базы данных
-final openStorehoplixiStoreProvider = Provider<DatabaseState>((ref) {
-  return ref.watch(hoplixiStoreProvider);
-});
 
 /// Провайдер для проверки готовности к открытию
 final openStoreReadyProvider = Provider<bool>((ref) {

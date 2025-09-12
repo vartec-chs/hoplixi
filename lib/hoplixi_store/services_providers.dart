@@ -36,7 +36,6 @@ final tagsDaoProvider = Provider<TagsDao>((ref) {
   return TagsDao(db.currentDatabase);
 });
 
-
 final passwordsDaoProvider = Provider<PasswordsDao>((ref) {
   final db = ref.watch(hoplixiStoreProvider.notifier);
 
@@ -473,10 +472,6 @@ class CreateIconNotifier extends StateNotifier<AsyncValue<void>> {
 // =============================================================================
 
 /// Провайдер для проверки доступности сервисов
-final servicesAvailableProvider = Provider<bool>((ref) {
-  final state = ref.watch(hoplixiStoreProvider);
-  return state.isOpen;
-});
 
 /// Провайдер для получения количества категорий каждого типа
 final categoriesCountByTypeProvider = FutureProvider<Map<CategoryType, int>>((

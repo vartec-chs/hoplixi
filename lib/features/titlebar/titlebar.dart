@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/theme_old/theme_switcher.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
-import 'package:hoplixi/hoplixi_store/state.dart';
 import 'package:window_manager/window_manager.dart';
 
 class TitleBar extends ConsumerStatefulWidget {
@@ -80,15 +79,9 @@ class _TitleBarState extends ConsumerState<TitleBar> {
                     constraints: constraints,
                     icon: Icon(Icons.close, size: 20),
                     onPressed: () async => {
-                      // if (dbState.runtimeType.toString() == '_Connected')
-                      // {await dbNotifier.closeDatabase()},
-                      await dbState.maybeWhen(
-                        (path, name, status, error) =>
-                            status == DatabaseStatus.open
-                            ? dbNotifier.closeDatabase()
-                            : null,
-                        orElse: () async {},
-                      ),
+                      dbState.value!.isOpen
+                          ? await dbNotifier.closeDatabase()
+                          : null,
                       await windowManager.close(),
                     },
                   ),

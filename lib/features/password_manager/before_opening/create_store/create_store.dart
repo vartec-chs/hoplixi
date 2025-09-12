@@ -5,6 +5,7 @@ import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/password_field.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
@@ -56,11 +57,16 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     final isReady = ref.watch(createStoreReadyProvider);
 
     // Слушаем изменения состояния базы данных
-    ref.listen<DatabaseState>(createStorehoplixiStoreProvider, (
+    ref.listen<AsyncValue<DatabaseState>>(hoplixiStoreProvider, (
       previous,
       next,
     ) {
-      if (next.isOpen && previous?.status != next.status) {
+      if (next.isLoading) {
+        controller.setLoading(true);
+      } else {
+        controller.setLoading(false);
+      }
+      if (next.value?.isOpen == true && previous?.value?.status != next.value?.status) {
         // База данных успешно создана, очищаем данные и переходим на главный экран
         controller.clearAllData();
 

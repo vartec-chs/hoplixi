@@ -7,7 +7,6 @@ import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
-import 'package:riverpod/legacy.dart';
 
 final hoplixiStoreManagerProvider = Provider<HoplixiStoreManager>((ref) {
   final manager = HoplixiStoreManager();
@@ -25,129 +24,125 @@ final hoplixiStoreManagerProvider = Provider<HoplixiStoreManager>((ref) {
 });
 
 final hoplixiStoreProvider =
-    StateNotifierProvider<DatabaseStateNotifier, DatabaseState>((ref) {
-      final manager = ref.read(hoplixiStoreManagerProvider);
-      return DatabaseStateNotifier(manager);
+    AsyncNotifierProvider<DatabaseAsyncNotifier, DatabaseState>(() {
+      return DatabaseAsyncNotifier();
     });
 
 final isDatabaseOpenProvider = Provider<bool>((ref) {
-  final dbStateNotifier = ref.watch(hoplixiStoreProvider.notifier);
-  return dbStateNotifier.isDatabaseOpen;
+  return ref.watch(
+    hoplixiStoreProvider.select((async) => async.asData?.value.isOpen ?? false),
+  );
 });
 
+
 /// Нотификатор состояния базы данных (новая версия)
-class DatabaseStateNotifier extends StateNotifier<DatabaseState> {
-  final HoplixiStoreManager _manager;
+class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
+  late final HoplixiStoreManager _manager;
 
-  DatabaseStateNotifier(this._manager) : super(const DatabaseState());
+  @override
+  Future<DatabaseState> build() async {
+    _manager = ref.read(hoplixiStoreManagerProvider);
+    return const DatabaseState();
+  }
 
-  /// Создает новую базу данных
+  /// Создать новую базу
   Future<void> createDatabase(CreateDatabaseDto dto) async {
     try {
-      state = state.copyWith(status: DatabaseStatus.loading);
+      state = const AsyncValue.loading();
       final newState = await _manager.createDatabase(dto);
-      state = newState;
+      state = AsyncValue.data(newState);
       logInfo(
         'База данных создана успешно',
-        tag: 'DatabaseStateNotifier',
+        tag: 'DatabaseAsyncNotifier',
         data: {'name': dto.name},
       );
-    } catch (e, stackTrace) {
+    } catch (e, st) {
       logError(
         'Ошибка создания базы данных',
         error: e,
-        tag: 'DatabaseStateNotifier',
+        stackTrace: st,
+        tag: 'DatabaseAsyncNotifier',
         data: {'name': dto.name},
-        stackTrace: stackTrace,
       );
-      state = DatabaseState(
-        status: DatabaseStatus.error,
-        error: e is DatabaseError
-            ? e
-            : DatabaseError.unknown(
-                message: 'Unknown database error',
-                stackTrace: stackTrace,
-                details: e.toString(),
-              ),
-      );
+      final dbError = e is DatabaseError
+          ? e
+          : DatabaseError.unknown(
+              message: 'Unknown database error',
+              stackTrace: st,
+              details: e.toString(),
+            );
+      state = AsyncValue.error(dbError, st);
       rethrow;
     }
   }
 
-  /// Открывает существующую базу данных
+  /// Открыть существующую базу
   Future<void> openDatabase(OpenDatabaseDto dto) async {
     try {
-      state = state.copyWith(status: DatabaseStatus.loading);
+      state = const AsyncValue.loading();
       final newState = await _manager.openDatabase(dto);
-      state = newState;
+      state = AsyncValue.data(newState);
       logInfo(
         'База данных открыта успешно',
-        tag: 'DatabaseStateNotifier',
+        tag: 'DatabaseAsyncNotifier',
         data: {'path': dto.path},
       );
-    } catch (e, stackTrace) {
+    } catch (e, st) {
       logError(
         'Ошибка открытия базы данных',
         error: e,
-        tag: 'DatabaseStateNotifier',
+        stackTrace: st,
+        tag: 'DatabaseAsyncNotifier',
         data: {'path': dto.path},
-        stackTrace: stackTrace,
       );
-      state = DatabaseState(
-        status: DatabaseStatus.error,
-        error: e is DatabaseError
-            ? e
-            : DatabaseError.unknown(
-                message: 'Unknown database error',
-                stackTrace: stackTrace,
-                details: e.toString(),
-              ),
-      );
+      final dbError = e is DatabaseError
+          ? e
+          : DatabaseError.unknown(
+              message: 'Unknown database error',
+              stackTrace: st,
+              details: e.toString(),
+            );
+      state = AsyncValue.error(dbError, st);
       rethrow;
     }
   }
 
-  /// Закрывает текущую базу данных
+  /// Закрыть текущую базу
   Future<void> closeDatabase() async {
     try {
-      final newState = await _manager.closeDatabase();
-      state = newState;
-      logInfo('База данных закрыта успешно', tag: 'DatabaseStateNotifier');
-    } catch (e) {
+      state = const AsyncValue.loading();
+      final closedState = await _manager.closeDatabase();
+      state = AsyncValue.data(closedState);
+      logInfo('База данных закрыта успешно', tag: 'DatabaseAsyncNotifier');
+    } catch (e, st) {
       logError(
         'Ошибка закрытия базы данных',
         error: e,
-        tag: 'DatabaseStateNotifier',
+        stackTrace: st,
+        tag: 'DatabaseAsyncNotifier',
       );
-      // В случае ошибки закрытия, все равно считаем БД закрытой
-      state = const DatabaseState(status: DatabaseStatus.closed);
+      // В любом случае считаем базу закрытой
+      state = const AsyncValue.data(
+        DatabaseState(status: DatabaseStatus.closed),
+      );
     }
   }
 
-  // текущее состояние базы данных
-  DatabaseState get currentState => state;
+  // Утилиты
+  DatabaseState? get currentState => state.asData?.value;
+  bool get isDatabaseOpen => state.asData?.value.isOpen ?? false;
+
   HoplixiStore get currentDatabase {
-    if (!state.isOpen || _manager.database == null) {
+    final db = _manager.database;
+    if (db == null) {
       throw DatabaseError.operationFailed(
         operation: 'getCurrentDatabase',
         details:
-            'Database is not open or not initialized. Current status: ${state.status}',
+            'Database is not open or not initialized. Current Async state: $state',
         message: 'Database must be opened before accessing it',
         stackTrace: StackTrace.current,
       );
     }
-    return _manager.database!;
-  }
-
-  bool get isDatabaseOpen => state.isOpen;
-
-  /// Сброс состояния в начальное
-  void reset() {
-    state = const DatabaseState();
-  }
-
-  /// Установка состояния ошибки
-  void setError(DatabaseError error) {
-    state = DatabaseState(status: DatabaseStatus.error, error: error);
+    return db;
   }
 }

@@ -7,6 +7,7 @@ import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store_control.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/widgets/database_files_list.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/hoplixi_store/state.dart';
@@ -52,8 +53,18 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
     final isReady = ref.watch(openStoreReadyProvider);
 
     // Слушаем изменения состояния базы данных
-    ref.listen<DatabaseState>(openStorehoplixiStoreProvider, (previous, next) {
-      if (next.isOpen && previous?.status != next.status) {
+    ref.listen<AsyncValue<DatabaseState>>(hoplixiStoreProvider, (
+      previous,
+      next,
+    ) {
+      if (next.isLoading) {
+        // Показываем индикатор загрузки
+        controller.setLoading(true);
+      } else {
+        controller.setLoading(false);
+      }
+      if (next.value?.isOpen == true &&
+          previous?.value?.status != next.value?.status) {
         // База данных успешно открыта, очищаем данные и показываем уведомление
         controller.clearAllData();
 

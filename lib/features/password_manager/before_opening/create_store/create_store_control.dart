@@ -352,6 +352,10 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
     _initializeDefaultPath();
   }
 
+  void setLoading(bool isLoading) {
+    state = state.copyWith(isLoading: isLoading);
+  }
+
   /// Полная очистка всех данных
   void clearAllData() {
     // Очищаем состояние
@@ -387,11 +391,6 @@ final createStoreControllerProvider =
     StateNotifierProvider<CreateStoreController, CreateStoreFormState>((ref) {
       return CreateStoreController(ref);
     });
-
-/// Провайдер для получения состояния базы данных
-final createStorehoplixiStoreProvider = Provider<DatabaseState>((ref) {
-  return ref.watch(hoplixiStoreProvider);
-});
 
 /// Провайдер для проверки готовности к созданию
 final createStoreReadyProvider = Provider<bool>((ref) {
