@@ -24,17 +24,111 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
     with WidgetsBindingObserver {
   bool _showPasswordGenerator = false;
 
+  // Контроллеры для полей ввода
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _passwordController;
+  late final TextEditingController _urlController;
+  late final TextEditingController _notesController;
+  late final TextEditingController _loginController;
+  late final TextEditingController _emailController;
+
+  // Глобальный ключ для формы
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Инициализация контроллеров
+    _nameController = TextEditingController();
+    _descriptionController = TextEditingController();
+    _passwordController = TextEditingController();
+    _urlController = TextEditingController();
+    _notesController = TextEditingController();
+    _loginController = TextEditingController();
+    _emailController = TextEditingController();
+
+    // Добавляем слушатели для валидации
+    _nameController.addListener(_validateForm);
+    _passwordController.addListener(_validateForm);
+    _loginController.addListener(_validateForm);
+    _emailController.addListener(_validateForm);
+
+    // Загрузка данных для редактирования после инициализации
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.passwordId != null) {
+        _loadPasswordForEditing();
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    // Очистка ресурсов теперь управляется через Notifier автоматически
+
+    // Удаляем слушатели
+    _nameController.removeListener(_validateForm);
+    _passwordController.removeListener(_validateForm);
+    _loginController.removeListener(_validateForm);
+    _emailController.removeListener(_validateForm);
+
+    // Безопасная очистка контроллеров
+    _clearControllerSecurely(_nameController);
+    _clearControllerSecurely(_descriptionController);
+    _clearControllerSecurely(_passwordController);
+    _clearControllerSecurely(_urlController);
+    _clearControllerSecurely(_notesController);
+    _clearControllerSecurely(_loginController);
+    _clearControllerSecurely(_emailController);
+
+    // Освобождение ресурсов
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _passwordController.dispose();
+    _urlController.dispose();
+    _notesController.dispose();
+    _loginController.dispose();
+    _emailController.dispose();
+
     super.dispose();
+  }
+
+  /// Безопасная очистка контроллера
+  void _clearControllerSecurely(TextEditingController controller) {
+    controller.clear();
+  }
+
+  /// Загрузка данных для редактирования
+  Future<void> _loadPasswordForEditing() async {
+    final notifier = ref.read(
+      passwordFormStateProvider(widget.passwordId).notifier,
+    );
+
+    await notifier.loadPasswordForEditing(
+      _nameController,
+      _descriptionController,
+      _passwordController,
+      _urlController,
+      _notesController,
+      _loginController,
+      _emailController,
+    );
+  }
+
+  /// Валидация формы в реальном времени
+  void _validateForm() {
+    final notifier = ref.read(
+      passwordFormStateProvider(widget.passwordId).notifier,
+    );
+
+    notifier.checkFormValidity(
+      name: _nameController.text,
+      password: _passwordController.text,
+      login: _loginController.text,
+      email: _emailController.text,
+    );
   }
 
   @override
@@ -82,7 +176,16 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
     final notifier = ref.read(
       passwordFormStateProvider(widget.passwordId).notifier,
     );
-    final success = await notifier.savePassword();
+    final success = await notifier.savePassword(
+      formKey: _formKey,
+      name: _nameController.text,
+      description: _descriptionController.text,
+      password: _passwordController.text,
+      url: _urlController.text,
+      notes: _notesController.text,
+      login: _loginController.text,
+      email: _emailController.text,
+    );
     if (success && mounted) {
       context.pop(true); // Возвращаем true для обновления списка
     }
@@ -129,7 +232,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
           ],
         ),
         body: Form(
-          key: formState.formKey,
+          key: _formKey,
           child: Column(
             children: [
               // Основная скроллируемая область с полями
@@ -141,7 +244,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
                     children: [
                       // Название
                       PrimaryTextFormField(
-                        controller: formState.nameController,
+                        controller: _nameController,
                         label: 'Название',
                         hintText: 'Введите название пароля',
                         validator: _requiredValidator,
@@ -152,7 +255,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
                       // Описание
                       PrimaryTextFormField(
-                        controller: formState.descriptionController,
+                        controller: _descriptionController,
                         label: 'Описание',
                         hintText: 'Дополнительное описание (необязательно)',
                         textInputAction: TextInputAction.next,
@@ -163,7 +266,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
                       // URL
                       PrimaryTextFormField(
-                        controller: formState.urlController,
+                        controller: _urlController,
                         label: 'URL сайта',
                         hintText: 'https://example.com',
                         validator: _urlValidator,
@@ -175,7 +278,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
                       // Логин
                       PrimaryTextFormField(
-                        controller: formState.loginController,
+                        controller: _loginController,
                         label: 'Логин',
                         hintText: 'Имя пользователя',
                         textInputAction: TextInputAction.next,
@@ -185,7 +288,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
                       // Email
                       PrimaryTextFormField(
-                        controller: formState.emailController,
+                        controller: _emailController,
                         label: 'Email',
                         hintText: 'user@example.com',
                         validator: _emailValidator,
@@ -197,7 +300,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
                       // Пароль
                       PrimaryTextFormField(
-                        controller: formState.passwordController,
+                        controller: _passwordController,
                         label: 'Пароль',
                         hintText: 'Введите пароль',
                         validator: _requiredValidator,
@@ -240,7 +343,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
                         const SizedBox(height: 16),
                         PasswordGenerator(
                           onPasswordGenerated: (password) {
-                            formState.passwordController.text = password;
+                            _passwordController.text = password;
                             setState(() {
                               _showPasswordGenerator = false;
                             });
@@ -252,7 +355,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
                       // Заметки
                       PrimaryTextFormField(
-                        controller: formState.notesController,
+                        controller: _notesController,
                         label: 'Заметки',
                         hintText: 'Дополнительные заметки (необязательно)',
                         textInputAction: TextInputAction.done,

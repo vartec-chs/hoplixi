@@ -34,6 +34,10 @@ final isDatabaseOpenProvider = Provider<bool>((ref) {
   );
 });
 
+final stateProvider = Provider<DatabaseState?>((ref) {
+  return ref.watch(hoplixiStoreProvider).asData?.value;
+});
+
 /// Нотификатор состояния базы данных (новая версия)
 class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   late final HoplixiStoreManager _manager;
