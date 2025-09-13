@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
-import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
@@ -128,15 +127,8 @@ enum HomeWidgetType {
 
 /// Современный контроллер главного экрана с использованием Riverpod 3.0 Notifier API
 class HomeController extends Notifier<HomeState> {
-  late final HoplixiStoreManager _storeManager;
-  late final DatabaseAsyncNotifier _hoplixiStoreNotifier;
-
   @override
   HomeState build() {
-    _storeManager = ref.read(hoplixiStoreManagerProvider);
-
-    _hoplixiStoreNotifier = ref.read(hoplixiStoreProvider.notifier);
-
     // Инициализация состояния с виджетами по умолчанию
     final initialWidgets = [
       const HomeWidgetData(
@@ -159,6 +151,21 @@ class HomeController extends Notifier<HomeState> {
         isVisible: false, // По умолчанию скрыт
       ),
     ];
+
+    // Слушаем изменения состояния БД
+    ref.listen<AsyncValue<DatabaseState>>(hoplixiStoreProvider, (prev, next) {
+      next.whenData((dbState) {
+        // При успешном открытии базы — обновляем индикаторы и перезагружаем историю
+        if (dbState.status == DatabaseStatus.open) {
+          state = state.copyWith(
+            isLoading: false,
+            isAutoOpening: false,
+            clearError: true,
+          );
+          _safeReloadHistory();
+        }
+      });
+    });
 
     // Загружаем данные асинхронно после инициализации
     Future.microtask(() => _loadInitialData());
@@ -199,8 +206,9 @@ class HomeController extends Notifier<HomeState> {
 
       logDebug('Загрузка недавней базы данных', tag: 'HomeController');
 
-      // Получаем самую недавно открытую базу данных из истории
-      final history = await _storeManager.getDatabaseHistory();
+      // Получаем менеджер для работы с историей БД
+      final storeManager = ref.read(hoplixiStoreManagerProvider);
+      final history = await storeManager.getDatabaseHistory();
 
       if (history.isNotEmpty) {
         final recentDatabase = history.first;
@@ -309,13 +317,22 @@ class HomeController extends Notifier<HomeState> {
         saveMasterPassword: true,
       );
 
-      final result = await _storeManager.openDatabase(openDto);
+      // Используем hoplixiStoreProvider для открытия БД
+      final hoplixiStoreNotifier = ref.read(hoplixiStoreProvider.notifier);
+      await hoplixiStoreNotifier.openDatabase(openDto);
 
-      logInfo(
-        'БД автоматически открыта успешно',
-        tag: 'HomeController',
-        data: {'status': result.status.toString()},
-      );
+      final hoplixiStoreState = ref.read(hoplixiStoreProvider);
+      final result = hoplixiStoreState.hasValue
+          ? hoplixiStoreState.value!
+          : null;
+
+      if (result != null) {
+        logInfo(
+          'БД автоматически открыта успешно',
+          tag: 'HomeController',
+          data: {'status': result.status.toString()},
+        );
+      }
 
       // Обновляем информацию о недавней базе данных
       await _safeReloadHistory();
@@ -361,8 +378,9 @@ class HomeController extends Notifier<HomeState> {
         saveMasterPassword: false,
       );
 
-      await _hoplixiStoreNotifier.openDatabase(openDto);
-      final hoplixiStoreState = ref.watch(hoplixiStoreProvider);
+      final hoplixiStoreNotifier = ref.read(hoplixiStoreProvider.notifier);
+      await hoplixiStoreNotifier.openDatabase(openDto);
+      final hoplixiStoreState = ref.read(hoplixiStoreProvider);
 
       logInfo(
         'БД открыта успешно с введенным паролем',
@@ -414,8 +432,9 @@ class HomeController extends Notifier<HomeState> {
         saveMasterPassword: true,
       );
 
-      await _hoplixiStoreNotifier.openDatabase(openDto);
-      final hoplixiStoreState = ref.watch(hoplixiStoreProvider);
+      final hoplixiStoreNotifier = ref.read(hoplixiStoreProvider.notifier);
+      await hoplixiStoreNotifier.openDatabase(openDto);
+      final hoplixiStoreState = ref.read(hoplixiStoreProvider);
 
       logInfo(
         'БД открыта успешно с сохранением пароля',
@@ -450,9 +469,8 @@ class HomeController extends Notifier<HomeState> {
     try {
       state = state.copyWith(isLoading: true, clearError: true);
 
-      await _storeManager.removeDatabaseHistoryEntry(
-        state.recentDatabase!.path,
-      );
+      final storeManager = ref.read(hoplixiStoreManagerProvider);
+      await storeManager.removeDatabaseHistoryEntry(state.recentDatabase!.path);
 
       logInfo(
         'БД удалена из истории: ${state.recentDatabase!.name}',
@@ -481,7 +499,8 @@ class HomeController extends Notifier<HomeState> {
   /// Получает статистику истории
   Future<Map<String, dynamic>> getHistoryStats() async {
     try {
-      return await _storeManager.getDatabaseHistoryStats();
+      final storeManager = ref.read(hoplixiStoreManagerProvider);
+      return await storeManager.getDatabaseHistoryStats();
     } catch (e) {
       logError(
         'Ошибка получения статистики истории',
