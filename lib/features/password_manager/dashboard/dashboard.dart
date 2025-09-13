@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'widgets/password_card.dart';
 import 'widgets/filter_modal.dart';
@@ -187,126 +188,135 @@ class _DashboardScreenState extends State<DashboardScreen>
         drawer: _buildDrawer(),
         body: CustomScrollView(
           slivers: [
+            SliverToBoxAdapter(
+              child: Builder(
+                builder: (scaffoldContext) => FilterSection(
+                  onMenuPressed: () =>
+                      Scaffold.of(scaffoldContext).openDrawer(),
+                ),
+              ),
+            ),
+
             // SliverAppBar for search
-            SliverAppBar(
-              expandedHeight: 114.0,
-              floating: true,
-              pinned: false,
-              snap: false,
-              elevation: 0,
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              surfaceTintColor: Theme.of(context).colorScheme.surface,
-              leading: Builder(
-                builder: (context) => IconButton(
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                  icon: Icon(
-                    Icons.menu,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  tooltip: 'Меню',
-                ),
-              ),
-              actions: [
-                Container(
-                  margin: const EdgeInsets.only(right: 16.0),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    onPressed: _showFilterModal,
-                    icon: Icon(
-                      Icons.tune,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                    tooltip: 'Фильтры',
-                  ),
-                ),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  padding: const EdgeInsets.only(
-                    left: 16.0,
-                    right: 16.0,
-                    top: 60.0,
-                    bottom: 4.0,
-                  ),
-                  child: PrimaryTextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value;
-                      });
-                    },
-                    hintText: 'Поиск паролей...',
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            // SliverAppBar(
+            //   expandedHeight: 114.0,
+            //   floating: true,
+            //   pinned: false,
+            //   snap: false,
+            //   elevation: 0,
+            //   backgroundColor: Theme.of(context).colorScheme.surface,
+            //   surfaceTintColor: Theme.of(context).colorScheme.surface,
+            //   leading: Builder(
+            //     builder: (context) => IconButton(
+            //       onPressed: () => Scaffold.of(context).openDrawer(),
+            //       icon: Icon(
+            //         Icons.menu,
+            //         color: Theme.of(context).colorScheme.onSurface,
+            //       ),
+            //       tooltip: 'Меню',
+            //     ),
+            //   ),
+            //   actions: [
+            //     Container(
+            //       margin: const EdgeInsets.only(right: 16.0),
+            //       decoration: BoxDecoration(
+            //         color: Theme.of(context).colorScheme.primaryContainer,
+            //         borderRadius: BorderRadius.circular(12),
+            //       ),
+            //       child: IconButton(
+            //         onPressed: _showFilterModal,
+            //         icon: Icon(
+            //           Icons.tune,
+            //           color: Theme.of(context).colorScheme.onPrimaryContainer,
+            //         ),
+            //         tooltip: 'Фильтры',
+            //       ),
+            //     ),
+            //   ],
+            //   flexibleSpace: FlexibleSpaceBar(
+            //     background: Container(
+            //       padding: const EdgeInsets.only(
+            //         left: 16.0,
+            //         right: 16.0,
+            //         top: 60.0,
+            //         bottom: 4.0,
+            //       ),
+            //       child: PrimaryTextField(
+            //         controller: _searchController,
+            //         onChanged: (value) {
+            //           setState(() {
+            //             _searchQuery = value;
+            //           });
+            //         },
+            //         hintText: 'Поиск паролей...',
+            //         prefixIcon: Icon(
+            //           Icons.search,
+            //           color: Theme.of(
+            //             context,
+            //           ).colorScheme.onSurface.withOpacity(0.6),
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // ),
             // SliverAppBar for tabs
-            SliverAppBar(
-              // expandedHeight: 40,
-              collapsedHeight: 60.0,
-              floating: false,
-              pinned: false,
-              snap: false,
-              elevation: 0,
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              surfaceTintColor: Theme.of(context).colorScheme.surface,
-              automaticallyImplyLeading: false,
-              flexibleSpace: Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
-                ),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.1),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.shadow.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    color: Theme.of(context).colorScheme.secondary,
-                  ),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  dividerColor: Colors.transparent,
-                  labelColor: Theme.of(context).colorScheme.onSecondary,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
-                  labelStyle: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: Theme.of(context).textTheme.bodyMedium,
-                  padding: const EdgeInsets.all(4),
-                  tabs: const [
-                    Tab(text: 'Все', height: 40),
-                    Tab(text: 'Избранные', height: 40),
-                  ],
-                ),
-              ),
-            ),
+            // SliverAppBar(
+            //   // expandedHeight: 40,
+            //   collapsedHeight: 60.0,
+            //   floating: false,
+            //   pinned: false,
+            //   snap: false,
+            //   elevation: 0,
+            //   backgroundColor: Theme.of(context).colorScheme.surface,
+            //   surfaceTintColor: Theme.of(context).colorScheme.surface,
+            //   automaticallyImplyLeading: false,
+            //   flexibleSpace: Container(
+            //     margin: const EdgeInsets.symmetric(
+            //       horizontal: 16.0,
+            //       vertical: 8.0,
+            //     ),
+            //     decoration: BoxDecoration(
+            //       color: Theme.of(context).colorScheme.surface,
+            //       borderRadius: BorderRadius.circular(12),
+            //       border: Border.all(
+            //         color: Theme.of(
+            //           context,
+            //         ).colorScheme.outline.withOpacity(0.1),
+            //       ),
+            //       boxShadow: [
+            //         BoxShadow(
+            //           color: Theme.of(
+            //             context,
+            //           ).colorScheme.shadow.withOpacity(0.05),
+            //           blurRadius: 8,
+            //           offset: const Offset(0, 2),
+            //         ),
+            //       ],
+            //     ),
+            //     child: TabBar(
+            //       controller: _tabController,
+            //       indicator: BoxDecoration(
+            //         borderRadius: BorderRadius.circular(10),
+            //         color: Theme.of(context).colorScheme.secondary,
+            //       ),
+            //       indicatorSize: TabBarIndicatorSize.tab,
+            //       dividerColor: Colors.transparent,
+            //       labelColor: Theme.of(context).colorScheme.onSecondary,
+            //       unselectedLabelColor: Theme.of(
+            //         context,
+            //       ).colorScheme.onSurface.withOpacity(0.7),
+            //       labelStyle: Theme.of(
+            //         context,
+            //       ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            //       unselectedLabelStyle: Theme.of(context).textTheme.bodyMedium,
+            //       padding: const EdgeInsets.all(4),
+            //       tabs: const [
+            //         Tab(text: 'Все', height: 40),
+            //         Tab(text: 'Избранные', height: 40),
+            //       ],
+            //     ),
+            //   ),
+            // ),
             // Password List
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
