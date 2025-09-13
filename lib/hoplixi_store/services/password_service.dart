@@ -7,6 +7,7 @@ import '../dao/categories_dao.dart';
 import '../dao/tags_dao.dart';
 import '../dao/password_tags_dao.dart';
 import '../dto/db_dto.dart';
+import '../models/password_filter.dart';
 
 import '../enums/entity_types.dart';
 import 'service_results.dart';
@@ -779,6 +780,86 @@ class PasswordService {
     return _passwordTagsDao.watchPasswordsForTag(tagId);
   }
 
+  // ==================== ФИЛЬТРАЦИЯ ПАРОЛЕЙ ====================
+
+  /// Получение отфильтрованных паролей с деталями
+  Future<ServiceResult<List<PasswordWithDetails>>> getFilteredPasswords(
+    PasswordFilter filter,
+  ) async {
+    try {
+      logDebug('Получение отфильтрованных паролей', tag: 'PasswordService');
+
+      final passwords = await _passwordsDao.getFilteredPasswords(filter);
+      final List<PasswordWithDetails> passwordsWithDetails = [];
+
+      for (final password in passwords) {
+        // Получаем теги для каждого пароля
+        final tags = await _passwordTagsDao.getTagsForPassword(password.id);
+
+        // Получаем категорию если есть
+        Category? category;
+        if (password.categoryId != null) {
+          category = await _categoriesDao.getCategoryById(password.categoryId!);
+        }
+
+        passwordsWithDetails.add(
+          PasswordWithDetails(
+            password: password,
+            tags: tags,
+            category: category,
+            historyCount: 0, // TODO: Добавить подсчет истории
+          ),
+        );
+      }
+
+      return ServiceResult.success(
+        data: passwordsWithDetails,
+        message: 'Пароли отфильтрованы успешно',
+      );
+    } catch (e) {
+      logError(
+        'Ошибка получения отфильтрованных паролей: $e',
+        tag: 'PasswordService',
+      );
+      return ServiceResult.error('Ошибка фильтрации паролей: ${e.toString()}');
+    }
+  }
+
+  /// Подсчет количества паролей по фильтру
+  Future<ServiceResult<int>> countFilteredPasswords(
+    PasswordFilter filter,
+  ) async {
+    try {
+      final count = await _passwordsDao.countFilteredPasswords(filter);
+      return ServiceResult.success(
+        data: count,
+        message: 'Количество паролей подсчитано',
+      );
+    } catch (e) {
+      return ServiceResult.error('Ошибка подсчета паролей: ${e.toString()}');
+    }
+  }
+
+  /// Stream отфильтрованных паролей
+  Stream<List<Password>> watchFilteredPasswords(PasswordFilter filter) {
+    return _passwordsDao.watchFilteredPasswords(filter);
+  }
+
+  /// Быстрый поиск паролей
+  Future<ServiceResult<List<PasswordWithDetails>>> quickSearchPasswords(
+    String query, {
+    int limit = 50,
+  }) async {
+    final filter = PasswordFilter.create(
+      query: query,
+      limit: limit,
+      sortField: PasswordSortField.modifiedAt,
+      sortDirection: SortDirection.desc,
+    );
+
+    return await getFilteredPasswords(filter);
+  }
+
   // ==================== УТИЛИТАРНЫЕ МЕТОДЫ ====================
 
   /// Очистка потерянных связей (orphaned relations)
@@ -887,5 +968,20 @@ class PasswordStatistics {
     required this.favoriteCount,
     required this.countByCategory,
     required this.countByTag,
+  });
+}
+
+/// Результат поиска паролей с метаданными
+class PasswordSearchResult {
+  final List<PasswordWithDetails> passwords;
+  final int? totalCount;
+  final PasswordFilter filter;
+  final bool hasMore;
+
+  PasswordSearchResult({
+    required this.passwords,
+    this.totalCount,
+    required this.filter,
+    required this.hasMore,
   });
 }

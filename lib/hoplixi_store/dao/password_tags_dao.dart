@@ -113,6 +113,8 @@ class PasswordTagsDao extends DatabaseAccessor<HoplixiStore>
             notes: row.read<String?>('notes'),
             login: row.read<String?>('login'),
             email: row.read<String?>('email'),
+            isArchived: row.read<bool>('is_archived'),
+            usedCount: row.read<int>('used_count'),
             categoryId: row.read<String?>('category_id'),
             isFavorite: row.read<bool>('is_favorite'),
             createdAt: row.read<DateTime>('created_at'),
@@ -241,6 +243,8 @@ class PasswordTagsDao extends DatabaseAccessor<HoplixiStore>
       }
     });
   }
+
+
 
   /// Очистка всех связей для удаленных паролей или тегов
   Future<int> cleanupOrphanedRelations() async {

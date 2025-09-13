@@ -59,6 +59,22 @@ abstract class CreatePasswordDto with _$CreatePasswordDto {
   }) = _CreatePasswordDto;
 }
 
+// card password dto
+@freezed
+abstract class CardPasswordDto with _$CardPasswordDto {
+  const factory CardPasswordDto({
+    required String id,
+    required String name,
+    String? description,
+    String? login,
+    String? email,
+    List<CardPasswordCategoryDto>? categories,
+    List<CardPasswordTagDto>? tags,
+    @Default(false) bool isFavorite,
+    @Default(false) bool isFrequentlyUsed,
+  }) = _CardPasswordDto;
+}
+
 @freezed
 abstract class UpdatePasswordDto with _$UpdatePasswordDto {
   const factory UpdatePasswordDto({
@@ -157,6 +173,14 @@ abstract class CreateCategoryDto with _$CreateCategoryDto {
 }
 
 @freezed
+abstract class CardPasswordCategoryDto with _$CardPasswordCategoryDto {
+  const factory CardPasswordCategoryDto({
+    required String name,
+    @Default('FFFFFF') String color,
+  }) = _CardPasswordCategoryDto;
+}
+
+@freezed
 abstract class UpdateCategoryDto with _$UpdateCategoryDto {
   const factory UpdateCategoryDto({
     required String id,
@@ -177,6 +201,12 @@ abstract class CreateTagDto with _$CreateTagDto {
     String? color,
     required TagType type,
   }) = _CreateTagDto;
+}
+
+@freezed
+abstract class CardPasswordTagDto with _$CardPasswordTagDto {
+  const factory CardPasswordTagDto({required String name, String? color}) =
+      _CardPasswordTagDto;
 }
 
 @freezed

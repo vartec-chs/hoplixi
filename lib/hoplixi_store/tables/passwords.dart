@@ -18,6 +18,10 @@ class Passwords extends Table {
     #id,
     onDelete: KeyAction.setNull,
   )(); // Foreign key to categories
+  IntColumn get usedCount =>
+      integer().withDefault(const Constant(0))(); // Usage count
+  BoolColumn get isArchived =>
+      boolean().withDefault(const Constant(false))(); // Archived flag
   BoolColumn get isFavorite =>
       boolean().withDefault(const Constant(false))(); // Favorite flag
   DateTimeColumn get createdAt =>
