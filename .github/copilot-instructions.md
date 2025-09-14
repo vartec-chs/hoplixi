@@ -1,18 +1,6 @@
----
-applyTo: '**'
----
-
 # Hoplixi Development Guide for AI Agents
 
 Hoplixi is a cross-platform Flutter password manager with local encrypted SQLite storage using SQLCipher and Drift ORM. The architecture follows a service-oriented pattern with Riverpod state management.
-
-## Core Principles
-- Focus on clarity and maintainability of code
-- Follow established coding conventions and best practices
-- Include comments and documentation where necessary
-- Prioritize security and performance considerations
-- Ensure proper error handling and validation
-- Create beautiful UI/UX with accessibility in mind
 
 ## Project Architecture
 
@@ -92,9 +80,5 @@ final storageProvider = Provider<StorageService>((ref) => StorageService());
 - Theme management through `themeProvider` with light/dark modes
 - Google Fonts integration for typography
 - Material Design 3 with FlexColorScheme for consistent theming
-
-## Documentation and Examples
-
-When the user requests code examples, setup or configuration steps, or library/API documentation use mcp context7.
 
 Remember: This is a security-focused application. Always validate input, encrypt sensitive data, and follow the established patterns for data access through the service layer.

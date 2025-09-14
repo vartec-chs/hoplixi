@@ -217,7 +217,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
           ToastHelper.success(
             title: 'Иконка удалена',
             description: result.message ?? 'Иконка успешно удалена',
-            context: context,
+          
           );
           // ref.invalidate(allIconsStreamProvider);
         }
@@ -226,7 +226,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
           ToastHelper.error(
             title: 'Ошибка',
             description: 'Ошибка удаления иконки: ${result.message}',
-            context: context,
+           
           );
         }
       }
@@ -235,7 +235,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
         ToastHelper.error(
           title: 'Ошибка',
           description: 'Ошибка удаления иконки: $e',
-          context: context,
+         
         );
       }
     }
