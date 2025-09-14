@@ -9,6 +9,7 @@ import 'package:hoplixi/hoplixi_store/services/categories_service.dart';
 import 'package:hoplixi/hoplixi_store/services/icons_service.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
+import 'package:hoplixi/hoplixi_store/services/password_service.dart';
 import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
 import 'hoplixi_store_providers.dart';
 
@@ -86,6 +87,17 @@ final tagsServiceProvider = Provider<TagsService>((ref) {
   });
 
   return TagsService(tagsDao);
+});
+
+/// Провайдер для PasswordsService
+final passwordsServiceProvider = Provider<PasswordService>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  ref.onDispose(() {
+    logInfo('Освобождение ресурсов PasswordsService', tag: 'ServicesProviders');
+  });
+
+  return PasswordService(db.currentDatabase);
 });
 
 // =============================================================================

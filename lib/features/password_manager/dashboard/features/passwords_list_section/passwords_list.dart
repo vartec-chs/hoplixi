@@ -3,22 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'passwords_list_controller.dart';
 
+/// Утилитарная функция для безопасного парсинга hex цветов
+Color parseHexColor(String? hexColor, Color fallbackColor) {
+  if (hexColor == null || hexColor.isEmpty) return fallbackColor;
+
+  try {
+    // Убираем # если есть и парсим hex
+    final cleanHex = hexColor.replaceAll('#', '');
+    return Color(int.parse(cleanHex, radix: 16));
+  } catch (e) {
+    // Если не удалось распарсить, возвращаем fallback цвет
+    return fallbackColor;
+  }
+}
+
 /// Компонент для отображения отфильтрованного списка паролей
-/// Использует Slivers для оптимальной производительности
+/// Использует Slivers для интеграции в CustomScrollView родительского компонента
 class PasswordsList extends ConsumerStatefulWidget {
-  const PasswordsList({super.key});
+  /// Внешний ScrollController для обработки пагинации
+  final ScrollController? scrollController;
+
+  const PasswordsList({super.key, this.scrollController});
 
   @override
   ConsumerState<PasswordsList> createState() => _PasswordsListState();
 }
 
 class _PasswordsListState extends ConsumerState<PasswordsList> {
-  final ScrollController _scrollController = ScrollController();
+  late ScrollController _scrollController;
   bool _isLoadingMore = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Используем внешний контроллер или создаем свой
+    _scrollController = widget.scrollController ?? ScrollController();
     _scrollController.addListener(_onScroll);
 
     // Загружаем данные при инициализации
@@ -30,7 +50,10 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    // Освобождаем только если создали сами
+    if (widget.scrollController == null) {
+      _scrollController.dispose();
+    }
     super.dispose();
   }
 
@@ -64,9 +87,14 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     }
   }
 
-  /// Обработка pull-to-refresh
-  Future<void> _handleRefresh() async {
+  /// Обработка pull-to-refresh (можно вызывать извне)
+  Future<void> handleRefresh() async {
     await ref.read(passwordsListControllerProvider.notifier).refreshPasswords();
+  }
+
+  /// Обработка pull-to-refresh (внутренний метод)
+  Future<void> _handleRefresh() async {
+    await handleRefresh();
   }
 
   /// Переключение избранного
@@ -115,33 +143,29 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
   Widget build(BuildContext context) {
     final passwordsState = ref.watch(passwordsListControllerProvider);
 
-    return RefreshIndicator(
-      onRefresh: _handleRefresh,
-      child: CustomScrollView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          // Заголовок с количеством паролей
-          _buildHeader(passwordsState.totalCount),
+    // Возвращаем SliverMultiBoxAdaptorWidget для интеграции в существующий CustomScrollView
+    return SliverMainAxisGroup(
+      slivers: [
+        // Заголовок с количеством паролей
+        _buildHeader(passwordsState.totalCount),
 
-          // Обработка состояний загрузки и ошибок
-          if (passwordsState.isLoading && passwordsState.passwords.isEmpty)
-            _buildLoadingSliver()
-          else if (passwordsState.error != null &&
-              passwordsState.passwords.isEmpty)
-            _buildErrorSliver(passwordsState.error!)
-          else if (passwordsState.passwords.isEmpty)
-            _buildEmptySliver()
-          else
-            _buildPasswordsList(passwordsState.passwords),
+        // Обработка состояний загрузки и ошибок
+        if (passwordsState.isLoading && passwordsState.passwords.isEmpty)
+          _buildLoadingSliver()
+        else if (passwordsState.error != null &&
+            passwordsState.passwords.isEmpty)
+          _buildErrorSliver(passwordsState.error!)
+        else if (passwordsState.passwords.isEmpty)
+          _buildEmptySliver()
+        else
+          _buildPasswordsList(passwordsState.passwords),
 
-          // Индикатор загрузки дополнительных элементов
-          if (_isLoadingMore || passwordsState.hasMore) _buildLoadMoreSliver(),
+        // Индикатор загрузки дополнительных элементов
+        if (_isLoadingMore || passwordsState.hasMore) _buildLoadMoreSliver(),
 
-          // Дополнительный отступ снизу
-          const SliverPadding(padding: EdgeInsets.only(bottom: 24.0)),
-        ],
-      ),
+        // Дополнительный отступ снизу для FAB
+        const SliverPadding(padding: EdgeInsets.only(bottom: 100.0)),
+      ],
     );
   }
 
@@ -541,25 +565,19 @@ class ModernPasswordCard extends StatelessWidget {
 
   /// Построение чипа тега
   Widget _buildTagChip(CardPasswordTagDto tag, ThemeData theme) {
+    final tagColor = parseHexColor(tag.color, theme.colorScheme.primary);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: tag.color != null
-            ? Color(int.parse('FF${tag.color}', radix: 16)).withOpacity(0.1)
-            : theme.colorScheme.primaryContainer.withOpacity(0.5),
+        color: tagColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: tag.color != null
-              ? Color(int.parse('FF${tag.color}', radix: 16)).withOpacity(0.3)
-              : theme.colorScheme.primary.withOpacity(0.3),
-        ),
+        border: Border.all(color: tagColor.withOpacity(0.3)),
       ),
       child: Text(
         tag.name,
         style: theme.textTheme.labelSmall?.copyWith(
-          color: tag.color != null
-              ? Color(int.parse('FF${tag.color}', radix: 16))
-              : theme.colorScheme.primary,
+          color: tagColor,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -581,18 +599,17 @@ class ModernPasswordCard extends StatelessWidget {
 
   /// Построение чипа категории
   Widget _buildCategoryChip(CardPasswordCategoryDto category, ThemeData theme) {
+    final categoryColor = parseHexColor(
+      category.color,
+      theme.colorScheme.secondary,
+    );
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Color(
-          int.parse('FF${category.color}', radix: 16),
-        ).withOpacity(0.1),
+        color: categoryColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Color(
-            int.parse('FF${category.color}', radix: 16),
-          ).withOpacity(0.3),
-        ),
+        border: Border.all(color: categoryColor.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -601,7 +618,7 @@ class ModernPasswordCard extends StatelessWidget {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: Color(int.parse('FF${category.color}', radix: 16)),
+              color: categoryColor,
               shape: BoxShape.circle,
             ),
           ),

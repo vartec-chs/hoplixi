@@ -37,6 +37,7 @@ class DatabaseConnectionService {
             rawDb.execute('PRAGMA foreign_keys = ON;');
             rawDb.config.doubleQuotedStringLiterals = false;
           },
+          enableMigrations: true,
         ),
       );
       logDebug(

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
+import 'package:hoplixi/hoplixi_store/providers.dart';
 import 'package:hoplixi/hoplixi_store/services/password_service.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
@@ -91,6 +92,8 @@ class PasswordsListController extends Notifier<PasswordsListState> {
     // Отслеживаем создание/изменение паролей через stream
     _watchPasswordChanges();
 
+    _passwordService = ref.read(passwordsServiceProvider);
+
     // Инициализируем пустым состоянием
     return const PasswordsListState(
       passwords: [],
@@ -110,15 +113,6 @@ class PasswordsListController extends Notifier<PasswordsListState> {
     // В реальном приложении здесь должна быть подписка на изменения базы данных
   }
 
-  /// Инициализация сервиса паролей
-  void _initPasswordService() {
-    if (_passwordService == null) {
-      // Предполагаем, что у вас есть provider для HoplixiStore
-      final store = ref.read(hoplixiStoreProvider);
-      _passwordService = PasswordService(store);
-    }
-  }
-
   /// Загрузка паролей с текущим фильтром
   Future<void> loadPasswords() async {
     final filter = ref.read(currentPasswordFilterProvider);
@@ -128,8 +122,6 @@ class PasswordsListController extends Notifier<PasswordsListState> {
   /// Загрузка паролей с конкретным фильтром
   Future<void> _loadPasswordsWithFilter(PasswordFilter filter) async {
     try {
-      _initPasswordService();
-
       state = state.copyWith(isLoading: true, error: null);
 
       final result = await _passwordService!.getFilteredPasswords(
@@ -169,8 +161,6 @@ class PasswordsListController extends Notifier<PasswordsListState> {
     if (state.isLoading || !state.hasMore) return;
 
     try {
-      _initPasswordService();
-
       final filter = ref.read(currentPasswordFilterProvider);
       final result = await _passwordService!.getFilteredPasswords(
         filter.copyWith(limit: _pageSize, offset: state.passwords.length),
@@ -205,8 +195,6 @@ class PasswordsListController extends Notifier<PasswordsListState> {
   /// Переключение избранного состояния пароля
   Future<void> toggleFavorite(String passwordId) async {
     try {
-      _initPasswordService();
-
       // Находим пароль в текущем списке
       final passwordIndex = state.passwords.indexWhere(
         (p) => p.id == passwordId,
@@ -248,8 +236,6 @@ class PasswordsListController extends Notifier<PasswordsListState> {
   /// Удаление пароля
   Future<void> deletePassword(String passwordId) async {
     try {
-      _initPasswordService();
-
       // Оптимистично удаляем из UI
       final updatedPasswords = state.passwords
           .where((p) => p.id != passwordId)
@@ -349,9 +335,4 @@ final passwordChangeNotifierProvider = Provider<void Function()>((ref) {
   return () {
     ref.read(passwordsListControllerProvider.notifier).notifyPasswordChanged();
   };
-});
-
-/// Предполагаемый provider для HoplixiStore - добавьте его в зависимости от вашей архитектуры
-final hoplixiStoreProvider = Provider<HoplixiStore>((ref) {
-  throw UnimplementedError('Нужно реализовать provider для HoplixiStore');
 });
