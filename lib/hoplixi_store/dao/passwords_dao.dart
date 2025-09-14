@@ -10,6 +10,40 @@ import '../models/password_filter.dart';
 
 part 'passwords_dao.g.dart';
 
+/// Вспомогательный класс для данных пароля без поля password
+class _PasswordDataFromRow {
+  final String id;
+  final String name;
+  final String? description;
+  final String? login;
+  final String? email;
+  final String? url;
+  final String? categoryId;
+  final bool isFavorite;
+  final int usedCount;
+  final bool isArchived;
+  final DateTime createdAt;
+  final DateTime modifiedAt;
+  final DateTime? lastAccessed;
+
+  _PasswordDataFromRow({
+    required this.id,
+    required this.name,
+    this.description,
+    this.login,
+    this.email,
+    this.url,
+   
+    this.categoryId,
+    required this.isFavorite,
+    required this.usedCount,
+    required this.isArchived,
+    required this.createdAt,
+    required this.modifiedAt,
+    this.lastAccessed,
+  });
+}
+
 @DriftAccessor(tables: [Passwords, Categories, Tags, PasswordTags])
 class PasswordsDao extends DatabaseAccessor<HoplixiStore>
     with _$PasswordsDaoMixin {
@@ -312,6 +346,115 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
     return cardDtos;
   }
 
+  /// Преобразование результатов selectOnly запроса в CardPasswordDto
+  Future<List<CardPasswordDto>> _resultsToCardDtos(
+    List<TypedResult> results,
+  ) async {
+    final cardDtos = <CardPasswordDto>[];
+    for (final row in results) {
+      final passwordData = _PasswordDataFromRow(
+        id: row.read(attachedDatabase.passwords.id)!,
+        name: row.read(attachedDatabase.passwords.name)!,
+        description: row.read(attachedDatabase.passwords.description),
+        login: row.read(attachedDatabase.passwords.login),
+        email: row.read(attachedDatabase.passwords.email),
+        url: row.read(attachedDatabase.passwords.url),
+        categoryId: row.read(attachedDatabase.passwords.categoryId),
+        isFavorite: row.read(attachedDatabase.passwords.isFavorite)!,
+        usedCount: row.read(attachedDatabase.passwords.usedCount)!,
+        isArchived: row.read(attachedDatabase.passwords.isArchived)!,
+        createdAt: row.read(attachedDatabase.passwords.createdAt)!,
+        modifiedAt: row.read(attachedDatabase.passwords.modifiedAt)!,
+        lastAccessed: row.read(attachedDatabase.passwords.lastAccessed),
+      );
+
+      final cardDto = await _passwordDataToCardDto(passwordData);
+      cardDtos.add(cardDto);
+    }
+    return cardDtos;
+  }
+
+  /// Применение сортировки к selectOnly запросу
+  void _applySortingToSelectOnly(
+    JoinedSelectStatement query,
+    PasswordSortField? sortField,
+    SortDirection direction,
+  ) {
+    switch (sortField) {
+      case PasswordSortField.name:
+        query.orderBy([
+          direction == SortDirection.asc
+              ? OrderingTerm.asc(attachedDatabase.passwords.name)
+              : OrderingTerm.desc(attachedDatabase.passwords.name),
+        ]);
+        break;
+      case PasswordSortField.createdAt:
+        query.orderBy([
+          direction == SortDirection.asc
+              ? OrderingTerm.asc(attachedDatabase.passwords.createdAt)
+              : OrderingTerm.desc(attachedDatabase.passwords.createdAt),
+        ]);
+        break;
+      case PasswordSortField.modifiedAt:
+        query.orderBy([
+          direction == SortDirection.asc
+              ? OrderingTerm.asc(attachedDatabase.passwords.modifiedAt)
+              : OrderingTerm.desc(attachedDatabase.passwords.modifiedAt),
+        ]);
+        break;
+      case PasswordSortField.lastAccessed:
+        query.orderBy([
+          direction == SortDirection.asc
+              ? OrderingTerm.asc(attachedDatabase.passwords.lastAccessed)
+              : OrderingTerm.desc(attachedDatabase.passwords.lastAccessed),
+        ]);
+        break;
+      case PasswordSortField.usedCount:
+        query.orderBy([
+          direction == SortDirection.asc
+              ? OrderingTerm.asc(attachedDatabase.passwords.usedCount)
+              : OrderingTerm.desc(attachedDatabase.passwords.usedCount),
+        ]);
+        break;
+      default:
+        query.orderBy([
+          OrderingTerm.desc(attachedDatabase.passwords.modifiedAt),
+        ]);
+    }
+  }
+
+  /// Преобразование данных пароля (без поля password) в CardPasswordDto
+  Future<CardPasswordDto> _passwordDataToCardDto(
+    _PasswordDataFromRow data,
+  ) async {
+    final category = await _getCategoryForPassword(data.categoryId);
+    final tags = await _getTagsForPassword(data.id);
+
+    return CardPasswordDto(
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      login: data.login,
+      email: data.email,
+      categories: category != null ? [category] : null,
+      tags: tags.isNotEmpty ? tags : null,
+      isFavorite: data.isFavorite,
+      isFrequentlyUsed: data.usedCount >= kFrequentUsedThreshold,
+    );
+  }
+
+  /// Batch преобразование List<_PasswordDataFromRow> в List<CardPasswordDto>
+  Future<List<CardPasswordDto>> _passwordDataListToCardDtos(
+    List<_PasswordDataFromRow> passwordsData,
+  ) async {
+    final cardDtos = <CardPasswordDto>[];
+    for (final data in passwordsData) {
+      final cardDto = await _passwordDataToCardDto(data);
+      cardDtos.add(cardDto);
+    }
+    return cardDtos;
+  }
+
   // ==================== ФИЛЬТРАЦИЯ ПАРОЛЕЙ ====================
 
   /// Главный метод для получения отфильтрованных паролей
@@ -320,16 +463,32 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   ) async {
     // Если нет активных ограничений, возвращаем все пароли с сортировкой
     if (!filter.hasActiveConstraints) {
-      final query = _applySorting(
-        select(attachedDatabase.passwords),
-        filter.sortField,
-        filter.sortDirection,
-      );
+      final query = selectOnly(attachedDatabase.passwords)
+        ..addColumns([
+          attachedDatabase.passwords.id,
+          attachedDatabase.passwords.name,
+          attachedDatabase.passwords.description,
+          attachedDatabase.passwords.login,
+          attachedDatabase.passwords.email,
+          attachedDatabase.passwords.url,
+          attachedDatabase.passwords.categoryId,
+          attachedDatabase.passwords.isFavorite,
+          attachedDatabase.passwords.usedCount,
+          attachedDatabase.passwords.isArchived,
+          attachedDatabase.passwords.createdAt,
+          attachedDatabase.passwords.modifiedAt,
+          attachedDatabase.passwords.lastAccessed,
+        ]);
+
+      // Применяем сортировку
+      _applySortingToSelectOnly(query, filter.sortField, filter.sortDirection);
+
       if (filter.limit != null) {
         query.limit(filter.limit!, offset: filter.offset ?? 0);
       }
-      final passwords = await query.get();
-      return await _passwordsToCardDtos(passwords);
+
+      final results = await query.get();
+      return await _resultsToCardDtos(results);
     }
 
     // Строим базовый запрос
@@ -378,8 +537,8 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
 
     // Для сложных фильтров с тегами используем кастомный SQL
     if (filter.tagIds.isNotEmpty) {
-      final passwords = await _getPasswordsWithTagFilter(filter);
-      return await _passwordsToCardDtos(passwords);
+      final passwordsData = await _getPasswordsWithTagFilter(filter);
+      return await _passwordDataListToCardDtos(passwordsData);
     }
 
     // Обычный запрос без тегов
@@ -409,16 +568,42 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
       return await _passwordsToCardDtos(passwords);
     } else {
       // Применяем сортировку и пагинацию к обычному запросу
-      final sortedQuery = _applySorting(
-        query,
+      final selectOnlyQuery = selectOnly(attachedDatabase.passwords)
+        ..addColumns([
+          attachedDatabase.passwords.id,
+          attachedDatabase.passwords.name,
+          attachedDatabase.passwords.description,
+          attachedDatabase.passwords.login,
+          attachedDatabase.passwords.email,
+          attachedDatabase.passwords.url,
+          attachedDatabase.passwords.notes,
+          attachedDatabase.passwords.categoryId,
+          attachedDatabase.passwords.isFavorite,
+          attachedDatabase.passwords.usedCount,
+          attachedDatabase.passwords.isArchived,
+          attachedDatabase.passwords.createdAt,
+          attachedDatabase.passwords.modifiedAt,
+          attachedDatabase.passwords.lastAccessed,
+        ]);
+
+      // Применяем фильтры WHERE если есть
+      if (conditions.isNotEmpty) {
+        final combinedCondition = conditions.reduce((a, b) => a & b);
+        selectOnlyQuery.where(combinedCondition);
+      }
+
+      _applySortingToSelectOnly(
+        selectOnlyQuery,
         filter.sortField,
         filter.sortDirection,
       );
+
       if (filter.limit != null) {
-        sortedQuery.limit(filter.limit!, offset: filter.offset ?? 0);
+        selectOnlyQuery.limit(filter.limit!, offset: filter.offset ?? 0);
       }
-      final passwords = await sortedQuery.get();
-      return await _passwordsToCardDtos(passwords);
+
+      final results = await selectOnlyQuery.get();
+      return await _resultsToCardDtos(results);
     }
   }
 
@@ -454,17 +639,31 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   /// Stream для наблюдения за отфильтрованными паролями
   Stream<List<CardPasswordDto>> watchFilteredPasswords(PasswordFilter filter) {
     if (!filter.hasActiveConstraints) {
-      final query = _applySorting(
-        select(attachedDatabase.passwords),
-        filter.sortField,
-        filter.sortDirection,
-      );
+      final query = selectOnly(attachedDatabase.passwords)
+        ..addColumns([
+          attachedDatabase.passwords.id,
+          attachedDatabase.passwords.name,
+          attachedDatabase.passwords.description,
+          attachedDatabase.passwords.login,
+          attachedDatabase.passwords.email,
+          attachedDatabase.passwords.url,
+          attachedDatabase.passwords.notes,
+          attachedDatabase.passwords.categoryId,
+          attachedDatabase.passwords.isFavorite,
+          attachedDatabase.passwords.usedCount,
+          attachedDatabase.passwords.isArchived,
+          attachedDatabase.passwords.createdAt,
+          attachedDatabase.passwords.modifiedAt,
+          attachedDatabase.passwords.lastAccessed,
+        ]);
+
+      _applySortingToSelectOnly(query, filter.sortField, filter.sortDirection);
+
       if (filter.limit != null) {
         query.limit(filter.limit!, offset: filter.offset ?? 0);
       }
-      return query.watch().asyncMap(
-        (passwords) => _passwordsToCardDtos(passwords),
-      );
+
+      return query.watch().asyncMap((results) => _resultsToCardDtos(results));
     }
 
     // Для сложных случаев возвращаем периодически обновляемый stream
@@ -569,7 +768,7 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   /// Получение паролей с фильтром по тегам (использует кастомный SQL)
-  Future<List<Password>> _getPasswordsWithTagFilter(
+  Future<List<_PasswordDataFromRow>> _getPasswordsWithTagFilter(
     PasswordFilter filter,
   ) async {
     // Базовые условия WHERE для паролей
@@ -643,7 +842,10 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
 
     final sql =
         '''
-      SELECT DISTINCT p.* FROM passwords p
+      SELECT DISTINCT p.id, p.name, p.description, p.login, p.email, 
+             p.url, p.notes, p.category_id, p.is_favorite, p.used_count, 
+             p.is_archived, p.created_at, p.modified_at, p.last_accessed 
+      FROM passwords p
       $whereClause
       $orderBy
       $limitClause
@@ -655,19 +857,17 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
 
     return results
         .map(
-          (row) => Password(
+          (row) => _PasswordDataFromRow(
             id: row.read<String>('id'),
             name: row.read<String>('name'),
             description: row.read<String?>('description'),
-            password: row.read<String>('password'),
-            url: row.read<String?>('url'),
-            notes: row.read<String?>('notes'),
             login: row.read<String?>('login'),
             email: row.read<String?>('email'),
-            isArchived: row.read<bool>('is_archived'),
-            usedCount: row.read<int>('used_count'),
+            url: row.read<String?>('url'),
             categoryId: row.read<String?>('category_id'),
             isFavorite: row.read<bool>('is_favorite'),
+            usedCount: row.read<int>('used_count'),
+            isArchived: row.read<bool>('is_archived'),
             createdAt: row.read<DateTime>('created_at'),
             modifiedAt: row.read<DateTime>('modified_at'),
             lastAccessed: row.read<DateTime?>('last_accessed'),
@@ -737,54 +937,6 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
     final result = await customSelect(sql, variables: allVariables).getSingle();
 
     return result.read<int>('count');
-  }
-
-  /// Применение сортировки к запросу
-  SimpleSelectStatement<$PasswordsTable, Password> _applySorting(
-    SimpleSelectStatement<$PasswordsTable, Password> query,
-    PasswordSortField? sortField,
-    SortDirection direction,
-  ) {
-    switch (sortField) {
-      case PasswordSortField.name:
-        query.orderBy([
-          (t) => direction == SortDirection.asc
-              ? OrderingTerm.asc(t.name)
-              : OrderingTerm.desc(t.name),
-        ]);
-        break;
-      case PasswordSortField.createdAt:
-        query.orderBy([
-          (t) => direction == SortDirection.asc
-              ? OrderingTerm.asc(t.createdAt)
-              : OrderingTerm.desc(t.createdAt),
-        ]);
-        break;
-      case PasswordSortField.modifiedAt:
-        query.orderBy([
-          (t) => direction == SortDirection.asc
-              ? OrderingTerm.asc(t.modifiedAt)
-              : OrderingTerm.desc(t.modifiedAt),
-        ]);
-        break;
-      case PasswordSortField.lastAccessed:
-        query.orderBy([
-          (t) => direction == SortDirection.asc
-              ? OrderingTerm.asc(t.lastAccessed)
-              : OrderingTerm.desc(t.lastAccessed),
-        ]);
-        break;
-      case PasswordSortField.usedCount:
-        query.orderBy([
-          (t) => direction == SortDirection.asc
-              ? OrderingTerm.asc(t.usedCount)
-              : OrderingTerm.desc(t.usedCount),
-        ]);
-        break;
-      default:
-        query.orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
-    }
-    return query;
   }
 
   /// Применение сортировки к списку (для случаев когда нельзя использовать ORDER BY в SQL)
