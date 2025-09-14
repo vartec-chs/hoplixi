@@ -34,7 +34,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
   String _searchQuery = '';
   int _currentPage = 1;
   final int _itemsPerPage = 20;
-  bool _isGridView = true;
+  bool _isGridView = false;
 
   @override
   void initState() {
@@ -95,7 +95,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       context: context,
       isScrollControlled: true,
       enableDrag: true,
-      showDragHandle: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.9,
@@ -142,7 +142,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
         context: context,
         isScrollControlled: true,
         enableDrag: true,
-        showDragHandle: true,
+        // showDragHandle: true,
         backgroundColor: Colors.transparent,
         builder: (context) => Container(
           height: MediaQuery.of(context).size.height * 0.9,
@@ -261,7 +261,6 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
             icon: const Icon(Icons.add),
             tooltip: 'Добавить иконку',
           ),
-          
         ],
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -396,7 +395,9 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

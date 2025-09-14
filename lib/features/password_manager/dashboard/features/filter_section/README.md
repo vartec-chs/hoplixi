@@ -1,6 +1,6 @@
 # Filter Section
 
-Компонент фильтрации для менеджера паролей Hoplixi. Предоставляет комплексную систему фильтрации паролей с использованием Riverpod v3 для управления состоянием.
+Компонент фильтрации для менеджера паролей Hoplixi. Предоставляет комплексную систему фильтрации паролей с использованием Riverpod v3 для управления состоянием. **Реализован как SliverAppBar** для лучшей интеграции с прокручиваемым контентом.
 
 ## Основные компоненты
 
@@ -17,14 +17,22 @@ NotifierProvider для управления состоянием фильтра
 - `updateTags(List<String> tagIds)` - обновляет выбранные теги
 - `resetFilters()` - сбрасывает все фильтры
 
-### FilterSection Widget
+### FilterSection Widget (SliverAppBar)
 
-Основной виджет секции фильтрации, содержит:
+Основной виджет секции фильтрации, реализован как **SliverAppBar**, содержит:
 
-- **Поле поиска** - с использованием `PrimaryTextField`
-- **Кнопка меню** - для открытия drawer (через callback)
-- **Кнопка фильтров** - для открытия полноэкранного модального окна
-- **TabBar** - с тремя вкладками: "Все", "Избранные", "Часто используемые"
+- **Поле поиска** - в FlexibleSpaceBar с использованием `PrimaryTextField`
+- **Кнопка меню** - в leading (через callback)
+- **Кнопка фильтров** - в actions с индикатором активных фильтров
+- **TabBar** - в bottom с тремя вкладками: "Все", "Избранные", "Часто используемые"
+
+**Параметры SliverAppBar:**
+
+- `expandedHeight` - высота в развернутом состоянии (по умолчанию 120px)
+- `collapsedHeight` - высота в свернутом состоянии (по умолчанию 60px)  
+- `pinned` - закреплен ли AppBar при прокрутке (по умолчанию true)
+- `floating` - плавает ли AppBar (по умолчанию false)
+- `snap` - быстро ли появляется при прокрутке вверх (по умолчанию false)
 
 ### FilterModal
 
@@ -100,14 +108,32 @@ class ExampleScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: Column(
-        children: [
+      drawer: const Drawer(
+        child: Center(child: Text('Drawer Content')),
+      ),
+      body: CustomScrollView(
+        slivers: [
+          // Секция фильтрации как SliverAppBar
           FilterSection(
             onMenuPressed: () {
               Scaffold.of(context).openDrawer();
             },
+            pinned: true,
+            floating: false,
+            snap: false,
+            expandedHeight: 120.0,
+            collapsedHeight: 60.0,
           ),
-          // Остальной контент...
+          
+          // Ваш контент в SliverList или других Sliver виджетах
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => ListTile(
+                title: Text('Item $index'),
+              ),
+              childCount: 100,
+            ),
+          ),
         ],
       ),
     );

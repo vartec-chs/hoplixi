@@ -4,15 +4,35 @@ import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section_controller.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/widgets/filter_modal.dart';
 
-/// Виджет секции фильтрации для паролей
+/// Виджет секции фильтрации для паролей использующий SliverAppBar
 class FilterSection extends ConsumerStatefulWidget {
   /// Callback для открытия drawer
   final VoidCallback? onMenuPressed;
 
-  /// Высота секции (по умолчанию 160)
-  final double? height;
+  /// Высота расширенного состояния (по умолчанию 120)
+  final double? expandedHeight;
 
-  const FilterSection({super.key, this.onMenuPressed, this.height});
+  /// Высота свернутого состояния (по умолчанию 60)
+  final double? collapsedHeight;
+
+  /// Должен ли AppBar быть закрепленным при прокрутке
+  final bool pinned;
+
+  /// Должен ли AppBar плавать при прокрутке
+  final bool floating;
+
+  /// Должен ли AppBar быстро появляться при прокрутке вверх
+  final bool snap;
+
+  const FilterSection({
+    super.key,
+    this.onMenuPressed,
+    this.expandedHeight,
+    this.collapsedHeight,
+    this.pinned = true,
+    this.floating = false,
+    this.snap = false,
+  });
 
   @override
   ConsumerState<FilterSection> createState() => _FilterSectionState();
@@ -108,133 +128,158 @@ class _FilterSectionState extends ConsumerState<FilterSection>
       });
     }
 
-    return Container(
-      height: widget.height ?? 160,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return SliverAppBar(
+      expandedHeight: widget.expandedHeight ?? 120.0,
+      collapsedHeight: widget.collapsedHeight ?? 60.0,
+      floating: widget.floating,
+      pinned: widget.pinned,
+      snap: widget.snap,
+      elevation: 0,
+      backgroundColor: theme.colorScheme.surface,
+      surfaceTintColor: theme.colorScheme.surface,
+      leading: widget.onMenuPressed != null
+          ? Builder(
+              builder: (context) => IconButton(
+                onPressed: widget.onMenuPressed,
+                icon: Icon(Icons.menu, color: theme.colorScheme.onSurface),
+                tooltip: 'Меню',
+              ),
+            )
+          : null,
+      actions: [
+        // Кнопка фильтров
+        Container(
+          margin: const EdgeInsets.only(right: 16.0),
+          decoration: BoxDecoration(
+            color: filterState.hasActiveFilters
+                ? theme.colorScheme.primary
+                : theme.colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header с поиском и кнопками
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: Row(
+          child: IconButton(
+            onPressed: _showFilterModal,
+            icon: Stack(
               children: [
-                // Кнопка меню
-                IconButton(
-                  onPressed: widget.onMenuPressed,
-                  icon: Icon(Icons.menu, color: theme.colorScheme.onSurface),
-                  tooltip: 'Меню',
+                Icon(
+                  Icons.tune,
+                  color: filterState.hasActiveFilters
+                      ? theme.colorScheme.onPrimary
+                      : theme.colorScheme.onPrimaryContainer,
                 ),
-                const SizedBox(width: 8),
-
-                // Поле поиска
-                Expanded(
-                  child: PrimaryTextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      controller.updateSearchQuery(value);
-                    },
-                    hintText: 'Поиск паролей...',
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                if (filterState.hasActiveFilters)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.error,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
-                ),
+              ],
+            ),
+            tooltip: 'Фильтры',
+          ),
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
+          padding: const EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 54.0,
+            bottom: 0.0,
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 40,
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: theme.colorScheme.secondary,
 
-                const SizedBox(width: 8),
-
-                // Кнопка фильтров
-                Container(
-                  decoration: BoxDecoration(
-                    color: filterState.hasActiveFilters
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    onPressed: _showFilterModal,
-                    icon: Stack(
-                      children: [
-                        Icon(
-                          Icons.tune,
-                          color: filterState.hasActiveFilters
-                              ? theme.colorScheme.onPrimary
-                              : theme.colorScheme.onPrimaryContainer,
-                        ),
-                        if (filterState.hasActiveFilters)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.error,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.secondaryContainer,
+                        theme.colorScheme.secondary,
                       ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    tooltip: 'Фильтры',
                   ),
-                ),
-              ],
-            ),
-          ),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelColor: theme.colorScheme.onSecondary,
+                  unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(
+                    0.7,
+                  ),
+                  labelStyle: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  indicatorAnimation: TabIndicatorAnimation.elastic,
+                  indicatorColor: theme.colorScheme.onSecondary,
+                  // isScrollable: true,
+                  indicatorWeight: 3,
+                  overlayColor: MaterialStateProperty.all(
+                    theme.colorScheme.onSurface.withOpacity(0.1),
+                  ),
+                  splashBorderRadius: BorderRadius.circular(10),
 
-          // TabBar
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.1),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.shadow.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  unselectedLabelStyle: theme.textTheme.bodyMedium,
+                  padding: const EdgeInsets.all(4),
+                  splashFactory: InkRipple.splashFactory,
+                  tabAlignment: TabAlignment.fill,
+                  automaticIndicatorColorAdjustment: true,
+                  tabs: FilterTab.values.map((tab) {
+                    return Tab(
+                      text: tab.label,
+                      // icon: Icon(tab.icon),
+                      height: 30,
+                    );
+                  }).toList(),
                 ),
-              ],
+              ),
+
+              // Поле поиска
+            ],
+          ),
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(60.0),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8.0),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: theme.colorScheme.outline.withOpacity(0.1),
             ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: theme.colorScheme.secondary,
+            boxShadow: [
+              BoxShadow(
+                color: theme.colorScheme.shadow.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              labelColor: theme.colorScheme.onSecondary,
-              unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(
-                0.7,
-              ),
-              labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              unselectedLabelStyle: theme.textTheme.bodyMedium,
-              padding: const EdgeInsets.all(4),
-              tabs: FilterTab.values.map((tab) {
-                return Tab(text: tab.label, height: 40);
-              }).toList(),
+            ],
+          ),
+          child: PrimaryTextField(
+            controller: _searchController,
+            onChanged: (value) {
+              controller.updateSearchQuery(value);
+            },
+            hintText: 'Поиск паролей...',
+            prefixIcon: Icon(
+              Icons.search,
+              color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

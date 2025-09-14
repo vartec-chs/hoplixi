@@ -56,12 +56,13 @@ class FilterSectionState {
 
 /// Тип фильтрации для быстрых вкладок
 enum FilterTab {
-  all('Все'),
-  favorites('Избранные'),
-  frequent('Часто используемые');
+  all('Все', Icons.list),
+  favorites('Избранные', Icons.star),
+  frequent('Часто используемые', Icons.access_time);
 
-  const FilterTab(this.label);
   final String label;
+  final IconData icon;
+  const FilterTab(this.label, this.icon);
 }
 
 /// Контроллер для управления состоянием фильтрации паролей

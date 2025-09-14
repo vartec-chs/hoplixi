@@ -188,12 +188,14 @@ class _DashboardScreenState extends State<DashboardScreen>
         drawer: _buildDrawer(),
         body: CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(
-              child: Builder(
-                builder: (scaffoldContext) => FilterSection(
-                  onMenuPressed: () =>
-                      Scaffold.of(scaffoldContext).openDrawer(),
-                ),
+            Builder(
+              builder: (scaffoldContext) => FilterSection(
+                onMenuPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
+                pinned: false,
+                floating: true,
+                snap: false,
+                expandedHeight: 154.0,
+                collapsedHeight: 60.0,
               ),
             ),
 

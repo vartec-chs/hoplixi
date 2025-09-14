@@ -308,29 +308,17 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return FilledButton(
+    return OutlinedButton.icon(
       onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor: theme.colorScheme.primaryContainer,
-        foregroundColor: theme.colorScheme.onPrimaryContainer,
+      style: OutlinedButton.styleFrom(
+        // backgroundColor: theme.colorScheme.primaryContainer,
+        foregroundColor: theme.colorScheme.primary,
         elevation: 0,
         padding: const EdgeInsets.symmetric(vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onPrimaryContainer,
-            ),
-          ),
-        ],
-      ),
+      icon: Icon(icon, size: 18),
+      label: Text(label),
     );
   }
 }

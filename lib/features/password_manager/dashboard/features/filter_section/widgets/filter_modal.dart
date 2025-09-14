@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
@@ -96,11 +97,18 @@ class _FilterModalState extends ConsumerState<FilterModal> {
             tooltip: 'Закрыть',
           ),
           actions: [
-            TextButton(onPressed: _resetFilter, child: const Text('Сбросить')),
+            SmoothButton(
+              onPressed: _resetFilter,
+              label: 'Сбросить',
+              size: SmoothButtonSize.small,
+              type: SmoothButtonType.outlined,
+            ),
             const SizedBox(width: 8),
-            FilledButton(
+            SmoothButton(
               onPressed: _applyFilter,
-              child: const Text('Применить'),
+              label: 'Применить',
+              size: SmoothButtonSize.small,
+              type: SmoothButtonType.filled,
             ),
             const SizedBox(width: 16),
           ],
