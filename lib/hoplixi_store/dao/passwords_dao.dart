@@ -31,7 +31,7 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
       isFavorite: Value(dto.isFavorite),
     );
 
-    final result = await into(
+    await into(
       attachedDatabase.passwords,
     ).insert(companion, mode: InsertMode.insertOrIgnore);
 
@@ -241,10 +241,83 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
     return password.url;
   }
 
+  // ==================== HELPER МЕТОДЫ ДЛЯ МАППИНГА ====================
+
+  /// Получение категории пароля для CardPasswordDto
+  Future<CardPasswordCategoryDto?> _getCategoryForPassword(
+    String? categoryId,
+  ) async {
+    if (categoryId == null) return null;
+
+    final category = await (select(
+      attachedDatabase.categories,
+    )..where((tbl) => tbl.id.equals(categoryId))).getSingleOrNull();
+
+    if (category == null) return null;
+
+    return CardPasswordCategoryDto(name: category.name, color: category.color);
+  }
+
+  /// Получение тегов пароля для CardPasswordDto
+  Future<List<CardPasswordTagDto>> _getTagsForPassword(
+    String passwordId,
+  ) async {
+    final query =
+        select(attachedDatabase.tags).join([
+            innerJoin(
+              attachedDatabase.passwordTags,
+              attachedDatabase.passwordTags.tagId.equalsExp(
+                attachedDatabase.tags.id,
+              ),
+            ),
+          ])
+          ..where(attachedDatabase.passwordTags.passwordId.equals(passwordId))
+          ..limit(4);
+
+    final results = await query.get();
+
+    return results.map((row) {
+      final tag = row.readTable(attachedDatabase.tags);
+      return CardPasswordTagDto(name: tag.name, color: tag.color);
+    }).toList();
+  }
+
+  /// Преобразование Password в CardPasswordDto
+  Future<CardPasswordDto> _passwordToCardDto(Password password) async {
+    final category = await _getCategoryForPassword(password.categoryId);
+    final tags = await _getTagsForPassword(password.id);
+
+    return CardPasswordDto(
+      id: password.id,
+      name: password.name,
+      description: password.description,
+      login: password.login,
+      email: password.email,
+      categories: category != null ? [category] : null,
+      tags: tags.isNotEmpty ? tags : null,
+      isFavorite: password.isFavorite,
+      isFrequentlyUsed: password.usedCount >= kFrequentUsedThreshold,
+    );
+  }
+
+  /// Batch преобразование List<Password> в List<CardPasswordDto>
+  Future<List<CardPasswordDto>> _passwordsToCardDtos(
+    List<Password> passwords,
+  ) async {
+    final cardDtos = <CardPasswordDto>[];
+    for (final password in passwords) {
+      final cardDto = await _passwordToCardDto(password);
+      cardDtos.add(cardDto);
+    }
+    return cardDtos;
+  }
+
   // ==================== ФИЛЬТРАЦИЯ ПАРОЛЕЙ ====================
 
   /// Главный метод для получения отфильтрованных паролей
-  Future<List<Password>> getFilteredPasswords(PasswordFilter filter) async {
+  Future<List<CardPasswordDto>> getFilteredPasswords(
+    PasswordFilter filter,
+  ) async {
     // Если нет активных ограничений, возвращаем все пароли с сортировкой
     if (!filter.hasActiveConstraints) {
       final query = _applySorting(
@@ -255,7 +328,8 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
       if (filter.limit != null) {
         query.limit(filter.limit!, offset: filter.offset ?? 0);
       }
-      return await query.get();
+      final passwords = await query.get();
+      return await _passwordsToCardDtos(passwords);
     }
 
     // Строим базовый запрос
@@ -304,7 +378,8 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
 
     // Для сложных фильтров с тегами используем кастомный SQL
     if (filter.tagIds.isNotEmpty) {
-      return await _getPasswordsWithTagFilter(filter);
+      final passwords = await _getPasswordsWithTagFilter(filter);
+      return await _passwordsToCardDtos(passwords);
     }
 
     // Обычный запрос без тегов
@@ -331,7 +406,7 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
         );
       }
 
-      return passwords;
+      return await _passwordsToCardDtos(passwords);
     } else {
       // Применяем сортировку и пагинацию к обычному запросу
       final sortedQuery = _applySorting(
@@ -342,7 +417,8 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
       if (filter.limit != null) {
         sortedQuery.limit(filter.limit!, offset: filter.offset ?? 0);
       }
-      return await sortedQuery.get();
+      final passwords = await sortedQuery.get();
+      return await _passwordsToCardDtos(passwords);
     }
   }
 
@@ -376,7 +452,7 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   /// Stream для наблюдения за отфильтрованными паролями
-  Stream<List<Password>> watchFilteredPasswords(PasswordFilter filter) {
+  Stream<List<CardPasswordDto>> watchFilteredPasswords(PasswordFilter filter) {
     if (!filter.hasActiveConstraints) {
       final query = _applySorting(
         select(attachedDatabase.passwords),
@@ -386,7 +462,9 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
       if (filter.limit != null) {
         query.limit(filter.limit!, offset: filter.offset ?? 0);
       }
-      return query.watch();
+      return query.watch().asyncMap(
+        (passwords) => _passwordsToCardDtos(passwords),
+      );
     }
 
     // Для сложных случаев возвращаем периодически обновляемый stream

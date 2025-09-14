@@ -782,38 +782,17 @@ class PasswordService {
 
   // ==================== ФИЛЬТРАЦИЯ ПАРОЛЕЙ ====================
 
-  /// Получение отфильтрованных паролей с деталями
-  Future<ServiceResult<List<PasswordWithDetails>>> getFilteredPasswords(
+  /// Получение отфильтрованных паролей как карточек
+  Future<ServiceResult<List<CardPasswordDto>>> getFilteredPasswords(
     PasswordFilter filter,
   ) async {
     try {
       logDebug('Получение отфильтрованных паролей', tag: 'PasswordService');
 
-      final passwords = await _passwordsDao.getFilteredPasswords(filter);
-      final List<PasswordWithDetails> passwordsWithDetails = [];
-
-      for (final password in passwords) {
-        // Получаем теги для каждого пароля
-        final tags = await _passwordTagsDao.getTagsForPassword(password.id);
-
-        // Получаем категорию если есть
-        Category? category;
-        if (password.categoryId != null) {
-          category = await _categoriesDao.getCategoryById(password.categoryId!);
-        }
-
-        passwordsWithDetails.add(
-          PasswordWithDetails(
-            password: password,
-            tags: tags,
-            category: category,
-            historyCount: 0, // TODO: Добавить подсчет истории
-          ),
-        );
-      }
+      final passwordCards = await _passwordsDao.getFilteredPasswords(filter);
 
       return ServiceResult.success(
-        data: passwordsWithDetails,
+        data: passwordCards,
         message: 'Пароли отфильтрованы успешно',
       );
     } catch (e) {
@@ -840,13 +819,13 @@ class PasswordService {
     }
   }
 
-  /// Stream отфильтрованных паролей
-  Stream<List<Password>> watchFilteredPasswords(PasswordFilter filter) {
+  /// Stream отфильтрованных паролей как карточек
+  Stream<List<CardPasswordDto>> watchFilteredPasswords(PasswordFilter filter) {
     return _passwordsDao.watchFilteredPasswords(filter);
   }
 
   /// Быстрый поиск паролей
-  Future<ServiceResult<List<PasswordWithDetails>>> quickSearchPasswords(
+  Future<ServiceResult<List<CardPasswordDto>>> quickSearchPasswords(
     String query, {
     int limit = 50,
   }) async {
