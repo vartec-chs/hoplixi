@@ -1,0 +1,84 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
+
+final themeProvider = AsyncNotifierProvider<ThemeProvider, ThemeMode>(
+  ThemeProvider.new,
+);
+
+class ThemeProvider extends AsyncNotifier<ThemeMode> {
+  @override
+  FutureOr<ThemeMode> build() {
+    state = const AsyncValue.loading();
+    try {
+      final prefs = AutoPreferencesManager.instance;
+      final themeMode = prefs.getValue<ThemeMode>(
+        'theme_mode',
+        defaultValue: ThemeMode.system,
+      );
+      state = AsyncData(themeMode);
+      return themeMode;
+    } catch (e) {
+      state = AsyncData(ThemeMode.system);
+      return ThemeMode.system;
+    }
+  }
+
+  /// Сохраняет текущую тему в SharedPreferences
+  Future<void> _saveTheme(ThemeMode themeMode) async {
+    try {
+      final prefs = AutoPreferencesManager.instance;
+      await prefs.setValue('theme_mode', themeMode);
+    } catch (e, stackTrace) {
+      logError(
+        'Failed to save theme: $e',
+        tag: 'Theme',
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> setLightTheme() async {
+    state = AsyncData(ThemeMode.light);
+    logInfo('Theme changed to light', tag: 'Theme');
+    await _saveTheme(ThemeMode.light);
+  }
+
+  Future<void> setDarkTheme() async {
+    state = AsyncData(ThemeMode.dark);
+    logInfo('Theme changed to dark', tag: 'Theme');
+    await _saveTheme(ThemeMode.dark);
+  }
+
+  Future<void> setSystemTheme() async {
+    state = AsyncData(ThemeMode.system);
+    logInfo('Theme changed to system', tag: 'Theme');
+    await _saveTheme(ThemeMode.system);
+  }
+
+  Future<void> toggleTheme() async {
+    final currentTheme = state.value ?? ThemeMode.system;
+    switch (currentTheme) {
+      case ThemeMode.light:
+        await setDarkTheme();
+        break;
+      case ThemeMode.dark:
+        await setLightTheme();
+        break;
+      case ThemeMode.system:
+        // При системной теме переключаемся на противоположную
+        final brightness =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness;
+        if (brightness == Brightness.dark) {
+          await setLightTheme();
+        } else {
+          await setDarkTheme();
+        }
+        break;
+    }
+  }
+}

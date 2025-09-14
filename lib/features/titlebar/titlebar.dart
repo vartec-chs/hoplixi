@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
-import 'package:hoplixi/core/theme_old/theme_switcher.dart';
+import 'package:hoplixi/core/theme/index.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:window_manager/window_manager.dart';
 

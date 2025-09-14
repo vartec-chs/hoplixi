@@ -5,11 +5,10 @@ import 'package:hoplixi/core/constants/responsive_constants.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
 // import 'package:hoplixi/core/theme/theme.dart';
-import 'package:hoplixi/core/theme_old/theme_provider.dart';
 import 'package:hoplixi/core/utils/toast/toast_manager.dart';
 import 'package:hoplixi/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
-import 'package:hoplixi/core/theme/theme.dart';
+import 'package:hoplixi/core/theme/index.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 
 class App extends ConsumerStatefulWidget {
@@ -64,6 +63,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     final router = ref.watch(goRouterProvider);
     final theme = ref.watch(themeProvider);
 
+    final themeMode = theme.value ?? ThemeMode.system;
+
     return MaterialApp.router(
       title: MainConstants.appName,
       theme: AppTheme.light(context),
@@ -74,7 +75,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       debugShowCheckedModeBanner: false,
 
       routerConfig: router,
-      themeMode: theme,
+      themeMode: themeMode,
 
       builder: (context, child) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
