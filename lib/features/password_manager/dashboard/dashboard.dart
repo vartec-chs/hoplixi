@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/passwords_list.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'widgets/password_card.dart';
 import 'widgets/filter_modal.dart';
@@ -16,8 +17,6 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
-
-
   @override
   void initState() {
     super.initState();
@@ -25,8 +24,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
-  
-   
     super.dispose();
   }
 
@@ -85,9 +82,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-
-  
-
   @override
   Widget build(BuildContext context) {
     // final theme = Theme.of(context);
@@ -107,6 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 collapsedHeight: 60.0,
               ),
             ),
+            PasswordsList(),
             // Password List
             // SliverPadding(
             //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
