@@ -69,6 +69,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       title: MainConstants.appName,
       theme: AppTheme.light(context),
       darkTheme: AppTheme.dark(context),
+      themeAnimationStyle: AnimationStyle.noAnimation,
+      themeAnimationCurve: Curves.linear,
 
       scaffoldMessengerKey: ScaffoldMessengerManager.globalKey,
 

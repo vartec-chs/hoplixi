@@ -51,7 +51,7 @@ InputDecoration primaryInputDecoration(
       fontWeight: FontWeight.bold,
       color: Theme.of(context).colorScheme.onSurface,
     ),
-    fillColor: theme.colorScheme.secondary,
+    fillColor: theme.colorScheme.surfaceContainerHighest,
     enabledBorder: UnderlineInputBorder(
       borderRadius: defaultBorderRadiusValue,
       borderSide: const BorderSide(color: Colors.transparent, width: 0),
@@ -253,6 +253,7 @@ class PrimaryTextFormField extends StatelessWidget {
   final bool expands;
   final AutovalidateMode? autovalidateMode;
   final String? initialValue;
+  final String? helperText;
 
   const PrimaryTextFormField({
     super.key,
@@ -294,6 +295,7 @@ class PrimaryTextFormField extends StatelessWidget {
     this.expands = false,
     this.autovalidateMode,
     this.initialValue,
+    this.helperText,
   });
 
   @override
@@ -307,10 +309,13 @@ class PrimaryTextFormField extends StatelessWidget {
 
     final effectiveDecoration = (decoration ?? const InputDecoration())
         .copyWith(
+          
           prefixIcon: prefixIcon ?? (decoration?.prefixIcon),
           suffixIcon: suffixIcon ?? (decoration?.suffixIcon),
           prefix: prefix ?? decoration?.prefix,
           suffix: suffix ?? decoration?.suffix,
+          helperText: helperText ?? decoration?.helperText,
+          
         )
         .copyWith(
           labelText: decoration?.labelText ?? baseDecoration.labelText,
@@ -361,6 +366,7 @@ class PrimaryTextFormField extends StatelessWidget {
       scrollPadding: scrollPadding,
       expands: expands,
       autovalidateMode: autovalidateMode,
+      
     );
   }
 }
