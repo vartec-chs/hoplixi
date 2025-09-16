@@ -16,6 +16,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with TickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
   @override
   void initState() {
     super.initState();
@@ -96,6 +97,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 .refreshPasswords();
           },
           child: CustomScrollView(
+            controller: _scrollController,
             slivers: [
               Builder(
                 builder: (scaffoldContext) => FilterSection(
@@ -108,7 +110,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   collapsedHeight: 60.0,
                 ),
               ),
-              const PasswordsList(),
+              PasswordsList(scrollController: _scrollController),
               // Password List
               // SliverPadding(
               //   padding: const EdgeInsets.symmetric(horizontal: 16.0),

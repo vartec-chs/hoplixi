@@ -33,7 +33,7 @@ class _PasswordDataFromRow {
     this.login,
     this.email,
     this.url,
-   
+
     this.categoryId,
     required this.isFavorite,
     required this.usedCount,
@@ -74,9 +74,41 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   /// Обновление пароля
+  // Future<bool> updatePassword(UpdatePasswordDto dto) async {
+  //   final companion = PasswordsCompanion(
+  //     id: Value(dto.id),
+  //     name: dto.name != null ? Value(dto.name!) : const Value.absent(),
+  //     description: dto.description != null
+  //         ? Value(dto.description)
+  //         : const Value.absent(),
+  //     password: dto.password != null
+  //         ? Value(dto.password!)
+  //         : const Value.absent(),
+  //     url: dto.url != null ? Value(dto.url) : const Value.absent(),
+  //     notes: dto.notes != null ? Value(dto.notes) : const Value.absent(),
+  //     login: dto.login != null ? Value(dto.login) : const Value.absent(),
+  //     email: dto.email != null ? Value(dto.email) : const Value.absent(),
+  //     categoryId: dto.categoryId != null
+  //         ? Value(dto.categoryId)
+  //         : const Value.absent(),
+  //     isFavorite: dto.isFavorite != null
+  //         ? Value(dto.isFavorite!)
+  //         : const Value.absent(),
+  //     lastAccessed: dto.lastAccessed != null
+  //         ? Value(dto.lastAccessed)
+  //         : const Value.absent(),
+  //     modifiedAt: Value(DateTime.now()),
+  //   );
+
+  //   final rowsAffected = await update(
+  //     attachedDatabase.passwords,
+  //   ).replace(companion);
+  //   return rowsAffected;
+  // }
+
   Future<bool> updatePassword(UpdatePasswordDto dto) async {
     final companion = PasswordsCompanion(
-      id: Value(dto.id),
+      // указываем только те поля, которые пришли в DTO
       name: dto.name != null ? Value(dto.name!) : const Value.absent(),
       description: dto.description != null
           ? Value(dto.description)
@@ -100,10 +132,11 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
       modifiedAt: Value(DateTime.now()),
     );
 
-    final rowsAffected = await update(
+    final rowsAffected = await (update(
       attachedDatabase.passwords,
-    ).replace(companion);
-    return rowsAffected;
+    )..where((t) => t.id.equals(dto.id))).write(companion);
+
+    return rowsAffected > 0;
   }
 
   /// Удаление пароля по ID

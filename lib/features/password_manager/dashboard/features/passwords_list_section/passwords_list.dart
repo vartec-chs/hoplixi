@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/password_card.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+import 'package:hoplixi/router/routes_path.dart';
 import 'passwords_list_controller.dart';
 
 /// Утилитарная функция для безопасного парсинга hex цветов
@@ -59,15 +63,16 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
 
   /// Обработка скролла для пагинации
   void _onScroll() {
+    if (!_scrollController.hasClients) return;
     if (_isLoadingMore) return;
 
-    const double threshold = 200.0;
-    final double maxScrollExtent = _scrollController.position.maxScrollExtent;
-    final double currentScrollOffset = _scrollController.offset;
+    const double threshold = 100.0; // больший запас обычно лучше
+    final position = _scrollController.position;
 
-    if (currentScrollOffset >= (maxScrollExtent - threshold)) {
+    // вариант с extentAfter
+    if (position.extentAfter <= threshold) {
+      logDebug('Пагинация', tag: 'PasswordsList');
       final hasMore = ref.read(hasMorePasswordsProvider);
-
       if (hasMore) {
         _loadMorePasswords();
       }
@@ -79,11 +84,16 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     if (_isLoadingMore) return;
 
     setState(() => _isLoadingMore = true);
-    await ref
-        .read(passwordsListControllerProvider.notifier)
-        .loadMorePasswords();
-    if (mounted) {
-      setState(() => _isLoadingMore = false);
+    try {
+      await ref
+          .read(passwordsListControllerProvider.notifier)
+          .loadMorePasswords();
+    } catch (e) {
+      ToastHelper.error(title: 'Ошибка пагинации', description: e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+      }
     }
   }
 
@@ -106,9 +116,7 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
 
   /// Редактирование пароля
   void _handleEdit(String passwordId) {
-    // TODO: Навигация к экрану редактирования пароля
-    // Navigator.of(context).pushNamed('/password-edit', arguments: passwordId);
-    debugPrint('Редактирование пароля: $passwordId');
+    context.push('${AppRoutes.passwordForm}/$passwordId');
   }
 
   /// Удаление пароля
@@ -313,7 +321,7 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
         itemBuilder: (context, index) {
           final password = passwords[index];
 
-          return ModernPasswordCard(
+          return PasswordCard(
             password: password,
             onFavoriteToggle: () => _handleFavoriteToggle(password.id),
             onEdit: () => _handleEdit(password.id),

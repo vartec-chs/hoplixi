@@ -1,16 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+
+Color parseHexColor(String? hexColor, Color fallbackColor) {
+  if (hexColor == null || hexColor.isEmpty) return fallbackColor;
+
+  try {
+    // Убираем # если есть
+    final cleanHex = hexColor.replaceAll('#', '');
+    logDebug('Парсинг hex цвета', data: {'hex': cleanHex});
+
+    // Если в строке только RRGGBB, добавляем FF для полной непрозрачности
+    final hexValue = cleanHex.length == 6
+        ? 'FF$cleanHex'
+        : cleanHex; // поддержка AARRGGBB тоже
+
+    return Color(int.parse(hexValue, radix: 16));
+  } catch (e) {
+    logError('Не удалось распарсить hex цвет', error: e);
+    return fallbackColor;
+  }
+}
 
 class PasswordCard extends StatefulWidget {
-  final Map<String, dynamic> password;
-  final ValueChanged<String> onFavoriteToggle;
-  final ValueChanged<String> onEdit;
+  final CardPasswordDto password;
+  final VoidCallback onFavoriteToggle;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   const PasswordCard({
     super.key,
     required this.password,
     required this.onFavoriteToggle,
     required this.onEdit,
+    required this.onDelete,
   });
 
   @override
@@ -63,27 +87,9 @@ class _PasswordCardState extends State<PasswordCard>
     );
   }
 
-  Color _getCategoryColor(String category) {
-    switch (category.toLowerCase()) {
-      case 'email':
-        return Colors.blue;
-      case 'development':
-        return Colors.green;
-      case 'finance':
-        return Colors.orange;
-      case 'social':
-        return Colors.purple;
-      case 'work':
-        return Colors.indigo;
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final categoryColor = _getCategoryColor(widget.password['category']);
 
     return Container(
       decoration: BoxDecoration(
@@ -118,35 +124,47 @@ class _PasswordCardState extends State<PasswordCard>
                         // Header with category and favorite
                         Row(
                           children: [
-                            // Category Chip
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: categoryColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                widget.password['category'],
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: categoryColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                            Column(
+                              children: (widget.password.categories ?? [])
+                                  .map(
+                                    (category) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: parseHexColor(
+                                          category.color,
+                                          theme.colorScheme.primary,
+                                        ).withAlpha(0x1A),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        category.name,
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: parseHexColor(
+                                                category.color,
+                                                theme.colorScheme.primary,
+                                              ),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                             ),
+
+                            // Category Chip
                             const Spacer(),
                             // Favorite Button
                             GestureDetector(
-                              onTap: () => widget.onFavoriteToggle(
-                                widget.password['id'],
-                              ),
+                              onTap: () => widget.onFavoriteToggle(),
                               child: Icon(
-                                widget.password['isFavorite']
+                                widget.password.isFavorite
                                     ? Icons.star
                                     : Icons.star_border,
-                                color: widget.password['isFavorite']
+                                color: widget.password.isFavorite
                                     ? Colors.amber
                                     : theme.colorScheme.onSurface.withOpacity(
                                         0.5,
@@ -159,7 +177,7 @@ class _PasswordCardState extends State<PasswordCard>
                         const SizedBox(height: 12),
                         // Title
                         Text(
-                          widget.password['title'],
+                          widget.password.name,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -169,7 +187,7 @@ class _PasswordCardState extends State<PasswordCard>
                         const SizedBox(height: 8),
                         // Description
                         Text(
-                          widget.password['description'],
+                          widget.password.description ?? '',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurface.withOpacity(0.7),
                           ),
@@ -190,7 +208,9 @@ class _PasswordCardState extends State<PasswordCard>
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                widget.password['login'],
+                                widget.password.login ??
+                                    widget.password.email ??
+                                    '',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurface
                                       .withOpacity(0.8),
@@ -228,10 +248,7 @@ class _PasswordCardState extends State<PasswordCard>
                                 child: _ActionButton(
                                   icon: Icons.link,
                                   label: 'URL',
-                                  onPressed: () => _copyToClipboard(
-                                    widget.password['url'],
-                                    'URL',
-                                  ),
+                                  onPressed: () => _copyToClipboard("", 'URL'),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -241,7 +258,9 @@ class _PasswordCardState extends State<PasswordCard>
                                   icon: Icons.person,
                                   label: 'Логин',
                                   onPressed: () => _copyToClipboard(
-                                    widget.password['login'],
+                                    widget.password.login ??
+                                        widget.password.email ??
+                                        '',
                                     'Логин',
                                   ),
                                 ),
@@ -252,10 +271,8 @@ class _PasswordCardState extends State<PasswordCard>
                                 child: _ActionButton(
                                   icon: Icons.key,
                                   label: 'Пароль',
-                                  onPressed: () => _copyToClipboard(
-                                    widget.password['password'],
-                                    'Пароль',
-                                  ),
+                                  onPressed: () =>
+                                      _copyToClipboard("", 'Пароль'),
                                 ),
                               ),
                             ],
@@ -265,8 +282,7 @@ class _PasswordCardState extends State<PasswordCard>
                           SizedBox(
                             width: double.infinity,
                             child: TextButton.icon(
-                              onPressed: () =>
-                                  widget.onEdit(widget.password['id']),
+                              onPressed: () => widget.onEdit(),
                               icon: const Icon(Icons.edit, size: 18),
                               label: const Text('Редактировать'),
                               style: TextButton.styleFrom(

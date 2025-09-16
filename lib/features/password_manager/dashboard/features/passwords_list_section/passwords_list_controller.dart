@@ -78,7 +78,7 @@ class PasswordsListController extends Notifier<PasswordsListState> {
   PasswordService? _passwordService;
 
   /// Размер страницы для пагинации
-  static const int _pageSize = 50;
+  static const int _pageSize = 10;
 
   @override
   PasswordsListState build() {
@@ -184,6 +184,7 @@ class PasswordsListController extends Notifier<PasswordsListState> {
         error: e,
         stackTrace: stackTrace,
       );
+      rethrow;
     }
   }
 
