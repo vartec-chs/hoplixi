@@ -225,7 +225,7 @@ class _FilterSectionState extends ConsumerState<FilterSection>
                   indicatorColor: theme.colorScheme.onSecondary,
                   // isScrollable: true,
                   indicatorWeight: 3,
-                  overlayColor: MaterialStateProperty.all(
+                  overlayColor: WidgetStateProperty.all(
                     theme.colorScheme.onSurface.withOpacity(0.1),
                   ),
                   splashBorderRadius: BorderRadius.circular(10),

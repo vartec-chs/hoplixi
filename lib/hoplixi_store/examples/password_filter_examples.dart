@@ -1,5 +1,5 @@
 /// Примеры использования PasswordFilter для фильтрации паролей
-library password_filter_examples;
+library;
 
 import '../models/password_filter.dart';
 import '../services/password_service.dart';

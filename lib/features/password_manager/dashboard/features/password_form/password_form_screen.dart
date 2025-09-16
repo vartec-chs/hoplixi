@@ -167,11 +167,6 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
     );
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    // Очистка данных при сворачивании/закрытии приложения управляется через Notifier
-  }
 
   /// Валидатор для обязательных полей
   String? _requiredValidator(String? value) {

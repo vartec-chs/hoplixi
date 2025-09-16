@@ -102,8 +102,9 @@ class _PasswordGeneratorState extends State<PasswordGenerator> {
     if (password.contains(RegExp(r'[A-Z]'))) score += 1;
     if (password.contains(RegExp(r'[a-z]'))) score += 1;
     if (password.contains(RegExp(r'[0-9]'))) score += 1;
-    if (password.contains(RegExp(r'[!@#\$%^&*()_+\-=\[\]{}|;:,.<>?]')))
+    if (password.contains(RegExp(r'[!@#\$%^&*()_+\-=\[\]{}|;:,.<>?]'))) {
       score += 1;
+    }
 
     if (score < 3) return 'Слабый';
     if (score < 5) return 'Средний';

@@ -17,10 +17,10 @@ class CategoryFilterExampleScreen extends ConsumerStatefulWidget {
 class _CategoryFilterExampleScreenState
     extends ConsumerState<CategoryFilterExampleScreen> {
   // Состояние для различных типов категорий
-  List<store.Category> _selectedPasswordCategories = [];
-  List<store.Category> _selectedNotesCategories = [];
-  List<store.Category> _selectedTotpCategories = [];
-  List<store.Category> _selectedMixedCategories = [];
+  final List<store.Category> _selectedPasswordCategories = [];
+  final List<store.Category> _selectedNotesCategories = [];
+  final List<store.Category> _selectedTotpCategories = [];
+  final List<store.Category> _selectedMixedCategories = [];
 
   @override
   Widget build(BuildContext context) {

@@ -22,10 +22,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     super.initState();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 
   Widget _buildDrawer() {
     return Drawer(

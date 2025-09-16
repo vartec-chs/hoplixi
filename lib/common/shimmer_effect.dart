@@ -113,12 +113,12 @@ class TagListShimmer extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           child: ShimmerEffect(
-            baseColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            baseColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
             highlightColor: theme.colorScheme.surface,
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -128,7 +128,7 @@ class TagListShimmer extends StatelessWidget {
                     width: 16,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -140,7 +140,7 @@ class TagListShimmer extends StatelessWidget {
                     child: Container(
                       height: 16,
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceVariant,
+                        color: theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -153,7 +153,7 @@ class TagListShimmer extends StatelessWidget {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -185,12 +185,12 @@ class CategoryListShimmer extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           child: ShimmerEffect(
-            baseColor: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+            baseColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
             highlightColor: theme.colorScheme.surface,
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -200,7 +200,7 @@ class CategoryListShimmer extends StatelessWidget {
                     width: 16,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -216,7 +216,7 @@ class CategoryListShimmer extends StatelessWidget {
                           height: 16,
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceVariant,
+                            color: theme.colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -225,7 +225,7 @@ class CategoryListShimmer extends StatelessWidget {
                           height: 12,
                           width: 120,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceVariant,
+                            color: theme.colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
@@ -240,7 +240,7 @@ class CategoryListShimmer extends StatelessWidget {
                     width: 50,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -252,7 +252,7 @@ class CategoryListShimmer extends StatelessWidget {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceVariant,
+                      color: theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),

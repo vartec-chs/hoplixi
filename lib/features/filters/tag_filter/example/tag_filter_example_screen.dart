@@ -15,8 +15,8 @@ class TagFilterExampleScreen extends ConsumerStatefulWidget {
 
 class _TagFilterExampleScreenState
     extends ConsumerState<TagFilterExampleScreen> {
-  List<store.Tag> _selectedPasswordTags = [];
-  List<store.Tag> _selectedNoteTags = [];
+  final List<store.Tag> _selectedPasswordTags = [];
+  final List<store.Tag> _selectedNoteTags = [];
 
   @override
   Widget build(BuildContext context) {

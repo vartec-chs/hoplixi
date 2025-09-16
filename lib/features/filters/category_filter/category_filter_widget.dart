@@ -406,7 +406,7 @@ class _CategoryFilterWidgetState extends ConsumerState<CategoryFilterWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
+    return SizedBox(
       height: widget.height ?? 56,
       width: widget.width,
       child: Row(

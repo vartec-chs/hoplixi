@@ -134,7 +134,7 @@ class _CategoryFilterModalState extends ConsumerState<CategoryFilterModal> {
   Future<void> _loadCategories() async {
     if (_isLoading) return;
 
-    final queryKey = '${_searchQuery}_${_currentPage}';
+    final queryKey = '${_searchQuery}_$_currentPage';
     if (_loadingQueries.contains(queryKey)) return;
 
     setState(() {

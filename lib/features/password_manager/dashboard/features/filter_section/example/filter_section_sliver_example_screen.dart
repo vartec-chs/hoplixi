@@ -154,7 +154,7 @@ class FilterSectionExampleScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12.0),
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8.0),
         border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
       ),

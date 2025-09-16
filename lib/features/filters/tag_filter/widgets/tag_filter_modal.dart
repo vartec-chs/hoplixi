@@ -113,7 +113,7 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
   Future<void> _loadTags() async {
     if (_isLoading) return;
 
-    final queryKey = '${_searchQuery}_${_currentPage}';
+    final queryKey = '${_searchQuery}_$_currentPage';
     if (_loadingQueries.contains(queryKey)) return;
 
     setState(() {

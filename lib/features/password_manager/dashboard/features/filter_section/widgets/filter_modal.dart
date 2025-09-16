@@ -243,7 +243,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                         context,
                         labelText: 'Сортировать по',
                       ),
-                      value: _currentFilter.sortField,
+                      initialValue: _currentFilter.sortField,
                       onChanged: (value) {
                         setState(() {
                           _currentFilter = _currentFilter.copyWith(
@@ -266,7 +266,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
                         context,
                         labelText: 'Направление',
                       ),
-                      value: _currentFilter.sortDirection,
+                      initialValue: _currentFilter.sortDirection,
                       onChanged: (value) {
                         setState(() {
                           _currentFilter = _currentFilter.copyWith(

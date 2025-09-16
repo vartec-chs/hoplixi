@@ -36,13 +36,14 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
 
           // Основной список паролей
           const Expanded(child: PasswordsList()),
+          
         ],
       ),
       // FAB для быстрого добавления
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToAddPassword(context, ref),
-        child: const Icon(Icons.add),
         tooltip: 'Добавить пароль',
+        child: const Icon(Icons.add),
       ),
     );
   }

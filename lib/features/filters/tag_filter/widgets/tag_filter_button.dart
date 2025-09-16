@@ -126,7 +126,7 @@ class _TagFilterButtonState extends ConsumerState<TagFilterButton> {
         context: context,
         builder: (context) => Dialog(
           backgroundColor: Colors.transparent,
-          child: Container(
+          child: SizedBox(
             width: 600,
             height: 700,
             child: TagFilterModal(
