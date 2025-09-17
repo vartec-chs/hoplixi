@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/passwords_list_controller.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+import 'package:hoplixi/hoplixi_store/providers.dart';
 
 /// Улучшенная версия карточки пароля.
 /// Сохранён дизайн, исправлены ошибки и повышена читаемость/доступность.
@@ -85,25 +89,19 @@ class _PasswordCardState extends State<PasswordCard>
     });
   }
 
-  Future<void> _copyToClipboard(String text, String label) async {
+  Future<void> _copyToClipboard(Future<String> textFn, String label) async {
     try {
-      await Clipboard.setData(ClipboardData(text: text));
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$label скопирован в буфер обмена'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      final text = await textFn;
+      if (text.isEmpty) {
+        return ToastHelper.info(title: 'Пусто', description: label);
+      }
+      await Clipboard.setData(ClipboardData(text: text));
+      ToastHelper.success(title: 'Копирование в буфер', description: label);
     } catch (e, s) {
       logError('Ошибка копирования в буфер', error: e, stackTrace: s);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Не удалось скопировать $label'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      ToastHelper.error(title: 'Ошибка копирования', description: e.toString());
     }
   }
 
@@ -279,66 +277,86 @@ class _PasswordCardState extends State<PasswordCard>
                     ),
                   ),
                   padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      // Action Buttons Row
-                      Row(
+                  child: Consumer(
+                    builder: (context, ref, child) {
+                      return Column(
                         children: [
-                          Expanded(
-                            child: _ActionButton(
-                              icon: Icons.link,
-                              label: 'URL',
-                              onPressed: () => _copyToClipboard(
-                                // предполагаем что в DTO есть поле url
-                                '',
-                                'URL',
+                          // Action Buttons Row
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _ActionButton(
+                                  icon: Icons.link,
+                                  label: 'URL',
+                                  onPressed: () => _copyToClipboard(
+                                    // предполагаем что в DTO есть поле url
+                                    ref
+                                        .read(
+                                          passwordsListControllerProvider
+                                              .notifier,
+                                        )
+                                        .getUrlById(widget.password.id),
+                                    'URL',
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _ActionButton(
-                              icon: Icons.person,
-                              label: 'Логин',
-                              onPressed: () => _copyToClipboard(
-                                widget.password.login ??
-                                    widget.password.email ??
-                                    '',
-                                'Логин',
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _ActionButton(
+                                  icon: Icons.person,
+                                  label: 'Логин',
+                                  onPressed: () => _copyToClipboard(
+                                    ref
+                                        .read(
+                                          passwordsListControllerProvider
+                                              .notifier,
+                                        )
+                                        .getLoginById(widget.password.id),
+                                    'Логин',
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _ActionButton(
+                                  icon: Icons.key,
+                                  label: 'Пароль',
+                                  onPressed: () => _copyToClipboard(
+                                    // предполагаем что в DTO есть поле password
+                                    ref
+                                        .read(
+                                          passwordsListControllerProvider
+                                              .notifier,
+                                        )
+                                        .getPasswordById(widget.password.id),
+
+                                    'Пароль',
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _ActionButton(
-                              icon: Icons.key,
-                              label: 'Пароль',
-                              onPressed: () => _copyToClipboard(
-                                // предполагаем что в DTO есть поле password
-                                '',
-                                'Пароль',
+                          const SizedBox(height: 12),
+                          // Edit Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextButton.icon(
+                              onPressed: widget.onEdit,
+                              icon: const Icon(Icons.edit, size: 18),
+                              label: const Text('Редактировать'),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Edit Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton.icon(
-                          onPressed: widget.onEdit,
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('Редактировать'),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ),
               ),

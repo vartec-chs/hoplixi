@@ -283,6 +283,37 @@ class PasswordsListController extends Notifier<PasswordsListState> {
     _passwordService = PasswordService(store);
   }
 
+  Future<String> getPasswordById(String id) async {
+    final result = await _passwordService!.getPasswordById(id);
+    if (result.success && result.data != null) {
+      return result.data!;
+    }
+
+    logError('Ошибка при получении пароля: ${result.message}');
+
+    return '';
+  }
+
+  // get url by id
+  Future<String> getUrlById(String id) async {
+    final result = await _passwordService!.getPasswordUrlById(id);
+    if (result.success && result.data != null) return result.data!;
+
+    logError('Ошибка при получении пароля: ${result.message}');
+
+    return '';
+  }
+
+  // get login by id
+  Future<String> getLoginById(String id) async {
+    final result = await _passwordService!.getPasswordLoginOrEmailById(id);
+    if (result.success) return result.data!;
+
+    logError('Ошибка при получении пароля: ${result.message}');
+
+    return '';
+  }
+
   /// Очистка ошибки
   void clearError() {
     state = state.copyWith(error: null);

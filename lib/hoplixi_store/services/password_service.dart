@@ -369,6 +369,59 @@ class PasswordService {
     }
   }
 
+  //get field password by id
+  Future<ServiceResult<String>> getPasswordById(String passwordId) async {
+    try {
+      final password = await _passwordsDao.getPassword(passwordId);
+      return ServiceResult.success(data: password, message: 'Пароль получен');
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения пароля',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'PasswordService',
+      );
+      return ServiceResult.error('Ошибка получения пароля: ${e.toString()}');
+    }
+  }
+
+  //get field url by id
+  Future<ServiceResult<String>> getPasswordUrlById(String passwordId) async {
+    try {
+      final password = await _passwordsDao.getUrl(passwordId);
+      return ServiceResult.success(data: password, message: 'Url получен');
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения url',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'PasswordService',
+      );
+      return ServiceResult.error('Ошибка получения url: ${e.toString()}');
+    }
+  }
+
+  //get field login or email by id
+  Future<ServiceResult<String>> getPasswordLoginOrEmailById(String passwordId) async {
+    try {
+      final password = await _passwordsDao.getLoginOrEmail(passwordId);
+      return ServiceResult.success(
+        data: password,
+        message: 'Логин или почта получен(ы)',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения логина или почты',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'PasswordService',
+      );
+      return ServiceResult.error(
+        'Ошибка получения логина или почты: ${e.toString()}',
+      );
+    }
+  }
+
   // ==================== ПОИСК И ФИЛЬТРАЦИЯ ====================
 
   /// Поиск паролей по различным критериям

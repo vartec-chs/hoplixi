@@ -288,10 +288,14 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   /// For coping password general info
-  Future<Password?> getPassword(String passwordId) async {
-    final query = select(attachedDatabase.passwords)
-      ..where((tbl) => tbl.id.equals(passwordId));
-    return query.getSingle();
+  Future<String?> getPassword(String passwordId) async {
+    final query = selectOnly(attachedDatabase.passwords)
+      ..addColumns([attachedDatabase.passwords.password])
+      ..where(passwords.id.equals(passwordId));
+    final result = await query.getSingleOrNull();
+    if (result == null) return '';
+
+    return result.read(attachedDatabase.passwords.password);
   }
 
   Future<String> getLoginOrEmail(String passwordId) async {
@@ -302,10 +306,12 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   Future<String?> getUrl(String passwordId) async {
-    final query = select(attachedDatabase.passwords)
-      ..where((tbl) => tbl.id.equals(passwordId));
-    final password = await query.getSingle();
-    return password.url;
+    final query = selectOnly(attachedDatabase.passwords)
+      ..addColumns([attachedDatabase.passwords.url])
+      ..where((passwords.id.equals(passwordId)));
+    final result = await query.getSingleOrNull();
+    if (result == null) return '';
+    return result.read(attachedDatabase.passwords.url);
   }
 
   // ==================== HELPER МЕТОДЫ ДЛЯ МАППИНГА ====================
