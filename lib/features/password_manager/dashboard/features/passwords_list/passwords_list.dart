@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/password_card.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
@@ -35,6 +36,11 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     // Используем внешний контроллер или создаем свой
     _scrollController = widget.scrollController ?? ScrollController();
     _scrollController.addListener(_onScroll);
+
+    // Запускаем первоначальную загрузку данных после инициализации
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(passwordsListControllerProvider.notifier).loadPasswords();
+    });
   }
 
   @override
@@ -131,6 +137,17 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
   Widget build(BuildContext context) {
     final asyncState = ref.watch(passwordsListControllerProvider);
     final hasMorePasswords = ref.watch(hasMorePasswordsProvider);
+
+    // Логирование для отладки состояния
+    logDebug(
+      'PasswordsList build',
+      data: {
+        'isLoading': asyncState.isLoading,
+        'hasError': asyncState.hasError,
+        'hasData': asyncState.hasValue,
+        'passwordsCount': asyncState.value?.passwords.length ?? 0,
+      },
+    );
 
     return SliverMainAxisGroup(
       slivers: [

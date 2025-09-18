@@ -66,7 +66,8 @@ class PasswordsListController extends AsyncNotifier<PasswordsListState> {
     // Слушаем изменения фильтра и автоматически обновляем список
     ref.listen(currentPasswordFilterProvider, (previous, next) {
       if (previous != next) {
-        _loadPasswordsWithFilter(next);
+        // Используем Future.microtask для избежания изменения состояния во время build
+        Future.microtask(() => _reloadPasswordsWithFilter(next));
       }
     });
 
@@ -82,6 +83,17 @@ class PasswordsListController extends AsyncNotifier<PasswordsListState> {
     PasswordFilter filter,
   ) async {
     try {
+      logDebug(
+        'Загрузка паролей с фильтром',
+        data: {
+          'query': filter.query,
+          'categoryIds': filter.categoryIds,
+          'tagIds': filter.tagIds,
+          'isFavorite': filter.isFavorite,
+          'isFrequent': filter.isFrequent,
+        },
+      );
+
       final result = await _passwordService!.getFilteredPasswords(
         filter.copyWith(
           limit: _pageSize,
@@ -91,6 +103,7 @@ class PasswordsListController extends AsyncNotifier<PasswordsListState> {
 
       if (result.success) {
         final passwords = result.data ?? [];
+        logDebug('Загружено паролей: ${passwords.length}');
         return PasswordsListState(
           passwords: passwords,
           hasMore: passwords.length == _pageSize,
@@ -117,8 +130,30 @@ class PasswordsListController extends AsyncNotifier<PasswordsListState> {
 
     try {
       final newState = await _loadPasswordsWithFilter(filter);
+      logDebug('Passwords loaded: ${newState.passwords.length}');
       state = AsyncData(newState);
     } catch (e, stackTrace) {
+      logError(
+        'Неожиданная ошибка при загрузке паролей',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      state = AsyncError(e, stackTrace);
+    }
+  }
+
+  /// Загрузка паролей при изменении фильтра (без loading состояния для плавности)
+  Future<void> _reloadPasswordsWithFilter(PasswordFilter filter) async {
+    try {
+      final newState = await _loadPasswordsWithFilter(filter);
+      logDebug('Passwords reloaded with filter: ${newState.passwords.length}');
+      state = AsyncData(newState);
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка при перезагрузке с фильтром',
+        error: e,
+        stackTrace: stackTrace,
+      );
       state = AsyncError(e, stackTrace);
     }
   }

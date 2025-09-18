@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
 
 /// Состояние фильтра с дополнительными полями для управления UI
@@ -80,6 +81,8 @@ class FilterSectionController extends Notifier<FilterSectionState> {
   /// Обновляет поисковый запрос с мгновенным применением
   void updateSearchQuery(String query) {
     final normalizedQuery = query.trim();
+    logDebug('Обновление поискового запроса', data: {'query': normalizedQuery});
+
     state = state.copyWith(
       searchQuery: normalizedQuery,
       filter: state.filter.copyWith(query: normalizedQuery),
@@ -88,15 +91,27 @@ class FilterSectionController extends Notifier<FilterSectionState> {
         state.activeTab,
       ),
     );
+
+    logDebug(
+      'Фильтр после обновления запроса',
+      data: {'filter': state.filter.toString()},
+    );
   }
 
   /// Переключает активную вкладку в TabBar с мгновенным применением
   void switchTab(FilterTab tab) {
+    logDebug('Переключение вкладки', data: {'tab': tab.label});
+
     final updatedFilter = _applyTabFilter(state.filter, tab);
     state = state.copyWith(
       activeTab: tab,
       filter: updatedFilter,
       hasActiveFilters: _calculateHasActiveFilters(updatedFilter, tab),
+    );
+
+    logDebug(
+      'Фильтр после переключения вкладки',
+      data: {'filter': updatedFilter.toString()},
     );
   }
 

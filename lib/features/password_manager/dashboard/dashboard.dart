@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list/passwords_list_barrel.dart';
 import 'package:hoplixi/router/routes_path.dart';
@@ -177,46 +178,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
         ),
         floatingActionButton: ExpandableFAB(
-          onCreatePassword: () => {
-            context.push<bool>(AppRoutes.passwordForm).then((value) {
-              if (value == true) {
-                // If a new password was created, refresh the list
-                ref
-                    .read(passwordsListControllerProvider.notifier)
-                    .refreshPasswords();
-              }
-            }),
-          },
-          onCreateCategory: () => {
-            context.push(AppRoutes.categoryManager).then((value) {
-              if (value == true) {
-                // If a new category was created, refresh the list
-                ref
-                    .read(passwordsListControllerProvider.notifier)
-                    .refreshPasswords();
-              }
-            }),
-          },
-          onIconCreate: () => {
-            context.push(AppRoutes.iconManager).then((value) {
-              if (value == true) {
-                // If a new icon was created, refresh the list
-                ref
-                    .read(passwordsListControllerProvider.notifier)
-                    .refreshPasswords();
-              }
-            }),
-          },
-          onCreateTag: () => {
-            context.push(AppRoutes.tagsManager).then((value) {
-              if (value == true) {
-                // If a new tag was created, refresh the list
-                ref
-                    .read(passwordsListControllerProvider.notifier)
-                    .refreshPasswords();
-              }
-            }),
-          },
+          onCreatePassword: () => {context.push(AppRoutes.passwordForm)},
+          onCreateCategory: () => {context.push(AppRoutes.categoryManager)},
+          onIconCreate: () => {context.push(AppRoutes.iconManager)},
+          onCreateTag: () => {context.push(AppRoutes.tagsManager)},
         ),
       ),
     );
