@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -76,121 +77,99 @@ class PasswordsListState {
 /// Контроллер для управления списком паролей
 class PasswordsListController extends Notifier<PasswordsListState> {
   PasswordService? _passwordService;
+  StreamSubscription<List<CardPasswordDto>>? _passwordsStreamSubscription;
 
   /// Размер страницы для пагинации
   static const int _pageSize = 10;
 
   @override
   PasswordsListState build() {
-    // Слушаем изменения фильтра и автоматически обновляем список
+    _passwordService = ref.read(passwordsServiceProvider);
+
+    // Очищаем подписку при dispose
+    ref.onDispose(() {
+      _passwordsStreamSubscription?.cancel();
+    });
+
+    // Слушаем изменения фильтра и автоматически переподписываемся на новый stream
     ref.listen(currentPasswordFilterProvider, (previous, next) {
       if (previous != next) {
-        _loadPasswordsWithFilter(next);
+        _watchPasswordsWithFilter(next);
       }
     });
 
-    // Отслеживаем создание/изменение паролей через stream
-    _watchPasswordChanges();
-
-    _passwordService = ref.read(passwordsServiceProvider);
-
     // Инициализируем пустым состоянием
-    return const PasswordsListState(
+    final initialState = const PasswordsListState(
       passwords: [],
-      isLoading: false,
+      isLoading: true,
       hasMore: true,
       totalCount: 0,
     );
+
+    // Начинаем отслеживание с текущим фильтром
+    final currentFilter = ref.read(currentPasswordFilterProvider);
+    _watchPasswordsWithFilter(currentFilter);
+
+    return initialState;
   }
 
-  /// Отслеживание изменений паролей для автоматического обновления
-  void _watchPasswordChanges() {
-    // Подписываемся на stream всех паролей для отслеживания изменений
-    // При изменении базы данных будем обновлять список
-    // Это можно заменить на более конкретную подписку, если есть provider для изменений
+  /// Отслеживание паролей с конкретным фильтром через stream из DAO
+  void _watchPasswordsWithFilter(PasswordFilter filter) {
+    // Отменяем предыдущую подписку
+    _passwordsStreamSubscription?.cancel();
 
-    // Используем простое периодическое обновление или callback от сервиса
-    // В реальном приложении здесь должна быть подписка на изменения базы данных
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      // Подписываемся на stream отфильтрованных паролей из DAO
+      final passwordsStream = _passwordService!.watchFilteredPasswords(filter);
+
+      _passwordsStreamSubscription = passwordsStream.listen(
+        (passwords) {
+          // Обновляем состояние при получении новых данных
+          state = state.copyWith(
+            passwords: passwords,
+            isLoading: false,
+            error: null,
+            hasMore: passwords.length >= _pageSize,
+            totalCount: passwords.length,
+          );
+        },
+        onError: (error, stackTrace) {
+          logError(
+            'Ошибка при отслеживании паролей через stream',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          state = state.copyWith(
+            isLoading: false,
+            error: 'Ошибка при загрузке паролей: $error',
+          );
+        },
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка при настройке stream паролей',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Ошибка при настройке отслеживания паролей: $e',
+      );
+    }
   }
 
-  /// Загрузка паролей с текущим фильтром
-  Future<void> loadPasswords() async {
+  /// Перезагрузка паролей с текущим фильтром
+  /// Полезно для обновления после ошибок
+  Future<void> reloadPasswords() async {
     final filter = ref.read(currentPasswordFilterProvider);
-    await _loadPasswordsWithFilter(filter);
-  }
-
-  /// Загрузка паролей с конкретным фильтром
-  Future<void> _loadPasswordsWithFilter(PasswordFilter filter) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
-
-      final result = await _passwordService!.getFilteredPasswords(
-        filter.copyWith(
-          limit: _pageSize,
-          offset: 0, // Сбрасываем офсет при новом фильтре
-        ),
-      );
-
-      if (result.success) {
-        final passwords = result.data ?? [];
-        state = state.copyWith(
-          passwords: passwords,
-          isLoading: false,
-          hasMore: passwords.length == _pageSize,
-          totalCount: passwords.length,
-        );
-      } else {
-        state = state.copyWith(
-          isLoading: false,
-          error: result.message ?? 'Ошибка при загрузке паролей',
-        );
-        logError('Ошибка загрузки паролей: ${result.message}');
-      }
-    } catch (e, stackTrace) {
-      state = state.copyWith(isLoading: false, error: 'Неожиданная ошибка: $e');
-      logError(
-        'Неожиданная ошибка при загрузке паролей',
-        error: e,
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
-  /// Загрузка дополнительных паролей для пагинации
-  Future<void> loadMorePasswords() async {
-    if (state.isLoading || !state.hasMore) return;
-
-    try {
-      final filter = ref.read(currentPasswordFilterProvider);
-      final result = await _passwordService!.getFilteredPasswords(
-        filter.copyWith(limit: _pageSize, offset: state.passwords.length),
-      );
-
-      if (result.success) {
-        final newPasswords = result.data ?? [];
-        final allPasswords = [...state.passwords, ...newPasswords];
-
-        state = state.copyWith(
-          passwords: allPasswords,
-          hasMore: newPasswords.length == _pageSize,
-          totalCount: allPasswords.length,
-        );
-      } else {
-        logError('Ошибка загрузки дополнительных паролей: ${result.message}');
-      }
-    } catch (e, stackTrace) {
-      logError(
-        'Неожиданная ошибка при загрузке дополнительных паролей',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
+    _watchPasswordsWithFilter(filter);
   }
 
   /// Обновление списка паролей (pull-to-refresh)
   Future<void> refreshPasswords() async {
-    await loadPasswords();
+    await reloadPasswords();
   }
 
   /// Переключение избранного состояния пароля
@@ -273,9 +252,10 @@ class PasswordsListController extends Notifier<PasswordsListState> {
   }
 
   /// Уведомление об успешном создании или изменении пароля
+  /// При использовании stream обновление происходит автоматически
   void notifyPasswordChanged() {
-    // Обновляем список после изменений
-    loadPasswords();
+    // При использовании stream обновление происходит автоматически
+    logDebug('Пароль изменен, stream автоматически обновит список');
   }
 
   /// Установка сервиса базы данных (для внешнего использования)

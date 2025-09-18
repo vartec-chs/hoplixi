@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/password_card.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
@@ -35,7 +34,6 @@ class PasswordsList extends ConsumerStatefulWidget {
 
 class _PasswordsListState extends ConsumerState<PasswordsList> {
   late ScrollController _scrollController;
-  bool _isLoadingMore = false;
 
   @override
   void initState() {
@@ -45,10 +43,8 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     _scrollController = widget.scrollController ?? ScrollController();
     _scrollController.addListener(_onScroll);
 
-    // Загружаем данные при инициализации
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(passwordsListControllerProvider.notifier).loadPasswords();
-    });
+    // При использовании reactive streams данные загружаются автоматически
+    // сразу после создания контроллера
   }
 
   @override
@@ -61,40 +57,11 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     super.dispose();
   }
 
-  /// Обработка скролла для пагинации
+  /// Обработка скролла (оставлено для совместимости, но пагинация не используется)
   void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    if (_isLoadingMore) return;
-
-    const double threshold = 100.0; // больший запас обычно лучше
-    final position = _scrollController.position;
-
-    // вариант с extentAfter
-    if (position.extentAfter <= threshold) {
-      logDebug('Пагинация', tag: 'PasswordsList');
-      final hasMore = ref.read(hasMorePasswordsProvider);
-      if (hasMore) {
-        _loadMorePasswords();
-      }
-    }
-  }
-
-  /// Загрузка дополнительных паролей
-  Future<void> _loadMorePasswords() async {
-    if (_isLoadingMore) return;
-
-    setState(() => _isLoadingMore = true);
-    try {
-      await ref
-          .read(passwordsListControllerProvider.notifier)
-          .loadMorePasswords();
-    } catch (e) {
-      ToastHelper.error(title: 'Ошибка пагинации', description: e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _isLoadingMore = false);
-      }
-    }
+    // При использовании reactive streams пагинация не нужна,
+    // так как все данные загружаются сразу
+    // Оставляем метод пустым для совместимости
   }
 
   /// Обработка pull-to-refresh (можно вызывать извне)
@@ -167,9 +134,6 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
           _buildEmptySliver()
         else
           _buildPasswordsList(passwordsState.passwords),
-
-        // Индикатор загрузки дополнительных элементов
-        if (_isLoadingMore || passwordsState.hasMore) _buildLoadMoreSliver(),
 
         // Дополнительный отступ снизу для FAB
         const SliverPadding(padding: EdgeInsets.only(bottom: 100.0)),
@@ -328,24 +292,6 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
             onDelete: () => _handleDelete(password.id),
           );
         },
-      ),
-    );
-  }
-
-  /// Индикатор загрузки дополнительных элементов
-  Widget _buildLoadMoreSliver() {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      sliver: SliverToBoxAdapter(
-        child: Center(
-          child: _isLoadingMore
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const SizedBox.shrink(),
-        ),
       ),
     );
   }
