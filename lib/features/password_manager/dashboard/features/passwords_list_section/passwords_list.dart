@@ -1,24 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/password_card.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'passwords_stream_provider.dart';
 
 /// Утилитарная функция для безопасного парсинга hex цветов
-Color parseHexColor(String? hexColor, Color fallbackColor) {
-  if (hexColor == null || hexColor.isEmpty) return fallbackColor;
 
-  try {
-    // Убираем # если есть и парсим hex
-    final cleanHex = hexColor.replaceAll('#', '');
-    return Color(int.parse(cleanHex, radix: 16));
-  } catch (e) {
-    // Если не удалось распарсить, возвращаем fallback цвет
-    return fallbackColor;
-  }
-}
 
 /// Компонент для отображения отфильтрованного списка паролей
 /// Использует новый реактивный подход через StreamProvider

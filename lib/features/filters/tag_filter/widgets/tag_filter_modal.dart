@@ -6,6 +6,8 @@ import 'package:hoplixi/common/debouncer.dart';
 import 'package:hoplixi/common/shimmer_effect.dart';
 import 'package:hoplixi/core/theme/colors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/core/utils/parse_hex_color.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/passwords_list.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/providers.dart';
@@ -515,7 +517,7 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: _getTagColor(tag, theme),
+        color: parseHexColor(tag.color, theme.colorScheme.primary),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: theme.colorScheme.outline.withOpacity(0.5)),
       ),
@@ -602,7 +604,7 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
   Widget _buildTagListItem(store.Tag tag, bool isSelected, ThemeData theme) {
     return Material(
       color: isSelected
-          ? _getTagColor(tag, theme).withOpacity(0.3)
+          ? theme.colorScheme.secondary.withOpacity(0.3)
           : Colors.transparent,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
@@ -617,7 +619,7 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
                 width: 16,
                 height: 16,
                 decoration: BoxDecoration(
-                  color: _getTagColor(tag, theme),
+                  color: parseHexColor(tag.color, theme.colorScheme.primary),
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: theme.colorScheme.outline.withOpacity(0.3),

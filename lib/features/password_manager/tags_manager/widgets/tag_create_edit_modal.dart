@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:hoplixi/common/index.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list/passwords_list_controller.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 
@@ -161,8 +164,16 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
 
       if (success && mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isEditing ? 'Тег обновлен' : 'Тег создан')),
+        try {
+          ref.read(passwordChangeNotifierProvider)();
+        } catch (e) {
+          logError('Error notifying password change: $e');
+        }
+        ToastHelper.success(
+          title: isEditing ? 'Тег обновлен' : 'Тег создан',
+          description: isEditing
+              ? 'Тег успешно обновлен.'
+              : 'Тег успешно создан.',
         );
       }
     } finally {

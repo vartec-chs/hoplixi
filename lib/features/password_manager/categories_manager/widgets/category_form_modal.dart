@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list/passwords_list_controller.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:hoplixi/common/text_field.dart';
@@ -430,6 +431,11 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
 
       if (success && mounted) {
         widget.onSaved?.call();
+        try {
+          ref.read(passwordChangeNotifierProvider)();
+        } catch (e) {
+          logError('Error notifying password change: $e');
+        }
         Navigator.of(context).pop();
 
         // Показываем сообщение об успехе

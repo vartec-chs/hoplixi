@@ -3,37 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/passwords_list_controller.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers.dart';
 
-/// Улучшенная версия карточки пароля.
-/// Сохранён дизайн, исправлены ошибки и повышена читаемость/доступность.
 
-Color parseHexColor(String? hexColor, Color fallbackColor) {
-  if (hexColor == null || hexColor.trim().isEmpty) return fallbackColor;
 
-  try {
-    var clean = hexColor.trim().replaceAll('#', '').replaceAll('0x', '');
-    logDebug('Парсинг hex цвета', data: {'hex': clean});
-
-    // Если передан RRGGBB — добавляем альфу FF
-    if (clean.length == 6) clean = 'FF$clean';
-
-    if (clean.length != 8) {
-      logError('Неподдерживаемая длина hex строки', data: {'hex': clean});
-      return fallbackColor;
-    }
-
-    final value = int.tryParse(clean, radix: 16);
-    if (value == null) throw FormatException('Не шестнадцатеричный формат');
-
-    return Color(value);
-  } catch (e, s) {
-    logError('Не удалось распарсить hex цвет', error: e, stackTrace: s);
-    return fallbackColor;
-  }
-}
 
 class PasswordCard extends StatefulWidget {
   final CardPasswordDto password;
