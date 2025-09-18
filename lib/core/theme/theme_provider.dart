@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final themeProvider = AsyncNotifierProvider<ThemeProvider, ThemeMode>(
   ThemeProvider.new,
@@ -12,16 +12,21 @@ final themeProvider = AsyncNotifierProvider<ThemeProvider, ThemeMode>(
 
 class ThemeProvider extends AsyncNotifier<ThemeMode> {
   @override
-  FutureOr<ThemeMode> build() {
+  FutureOr<ThemeMode> build() async {
     state = const AsyncValue.loading();
     try {
-      final prefs = AutoPreferencesManager.instance;
-      final themeMode = prefs.getValue<ThemeMode>(
-        'theme_mode',
-        defaultValue: ThemeMode.system,
-      );
-      state = AsyncData(themeMode);
-      return themeMode;
+      final prefs = await SharedPreferences.getInstance();
+      final themeMode = prefs.getString('theme_mode');
+      if (themeMode == 'light') {
+        state = const AsyncData(ThemeMode.light);
+        return ThemeMode.light;
+      } else if (themeMode == 'dark') {
+        state = const AsyncData(ThemeMode.dark);
+        return ThemeMode.dark;
+      } else {
+        state = const AsyncData(ThemeMode.system);
+        return ThemeMode.system;
+      }
     } catch (e) {
       state = AsyncData(ThemeMode.system);
       return ThemeMode.system;
@@ -31,8 +36,14 @@ class ThemeProvider extends AsyncNotifier<ThemeMode> {
   /// Сохраняет текущую тему в SharedPreferences
   Future<void> _saveTheme(ThemeMode themeMode) async {
     try {
-      final prefs = AutoPreferencesManager.instance;
-      await prefs.setValue('theme_mode', themeMode);
+      final prefs = await SharedPreferences.getInstance();
+      if (themeMode == ThemeMode.light) {
+        await prefs.setString('theme_mode', 'light');
+      } else if (themeMode == ThemeMode.dark) {
+        await prefs.setString('theme_mode', 'dark');
+      } else {
+        await prefs.setString('theme_mode', 'system');
+      }
     } catch (e, stackTrace) {
       logError(
         'Failed to save theme: $e',

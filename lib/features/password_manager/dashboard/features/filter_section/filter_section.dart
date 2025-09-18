@@ -190,7 +190,7 @@ class _FilterSectionState extends ConsumerState<FilterSection>
           padding: const EdgeInsets.only(
             left: 16.0,
             right: 16.0,
-            top: 54.0,
+            top: 60.0,
             bottom: 0.0,
           ),
           child: Column(

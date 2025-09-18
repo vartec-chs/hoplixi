@@ -91,90 +91,92 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 .read(passwordsListControllerProvider.notifier)
                 .refreshPasswords();
           },
-          child: CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              Builder(
-                builder: (scaffoldContext) => FilterSection(
-                  onMenuPressed: () =>
-                      Scaffold.of(scaffoldContext).openDrawer(),
-                  pinned: false,
-                  floating: true,
-                  snap: false,
-                  expandedHeight: 154.0,
-                  collapsedHeight: 60.0,
+          child: SafeArea(
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                Builder(
+                  builder: (scaffoldContext) => FilterSection(
+                    onMenuPressed: () =>
+                        Scaffold.of(scaffoldContext).openDrawer(),
+                    pinned: true,
+                    floating: false,
+                    snap: false,
+                    expandedHeight: 162.0,
+                    collapsedHeight: 60.0,
+                  ),
                 ),
-              ),
-              PasswordsList(scrollController: _scrollController),
-              // Password List
-              // SliverPadding(
-              //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              //   sliver: _filteredPasswords.isEmpty
-              //       ? SliverToBoxAdapter(
-              //           child: SizedBox(
-              //             height: 200,
-              //             child: Center(
-              //               child: Column(
-              //                 mainAxisAlignment: MainAxisAlignment.center,
-              //                 children: [
-              //                   Icon(
-              //                     Icons.search_off,
-              //                     size: 48,
-              //                     color: theme.colorScheme.onSurface.withOpacity(
-              //                       0.6,
-              //                     ),
-              //                   ),
-              //                   const SizedBox(height: 16),
-              //                   Text(
-              //                     _searchQuery.isNotEmpty
-              //                         ? 'Ничего не найдено'
-              //                         : _selectedTab == 'favorites'
-              //                         ? 'Нет избранных паролей'
-              //                         : 'Нет паролей',
-              //                     style: theme.textTheme.bodyLarge?.copyWith(
-              //                       color: theme.colorScheme.onSurface
-              //                           .withOpacity(0.6),
-              //                     ),
-              //                   ),
-              //                 ],
-              //               ),
-              //             ),
-              //           ),
-              //         )
-              //       : SliverList(
-              //           delegate: SliverChildBuilderDelegate((context, index) {
-              //             final password = _filteredPasswords[index];
-              //             return Padding(
-              //               padding: const EdgeInsets.only(bottom: 12.0),
-              //               child: PasswordCard(
-              //                 password: password,
-              //                 onFavoriteToggle: (id) {
-              //                   setState(() {
-              //                     final passwordIndex = _passwords.indexWhere(
-              //                       (p) => p['id'] == id,
-              //                     );
-              //                     if (passwordIndex != -1) {
-              //                       _passwords[passwordIndex]['isFavorite'] =
-              //                           !_passwords[passwordIndex]['isFavorite'];
-              //                     }
-              //                   });
-              //                 },
-              //                 onEdit: (id) {
-              //                   // TODO: Implement edit functionality
-              //                   ScaffoldMessenger.of(context).showSnackBar(
-              //                     SnackBar(
-              //                       content: Text('Редактирование пароля $id'),
-              //                     ),
-              //                   );
-              //                 },
-              //               ),
-              //             );
-              //           }, childCount: _filteredPasswords.length),
-              //         ),
-              // ),
-              // // Bottom spacing for FAB
-              // const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+                PasswordsList(scrollController: _scrollController),
+                // Password List
+                // SliverPadding(
+                //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                //   sliver: _filteredPasswords.isEmpty
+                //       ? SliverToBoxAdapter(
+                //           child: SizedBox(
+                //             height: 200,
+                //             child: Center(
+                //               child: Column(
+                //                 mainAxisAlignment: MainAxisAlignment.center,
+                //                 children: [
+                //                   Icon(
+                //                     Icons.search_off,
+                //                     size: 48,
+                //                     color: theme.colorScheme.onSurface.withOpacity(
+                //                       0.6,
+                //                     ),
+                //                   ),
+                //                   const SizedBox(height: 16),
+                //                   Text(
+                //                     _searchQuery.isNotEmpty
+                //                         ? 'Ничего не найдено'
+                //                         : _selectedTab == 'favorites'
+                //                         ? 'Нет избранных паролей'
+                //                         : 'Нет паролей',
+                //                     style: theme.textTheme.bodyLarge?.copyWith(
+                //                       color: theme.colorScheme.onSurface
+                //                           .withOpacity(0.6),
+                //                     ),
+                //                   ),
+                //                 ],
+                //               ),
+                //             ),
+                //           ),
+                //         )
+                //       : SliverList(
+                //           delegate: SliverChildBuilderDelegate((context, index) {
+                //             final password = _filteredPasswords[index];
+                //             return Padding(
+                //               padding: const EdgeInsets.only(bottom: 12.0),
+                //               child: PasswordCard(
+                //                 password: password,
+                //                 onFavoriteToggle: (id) {
+                //                   setState(() {
+                //                     final passwordIndex = _passwords.indexWhere(
+                //                       (p) => p['id'] == id,
+                //                     );
+                //                     if (passwordIndex != -1) {
+                //                       _passwords[passwordIndex]['isFavorite'] =
+                //                           !_passwords[passwordIndex]['isFavorite'];
+                //                     }
+                //                   });
+                //                 },
+                //                 onEdit: (id) {
+                //                   // TODO: Implement edit functionality
+                //                   ScaffoldMessenger.of(context).showSnackBar(
+                //                     SnackBar(
+                //                       content: Text('Редактирование пароля $id'),
+                //                     ),
+                //                   );
+                //                 },
+                //               ),
+                //             );
+                //           }, childCount: _filteredPasswords.length),
+                //         ),
+                // ),
+                // // Bottom spacing for FAB
+                // const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
+            ),
           ),
         ),
         floatingActionButton: ExpandableFAB(

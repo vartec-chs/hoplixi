@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/auto_preferences/auto_settings_screen.dart';
+import 'package:hoplixi/core/theme/index.dart';
 
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/common/button.dart';
@@ -51,7 +52,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (context) => AlertDialog.adaptive(
+        constraints: BoxConstraints(maxWidth: 600),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -60,7 +62,11 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 8),
-            const Text('Автоматическое открытие'),
+            const Text(
+              'Авто открытие',
+              style: TextStyle(fontWeight: FontWeight.bold),
+              softWrap: true,
+            ),
           ],
         ),
         content: Text(
@@ -251,19 +257,19 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           unselectedItemColor: Colors.grey,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home),
+              icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home),
               label: 'Главная',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.search),
-              activeIcon: Icon(Icons.search),
-              label: 'Поиск',
+              icon: Icon(Icons.lock_outline),
+              activeIcon: Icon(Icons.lock),
+              label: 'Аутентификация',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_outline),
-              activeIcon: Icon(Icons.favorite),
-              label: 'Избранное',
+              icon: Icon(Icons.send_outlined),
+              activeIcon: Icon(Icons.send),
+              label: 'LocalSend',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings_outlined),
@@ -398,6 +404,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         ),
       ),
       actions: [
+        const ThemeSwitcher(size: 24),
         IconButton(
           icon: const Icon(Icons.notifications_outlined),
           onPressed: () {
