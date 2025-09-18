@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/passwords_list.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/passwords_list_controller.dart';
+import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list/passwords_list_barrel.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'widgets/expandable_fab.dart';
 
@@ -86,10 +85,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         drawer: _buildDrawer(),
         body: RefreshIndicator(
           onRefresh: () async {
-            // Обновляем список паролей через provider
-            // await ref
-            //     .read(passwordsListControllerProvider.notifier)
-            //     .refreshPasswords();
+            // Обновляем список паролей через новый provider
+            await ref
+                .read(passwordsListControllerProvider.notifier)
+                .refreshPasswords();
           },
           child: CustomScrollView(
             controller: _scrollController,
@@ -178,10 +177,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
         ),
         floatingActionButton: ExpandableFAB(
-          onCreatePassword: () => context.push(AppRoutes.passwordForm),
-          onCreateCategory: () => context.push(AppRoutes.categoryManager),
-          onIconCreate: () => context.push(AppRoutes.iconManager),
-          onCreateTag: () => context.push(AppRoutes.tagsManager),
+          onCreatePassword: () => {
+            context.push<bool>(AppRoutes.passwordForm).then((value) {
+              if (value == true) {
+                // If a new password was created, refresh the list
+                ref
+                    .read(passwordsListControllerProvider.notifier)
+                    .refreshPasswords();
+              }
+            }),
+          },
+          onCreateCategory: () => {
+            context.push(AppRoutes.categoryManager).then((value) {
+              if (value == true) {
+                // If a new category was created, refresh the list
+                ref
+                    .read(passwordsListControllerProvider.notifier)
+                    .refreshPasswords();
+              }
+            }),
+          },
+          onIconCreate: () => {
+            context.push(AppRoutes.iconManager).then((value) {
+              if (value == true) {
+                // If a new icon was created, refresh the list
+                ref
+                    .read(passwordsListControllerProvider.notifier)
+                    .refreshPasswords();
+              }
+            }),
+          },
+          onCreateTag: () => {
+            context.push(AppRoutes.tagsManager).then((value) {
+              if (value == true) {
+                // If a new tag was created, refresh the list
+                ref
+                    .read(passwordsListControllerProvider.notifier)
+                    .refreshPasswords();
+              }
+            }),
+          },
         ),
       ),
     );
