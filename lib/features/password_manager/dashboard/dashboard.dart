@@ -22,7 +22,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     super.initState();
   }
 
-
   Widget _buildDrawer() {
     return Drawer(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
@@ -88,9 +87,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         body: RefreshIndicator(
           onRefresh: () async {
             // Обновляем список паролей через provider
-            await ref
-                .read(passwordsListControllerProvider.notifier)
-                .refreshPasswords();
+            // await ref
+            //     .read(passwordsListControllerProvider.notifier)
+            //     .refreshPasswords();
           },
           child: CustomScrollView(
             controller: _scrollController,

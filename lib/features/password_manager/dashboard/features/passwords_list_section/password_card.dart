@@ -89,10 +89,10 @@ class _PasswordCardState extends State<PasswordCard>
     });
   }
 
-  Future<void> _copyToClipboard(Future<String> textFn, String label) async {
+  Future<void> _copyToClipboard(String text, String label) async {
     try {
       if (!mounted) return;
-      final text = await textFn;
+
       if (text.isEmpty) {
         return ToastHelper.info(title: 'Пусто', description: label);
       }
@@ -290,12 +290,7 @@ class _PasswordCardState extends State<PasswordCard>
                                   label: 'URL',
                                   onPressed: () => _copyToClipboard(
                                     // предполагаем что в DTO есть поле url
-                                    ref
-                                        .read(
-                                          passwordsListControllerProvider
-                                              .notifier,
-                                        )
-                                        .getUrlById(widget.password.id),
+                                    "",
                                     'URL',
                                   ),
                                 ),
@@ -305,15 +300,8 @@ class _PasswordCardState extends State<PasswordCard>
                                 child: _ActionButton(
                                   icon: Icons.person,
                                   label: 'Логин',
-                                  onPressed: () => _copyToClipboard(
-                                    ref
-                                        .read(
-                                          passwordsListControllerProvider
-                                              .notifier,
-                                        )
-                                        .getLoginById(widget.password.id),
-                                    'Логин',
-                                  ),
+                                  onPressed: () =>
+                                      _copyToClipboard("", 'Логин'),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -323,12 +311,7 @@ class _PasswordCardState extends State<PasswordCard>
                                   label: 'Пароль',
                                   onPressed: () => _copyToClipboard(
                                     // предполагаем что в DTO есть поле password
-                                    ref
-                                        .read(
-                                          passwordsListControllerProvider
-                                              .notifier,
-                                        )
-                                        .getPasswordById(widget.password.id),
+                                    "",
 
                                     'Пароль',
                                   ),

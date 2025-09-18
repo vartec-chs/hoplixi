@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/password_card.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
-import 'passwords_list_controller.dart';
+import 'passwords_stream_provider.dart';
 
 /// Утилитарная функция для безопасного парсинга hex цветов
 Color parseHexColor(String? hexColor, Color fallbackColor) {
@@ -21,7 +21,8 @@ Color parseHexColor(String? hexColor, Color fallbackColor) {
 }
 
 /// Компонент для отображения отфильтрованного списка паролей
-/// Использует Slivers для интеграции в CustomScrollView родительского компонента
+/// Использует новый реактивный подход через StreamProvider
+/// Интегрируется в CustomScrollView родительского компонента через Slivers
 class PasswordsList extends ConsumerStatefulWidget {
   /// Внешний ScrollController для обработки пагинации
   final ScrollController? scrollController;
@@ -42,9 +43,6 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     // Используем внешний контроллер или создаем свой
     _scrollController = widget.scrollController ?? ScrollController();
     _scrollController.addListener(_onScroll);
-
-    // При использовании reactive streams данные загружаются автоматически
-    // сразу после создания контроллера
   }
 
   @override
@@ -57,16 +55,15 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     super.dispose();
   }
 
-  /// Обработка скролла (оставлено для совместимости, но пагинация не используется)
+  /// Обработка скролла (оставлено для совместимости)
   void _onScroll() {
-    // При использовании reactive streams пагинация не нужна,
-    // так как все данные загружаются сразу
-    // Оставляем метод пустым для совместимости
+    // При использовании reactive StreamProvider пагинация происходит автоматически
+    // через загрузку всех отфильтрованных данных
   }
 
   /// Обработка pull-to-refresh (можно вызывать извне)
   Future<void> handleRefresh() async {
-    await ref.read(passwordsListControllerProvider.notifier).refreshPasswords();
+    await ref.read(passwordsActionsProvider).refreshPasswords();
   }
 
   /// Обработка pull-to-refresh (внутренний метод)
@@ -76,9 +73,7 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
 
   /// Переключение избранного
   void _handleFavoriteToggle(String passwordId) {
-    ref
-        .read(passwordsListControllerProvider.notifier)
-        .toggleFavorite(passwordId);
+    ref.read(passwordsActionsProvider).toggleFavorite(passwordId);
   }
 
   /// Редактирование пароля
@@ -108,32 +103,42 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     );
 
     if (shouldDelete == true) {
-      ref
-          .read(passwordsListControllerProvider.notifier)
-          .deletePassword(passwordId);
+      await ref.read(passwordsActionsProvider).deletePassword(passwordId);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final passwordsState = ref.watch(passwordsListControllerProvider);
+    // Используем новый StreamProvider подход
+    final asyncPasswords = ref.watch(filteredPasswordsStreamProvider);
+    final totalCount = ref.watch(passwordsTotalCountProvider);
 
     // Возвращаем SliverMultiBoxAdaptorWidget для интеграции в существующий CustomScrollView
     return SliverMainAxisGroup(
       slivers: [
         // Заголовок с количеством паролей
-        _buildHeader(passwordsState.totalCount),
+        _buildHeader(totalCount),
 
-        // Обработка состояний загрузки и ошибок
-        if (passwordsState.isLoading && passwordsState.passwords.isEmpty)
-          _buildLoadingSliver()
-        else if (passwordsState.error != null &&
-            passwordsState.passwords.isEmpty)
-          _buildErrorSliver(passwordsState.error!)
-        else if (passwordsState.passwords.isEmpty)
-          _buildEmptySliver()
-        else
-          _buildPasswordsList(passwordsState.passwords),
+        // Обработка состояний через AsyncValue
+        ...asyncPasswords.when(
+          // Состояние загрузки
+          loading: () => [_buildLoadingSliver()],
+
+          // Состояние ошибки
+          error: (error, stackTrace) => [_buildErrorSliver(error.toString())],
+
+          // Состояние с данными
+          data: (passwords) {
+            if (passwords.isEmpty) {
+              return [_buildEmptySliver()];
+            }
+            return [
+              _buildPasswordsList(passwords),
+              // Показываем индикатор обновления при refreshing
+              if (asyncPasswords.isRefreshing) _buildRefreshingIndicator(),
+            ];
+          },
+        ),
 
         // Дополнительный отступ снизу для FAB
         const SliverPadding(padding: EdgeInsets.only(bottom: 100.0)),
@@ -185,6 +190,17 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Индикатор обновления (при refreshing)
+  Widget _buildRefreshingIndicator() {
+    return SliverToBoxAdapter(
+      child: Container(
+        height: 2,
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        child: const LinearProgressIndicator(),
       ),
     );
   }

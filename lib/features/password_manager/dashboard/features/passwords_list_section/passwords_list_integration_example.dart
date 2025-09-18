@@ -2,19 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../passwords_list_section/passwords_list.dart';
 import '../filter_section/filter_section_controller.dart';
-import '../passwords_list_section/passwords_list_controller.dart';
+import '../passwords_list_section/passwords_stream_provider.dart';
 
-/// Пример интеграции компонентов списка паролей
-/// Показывает, как использовать созданные контроллеры и виджеты
+/// Пример интеграции компонентов списка паролей с новым StreamProvider подходом
+/// Демонстрирует использование реактивных провайдеров для управления состоянием
 class PasswordsListIntegrationExample extends ConsumerWidget {
   const PasswordsListIntegrationExample({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Наблюдаем за состоянием через AsyncValue
+    final asyncPasswords = ref.watch(filteredPasswordsStreamProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Менеджер паролей'),
         actions: [
+          // Показываем индикатор загрузки в AppBar при обновлении
+          if (asyncPasswords.isRefreshing)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+
           // Кнопка добавления нового пароля
           IconButton(
             onPressed: () => _navigateToAddPassword(context, ref),
@@ -29,14 +43,23 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
           _buildSearchSection(ref),
 
           // Секция фильтров (tabs)
-          _buildFilterTabs(ref),
+          _buildFilterTabs(ref, context),
 
           // Отображение активных фильтров
-          _buildActiveFilters(ref),
+          _buildActiveFilters(ref, context),
+
+          // Статистика паролей
+          _buildPasswordsStats(ref, context),
 
           // Основной список паролей
-          const Expanded(child: PasswordsList()),
-          
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await ref.read(passwordsActionsProvider).refreshPasswords();
+              },
+              child: const CustomScrollView(slivers: [PasswordsList()]),
+            ),
+          ),
         ],
       ),
       // FAB для быстрого добавления
@@ -72,7 +95,7 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
   }
 
   /// Секция вкладок фильтрации
-  Widget _buildFilterTabs(WidgetRef ref) {
+  Widget _buildFilterTabs(WidgetRef ref, BuildContext context) {
     final filterState = ref.watch(filterSectionControllerProvider);
 
     return Container(
@@ -90,14 +113,14 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? Theme.of(ref.context).colorScheme.primaryContainer
+                      ? Theme.of(context).colorScheme.primaryContainer
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: isActive
-                        ? Theme.of(ref.context).colorScheme.primary
+                        ? Theme.of(context).colorScheme.primary
                         : Theme.of(
-                            ref.context,
+                            context,
                           ).colorScheme.outline.withOpacity(0.5),
                   ),
                 ),
@@ -108,25 +131,24 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
                       tab.icon,
                       size: 16,
                       color: isActive
-                          ? Theme.of(ref.context).colorScheme.primary
+                          ? Theme.of(context).colorScheme.primary
                           : Theme.of(
-                              ref.context,
+                              context,
                             ).colorScheme.onSurface.withOpacity(0.7),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       tab.label,
-                      style: Theme.of(ref.context).textTheme.labelSmall
-                          ?.copyWith(
-                            color: isActive
-                                ? Theme.of(ref.context).colorScheme.primary
-                                : Theme.of(
-                                    ref.context,
-                                  ).colorScheme.onSurface.withOpacity(0.7),
-                            fontWeight: isActive
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: isActive
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.7),
+                        fontWeight: isActive
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
                     ),
                   ],
                 ),
@@ -139,7 +161,7 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
   }
 
   /// Отображение активных фильтров
-  Widget _buildActiveFilters(WidgetRef ref) {
+  Widget _buildActiveFilters(WidgetRef ref, BuildContext context) {
     final hasActiveFilters = ref.watch(hasActiveFiltersProvider);
     final searchQuery = ref.watch(
       filterSectionControllerProvider.select((s) => s.searchQuery),
@@ -154,7 +176,7 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
           Icon(
             Icons.filter_list,
             size: 16,
-            color: Theme.of(ref.context).colorScheme.primary,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(width: 8),
           if (searchQuery.isNotEmpty) ...[
@@ -177,14 +199,101 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
     );
   }
 
+  /// Статистика паролей
+  Widget _buildPasswordsStats(WidgetRef ref, BuildContext context) {
+    final totalCount = ref.watch(passwordsTotalCountProvider);
+    final isLoading = ref.watch(isPasswordsLoadingProvider);
+    final hasData = ref.watch(hasPasswordsDataProvider);
+
+    if (!hasData && !isLoading) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 16,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            isLoading
+                ? 'Загрузка...'
+                : 'Найдено: $totalCount ${_getPasswordsLabel(totalCount)}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Получение правильного склонения для слова "пароль"
+  String _getPasswordsLabel(int count) {
+    if (count % 10 == 1 && count % 100 != 11) {
+      return 'пароль';
+    } else if ([2, 3, 4].contains(count % 10) &&
+        ![12, 13, 14].contains(count % 100)) {
+      return 'пароля';
+    } else {
+      return 'паролей';
+    }
+  }
+
   /// Показать диалог дополнительных фильтров
   void _showFilterDialog(WidgetRef ref) {
+    // Нужен BuildContext, получим его через Consumer
+  }
+
+  /// Показать диалог дополнительных фильтров с контекстом
+  void _showFilterDialogWithContext(BuildContext context, WidgetRef ref) {
     showDialog(
-      context: ref.context,
+      context: context,
       builder: (context) => AlertDialog(
         title: const Text('Дополнительные фильтры'),
-        content: const Text(
-          'Здесь будет интерфейс для настройки фильтров по категориям, тегам и датам',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Здесь будет интерфейс для настройки фильтров по категориям, тегам и датам',
+            ),
+            const SizedBox(height: 16),
+            // Пример расширенной информации о текущем состоянии
+            Consumer(
+              builder: (context, ref, child) {
+                final currentFilter = ref.watch(currentPasswordFilterProvider);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Текущий фильтр:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Поисковый запрос: "${currentFilter.query}"'),
+                    if (currentFilter.isFavorite != null)
+                      Text(
+                        'Избранные: ${currentFilter.isFavorite! ? "Да" : "Нет"}',
+                      ),
+                    if (currentFilter.isFrequent != null)
+                      Text(
+                        'Часто используемые: ${currentFilter.isFrequent! ? "Да" : "Нет"}',
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -208,10 +317,8 @@ class PasswordsListIntegrationExample extends ConsumerWidget {
     // Пример навигации с callback для обновления списка
     Navigator.of(context).pushNamed('/password-add').then((result) {
       if (result == true) {
-        // Уведомляем о создании нового пароля
-        ref.read(passwordChangeNotifierProvider)();
-
-        // Показываем snackbar
+        // В новом подходе обновление происходит автоматически через StreamProvider
+        // Но можно показать snackbar для подтверждения
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Пароль успешно создан!'),
@@ -246,7 +353,7 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-/// Пример использования в main.dart или router
+/// Пример использования в main.dart или router с новым подходом
 class PasswordsApp extends StatelessWidget {
   const PasswordsApp({super.key});
 
@@ -263,6 +370,132 @@ class PasswordsApp extends StatelessWidget {
           '/password-edit': (context) =>
               const Placeholder(), // Ваша форма редактирования
         },
+      ),
+    );
+  }
+}
+
+/// Пример демо-виджета для тестирования нового подхода
+class StreamProviderDemo extends ConsumerWidget {
+  const StreamProviderDemo({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('StreamProvider Demo')),
+      body: Column(
+        children: [
+          // Показываем состояние AsyncValue
+          Card(
+            margin: const EdgeInsets.all(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Состояние StreamProvider:',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final asyncPasswords = ref.watch(
+                        filteredPasswordsStreamProvider,
+                      );
+
+                      return asyncPasswords.when(
+                        loading: () => const Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 8),
+                            Text('Загрузка данных...'),
+                          ],
+                        ),
+                        error: (error, stackTrace) => Row(
+                          children: [
+                            Icon(
+                              Icons.error,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('Ошибка: $error'),
+                          ],
+                        ),
+                        data: (passwords) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text('Загружено ${passwords.length} паролей'),
+                              ],
+                            ),
+                            if (asyncPasswords.isRefreshing) ...[
+                              const SizedBox(height: 8),
+                              const Row(
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('Обновление...'),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Кнопки управления
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    await ref.read(passwordsActionsProvider).refreshPasswords();
+                  },
+                  child: const Text('Обновить'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.read(passwordsActionsProvider).searchPasswords('test');
+                  },
+                  child: const Text('Поиск "test"'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.read(passwordsActionsProvider).searchPasswords('');
+                  },
+                  child: const Text('Очистить поиск'),
+                ),
+              ],
+            ),
+          ),
+
+          // Миниатюрный список
+          Expanded(child: const CustomScrollView(slivers: [PasswordsList()])),
+        ],
       ),
     );
   }
