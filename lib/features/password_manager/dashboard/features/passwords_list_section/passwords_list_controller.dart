@@ -106,9 +106,13 @@ class PasswordsListController extends Notifier<PasswordsListState> {
       totalCount: 0,
     );
 
-    // Начинаем отслеживание с текущим фильтром
-    final currentFilter = ref.read(currentPasswordFilterProvider);
-    _watchPasswordsWithFilter(currentFilter);
+    // Отложенная инициализация, чтобы избежать циклической зависимости
+    Future.microtask(() {
+      if (_passwordsStreamSubscription == null) {
+        final currentFilter = ref.read(currentPasswordFilterProvider);
+        _watchPasswordsWithFilter(currentFilter);
+      }
+    });
 
     return initialState;
   }
@@ -117,6 +121,16 @@ class PasswordsListController extends Notifier<PasswordsListState> {
   void _watchPasswordsWithFilter(PasswordFilter filter) {
     // Отменяем предыдущую подписку
     _passwordsStreamSubscription?.cancel();
+
+    // Проверяем, что сервис инициализирован
+    if (_passwordService == null) {
+      logError('PasswordService не инициализирован');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Ошибка инициализации сервиса паролей',
+      );
+      return;
+    }
 
     state = state.copyWith(isLoading: true, error: null);
 
