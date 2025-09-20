@@ -10,6 +10,7 @@ import 'package:hoplixi/features/password_manager/icons_manager/icons_management
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
+import 'package:hoplixi/features/setup/setup.dart';
 import 'routes_path.dart';
 
 final List<GoRoute> appRoutes = [
@@ -23,7 +24,7 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.setup,
-    builder: (context, state) => const SplashScreen(title: 'Setup Screen'),
+    builder: (context, state) => const SetupScreen(),
   ),
   GoRoute(
     path: AppRoutes.home,
