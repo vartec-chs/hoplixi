@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import '../hoplixi_store.dart';
 import '../tables/totps.dart';
 import '../dto/db_dto.dart';
@@ -12,16 +13,14 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
 
   /// Создание нового TOTP
   Future<String> createTotp(CreateTotpDto dto) async {
+    final id = UuidGenerator.generate();
     final companion = TotpsCompanion(
+      id: Value(id),
       passwordId: Value(dto.passwordId),
-      name: Value(dto.name),
-      description: Value(dto.description),
       type: Value(dto.type),
       issuer: Value(dto.issuer),
       accountName: Value(dto.accountName),
-      secretNonce: Value(''), // Будет заполнено в сервисе шифрования
-      secretCipher: Value(dto.secret), // Временно, будет зашифровано
-      secretTag: Value(''), // Будет заполнено в сервисе шифрования
+      secret: Value(dto.secret), // Будет заполнено в сервисе шифрования
       algorithm: Value(dto.algorithm),
       digits: Value(dto.digits),
       period: Value(dto.period),
@@ -45,16 +44,12 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
       passwordId: dto.passwordId != null
           ? Value(dto.passwordId)
           : const Value.absent(),
-      name: dto.name != null ? Value(dto.name!) : const Value.absent(),
-      description: dto.description != null
-          ? Value(dto.description)
-          : const Value.absent(),
       type: dto.type != null ? Value(dto.type!) : const Value.absent(),
       issuer: dto.issuer != null ? Value(dto.issuer) : const Value.absent(),
       accountName: dto.accountName != null
           ? Value(dto.accountName)
           : const Value.absent(),
-      secretCipher: dto.secret != null
+      secret: dto.secret != null
           ? Value(dto.secret!)
           : const Value.absent(), // Будет зашифровано
       algorithm: dto.algorithm != null
@@ -140,10 +135,9 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
     final query = select(attachedDatabase.totps)
       ..where(
         (tbl) =>
-            tbl.name.like('%$searchTerm%') |
             tbl.issuer.like('%$searchTerm%') |
             tbl.accountName.like('%$searchTerm%') |
-            tbl.description.like('%$searchTerm%'),
+            tbl.notes.like('%$searchTerm%'),
       )
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return await query.get();
@@ -276,14 +270,10 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
       for (final dto in dtos) {
         final companion = TotpsCompanion(
           passwordId: Value(dto.passwordId),
-          name: Value(dto.name),
-          description: Value(dto.description),
           type: Value(dto.type),
           issuer: Value(dto.issuer),
           accountName: Value(dto.accountName),
-          secretNonce: Value(''), // Будет заполнено в сервисе шифрования
-          secretCipher: Value(dto.secret), // Временно, будет зашифровано
-          secretTag: Value(''), // Будет заполнено в сервисе шифрования
+          secret: Value(dto.secret),
           algorithm: Value(dto.algorithm),
           digits: Value(dto.digits),
           period: Value(dto.period),

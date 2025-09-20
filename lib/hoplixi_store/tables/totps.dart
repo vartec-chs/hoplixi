@@ -13,8 +13,6 @@ class Totps extends Table {
     #id,
     onDelete: KeyAction.setNull,
   )(); // Foreign key to passwords (optional)
-  TextColumn get name => text().withLength(min: 1, max: 255)();
-  TextColumn get description => text().nullable()();
 
   // OTP authentication fields
   TextColumn get type => textEnum<OtpType>().withDefault(
@@ -25,13 +23,11 @@ class Totps extends Table {
   TextColumn get accountName =>
       text().nullable()(); // Account identifier (e.g., email, username)
 
-  // Secret encryption fields (separated for better security)
-  TextColumn get secretNonce => text()(); // Nonce for encryption
-  TextColumn get secretCipher => text()(); // Encrypted TOTP/HOTP secret
-  TextColumn get secretTag => text()(); // Authentication tag for encryption
+  TextColumn get secret => text()();
+  TextColumn get notes => text().nullable()();
 
   // OTP configuration
-  TextColumn get algorithm => text().withDefault(
+  TextColumn get algorithm => textEnum<AlgorithmOtp>().withDefault(
     const Constant('SHA1'),
   )(); // HMAC algorithm (SHA1, SHA256, SHA512)
   IntColumn get digits => integer().withDefault(

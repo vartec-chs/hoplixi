@@ -102,17 +102,14 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
           (row) => Totp(
             id: row.read<String>('id'),
             passwordId: row.read<String?>('password_id'),
-            name: row.read<String>('name'),
-            description: row.read<String?>('description'),
+            
             type: OtpType.values.firstWhere(
               (e) => e.name == row.read<String>('type'),
             ),
             issuer: row.read<String?>('issuer'),
             accountName: row.read<String?>('account_name'),
-            secretNonce: row.read<String>('secret_nonce'),
-            secretCipher: row.read<String>('secret_cipher'),
-            secretTag: row.read<String>('secret_tag'),
-            algorithm: row.read<String>('algorithm'),
+            secret: row.read<String>('secret'),
+            algorithm: row.read<AlgorithmOtp>('algorithm'),
             digits: row.read<int>('digits'),
             period: row.read<int>('period'),
             counter: row.read<int?>('counter'),

@@ -7,3 +7,5 @@ enum OtpType { totp, hotp }
 enum ActionInHistory { deleted, modified }
 
 enum IconType { png, jpg, svg, gif, bmp, webp }
+
+enum AlgorithmOtp { SHA1, SHA256, SHA512 }

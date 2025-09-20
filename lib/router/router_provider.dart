@@ -31,33 +31,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             .home; // Если настройка завершена, перенаправляем на домашний экран
       }
 
-      // final prefs = await SharedPreferences.getInstance();
-      // final isFirstRun = prefs.getBool('is_first_run') ?? true;
-
-      // // Если это первый запуск и пользователь не на setup экране
-      // if (isFirstRun && state.fullPath != '/setup') {
-      //   return '/setup';
-      // }
-
-      // // Если настройка завершена и пользователь на setup экране
-      // if (!isFirstRun && state.fullPath == '/setup') {
-      //   return '/';
-      // }
-
-      // if (state.fullPath == AppRoutes.home && isDatabaseOpen) {
-      //   return AppRoutes.dashboard; // Разрешаем доступ к экрану логов
-      // }
-
-      // Если база данных не открыта и пользователь не на экране создания или открытия базы
-      // if (!isDatabaseOpen && !redirectDashboardPath.contains(state.fullPath)) {
-      //   return AppRoutes
-      //       .home; // Перенаправляем на экран создания или открытия базы
-      // } else if (isDatabaseOpen &&
-      //     redirectDashboardPath.contains(state.fullPath)) {
-      //   return AppRoutes
-      //       .dashboard; // Перенаправляем на дашборд, если база открыта
-      // }
-
       initializationAsync.when(
         data: (data) {
           return null; // Нет перенаправления, если инициализация успешна

@@ -124,13 +124,12 @@ abstract class UpdateNoteDto with _$UpdateNoteDto {
 abstract class CreateTotpDto with _$CreateTotpDto {
   const factory CreateTotpDto({
     String? passwordId,
-    required String name,
-    String? description,
+   
     @Default(OtpType.totp) OtpType type,
     String? issuer,
     String? accountName,
     required String secret, // Will be encrypted internally
-    @Default('SHA1') String algorithm,
+    @Default(AlgorithmOtp.SHA1) AlgorithmOtp algorithm,
     @Default(6) int digits,
     @Default(30) int period,
     int? counter, // Only for HOTP
@@ -144,13 +143,11 @@ abstract class UpdateTotpDto with _$UpdateTotpDto {
   const factory UpdateTotpDto({
     required String id,
     String? passwordId,
-    String? name,
-    String? description,
     OtpType? type,
     String? issuer,
     String? accountName,
     String? secret, // Will be encrypted internally
-    String? algorithm,
+    AlgorithmOtp? algorithm,
     int? digits,
     int? period,
     int? counter,
