@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_transitions/go_transitions.dart';
+import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/core/secure_storage/index.dart';
@@ -23,6 +24,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) async {
       final initializationAsync = ref.watch(storageInitProvider);
       // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
+
+      bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
+      if (isFirstRun == false && state.fullPath == AppRoutes.setup) {
+        return AppRoutes
+            .home; // Если настройка завершена, перенаправляем на домашний экран
+      }
 
       // final prefs = await SharedPreferences.getInstance();
       // final isFirstRun = prefs.getBool('is_first_run') ?? true;
