@@ -5,8 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app.dart';
-import 'package:hoplixi/core/auto_preferences/app_settings_definition.dart';
-import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
+import 'package:hoplixi/core/app_preferences/app_preferences.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/preferences/app_preferences.dart';
@@ -15,9 +14,6 @@ import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:toastification/toastification.dart';
 import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
-
-
-
 
 Future<void> main() async {
   if (UniversalPlatform.isWeb) {
@@ -47,8 +43,7 @@ Future<void> main() async {
 
       // Инициализируем AppPreferences
       await AppPreferences.init();
-      await AutoPreferencesManager.init();
-      AppSettingsDefinition.initialize();
+      await Prefs.init();
 
       // Получаем экземпляр настроек
       final prefs = AppPreferences.instance;

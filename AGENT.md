@@ -19,6 +19,7 @@ Hoplixi is a cross-platform Flutter password manager with local encrypted SQLite
 - Use custom button: import 'package:hoplixi/common/button.dart';
 - Use Toastification: import 'package:hoplixi/core/utils/toastification.dart';
 - Use slider button for confirmation: import 'package:hoplixi/common/slider_button.dart';
+- Use SharedPreferences wrapper: import 'package:hoplixi/core/app_preferences/index.dart';
 
 ### In project main dependencies
 

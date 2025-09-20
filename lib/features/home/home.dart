@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/core/auto_preferences/auto_settings_screen.dart';
+
 import 'package:hoplixi/core/theme/index.dart';
 
 import 'package:universal_platform/universal_platform.dart';
@@ -354,7 +354,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                   MaterialPageRoute(
                     builder: (context) => UniversalPlatform.isMobile
                         ? const DynamicSettingsScreen()
-                        : const AutoSettingsScreen(),
+                        // : const AutoSettingsScreen(),
+                        : const SizedBox.expand(),
                   ),
                 );
               },
@@ -419,7 +420,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
               MaterialPageRoute(
                 builder: (context) => UniversalPlatform.isMobile
                     ? const DynamicSettingsScreen()
-                    : const AutoSettingsScreen(),
+                    : const SizedBox(),
               ),
             );
           },

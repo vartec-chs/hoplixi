@@ -91,14 +91,14 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
     PermissionItem(
       permission: Permission.photos,
       title: 'Доступ к фотографиям',
-      description: 'Для сохранения и загрузки изображений профилей и аватаров',
+      description: 'Для назначения иконок из галереи',
       icon: Icons.photo_library_rounded,
       isRequired: false,
     ),
     PermissionItem(
       permission: Permission.camera,
       title: 'Доступ к камере',
-      description: 'Для сканирования QR-кодов и съёмки фотографий профилей',
+      description: 'Для сканирования QR-кодов',
       icon: Icons.camera_alt_rounded,
       isRequired: false,
     ),
@@ -174,7 +174,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: SlideTransition(
               position: _slideAnimation,
               child: FadeTransition(
@@ -206,7 +206,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
 
                     // Кнопки действий
                     _buildActionButtons(permissionStates),
@@ -421,30 +421,31 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
       (p) => permissionStates[p.permission] == PermissionStatus.granted,
     );
 
-    return Column(
-      children: [
-        // Кнопка "Запросить все"
-        SmoothButton(
-          onPressed: _requestAllPermissions,
-          label: 'Запросить все разрешения',
-          type: SmoothButtonType.filled,
-          isFullWidth: true,
-        ),
+    return SizedBox(
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        spacing: 8,
+        children: [
+          // Кнопка "Запросить все"
+          SmoothButton(
+            onPressed: _requestAllPermissions,
+            label: 'Запросить все разрешения',
+            type: SmoothButtonType.filled,
+          ),
 
-        const SizedBox(height: 12),
-
-        // Кнопка "Продолжить"
-        SmoothButton(
-          onPressed: hasAllRequired ? _completePermissions : null,
-          label: hasAllRequired
-              ? 'Продолжить'
-              : 'Требуются обязательные разрешения',
-          type: hasAllRequired
-              ? SmoothButtonType.tonal
-              : SmoothButtonType.outlined,
-          isFullWidth: true,
-        ),
-      ],
+          // Кнопка "Продолжить"
+          SmoothButton(
+            onPressed: hasAllRequired ? _completePermissions : null,
+            label: hasAllRequired
+                ? 'Продолжить'
+                : 'Требуются обязательные разрешения',
+            type: hasAllRequired
+                ? SmoothButtonType.tonal
+                : SmoothButtonType.outlined,
+          ),
+        ],
+      ),
     );
   }
 

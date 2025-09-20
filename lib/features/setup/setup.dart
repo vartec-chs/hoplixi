@@ -57,7 +57,7 @@ class SetupScreen extends ConsumerWidget {
     PageController pageController,
   ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(4),
       child: Column(
         children: [
           // Заголовок
@@ -87,15 +87,13 @@ class SetupScreen extends ConsumerWidget {
             },
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
 
           // Текстовый индикатор
           Text(
             '${setupState.currentIndex + 1} из ${setupState.screens.length}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
         ],
@@ -124,8 +122,9 @@ class SetupScreen extends ConsumerWidget {
     SetupState setupState,
   ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(4),
       child: Row(
+        spacing: setupState.canGoPrevious ? 8 : 0,
         children: [
           // Кнопка "Назад"
           if (setupState.canGoPrevious)
@@ -138,9 +137,6 @@ class SetupScreen extends ConsumerWidget {
                 type: SmoothButtonType.outlined,
               ),
             ),
-
-          if (setupState.canGoPrevious && setupState.canGoNext)
-            const SizedBox(width: 16),
 
           // Кнопка "Далее" или "Завершить"
           Expanded(

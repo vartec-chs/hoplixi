@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/core/auto_preferences/auto_preferences_manager.dart';
+import 'package:hoplixi/core/app_preferences/index.dart';
+
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
@@ -180,10 +181,7 @@ class HomeController extends Notifier<HomeState> {
     if (recentDatabase == null) return false;
 
     try {
-      final manager = AutoPreferencesManager.instance;
-      final autoOpenLastStorage = manager.getValue<bool>(
-        'auto_open_last_storage',
-      );
+      bool? autoOpenLastStorage = Prefs.get<bool>(Keys.autoOpenLastStorage);
       if (autoOpenLastStorage != true) return false;
 
       return recentDatabase.saveMasterPassword == true &&
