@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/app_preferences/index.dart';
+import 'package:hoplixi/router/routes_path.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/theme/colors.dart';
@@ -141,10 +144,11 @@ class SetupScreen extends ConsumerWidget {
           // Кнопка "Далее" или "Завершить"
           Expanded(
             child: SmoothButton(
-              onPressed: () {
+              onPressed: () async {
                 if (setupState.canGoNext) {
                   ref.read(setupProvider.notifier).nextScreen();
                 } else {
+                  await Prefs.set<bool>(Keys.isFirstRun, false);
                   _completeSetup(context, ref);
                 }
               },
@@ -169,6 +173,6 @@ class SetupScreen extends ConsumerWidget {
 
     // Здесь можно добавить логику перехода к основному экрану приложения
     // Например, навигация с помощью GoRouter
-    Navigator.of(context).pushReplacementNamed('/main');
+    context.go(AppRoutes.home);
   }
 }

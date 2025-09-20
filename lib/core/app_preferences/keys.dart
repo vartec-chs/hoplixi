@@ -18,6 +18,9 @@ class Keys {
   static const PrefKey<bool> autoOpenLastStorage = PrefKey<bool>(
     'auto_open_last_storage',
   );
-  //theme 
+  //theme
   static const PrefKey<String> themeMode = PrefKey<String>('theme_mode');
+
+  //is first run
+  static const PrefKey<bool> isFirstRun = PrefKey<bool>('is_first_run');
 }
