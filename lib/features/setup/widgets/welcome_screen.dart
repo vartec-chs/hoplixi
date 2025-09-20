@@ -111,142 +111,145 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           ),
         ),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Анимированный логотип
-              AnimatedBuilder(
-                animation: _logoController,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _logoScaleAnimation.value,
-                    child: Transform.rotate(
-                      angle:
-                          _logoRotationAnimation.value *
-                          0.1, // Небольшой поворот
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: AppColors.lightColors.primary,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.lightColors.primary.withOpacity(
-                                0.3,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Анимированный логотип
+                AnimatedBuilder(
+                  animation: _logoController,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _logoScaleAnimation.value,
+                      child: Transform.rotate(
+                        angle:
+                            _logoRotationAnimation.value *
+                            0.1, // Небольшой поворот
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: AppColors.lightColors.primary,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.lightColors.primary
+                                    .withOpacity(0.3),
+                                blurRadius: 20,
+                                spreadRadius: 5,
                               ),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.lock_rounded,
-                          size: 60,
-                          color: Colors.white,
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.lock_rounded,
+                            size: 60,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 40),
-
-              // Анимированный заголовок
-              SlideTransition(
-                position: _textSlideAnimation,
-                child: Column(
-                  children: [
-                    Text(
-                      'Добро пожаловать в',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onBackground.withOpacity(0.8),
-                            fontWeight: FontWeight.w300,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Hoplixi',
-                      style: Theme.of(context).textTheme.headlineLarge
-                          ?.copyWith(
-                            color: AppColors.lightColors.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 42,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              ),
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 40),
 
-              // Анимированное описание
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                // Анимированный заголовок
+                SlideTransition(
+                  position: _textSlideAnimation,
                   child: Column(
                     children: [
                       Text(
-                        'Ваш надёжный менеджер паролей',
-                        style: Theme.of(context).textTheme.titleMedium
+                        'Добро пожаловать в',
+                        style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onBackground.withOpacity(0.7),
-                              fontWeight: FontWeight.w500,
+                              ).colorScheme.onBackground.withOpacity(0.8),
+                              fontWeight: FontWeight.w300,
                             ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Text(
-                        'Безопасно храните свои пароли и получайте к ним доступ из любого места',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onBackground.withOpacity(0.6),
-                          height: 1.5,
-                        ),
+                        'Hoplixi',
+                        style: Theme.of(context).textTheme.headlineLarge
+                            ?.copyWith(
+                              color: AppColors.lightColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 42,
+                            ),
                         textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 60),
+                const SizedBox(height: 30),
 
-              // Анимированные иконки особенностей
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildFeatureIcon(
-                      icon: Icons.security_rounded,
-                      label: 'Безопасность',
-                      delay: 0,
+                // Анимированное описание
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Ваш надёжный менеджер паролей',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground.withOpacity(0.7),
+                                fontWeight: FontWeight.w500,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Безопасно храните свои пароли и получайте к ним доступ из любого места',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground.withOpacity(0.6),
+                                height: 1.5,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    _buildFeatureIcon(
-                      icon: Icons.sync_rounded,
-                      label: 'Синхронизация',
-                      delay: 200,
-                    ),
-                    _buildFeatureIcon(
-                      icon: Icons.offline_bolt_rounded,
-                      label: 'Автономность',
-                      delay: 400,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 60),
+
+                // Анимированные иконки особенностей
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildFeatureIcon(
+                        icon: Icons.security_rounded,
+                        label: 'Безопасность',
+                        delay: 0,
+                      ),
+                      _buildFeatureIcon(
+                        icon: Icons.sync_rounded,
+                        label: 'Синхронизация',
+                        delay: 200,
+                      ),
+                      _buildFeatureIcon(
+                        icon: Icons.offline_bolt_rounded,
+                        label: 'Автономность',
+                        delay: 400,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

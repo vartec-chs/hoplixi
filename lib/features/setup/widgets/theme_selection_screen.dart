@@ -91,16 +91,17 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen>
               position: _slideAnimation,
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: Column(
-                  children: [
-                    // Заголовок
-                    _buildHeader(),
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // Заголовок
+                      _buildHeader(),
 
-                    const SizedBox(height: 60),
+                      const SizedBox(height: 60),
 
-                    // Карточки выбора темы
-                    Expanded(
-                      child: Column(
+                      // Карточки выбора темы
+                      Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: themeAsync.when(
                           data: (currentTheme) => [
@@ -137,6 +138,9 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen>
                               currentTheme: currentTheme,
                               delay: 400,
                             ),
+
+                            // Дополнительное пространство в конце для лучшей прокрутки
+                            const SizedBox(height: 40),
                           ],
                           loading: () => [
                             const Center(child: CircularProgressIndicator()),
@@ -146,8 +150,8 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen>
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
