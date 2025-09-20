@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/app_preferences/index.dart';
 
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,8 +16,7 @@ class ThemeProvider extends AsyncNotifier<ThemeMode> {
   FutureOr<ThemeMode> build() async {
     state = const AsyncValue.loading();
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final themeMode = prefs.getString('theme_mode');
+      String? themeMode = Prefs.get<String>(Keys.themeMode);
       if (themeMode == 'light') {
         state = const AsyncData(ThemeMode.light);
         return ThemeMode.light;
@@ -36,13 +36,12 @@ class ThemeProvider extends AsyncNotifier<ThemeMode> {
   /// Сохраняет текущую тему в SharedPreferences
   Future<void> _saveTheme(ThemeMode themeMode) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       if (themeMode == ThemeMode.light) {
-        await prefs.setString('theme_mode', 'light');
+        await Prefs.set(Keys.themeMode, 'light');
       } else if (themeMode == ThemeMode.dark) {
-        await prefs.setString('theme_mode', 'dark');
+        await Prefs.set(Keys.themeMode, 'dark');
       } else {
-        await prefs.setString('theme_mode', 'system');
+        await Prefs.set(Keys.themeMode, 'system');
       }
     } catch (e, stackTrace) {
       logError(
