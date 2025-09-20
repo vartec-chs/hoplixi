@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/passwords_list_controller.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
-import 'package:hoplixi/hoplixi_store/providers.dart';
 
 
 

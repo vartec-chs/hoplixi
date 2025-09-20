@@ -95,7 +95,7 @@ class SetupScreen extends ConsumerWidget {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(
                 context,
-              ).colorScheme.onBackground.withOpacity(0.7),
+              ).colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
         ],

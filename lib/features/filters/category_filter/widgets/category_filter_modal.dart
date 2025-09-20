@@ -7,7 +7,6 @@ import 'package:hoplixi/common/shimmer_effect.dart';
 import 'package:hoplixi/core/theme/colors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/passwords_list.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services/categories_service.dart';

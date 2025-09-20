@@ -188,7 +188,7 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen>
           'Выберите тему',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onBackground,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
 
@@ -197,7 +197,7 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen>
         Text(
           'Настройте внешний вид приложения под свои предпочтения',
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
             height: 1.5,
           ),
           textAlign: TextAlign.center,

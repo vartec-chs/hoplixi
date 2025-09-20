@@ -165,7 +165,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                             ?.copyWith(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onBackground.withOpacity(0.8),
+                              ).colorScheme.onSurface.withOpacity(0.8),
                               fontWeight: FontWeight.w300,
                             ),
                         textAlign: TextAlign.center,
@@ -200,7 +200,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                               ?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onBackground.withOpacity(0.7),
+                                ).colorScheme.onSurface.withOpacity(0.7),
                                 fontWeight: FontWeight.w500,
                               ),
                           textAlign: TextAlign.center,
@@ -212,7 +212,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                               ?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onBackground.withOpacity(0.6),
+                                ).colorScheme.onSurface.withOpacity(0.6),
                                 height: 1.5,
                               ),
                           textAlign: TextAlign.center,
@@ -294,7 +294,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onBackground.withOpacity(0.6),
+                    ).colorScheme.onSurface.withOpacity(0.6),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
