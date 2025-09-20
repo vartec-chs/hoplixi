@@ -79,14 +79,11 @@
 
 - `id` - TEXT, UUID v4, первичный ключ
 - `password_id` - TEXT, ссылка на пароль (FK -> Passwords.id, опционально)
-- `name` - TEXT(1-255), название TOTP записи
-- `description` - TEXT, описание (опционально)
 - `type` - TEXT ENUM, тип аутентификации (totp, hotp, по умолчанию 'totp')
 - `issuer` - TEXT, название сервиса (опционально, например "Google", "GitHub")
 - `account_name` - TEXT, идентификатор аккаунта (опционально, например email, username)
-- `secret_nonce` - TEXT, nonce для шифрования секрета
-- `secret_cipher` - TEXT, зашифрованный секретный ключ TOTP/HOTP
-- `secret_tag` - TEXT, тег аутентификации для шифрования
+- `notes` - TEXT, заметки (опционально)
+- `secret` - TEXT, секретный ключ TOTP/HOTP
 - `algorithm` - TEXT, алгоритм HMAC (по умолчанию 'SHA1')
 - `digits` - INTEGER, количество цифр в коде (по умолчанию 6)
 - `period` - INTEGER, период в секундах для TOTP (по умолчанию 30)
@@ -163,18 +160,15 @@
 - `id` - TEXT, UUID v4, первичный ключ
 - `original_totp_id` - TEXT, ID оригинального TOTP
 - `action` - TEXT(1-50), действие ('deleted', 'modified')
-- `name` - TEXT(1-255), название TOTP записи
-- `description` - TEXT, описание (опционально)
 - `type` - TEXT, тип аутентификации (опционально)
 - `issuer` - TEXT, название сервиса (опционально)
 - `account_name` - TEXT, идентификатор аккаунта (опционально)
-- `secret_nonce` - TEXT, nonce для шифрования (опционально для приватности)
-- `secret_cipher` - TEXT, зашифрованный секрет (опционально для приватности)
-- `secret_tag` - TEXT, тег аутентификации (опционально для приватности)
+- `secret` - TEXT, секрет
 - `algorithm` - TEXT, алгоритм HMAC (опционально)
 - `digits` - INTEGER, количество цифр (опционально)
 - `period` - INTEGER, период в секундах (опционально)
 - `counter` - INTEGER, счетчик для HOTP (опционально)
+- `notes` - TEXT, заметки (опционально)
 - `category_id` - TEXT, ID категории на момент действия (опционально)
 - `category_name` - TEXT, название категории на момент действия (опционально)
 - `tags` - TEXT, JSON массив названий тегов (опционально)
@@ -333,19 +327,16 @@ CREATE TABLE passwords (
 CREATE TABLE totps (
     id TEXT PRIMARY KEY,
     password_id TEXT,
-    name TEXT(255) NOT NULL CHECK(length(name) >= 1),
-    description TEXT,
     type TEXT NOT NULL DEFAULT 'totp' CHECK(type IN ('totp', 'hotp')),
     issuer TEXT,
     account_name TEXT,
-    secret_nonce TEXT NOT NULL,
-    secret_cipher TEXT NOT NULL,
-    secret_tag TEXT NOT NULL,
+    secret TEXT NOT NULL,
     algorithm TEXT NOT NULL DEFAULT 'SHA1',
     digits INTEGER NOT NULL DEFAULT 6,
     period INTEGER NOT NULL DEFAULT 30,
     counter INTEGER,
     category_id TEXT,
+    notes TEXT,
     is_favorite BOOLEAN NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -444,20 +435,17 @@ CREATE TABLE totp_histories (
     id TEXT PRIMARY KEY,
     original_totp_id TEXT NOT NULL,
     action TEXT(50) NOT NULL CHECK(length(action) >= 1),
-    name TEXT(255) NOT NULL CHECK(length(name) >= 1),
-    description TEXT,
     type TEXT,
     issuer TEXT,
     account_name TEXT,
-    secret_nonce TEXT,
-    secret_cipher TEXT,
-    secret_tag TEXT,
+    secret TEXT,
     algorithm TEXT,
     digits INTEGER,
     period INTEGER,
     counter INTEGER,
     category_id TEXT,
     category_name TEXT,
+    notes TEXT,
     tags TEXT,
     original_created_at DATETIME,
     original_modified_at DATETIME,
