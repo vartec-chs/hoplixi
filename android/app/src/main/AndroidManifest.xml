@@ -18,6 +18,10 @@
 		<uses-permission android:name="android.permission.PHOTO"/>
 		<uses-permission android:name="android.permission.VIDEO"/>
 		<uses-permission android:name="android.permission.AUDIO"/>
+		<uses-permission android:name="android.permission.BLUETOOTH"/>
+		<uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+		<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+		<uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
 
 
     <application

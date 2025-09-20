@@ -11,6 +11,7 @@ import 'package:hoplixi/features/setup/providers/setup_provider.dart';
 import 'package:hoplixi/features/setup/widgets/welcome_screen.dart';
 import 'package:hoplixi/features/setup/widgets/theme_selection_screen.dart';
 import 'package:hoplixi/features/setup/widgets/permissions_screen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Главный экран setup процесса с навигацией между подэкранами
 class SetupScreen extends ConsumerWidget {
@@ -20,6 +21,7 @@ class SetupScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final setupState = ref.watch(setupProvider);
     final pageController = ref.watch(pageControllerProvider);
+    final permissionStates = ref.watch(permissionsProvider);
 
     logDebug(
       'Построение SetupScreen, текущий индекс: ${setupState.currentIndex}',
@@ -45,7 +47,7 @@ class SetupScreen extends ConsumerWidget {
             ),
 
             // Навигационные кнопки
-            _buildNavigationButtons(context, ref, setupState),
+            _buildNavigationButtons(context, ref, setupState, permissionStates),
           ],
         ),
       ),
@@ -123,7 +125,18 @@ class SetupScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     SetupState setupState,
+    Map<Permission, PermissionStatus> permissionStates,
   ) {
+    // Проверяем, все ли обязательные разрешения предоставлены
+    final bool hasAllRequiredPermissions = _checkRequiredPermissions(
+      permissionStates,
+    );
+
+    // На экране разрешений блокируем кнопку "Завершить", если не все обязательные разрешения даны
+    final bool isPermissionsScreen =
+        setupState.currentScreen == SetupScreenType.permissions;
+    final bool canComplete = !isPermissionsScreen || hasAllRequiredPermissions;
+
     return Container(
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -144,20 +157,38 @@ class SetupScreen extends ConsumerWidget {
           // Кнопка "Далее" или "Завершить"
           Expanded(
             child: SmoothButton(
-              onPressed: () async {
-                if (setupState.canGoNext) {
-                  ref.read(setupProvider.notifier).nextScreen();
-                } else {
-                  await Prefs.set<bool>(Keys.isFirstRun, false);
-                  _completeSetup(context, ref);
-                }
-              },
-              label: setupState.canGoNext ? 'Далее' : 'Завершить',
+              onPressed: (setupState.canGoNext || canComplete)
+                  ? () async {
+                      if (setupState.canGoNext) {
+                        ref.read(setupProvider.notifier).nextScreen();
+                      } else {
+                        await Prefs.set<bool>(Keys.isFirstRun, false);
+                        _completeSetup(context, ref);
+                      }
+                    }
+                  : null,
+              label: setupState.canGoNext
+                  ? 'Далее'
+                  : (canComplete
+                        ? 'Завершить'
+                        : 'Требуются обязательные разрешения'),
               type: SmoothButtonType.filled,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Проверка обязательных разрешений
+  bool _checkRequiredPermissions(
+    Map<Permission, PermissionStatus> permissionStates,
+  ) {
+    // Список обязательных разрешений (должен соответствовать списку в PermissionsScreen)
+    const requiredPermissions = [Permission.manageExternalStorage];
+
+    return requiredPermissions.every(
+      (permission) => permissionStates[permission] == PermissionStatus.granted,
     );
   }
 

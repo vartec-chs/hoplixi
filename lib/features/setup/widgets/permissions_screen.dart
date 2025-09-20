@@ -5,7 +5,6 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/theme/colors.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/common/button.dart';
-import 'package:hoplixi/features/setup/providers/setup_provider.dart';
 
 /// Модель разрешения
 class PermissionItem {
@@ -51,14 +50,51 @@ class PermissionsNotifier extends Notifier<Map<Permission, PermissionStatus>> {
 
   /// Запросить конкретное разрешение
   Future<void> requestPermission(Permission permission) async {
-    final status = await permission.request();
-    state = {...state, permission: status};
+    try {
+      final status = await permission.request();
+      state = {...state, permission: status};
+    } catch (e) {
+      // В случае ошибки (например, отмена пользователем) сохраняем текущий статус
+      final errorMessage = e.toString();
+      logDebug('Ошибка при запросе разрешения $permission: $errorMessage');
+
+      // Дополнительное логирование для специфичных случаев
+      if (errorMessage.contains('PHASE_CLIENT_ALREADY_HIDDEN')) {
+        logDebug(
+          'Обнаружена отмена на этапе PHASE_CLIENT_ALREADY_HIDDEN для $permission',
+        );
+      } else if (errorMessage.contains('onCancelled')) {
+        logDebug('Обнаружена отмена пользователем для $permission');
+      }
+
+      final currentStatus = await permission.status;
+      state = {...state, permission: currentStatus};
+      rethrow; // Перебрасываем исключение для обработки в UI
+    }
   }
 
   /// Запросить все разрешения
   Future<void> requestAllPermissions(List<Permission> permissions) async {
     for (final permission in permissions) {
-      await requestPermission(permission);
+      try {
+        await requestPermission(permission);
+      } catch (e) {
+        // Продолжаем запрашивать остальные разрешения даже если одно было отменено
+        final errorMessage = e.toString();
+        logDebug(
+          'Пропускаем разрешение $permission из-за ошибки: $errorMessage',
+        );
+
+        if (errorMessage.contains('PHASE_CLIENT_ALREADY_HIDDEN')) {
+          logDebug(
+            'Разрешение $permission отменено на этапе PHASE_CLIENT_ALREADY_HIDDEN',
+          );
+        } else if (errorMessage.contains('onCancelled')) {
+          logDebug('Разрешение $permission отменено пользователем');
+        }
+
+        continue;
+      }
     }
   }
 }
@@ -82,11 +118,25 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
   // Список требуемых разрешений
   static const List<PermissionItem> _permissions = [
     PermissionItem(
-      permission: Permission.storage,
+      permission: Permission.manageExternalStorage,
       title: 'Доступ к файлам',
       description: 'Для сохранения и импорта/экспорта данных паролей',
       icon: Icons.folder_rounded,
       isRequired: true,
+    ),
+    PermissionItem(
+      permission: Permission.audio,
+      title: 'Аудио',
+      description: 'Для воспроизведения аудио в приложении',
+      icon: Icons.audio_file,
+      isRequired: false,
+    ),
+    PermissionItem(
+      permission: Permission.bluetooth,
+      title: 'Bluetooth',
+      description: 'Для подключения к устройствам Bluetooth',
+      icon: Icons.bluetooth,
+      isRequired: false,
     ),
     PermissionItem(
       permission: Permission.photos,
@@ -421,31 +471,76 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
       (p) => permissionStates[p.permission] == PermissionStatus.granted,
     );
 
-    return SizedBox(
-      width: double.infinity,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        spacing: 8,
-        children: [
-          // Кнопка "Запросить все"
-          SmoothButton(
-            onPressed: _requestAllPermissions,
-            label: 'Запросить все разрешения',
-            type: SmoothButtonType.filled,
-          ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      spacing: 8,
+      children: [
+        // Кнопка "Запросить все"
+        SmoothButton(
+          onPressed: _requestAllPermissions,
+          label: 'Запросить все',
+          type: SmoothButtonType.filled,
+          isFullWidth: true,
+        ),
 
-          // Кнопка "Продолжить"
-          SmoothButton(
-            onPressed: hasAllRequired ? _completePermissions : null,
-            label: hasAllRequired
-                ? 'Продолжить'
-                : 'Требуются обязательные разрешения',
-            type: hasAllRequired
-                ? SmoothButtonType.tonal
-                : SmoothButtonType.outlined,
+        // Информационное сообщение о статусе разрешений
+        if (!hasAllRequired)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.orange.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Для завершения настройки требуются обязательные разрешения',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.green.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Все обязательные разрешения предоставлены',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -458,15 +553,57 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
       // Показать диалог для перехода в настройки
       _showSettingsDialog();
     } else {
-      await ref
-          .read(permissionsProvider.notifier)
-          .requestPermission(permission);
+      try {
+        await ref
+            .read(permissionsProvider.notifier)
+            .requestPermission(permission);
 
-      final newStatus = await permission.status;
-      if (newStatus.isGranted) {
-        ToastHelper.success(title: 'Разрешение предоставлено');
-      } else if (newStatus.isDenied) {
-        ToastHelper.warning(title: 'Разрешение отклонено');
+        final newStatus = await permission.status;
+        if (newStatus.isGranted) {
+          ToastHelper.success(title: 'Разрешение предоставлено');
+        } else if (newStatus.isDenied) {
+          ToastHelper.warning(title: 'Разрешение отклонено');
+        } else if (newStatus == PermissionStatus.restricted) {
+          ToastHelper.error(title: 'Разрешение ограничено системой');
+        } else if (newStatus.isPermanentlyDenied) {
+          ToastHelper.error(
+            title: 'Разрешение отклонено навсегда',
+            description:
+                'Пожалуйста, предоставьте его в настройках приложения.',
+          );
+        } else if (newStatus.isLimited) {
+          ToastHelper.info(title: 'Разрешение предоставлено частично');
+        } else if (newStatus == PermissionStatus.denied) {
+          ToastHelper.warning(title: 'Разрешение отклонено');
+        } else {
+          ToastHelper.info(title: 'Статус разрешения изменен');
+        }
+      } catch (e) {
+        // Обработка случая отмены пользователем (PHASE_CLIENT_ALREADY_HIDDEN)
+        final errorMessage = e.toString();
+        logDebug('Ошибка при запросе разрешения $permission: $errorMessage');
+
+        if (errorMessage.contains('PHASE_CLIENT_ALREADY_HIDDEN')) {
+          // Пользователь отменил запрос после скрытия диалога
+          logDebug(
+            'Пользователь отменил запрос разрешения $permission на этапе PHASE_CLIENT_ALREADY_HIDDEN',
+          );
+          ToastHelper.info(title: 'Запрос разрешения отменен пользователем');
+        } else if (errorMessage.contains('onCancelled')) {
+          // Общая отмена пользователем
+          logDebug('Пользователь отменил запрос разрешения $permission');
+          ToastHelper.info(title: 'Запрос разрешения отменен');
+        } else if (errorMessage.contains('Permission denied')) {
+          // Разрешение отклонено системой
+          logDebug('Разрешение $permission отклонено системой');
+          ToastHelper.warning(title: 'Разрешение отклонено системой');
+        } else {
+          // Неизвестная ошибка
+          logDebug(
+            'Неизвестная ошибка при запросе разрешения $permission: $errorMessage',
+          );
+          ToastHelper.error(title: 'Ошибка при запросе разрешения');
+        }
       }
     }
   }
@@ -475,20 +612,30 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
     logDebug('Запрос всех разрешений');
 
     final permissions = _permissions.map((p) => p.permission).toList();
-    await ref
-        .read(permissionsProvider.notifier)
-        .requestAllPermissions(permissions);
 
-    ToastHelper.info(title: 'Проверка разрешений завершена');
-  }
+    try {
+      await ref
+          .read(permissionsProvider.notifier)
+          .requestAllPermissions(permissions);
 
-  void _completePermissions() {
-    logDebug('Завершение настройки разрешений');
+      ToastHelper.info(title: 'Проверка разрешений завершена');
+    } catch (e) {
+      final errorMessage = e.toString();
+      logDebug('Ошибка при запросе всех разрешений: $errorMessage');
 
-    ref
-        .read(setupProvider.notifier)
-        .markScreenCompleted(SetupScreenType.permissions);
-    ToastHelper.success(title: 'Настройка разрешений завершена');
+      if (errorMessage.contains('PHASE_CLIENT_ALREADY_HIDDEN')) {
+        logDebug(
+          'Пользователь отменил запрос разрешений на этапе PHASE_CLIENT_ALREADY_HIDDEN',
+        );
+        ToastHelper.info(title: 'Запрос разрешений отменен пользователем');
+      } else if (errorMessage.contains('onCancelled')) {
+        logDebug('Пользователь отменил запрос разрешений');
+        ToastHelper.info(title: 'Запрос разрешений отменен');
+      } else {
+        logDebug('Неизвестная ошибка при запросе разрешений: $errorMessage');
+        ToastHelper.warning(title: 'Не все разрешения были обработаны');
+      }
+    }
   }
 
   void _showSettingsDialog() {
