@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/otp_filter.dart';
+import 'base_filter_section.dart';
 
 /// Секция для фильтров OTP
 class OtpFilterSection extends ConsumerWidget {
@@ -18,6 +19,23 @@ class OtpFilterSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Базовые фильтры
+        BaseFilterSection(
+          filter: filter.base,
+          entityTypeName: 'OTP',
+          onFilterChanged: (baseFilter) {
+            onFilterChanged(filter.copyWith(base: baseFilter));
+          },
+        ),
+        const SizedBox(height: 24),
+
+        // Специфичные для OTP фильтры
+        const Text(
+          'Специфичные фильтры для OTP',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+
         // Тип OTP
         DropdownButtonFormField<OtpType?>(
           decoration: const InputDecoration(
@@ -82,7 +100,7 @@ class OtpFilterSection extends ConsumerWidget {
           ),
           value: filter.digits,
           items: const [
-            DropdownMenuItem(value: null, child: Text('Любое')),
+            DropdownMenuItem(value: null, child: Text('Любое количество')),
             DropdownMenuItem(value: 6, child: Text('6 цифр')),
             DropdownMenuItem(value: 8, child: Text('8 цифр')),
           ],
@@ -96,16 +114,15 @@ class OtpFilterSection extends ConsumerWidget {
         if (filter.type == null || filter.type == OtpType.totp) ...[
           TextField(
             decoration: const InputDecoration(
-              labelText: 'Период (секунды)',
+              labelText: 'Период (секунды, для TOTP)',
               border: OutlineInputBorder(),
-              hintText: 'Например: 30',
             ),
             controller: TextEditingController(
               text: filter.period?.toString() ?? '',
             ),
             keyboardType: TextInputType.number,
             onChanged: (value) {
-              final intValue = int.tryParse(value.trim());
+              final intValue = int.tryParse(value);
               onFilterChanged(filter.copyWith(period: intValue));
             },
           ),
@@ -123,19 +140,16 @@ class OtpFilterSection extends ConsumerWidget {
               label: Text(algorithm),
               selected: isSelected,
               onSelected: (selected) {
-                final currentAlgorithms = List<String>.from(
-                  filter.algorithms ?? [],
-                );
+                final currentAlgorithms = filter.algorithms ?? <String>[];
+                List<String> newAlgorithms;
                 if (selected) {
-                  currentAlgorithms.add(algorithm);
+                  newAlgorithms = [...currentAlgorithms, algorithm];
                 } else {
-                  currentAlgorithms.remove(algorithm);
+                  newAlgorithms = currentAlgorithms.where((a) => a != algorithm).toList();
                 }
                 onFilterChanged(
                   filter.copyWith(
-                    algorithms: currentAlgorithms.isEmpty
-                        ? null
-                        : currentAlgorithms,
+                    algorithms: newAlgorithms.isEmpty ? null : newAlgorithms,
                   ),
                 );
               },
@@ -151,19 +165,6 @@ class OtpFilterSection extends ConsumerWidget {
           tristate: true,
           onChanged: (value) {
             onFilterChanged(filter.copyWith(hasPasswordLink: value));
-          },
-          controlAffinity: ListTileControlAffinity.leading,
-        ),
-
-        // Базовые фильтры (из BaseFilter)
-        CheckboxListTile(
-          title: const Text('Только закрепленные'),
-          value: filter.base.isPinned,
-          tristate: true,
-          onChanged: (value) {
-            onFilterChanged(
-              filter.copyWith(base: filter.base.copyWith(isPinned: value)),
-            );
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),

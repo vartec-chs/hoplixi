@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
+import 'base_filter_section.dart';
 
 /// Секция для фильтров паролей
 class PasswordFilterSection extends ConsumerWidget {
@@ -18,6 +19,71 @@ class PasswordFilterSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Базовые фильтры
+        BaseFilterSection(
+          filter: filter.base,
+          entityTypeName: 'паролей',
+          onFilterChanged: (baseFilter) {
+            onFilterChanged(filter.copyWith(base: baseFilter));
+          },
+        ),
+        const SizedBox(height: 24),
+
+        // Специфичные для паролей фильтры
+        const Text(
+          'Специфичные фильтры для паролей',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+
+        // Фильтр по названию
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Фильтр по названию',
+            border: OutlineInputBorder(),
+          ),
+          controller: TextEditingController(text: filter.name ?? ''),
+          onChanged: (value) {
+            onFilterChanged(
+              filter.copyWith(name: value.trim().isEmpty ? null : value.trim()),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Фильтр по URL
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Фильтр по URL',
+            border: OutlineInputBorder(),
+          ),
+          controller: TextEditingController(text: filter.url ?? ''),
+          onChanged: (value) {
+            onFilterChanged(
+              filter.copyWith(url: value.trim().isEmpty ? null : value.trim()),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Фильтр по имени пользователя
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Фильтр по имени пользователя',
+            border: OutlineInputBorder(),
+          ),
+          controller: TextEditingController(text: filter.username ?? ''),
+          onChanged: (value) {
+            onFilterChanged(
+              filter.copyWith(
+                username: value.trim().isEmpty ? null : value.trim(),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+
+        // Булевые фильтры
         CheckboxListTile(
           title: const Text('Только часто используемые'),
           value: filter.isFrequent,
@@ -28,139 +94,51 @@ class PasswordFilterSection extends ConsumerWidget {
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
-          title: const Text('Только с заметками'),
-          value: filter.hasNotes,
+          title: const Text('Только с URL'),
+          value: filter.hasUrl,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(hasNotes: value));
+            onFilterChanged(filter.copyWith(hasUrl: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
-          title: const Text('Только избранные'),
-          value: filter.isFavorite,
+          title: const Text('Только с именем пользователя'),
+          value: filter.hasUsername,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(isFavorite: value));
+            onFilterChanged(filter.copyWith(hasUsername: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
-          title: const Text('Только архивированные'),
-          value: filter.isArchived,
+          title: const Text('Только с TOTP'),
+          value: filter.hasTotp,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(isArchived: value));
+            onFilterChanged(filter.copyWith(hasTotp: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
-        const SizedBox(height: 16),
-
-        // Дата создания
-        const Text(
-          'Дата создания',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        CheckboxListTile(
+          title: const Text('Только скомпрометированные'),
+          value: filter.isCompromised,
+          tristate: true,
+          onChanged: (value) {
+            onFilterChanged(filter.copyWith(isCompromised: value));
+          },
+          controlAffinity: ListTileControlAffinity.leading,
         ),
-        const SizedBox(height: 8),
-        _buildDateRange(
-          'Создано после',
-          filter.createdAfter,
-          (date) => onFilterChanged(filter.copyWith(createdAfter: date)),
-        ),
-        const SizedBox(height: 8),
-        _buildDateRange(
-          'Создано до',
-          filter.createdBefore,
-          (date) => onFilterChanged(filter.copyWith(createdBefore: date)),
-        ),
-        const SizedBox(height: 16),
-
-        // Дата изменения
-        const Text(
-          'Дата изменения',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        _buildDateRange(
-          'Изменено после',
-          filter.modifiedAfter,
-          (date) => onFilterChanged(filter.copyWith(modifiedAfter: date)),
-        ),
-        const SizedBox(height: 8),
-        _buildDateRange(
-          'Изменено до',
-          filter.modifiedBefore,
-          (date) => onFilterChanged(filter.copyWith(modifiedBefore: date)),
-        ),
-        const SizedBox(height: 16),
-
-        // Дата последнего доступа
-        const Text(
-          'Дата последнего доступа',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        _buildDateRange(
-          'Доступ после',
-          filter.lastAccessedAfter,
-          (date) => onFilterChanged(filter.copyWith(lastAccessedAfter: date)),
-        ),
-        const SizedBox(height: 8),
-        _buildDateRange(
-          'Доступ до',
-          filter.lastAccessedBefore,
-          (date) => onFilterChanged(filter.copyWith(lastAccessedBefore: date)),
+        CheckboxListTile(
+          title: const Text('Только истекшие'),
+          value: filter.isExpired,
+          tristate: true,
+          onChanged: (value) {
+            onFilterChanged(filter.copyWith(isExpired: value));
+          },
+          controlAffinity: ListTileControlAffinity.leading,
         ),
       ],
-    );
-  }
-
-  Widget _buildDateRange(
-    String label,
-    DateTime? value,
-    Function(DateTime?) onChanged,
-  ) {
-    return Builder(
-      builder: (context) => Row(
-        children: [
-          Expanded(child: Text(label)),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: InkWell(
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: value ?? DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (date != null) {
-                  onChanged(date);
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  value != null
-                      ? '${value.day}.${value.month}.${value.year}'
-                      : 'Выберите дату',
-                  style: TextStyle(color: value != null ? null : Colors.grey),
-                ),
-              ),
-            ),
-          ),
-          if (value != null)
-            IconButton(
-              onPressed: () => onChanged(null),
-              icon: const Icon(Icons.clear),
-            ),
-        ],
-      ),
     );
   }
 }

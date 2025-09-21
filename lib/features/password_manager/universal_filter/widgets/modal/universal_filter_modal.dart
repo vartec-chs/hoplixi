@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/universal_filter_barrel.dart';
-import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/notes_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/otp_filter.dart';
@@ -18,7 +18,7 @@ import 'sections/password_filter_section.dart';
 import 'sections/notes_filter_section.dart';
 import 'sections/otp_filter_section.dart';
 import 'sections/attachments_filter_section.dart';
-import 'sections/sorting_section.dart';
+
 
 // Миксины
 import 'mixins/filter_helper_mixin.dart';
@@ -119,16 +119,6 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
                     // Специфичные фильтры для типа записи
                     _buildSpecificFiltersSection(),
                     const SizedBox(height: 24),
-
-                    // Сортировка
-                    SortingSection(
-                      filter: _currentFilter,
-                      onFilterChanged: (filter) {
-                        setState(() {
-                          _currentFilter = filter;
-                        });
-                      },
-                    ),
                   ],
                 ),
               ),
@@ -261,7 +251,9 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
         return _buildSection(
           title: 'Фильтры для паролей',
           child: PasswordFilterSection(
-            filter: _currentFilter.passwordFilter ?? const PasswordFilter(),
+            filter:
+                _currentFilter.passwordFilter ??
+                const PasswordFilter(base: BaseFilter()),
             onFilterChanged: (passwordFilter) {
               setState(() {
                 _currentFilter = _currentFilter.copyWith(

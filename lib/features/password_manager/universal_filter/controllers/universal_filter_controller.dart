@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/providers/entity_type_provider.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/models/universal_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 
 /// Универсальные вкладки фильтрации
 enum UniversalFilterTab {
@@ -295,11 +297,15 @@ class UniversalFilterController extends Notifier<UniversalFilterState> {
   UniversalFilter _clearTabSpecificFilters(UniversalFilter filter) {
     switch (filter.entityType) {
       case UniversalEntityType.password:
+        final currentFilter =
+            filter.passwordFilter ?? const PasswordFilter(base: BaseFilter());
         return filter.copyWith(
-          passwordFilter: filter.passwordFilter?.copyWith(
-            isFavorite: null,
+          passwordFilter: currentFilter.copyWith(
+            base: currentFilter.base.copyWith(
+              isFavorite: null,
+              isArchived: null,
+            ),
             isFrequent: null,
-            isArchived: null,
           ),
         );
       default:
@@ -319,10 +325,14 @@ class UniversalFilterController extends Notifier<UniversalFilterState> {
   ) {
     switch (filter.entityType) {
       case UniversalEntityType.password:
+        final currentFilter =
+            filter.passwordFilter ?? const PasswordFilter(base: BaseFilter());
         return filter.copyWith(
-          passwordFilter: filter.passwordFilter?.copyWith(
-            isFavorite: isFavorite,
-            isArchived: null,
+          passwordFilter: currentFilter.copyWith(
+            base: currentFilter.base.copyWith(
+              isFavorite: isFavorite,
+              isArchived: null,
+            ),
           ),
         );
       default:
@@ -340,11 +350,12 @@ class UniversalFilterController extends Notifier<UniversalFilterState> {
     bool isFrequent,
   ) {
     if (filter.entityType == UniversalEntityType.password) {
+      final currentFilter =
+          filter.passwordFilter ?? const PasswordFilter(base: BaseFilter());
       return filter.copyWith(
-        passwordFilter: filter.passwordFilter?.copyWith(
+        passwordFilter: currentFilter.copyWith(
           isFrequent: isFrequent,
-          isFavorite: null,
-          isArchived: null,
+          base: currentFilter.base.copyWith(isFavorite: null, isArchived: null),
         ),
       );
     }
@@ -358,10 +369,14 @@ class UniversalFilterController extends Notifier<UniversalFilterState> {
   ) {
     switch (filter.entityType) {
       case UniversalEntityType.password:
+        final currentFilter =
+            filter.passwordFilter ?? const PasswordFilter(base: BaseFilter());
         return filter.copyWith(
-          passwordFilter: filter.passwordFilter?.copyWith(
-            isArchived: isArchived,
-            isFavorite: null,
+          passwordFilter: currentFilter.copyWith(
+            base: currentFilter.base.copyWith(
+              isArchived: isArchived,
+              isFavorite: null,
+            ),
           ),
         );
       default:
@@ -376,14 +391,14 @@ class UniversalFilterController extends Notifier<UniversalFilterState> {
   /// Получает BaseFilter для текущего типа сущности
   dynamic _getBaseFilter(UniversalFilter filter) {
     switch (filter.entityType) {
+      case UniversalEntityType.password:
+        return filter.passwordFilter?.base;
       case UniversalEntityType.note:
         return filter.notesFilter?.base;
       case UniversalEntityType.otp:
         return filter.otpFilter?.base;
       case UniversalEntityType.attachment:
         return filter.attachmentsFilter?.base;
-      default:
-        return null;
     }
   }
 
@@ -395,6 +410,10 @@ class UniversalFilterController extends Notifier<UniversalFilterState> {
     if (newBaseFilter == null) return filter;
 
     switch (filter.entityType) {
+      case UniversalEntityType.password:
+        return filter.copyWith(
+          passwordFilter: filter.passwordFilter?.copyWith(base: newBaseFilter),
+        );
       case UniversalEntityType.note:
         return filter.copyWith(
           notesFilter: filter.notesFilter?.copyWith(base: newBaseFilter),
@@ -409,8 +428,6 @@ class UniversalFilterController extends Notifier<UniversalFilterState> {
             base: newBaseFilter,
           ),
         );
-      default:
-        return filter;
     }
   }
 
@@ -467,15 +484,4 @@ final currentFilterTabProvider = Provider<UniversalFilterTab>((ref) {
   return ref.watch(
     universalFilterControllerProvider.select((state) => state.activeTab),
   );
-});
-
-/// Автоматическое обновление фильтра при изменении типа сущности
-final _entityTypeListenerProvider = Provider<void>((ref) {
-  final entityType = ref.watch(currentEntityTypeProvider);
-  final controller = ref.read(universalFilterControllerProvider.notifier);
-
-  // Обновляем фильтр при изменении типа сущности
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    controller.updateEntityType(entityType);
-  });
 });

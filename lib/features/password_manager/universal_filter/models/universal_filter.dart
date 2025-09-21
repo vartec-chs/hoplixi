@@ -3,7 +3,7 @@ import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/attachments_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/notes_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/otp_filter.dart';
-import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/providers/entity_type_provider.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 
@@ -27,7 +27,7 @@ abstract class UniversalFilter with _$UniversalFilter {
       case UniversalEntityType.password:
         return UniversalFilter(
           entityType: entityType,
-          passwordFilter: const PasswordFilter(),
+          passwordFilter: const PasswordFilter(base: BaseFilter()),
         );
       case UniversalEntityType.note:
         return UniversalFilter(
@@ -84,7 +84,7 @@ extension UniversalFilterHelpers on UniversalFilter {
   String get searchQuery {
     switch (entityType) {
       case UniversalEntityType.password:
-        return passwordFilter?.query ?? '';
+        return passwordFilter?.base.query ?? '';
       case UniversalEntityType.note:
         return notesFilter?.base.query ?? '';
       case UniversalEntityType.otp:
@@ -98,10 +98,12 @@ extension UniversalFilterHelpers on UniversalFilter {
   UniversalFilter updateSearchQuery(String query) {
     switch (entityType) {
       case UniversalEntityType.password:
+        final currentFilter =
+            passwordFilter ?? const PasswordFilter(base: BaseFilter());
         return copyWith(
-          passwordFilter:
-              passwordFilter?.copyWith(query: query) ??
-              PasswordFilter(query: query),
+          passwordFilter: currentFilter.copyWith(
+            base: currentFilter.base.copyWith(query: query),
+          ),
         );
       case UniversalEntityType.note:
         final currentFilter =
@@ -133,10 +135,12 @@ extension UniversalFilterHelpers on UniversalFilter {
   UniversalFilter updateCategories(List<String> categoryIds) {
     switch (entityType) {
       case UniversalEntityType.password:
+        final currentFilter =
+            passwordFilter ?? const PasswordFilter(base: BaseFilter());
         return copyWith(
-          passwordFilter:
-              passwordFilter?.copyWith(categoryIds: categoryIds) ??
-              PasswordFilter(categoryIds: categoryIds),
+          passwordFilter: currentFilter.copyWith(
+            base: currentFilter.base.copyWith(categoryIds: categoryIds),
+          ),
         );
       case UniversalEntityType.note:
         final currentFilter =
@@ -173,10 +177,12 @@ extension UniversalFilterHelpers on UniversalFilter {
   UniversalFilter updateTags(List<String> tagIds) {
     switch (entityType) {
       case UniversalEntityType.password:
+        final currentFilter =
+            passwordFilter ?? const PasswordFilter(base: BaseFilter());
         return copyWith(
-          passwordFilter:
-              passwordFilter?.copyWith(tagIds: tagIds) ??
-              PasswordFilter(tagIds: tagIds),
+          passwordFilter: currentFilter.copyWith(
+            base: currentFilter.base.copyWith(tagIds: tagIds),
+          ),
         );
       case UniversalEntityType.note:
         final currentFilter =
@@ -218,7 +224,7 @@ extension UniversalFilterHelpers on UniversalFilter {
   List<String> get categoryIds {
     switch (entityType) {
       case UniversalEntityType.password:
-        return passwordFilter?.categoryIds ?? [];
+        return passwordFilter?.base.categoryIds ?? [];
       case UniversalEntityType.note:
         return notesFilter?.base.categoryIds ?? [];
       case UniversalEntityType.otp:
@@ -232,7 +238,7 @@ extension UniversalFilterHelpers on UniversalFilter {
   List<String> get tagIds {
     switch (entityType) {
       case UniversalEntityType.password:
-        return passwordFilter?.tagIds ?? [];
+        return passwordFilter?.base.tagIds ?? [];
       case UniversalEntityType.note:
         return notesFilter?.base.tagIds ?? [];
       case UniversalEntityType.otp:

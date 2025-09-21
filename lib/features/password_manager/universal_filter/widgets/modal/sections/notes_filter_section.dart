@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/notes_filter.dart';
+import 'base_filter_section.dart';
 
 /// Секция для фильтров заметок
 class NotesFilterSection extends ConsumerWidget {
@@ -18,6 +19,23 @@ class NotesFilterSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Базовые фильтры
+        BaseFilterSection(
+          filter: filter.base,
+          entityTypeName: 'заметок',
+          onFilterChanged: (baseFilter) {
+            onFilterChanged(filter.copyWith(base: baseFilter));
+          },
+        ),
+        const SizedBox(height: 24),
+
+        // Специфичные для заметок фильтры
+        const Text(
+          'Специфичные фильтры для заметок',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+
         // Фильтр по заголовку
         TextField(
           decoration: const InputDecoration(
@@ -53,12 +71,17 @@ class NotesFilterSection extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Диапазон длины содержимого
+        const Text(
+          'Длина содержимого',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: TextField(
                 decoration: const InputDecoration(
-                  labelText: 'Мин. длина содержимого',
+                  labelText: 'Минимальная длина',
                   border: OutlineInputBorder(),
                 ),
                 controller: TextEditingController(
@@ -66,7 +89,7 @@ class NotesFilterSection extends ConsumerWidget {
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
-                  final intValue = int.tryParse(value.trim());
+                  final intValue = int.tryParse(value);
                   onFilterChanged(filter.copyWith(minContentLength: intValue));
                 },
               ),
@@ -75,7 +98,7 @@ class NotesFilterSection extends ConsumerWidget {
             Expanded(
               child: TextField(
                 decoration: const InputDecoration(
-                  labelText: 'Макс. длина содержимого',
+                  labelText: 'Максимальная длина',
                   border: OutlineInputBorder(),
                 ),
                 controller: TextEditingController(
@@ -83,7 +106,7 @@ class NotesFilterSection extends ConsumerWidget {
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
-                  final intValue = int.tryParse(value.trim());
+                  final intValue = int.tryParse(value);
                   onFilterChanged(filter.copyWith(maxContentLength: intValue));
                 },
               ),
@@ -92,14 +115,13 @@ class NotesFilterSection extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
+        // Булевые фильтры
         CheckboxListTile(
           title: const Text('Только закрепленные'),
-          value: filter.base.isPinned,
+          value: filter.isPined,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(
-              filter.copyWith(base: filter.base.copyWith(isPinned: value)),
-            );
+            onFilterChanged(filter.copyWith(isPined: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),

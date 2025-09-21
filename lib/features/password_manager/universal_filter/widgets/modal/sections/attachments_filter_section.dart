@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/attachments_filter.dart';
+import 'base_filter_section.dart';
 
 /// Секция для фильтров вложений
 class AttachmentsFilterSection extends ConsumerWidget {
@@ -18,16 +19,35 @@ class AttachmentsFilterSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Базовые фильтры
+        BaseFilterSection(
+          filter: filter.base,
+          entityTypeName: 'вложений',
+          onFilterChanged: (baseFilter) {
+            onFilterChanged(filter.copyWith(base: baseFilter));
+          },
+        ),
+        const SizedBox(height: 24),
+
+        // Специфичные для вложений фильтры
+        const Text(
+          'Специфичные фильтры для вложений',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+
         // Фильтр по имени файла
         TextField(
           decoration: const InputDecoration(
-            labelText: 'Имя файла',
+            labelText: 'Фильтр по имени файла',
             border: OutlineInputBorder(),
           ),
           controller: TextEditingController(text: filter.name ?? ''),
           onChanged: (value) {
             onFilterChanged(
-              filter.copyWith(name: value.trim().isEmpty ? null : value.trim()),
+              filter.copyWith(
+                name: value.trim().isEmpty ? null : value.trim(),
+              ),
             );
           },
         ),
@@ -36,7 +56,7 @@ class AttachmentsFilterSection extends ConsumerWidget {
         // Фильтр по описанию
         TextField(
           decoration: const InputDecoration(
-            labelText: 'Описание',
+            labelText: 'Фильтр по описанию',
             border: OutlineInputBorder(),
           ),
           controller: TextEditingController(text: filter.description ?? ''),
@@ -53,7 +73,7 @@ class AttachmentsFilterSection extends ConsumerWidget {
         // Расширение файла
         TextField(
           decoration: const InputDecoration(
-            labelText: 'Расширение файла (без точки)',
+            labelText: 'Расширение файла',
             border: OutlineInputBorder(),
             hintText: 'Например: pdf, jpg, txt',
           ),
@@ -71,12 +91,12 @@ class AttachmentsFilterSection extends ConsumerWidget {
         // Тип прикрепления
         DropdownButtonFormField<AttachmentType?>(
           decoration: const InputDecoration(
-            labelText: 'Прикреплено к',
+            labelText: 'Тип прикрепления',
             border: OutlineInputBorder(),
           ),
           value: filter.attachedToType,
           items: [
-            const DropdownMenuItem(value: null, child: Text('Любой тип')),
+            const DropdownMenuItem(value: null, child: Text('Все типы')),
             ...AttachmentType.values.map(
               (type) => DropdownMenuItem(
                 value: type,
@@ -101,7 +121,7 @@ class AttachmentsFilterSection extends ConsumerWidget {
             Expanded(
               child: TextField(
                 decoration: const InputDecoration(
-                  labelText: 'Мин. размер (байты)',
+                  labelText: 'Минимальный размер (байты)',
                   border: OutlineInputBorder(),
                 ),
                 controller: TextEditingController(
@@ -109,7 +129,7 @@ class AttachmentsFilterSection extends ConsumerWidget {
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
-                  final intValue = int.tryParse(value.trim());
+                  final intValue = int.tryParse(value);
                   onFilterChanged(filter.copyWith(minFileSize: intValue));
                 },
               ),
@@ -118,7 +138,7 @@ class AttachmentsFilterSection extends ConsumerWidget {
             Expanded(
               child: TextField(
                 decoration: const InputDecoration(
-                  labelText: 'Макс. размер (байты)',
+                  labelText: 'Максимальный размер (байты)',
                   border: OutlineInputBorder(),
                 ),
                 controller: TextEditingController(
@@ -126,7 +146,7 @@ class AttachmentsFilterSection extends ConsumerWidget {
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
-                  final intValue = int.tryParse(value.trim());
+                  final intValue = int.tryParse(value);
                   onFilterChanged(filter.copyWith(maxFileSize: intValue));
                 },
               ),
@@ -137,45 +157,40 @@ class AttachmentsFilterSection extends ConsumerWidget {
 
         // MIME типы
         const Text(
-          'Типы файлов',
+          'MIME типы',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
-          children:
-              [
-                'image/jpeg',
-                'image/png',
-                'application/pdf',
-                'text/plain',
-                'application/msword',
-                'application/zip',
-              ].map((mimeType) {
-                final isSelected =
-                    filter.mimeTypes?.contains(mimeType) ?? false;
-                return FilterChip(
-                  label: Text(_getMimeTypeLabel(mimeType)),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    final currentMimeTypes = List<String>.from(
-                      filter.mimeTypes ?? [],
-                    );
-                    if (selected) {
-                      currentMimeTypes.add(mimeType);
-                    } else {
-                      currentMimeTypes.remove(mimeType);
-                    }
-                    onFilterChanged(
-                      filter.copyWith(
-                        mimeTypes: currentMimeTypes.isEmpty
-                            ? null
-                            : currentMimeTypes,
-                      ),
-                    );
-                  },
+          children: [
+            'image/jpeg',
+            'image/png',
+            'application/pdf',
+            'text/plain',
+            'application/msword',
+            'application/zip'
+          ].map((mimeType) {
+            final isSelected = filter.mimeTypes?.contains(mimeType) ?? false;
+            return FilterChip(
+              label: Text(_getMimeTypeLabel(mimeType)),
+              selected: isSelected,
+              onSelected: (selected) {
+                final currentTypes = filter.mimeTypes ?? <String>[];
+                List<String> newTypes;
+                if (selected) {
+                  newTypes = [...currentTypes, mimeType];
+                } else {
+                  newTypes = currentTypes.where((t) => t != mimeType).toList();
+                }
+                onFilterChanged(
+                  filter.copyWith(
+                    mimeTypes: newTypes.isEmpty ? null : newTypes,
+                  ),
                 );
-              }).toList(),
+              },
+            );
+          }).toList(),
         ),
         const SizedBox(height: 16),
 
@@ -186,19 +201,6 @@ class AttachmentsFilterSection extends ConsumerWidget {
           tristate: true,
           onChanged: (value) {
             onFilterChanged(filter.copyWith(hasChecksum: value));
-          },
-          controlAffinity: ListTileControlAffinity.leading,
-        ),
-
-        // Базовые фильтры (из BaseFilter)
-        CheckboxListTile(
-          title: const Text('Только закрепленные'),
-          value: filter.base.isPinned,
-          tristate: true,
-          onChanged: (value) {
-            onFilterChanged(
-              filter.copyWith(base: filter.base.copyWith(isPinned: value)),
-            );
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
