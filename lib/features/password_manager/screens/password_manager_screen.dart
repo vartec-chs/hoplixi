@@ -43,7 +43,7 @@ class _PasswordManagerScreenState extends ConsumerState<PasswordManagerScreen> {
       body: CustomScrollView(
         slivers: [
           _buildAppBar(context),
-          SliverToBoxAdapter(child: UniversalFilterSection()),
+          UniversalFilterSection(),
           SliverFillRemaining(
             child: PasswordsList(
               onPasswordTap: () => _onPasswordTap(),

@@ -44,6 +44,10 @@ final List<GoRoute> appRoutes = [
     path: AppRoutes.dashboard,
     builder: (context, state) => const PasswordManagerScreen(),
   ),
+  // GoRoute(
+  //   path: AppRoutes.passwordManager,
+  //   builder: (context, state) => const PasswordManagerScreen(),
+  // ),
   GoRoute(
     path: AppRoutes.baseSettings,
     builder: (context, state) => const DynamicSettingsScreen(),
