@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/index.dart';
 
 import 'package:hoplixi/core/theme/index.dart';
 
@@ -405,10 +406,14 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         ),
       ),
       actions: [
-        const ThemeSwitcher(size: 24),
+        Visibility(
+          child: const ThemeSwitcher(size: 24),
+          visible: UniversalPlatform.isMobile,
+        ),
         IconButton(
           icon: const Icon(Icons.notifications_outlined),
           onPressed: () {
+            ToastHelper.info(title: 'Функция в разработке');
             // TODO: Показать уведомления
           },
           tooltip: 'Уведомления',

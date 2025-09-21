@@ -1,7 +1,9 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/universal_filter_barrel.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
@@ -12,13 +14,13 @@ import 'package:hoplixi/features/password_manager/filters/category_filter/catego
 import 'package:hoplixi/features/password_manager/filters/tag_filter/tag_filter.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+import 'package:hoplixi/hoplixi_store/services_providers.dart' as services;
 
 // Секции
 import 'sections/password_filter_section.dart';
 import 'sections/notes_filter_section.dart';
 import 'sections/otp_filter_section.dart';
 import 'sections/attachments_filter_section.dart';
-
 
 // Миксины
 import 'mixins/filter_helper_mixin.dart';
@@ -57,10 +59,61 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
   }
 
   void _initializeSelectedItems() {
-    // Здесь можно добавить логику загрузки категорий и тегов по ID
-    // Пока оставляем пустыми списки
-    _selectedCategories = [];
-    _selectedTags = [];
+    // Загружаем выбранные категории и теги на основе ID из _currentFilter
+    _loadSelectedCategoriesAndTags();
+  }
+
+  /// Асинхронная загрузка выбранных категорий и тегов
+  Future<void> _loadSelectedCategoriesAndTags() async {
+    try {
+      final categoryIds = _currentFilter.categoryIds;
+      final tagIds = _currentFilter.tagIds;
+
+      // Загружаем категории по ID
+      if (categoryIds.isNotEmpty) {
+        final categoriesService = ref.read(services.categoriesServiceProvider);
+        final categories = <store.Category>[];
+
+        for (final categoryId in categoryIds) {
+          final category = await categoriesService.getCategory(categoryId);
+          if (category != null) {
+            categories.add(category);
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _selectedCategories = categories;
+          });
+        }
+      }
+
+      // Загружаем теги по ID
+      if (tagIds.isNotEmpty) {
+        final tagsService = ref.read(services.tagsServiceProvider);
+        final tags = <store.Tag>[];
+
+        for (final tagId in tagIds) {
+          final tag = await tagsService.getTag(tagId);
+          if (tag != null) {
+            tags.add(tag);
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _selectedTags = tags;
+          });
+        }
+      }
+    } catch (e) {
+      // В случае ошибки логируем её, но не блокируем работу UI
+      logError(
+        'Ошибка загрузки выбранных категорий и тегов',
+        error: e,
+        tag: 'UniversalFilterModal',
+      );
+    }
   }
 
   @override
@@ -73,10 +126,11 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
   Widget build(BuildContext context) {
     return Dialog(
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        height: MediaQuery.of(context).size.height * 0.9,
-        padding: const EdgeInsets.all(24),
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        padding: const EdgeInsets.all(16),
         child: Column(
+          spacing: 16,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Заголовок
@@ -96,29 +150,31 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
                 ),
               ],
             ),
-            const SizedBox(height: 24),
 
             // Содержимое с прокруткой
             Expanded(
               child: SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                dragStartBehavior: DragStartBehavior.start,
+                primary: true,
+
+                scrollDirection: Axis.vertical,
                 child: Column(
+                  spacing: 16,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Поиск
                     _buildSearchSection(),
-                    const SizedBox(height: 24),
 
                     // Категории
                     _buildCategoriesSection(),
-                    const SizedBox(height: 24),
 
                     // Теги
                     _buildTagsSection(),
-                    const SizedBox(height: 24),
 
                     // Специфичные фильтры для типа записи
                     _buildSpecificFiltersSection(),
-                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -127,7 +183,7 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
             const SizedBox(height: 16),
 
             // Кнопки действий
-            Builder(builder: (context) => _buildActionButtons(context)),
+            _buildActionButtons(context),
           ],
         ),
       ),
@@ -165,6 +221,7 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
     );
   }
 
+  // Секция категорий
   Widget _buildCategoriesSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,6 +262,7 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
     );
   }
 
+  // Секция тегов
   Widget _buildTagsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,17 +376,18 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
+        // Text(
+        //   title,
+        //   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        // ),
+        // const SizedBox(height: 16),
         child,
       ],
     );
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
     return Row(
       spacing: 12,
       children: [
@@ -336,26 +395,27 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
           child: SmoothButton(
             label: 'Сбросить',
             onPressed: _resetFilters,
+            size: SmoothButtonSize.medium,
             type: SmoothButtonType.tonal,
           ),
         ),
 
+        // Expanded(
+        //   child: SmoothButton(
+        //     label: 'Отмена',
+        //     onPressed: () {
+        //       context.pop();
+        //     },
+        //     type: SmoothButtonType.text,
+        //   ),
+        // ),
         Expanded(
-          child: SmoothButton(
-            label: 'Отмена',
-            onPressed: () {
-              context.pop();
-            },
-            type: SmoothButtonType.tonal,
-          ),
-        ),
-
-        Expanded(
-          flex: 2,
+          flex: !isMobile ? 2 : 1,
           child: SmoothButton(
             onPressed: () => _applyFilters(context),
             label: 'Применить',
             type: SmoothButtonType.filled,
+            size: SmoothButtonSize.medium,
           ),
         ),
       ],

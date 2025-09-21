@@ -27,19 +27,20 @@ class BaseFilterSection extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
-        // Поисковый запрос
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'Поисковый запрос',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.search),
-          ),
-          controller: TextEditingController(text: filter.query),
-          onChanged: (value) {
-            onFilterChanged(filter.copyWith(query: value.trim()));
-          },
-        ),
-        const SizedBox(height: 16),
+        // Поисковый запрос он уже есть у самом модальном окне
+        // поэтому тут его дублировать не нужно
+        // TextField(
+        //   decoration: const InputDecoration(
+        //     labelText: 'Поисковый запрос',
+        //     border: OutlineInputBorder(),
+        //     prefixIcon: Icon(Icons.search),
+        //   ),
+        //   controller: TextEditingController(text: filter.query),
+        //   onChanged: (value) {
+        //     onFilterChanged(filter.copyWith(query: value.trim()));
+        //   },
+        // ),
+        // const SizedBox(height: 16),
 
         // Булевые фильтры
         CheckboxListTile(
