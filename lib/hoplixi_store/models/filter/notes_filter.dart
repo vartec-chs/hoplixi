@@ -18,24 +18,24 @@ abstract class NotesFilter with _$NotesFilter {
     required BaseFilter base,
     String? title, // фильтр по заголовку
     String? content, // фильтр по содержимому
+    bool? isPined,
     bool? hasContent, // есть ли содержимое
     int? minContentLength, // минимальная длина содержимого
     int? maxContentLength, // максимальная длина содержимого
     bool? hasAttachments, // есть ли вложения
     NotesSortField? sortField,
-    @Default(SortDirection.desc) SortDirection sortDirection,
   }) = _NotesFilter;
 
   factory NotesFilter.create({
     BaseFilter? base,
     String? title,
     String? content,
+    bool? isPinned,
     bool? hasContent,
     int? minContentLength,
     int? maxContentLength,
     bool? hasAttachments,
     NotesSortField? sortField,
-    SortDirection? sortDirection,
   }) {
     final normalizedTitle = title?.trim();
     final normalizedContent = content?.trim();
@@ -64,11 +64,12 @@ abstract class NotesFilter with _$NotesFilter {
       title: normalizedTitle?.isEmpty == true ? null : normalizedTitle,
       content: normalizedContent?.isEmpty == true ? null : normalizedContent,
       hasContent: hasContent,
+      isPined: isPinned,
       minContentLength: validMinLength,
       maxContentLength: validMaxLength,
       hasAttachments: hasAttachments,
       sortField: sortField,
-      sortDirection: sortDirection ?? SortDirection.desc,
+  
     );
   }
 
@@ -80,6 +81,7 @@ extension NotesFilterHelpers on NotesFilter {
   bool get hasActiveConstraints {
     if (base.hasActiveConstraints) return true;
     if (title != null) return true;
+    if (isPined != null) return true;
     if (content != null) return true;
     if (hasContent != null) return true;
     if (minContentLength != null) return true;

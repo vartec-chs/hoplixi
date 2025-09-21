@@ -14,13 +14,13 @@ abstract class BaseFilter with _$BaseFilter {
     bool? isFavorite,
     bool? isArchived,
     bool? hasNotes,
-    bool? isPinned, // для notes
     DateTime? createdAfter,
     DateTime? createdBefore,
     DateTime? modifiedAfter,
     DateTime? modifiedBefore,
     DateTime? lastAccessedAfter,
     DateTime? lastAccessedBefore,
+    @Default(SortDirection.desc) SortDirection sortDirection,
     @Default(0) int? limit,
     @Default(0) int? offset,
   }) = _BaseFilter;
@@ -32,7 +32,6 @@ abstract class BaseFilter with _$BaseFilter {
     bool? isFavorite,
     bool? isArchived,
     bool? hasNotes,
-    bool? isPinned,
     DateTime? createdAfter,
     DateTime? createdBefore,
     DateTime? modifiedAfter,
@@ -41,6 +40,7 @@ abstract class BaseFilter with _$BaseFilter {
     DateTime? lastAccessedBefore,
     int? limit,
     int? offset,
+    SortDirection? sortDirection,
   }) {
     final normalizedQuery = (query ?? '').trim();
     final normalizedCategoryIds = (categoryIds ?? <String>[])
@@ -59,7 +59,6 @@ abstract class BaseFilter with _$BaseFilter {
       isFavorite: isFavorite,
       isArchived: isArchived,
       hasNotes: hasNotes,
-      isPinned: isPinned,
       createdAfter: createdAfter,
       createdBefore: createdBefore,
       modifiedAfter: modifiedAfter,
@@ -68,7 +67,8 @@ abstract class BaseFilter with _$BaseFilter {
       lastAccessedBefore: lastAccessedBefore,
       limit: limit,
       offset: offset,
-    );
+      sortDirection: sortDirection ?? SortDirection.desc,
+    );  
   }
 
   factory BaseFilter.fromJson(Map<String, dynamic> json) =>
@@ -83,7 +83,6 @@ extension BaseFilterHelpers on BaseFilter {
     if (isFavorite != null) return true;
     if (isArchived != null) return true;
     if (hasNotes != null) return true;
-    if (isPinned != null) return true;
     if (createdAfter != null || createdBefore != null) return true;
     if (modifiedAfter != null || modifiedBefore != null) return true;
     if (lastAccessedAfter != null || lastAccessedBefore != null) return true;

@@ -23,7 +23,6 @@ abstract class AttachmentsFilter with _$AttachmentsFilter {
     bool? hasChecksum, // есть ли контрольная сумма
     String? fileExtension, // фильтр по расширению файла
     AttachmentsSortField? sortField,
-    @Default(SortDirection.desc) SortDirection sortDirection,
   }) = _AttachmentsFilter;
 
   factory AttachmentsFilter.create({
@@ -38,7 +37,6 @@ abstract class AttachmentsFilter with _$AttachmentsFilter {
     bool? hasChecksum,
     String? fileExtension,
     AttachmentsSortField? sortField,
-    SortDirection? sortDirection,
   }) {
     final normalizedName = name?.trim();
     final normalizedDescription = description?.trim();
@@ -87,7 +85,6 @@ abstract class AttachmentsFilter with _$AttachmentsFilter {
           ? null
           : normalizedExtension,
       sortField: sortField,
-      sortDirection: sortDirection ?? SortDirection.desc,
     );
   }
 

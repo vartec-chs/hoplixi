@@ -20,7 +20,6 @@ abstract class OtpFilter with _$OtpFilter {
     int? period, // фильтр по периоду для TOTP
     bool? hasPasswordLink, // есть ли связь с паролем
     OtpSortField? sortField,
-    @Default(SortDirection.desc) SortDirection sortDirection,
   }) = _OtpFilter;
 
   factory OtpFilter.create({
@@ -33,7 +32,7 @@ abstract class OtpFilter with _$OtpFilter {
     int? period,
     bool? hasPasswordLink,
     OtpSortField? sortField,
-    SortDirection? sortDirection,
+    
   }) {
     final normalizedIssuer = issuer?.trim();
     final normalizedAccountName = accountName?.trim();
@@ -57,7 +56,7 @@ abstract class OtpFilter with _$OtpFilter {
       period: period,
       hasPasswordLink: hasPasswordLink,
       sortField: sortField,
-      sortDirection: sortDirection ?? SortDirection.desc,
+      
     );
   }
 
