@@ -10,6 +10,7 @@ import 'package:hoplixi/features/password_manager/icons_manager/icons_management
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
+import 'package:hoplixi/features/password_manager/universal_filter/example/universal_filter_example_screen.dart';
 import 'package:hoplixi/features/setup/setup.dart';
 import 'routes_path.dart';
 
@@ -40,7 +41,7 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.dashboard,
-    builder: (context, state) => const DashboardScreen(),
+    builder: (context, state) => const UniversalFilterExampleScreen(),
   ),
   GoRoute(
     path: AppRoutes.baseSettings,
@@ -68,6 +69,10 @@ final List<GoRoute> appRoutes = [
       final passwordId = state.pathParameters['passwordId'];
       return PasswordFormScreen(passwordId: passwordId);
     },
+  ),
+  GoRoute(
+    path: AppRoutes.universalFilterDemo,
+    builder: (context, state) => const UniversalFilterExampleScreen(),
   ),
 ];
 

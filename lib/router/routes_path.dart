@@ -12,5 +12,5 @@ class AppRoutes {
   static const String iconManager = '/icon-manager';
   static const String tagsManager = '/tags-manager';
   static const String passwordForm = '/password-form';
-  
+  static const String universalFilterDemo = '/universal-filter-demo';
 }
