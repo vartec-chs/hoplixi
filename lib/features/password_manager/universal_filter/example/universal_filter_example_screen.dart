@@ -65,7 +65,8 @@ class _UniversalFilterExampleScreenState
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
+      // в данный момент не нужен
+      // bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
@@ -155,7 +156,6 @@ class _UniversalFilterExampleScreenState
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {
-    final theme = Theme.of(context);
     final entityType = ref.watch(currentEntityTypeProvider);
 
     return BottomAppBar(
@@ -380,7 +380,7 @@ class _UniversalFilterExampleScreenState
       context: context,
       applicationName: 'Hoplixi',
       applicationVersion: '1.0.0',
-      applicationLegalese: '© 2024 Hoplixi Team',
+      applicationLegalese: '© ${DateTime.now().year} Hoplixi Team',
       children: [
         const Text('Универсальный менеджер паролей с поддержкой фильтрации.'),
       ],

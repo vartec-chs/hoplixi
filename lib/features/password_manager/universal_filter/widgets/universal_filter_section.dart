@@ -215,6 +215,11 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
         // Селектор типа сущности
         if (widget.showEntityTypeSelector)
           Container(
+            constraints: BoxConstraints(
+              minWidth: 100,
+              maxHeight: 40,
+              minHeight: 32,
+            ),
             margin: const EdgeInsets.only(right: 8.0),
             decoration: BoxDecoration(
               color: theme.colorScheme.secondaryContainer,
@@ -223,13 +228,32 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
             child: DropdownButton<UniversalEntityType>(
               value: entityType,
               underline: const SizedBox.shrink(),
+
               borderRadius: BorderRadius.circular(12),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+
+              style: theme.textTheme.bodyMedium,
+              disabledHint: Text(entityType.label),
+              alignment: Alignment.center,
 
               items: UniversalEntityType.values.map((type) {
                 return DropdownMenuItem(
+                  enabled: entityType != type,
+                  alignment: Alignment.center,
                   value: type,
-                  child: Text(type.label, style: theme.textTheme.bodyMedium),
+                  child: Text(
+                    type.label,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: entityType == type
+                          ? theme.colorScheme.onSecondaryContainer
+                          : theme.colorScheme.onSurface,
+                      fontWeight: entityType == type
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                    textScaler: MediaQuery.of(context).textScaler,
+                  ),
                 );
               }).toList(),
               onChanged: (newType) {
@@ -245,6 +269,7 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
         // Дополнительные actions
         if (widget.additionalActions != null) ...widget.additionalActions!,
 
+        const SizedBox(width: 8.0),
         // Кнопка фильтров
         Container(
           margin: const EdgeInsets.only(right: 16.0),
@@ -328,19 +353,39 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
           child: (_tabController != null && _currentTabs.isNotEmpty)
               ? TabBar(
                   controller: _tabController,
+                  isScrollable: _currentTabs.length > 3,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(10),
+                    color: theme.colorScheme.tertiary,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  labelColor: theme.colorScheme.onPrimary,
+                  labelColor: theme.colorScheme.onTertiary,
+                  indicatorColor: theme.colorScheme.onPrimary,
                   unselectedLabelColor: theme.colorScheme.onSurface,
+                  splashFactory: InkRipple.splashFactory,
+                  indicatorAnimation: TabIndicatorAnimation.elastic,
+
                   dividerColor: Colors.transparent,
+                  overlayColor: MaterialStateProperty.all(
+                    theme.colorScheme.secondary.withValues(alpha: 0.6),
+                  ),
+                  physics: const BouncingScrollPhysics(),
+                  indicatorWeight: 2,
+                  labelStyle: theme.textTheme.bodyMedium,
+                  tabAlignment: _currentTabs.length > 3
+                      ? TabAlignment.center
+                      : null,
+                  labelPadding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 4,
+                  ),
+
+                  splashBorderRadius: BorderRadius.circular(12),
                   tabs: _currentTabs.map((tab) {
                     return Tab(
-                      icon: Icon(tab.icon, size: 20),
+                      icon: Icon(tab.icon, size: 18),
                       text: tab.label,
-                      height: 44,
+                      height: 40,
                     );
                   }).toList(),
                 )
