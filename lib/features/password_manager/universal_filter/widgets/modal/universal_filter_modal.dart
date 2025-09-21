@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/universal_filter_barrel.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
@@ -107,7 +108,10 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal>
         }
       }
     } catch (e) {
-      // В случае ошибки логируем её, но не блокируем работу UI
+      ToastHelper.error(
+        title: 'Ошибка загрузки категорий и тегов',
+        description: e.toString(),
+      );
       logError(
         'Ошибка загрузки выбранных категорий и тегов',
         error: e,

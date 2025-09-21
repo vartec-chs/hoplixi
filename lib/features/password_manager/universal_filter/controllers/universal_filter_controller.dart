@@ -205,6 +205,7 @@ class UniversalFilterController extends Notifier<UniversalFilterState> {
       data: {
         'entityType': filterWithTab.entityType.id,
         'hasConstraints': filterWithTab.hasActiveConstraints,
+        "newFilter": filterWithTab.toString(),
       },
     );
   }
