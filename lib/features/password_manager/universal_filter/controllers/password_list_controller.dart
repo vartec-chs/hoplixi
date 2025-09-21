@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/models/password_list_state.dart';
+import 'package:hoplixi/features/password_manager/universal_filter/controllers/universal_filter_controller.dart';
 import 'package:hoplixi/hoplixi_store/dao/filters_dao/password_filter_dao.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
@@ -16,28 +18,81 @@ class PasswordListController extends Notifier<PasswordListState> {
     // Получаем DAO через ref
     _passwordFilterDao = ref.read(passwordListFilterDaoProvider);
 
-    // Создаем начальный фильтр
-    final initialFilter = PasswordFilter(
-      base: BaseFilter(
-        query: '',
-        categoryIds: [],
-        tagIds: [],
-        isFavorite: null,
-        isArchived: false,
-        sortDirection: SortDirection.desc,
-        limit: 20,
-        offset: 0,
-      ),
-      hasUrl: null,
-      hasUsername: null,
-      hasTotp: null,
-      isCompromised: null,
-      isExpired: null,
-      isFrequent: null,
-      sortField: null,
-    );
+    // Читаем универсальный фильтр без watch (чтобы избежать перестройки)
+    final universalFilter = ref.read(currentUniversalFilterProvider);
+    final passwordFilter = universalFilter.passwordFilter;
 
-    return PasswordListState(filter: initialFilter);
+    // Если есть фильтр для паролей, используем его
+    PasswordFilter currentFilter;
+    if (passwordFilter != null) {
+      currentFilter = passwordFilter;
+      logDebug('Использую фильтр из UniversalFilterController');
+    } else {
+      // Создаем начальный фильтр
+      currentFilter = PasswordFilter(
+        base: BaseFilter(
+          query: '',
+          categoryIds: [],
+          tagIds: [],
+          isFavorite: null,
+          isArchived: false,
+          sortDirection: SortDirection.desc,
+          limit: 20,
+          offset: 0,
+        ),
+        hasUrl: null,
+        hasUsername: null,
+        hasTotp: null,
+        isCompromised: null,
+        isExpired: null,
+        isFrequent: null,
+        sortField: null,
+      );
+      logDebug('Использую начальный фильтр');
+    }
+
+    // Слушаем изменения универсального фильтра
+    ref.listen(currentUniversalFilterProvider, (previous, next) {
+      final currentPasswordFilter = state.filter;
+      final newPasswordFilter =
+          next.passwordFilter ??
+          PasswordFilter(
+            base: BaseFilter(
+              query: '',
+              categoryIds: [],
+              tagIds: [],
+              isFavorite: null,
+              isArchived: false,
+              sortDirection: SortDirection.desc,
+              limit: 20,
+              offset: 0,
+            ),
+          );
+
+      // Если фильтр паролей изменился извне, обновляем список
+      if (newPasswordFilter != currentPasswordFilter) {
+        logDebug('Универсальный фильтр изменен, обновляем список паролей');
+
+        // Обновляем состояние с новым фильтром
+        Future.microtask(() {
+          state = state.copyWith(
+            filter: newPasswordFilter,
+            passwords: [],
+            currentPage: 0,
+            hasMore: true,
+            isLoading: true,
+          );
+
+          // Загружаем пароли с новым фильтром
+          loadPasswords();
+        });
+      }
+    });
+
+    // Автоматически загружаем пароли при первом обращении к контроллеру
+    Future.microtask(() => loadPasswords());
+
+    return PasswordListState(filter: currentFilter);
   }
 
   /// Загрузка первой страницы паролей
@@ -118,7 +173,17 @@ class PasswordListController extends Notifier<PasswordListState> {
 
   /// Применение нового фильтра
   Future<void> applyFilter(PasswordFilter newFilter) async {
-    logDebug('Применяется новый фильтр');
+    logDebug('Применяется новый фильтр в PasswordListController');
+
+    // Обновляем универсальный фильтр
+    final universalController = ref.read(
+      universalFilterControllerProvider.notifier,
+    );
+    final currentUniversalFilter = ref.read(currentUniversalFilterProvider);
+    final updatedUniversalFilter = currentUniversalFilter.copyWith(
+      passwordFilter: newFilter,
+    );
+    universalController.applyFilter(updatedUniversalFilter);
 
     state = state.copyWith(
       filter: newFilter,
@@ -132,6 +197,8 @@ class PasswordListController extends Notifier<PasswordListState> {
 
   /// Очистка фильтров
   Future<void> clearFilters() async {
+    logDebug('Очистка фильтров в PasswordListController');
+
     final clearedFilter = state.filter.copyWith(
       base: state.filter.base.copyWith(
         query: '',
@@ -147,11 +214,21 @@ class PasswordListController extends Notifier<PasswordListState> {
       isFrequent: null,
     );
 
+    // Сбрасываем также универсальный фильтр
+    ref.read(universalFilterControllerProvider.notifier).resetFilters();
+
     await applyFilter(clearedFilter);
   }
 
   /// Обновление поискового запроса
   Future<void> updateSearch(String searchTerm) async {
+    logDebug('Обновление поиска в PasswordListController: $searchTerm');
+
+    // Обновляем поисковый запрос в универсальном контроллере
+    ref
+        .read(universalFilterControllerProvider.notifier)
+        .updateSearchQuery(searchTerm);
+
     final updatedFilter = state.filter.copyWith(
       base: state.filter.base.copyWith(query: searchTerm),
     );
@@ -190,6 +267,13 @@ class PasswordListController extends Notifier<PasswordListState> {
 
   /// Обновление категорий
   Future<void> updateCategories(List<String> categoryIds) async {
+    logDebug('Обновление категорий в PasswordListController: $categoryIds');
+
+    // Обновляем категории в универсальном контроллере
+    ref
+        .read(universalFilterControllerProvider.notifier)
+        .updateCategories(categoryIds);
+
     final updatedFilter = state.filter.copyWith(
       base: state.filter.base.copyWith(categoryIds: categoryIds),
     );
@@ -199,6 +283,11 @@ class PasswordListController extends Notifier<PasswordListState> {
 
   /// Обновление тегов
   Future<void> updateTags(List<String> tagIds) async {
+    logDebug('Обновление тегов в PasswordListController: $tagIds');
+
+    // Обновляем теги в универсальном контроллере
+    ref.read(universalFilterControllerProvider.notifier).updateTags(tagIds);
+
     final updatedFilter = state.filter.copyWith(
       base: state.filter.base.copyWith(tagIds: tagIds),
     );
@@ -246,16 +335,3 @@ final passwordListControllerProvider =
     NotifierProvider<PasswordListController, PasswordListState>(
       PasswordListController.new,
     );
-
-/// Провайдер для автоматической загрузки паролей при изменении фильтра
-final autoLoadPasswordsProvider = Provider<void>((ref) {
-  final controller = ref.read(passwordListControllerProvider.notifier);
-
-  // Загружаем пароли при первом обращении к провайдеру
-  ref.onCancel(() {
-    // Cleanup если необходимо
-  });
-
-  // Запускаем загрузку асинхронно
-  Future.microtask(() => controller.loadPasswords());
-});

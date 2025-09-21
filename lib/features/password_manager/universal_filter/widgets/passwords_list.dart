@@ -34,11 +34,6 @@ class _PasswordsListState extends ConsumerState<PasswordsList> {
     super.initState();
     // Добавляем слушатель прокрутки для пагинации
     _scrollController.addListener(_onScroll);
-
-    // Инициализируем загрузку паролей
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(autoLoadPasswordsProvider);
-    });
   }
 
   @override
