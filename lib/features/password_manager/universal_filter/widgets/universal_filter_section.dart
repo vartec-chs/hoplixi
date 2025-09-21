@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/universal_filter_barrel.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/widgets/universal_filter_modal.dart';
 
@@ -133,6 +134,7 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
           ref
               .read(universalFilterControllerProvider.notifier)
               .applyFilter(filter);
+          logDebug('Applied filter: $filter');
           Navigator.of(context).pop(true);
         },
         onCancel: () => Navigator.of(context).pop(false),
@@ -223,6 +225,7 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
               underline: const SizedBox.shrink(),
               borderRadius: BorderRadius.circular(12),
               padding: const EdgeInsets.symmetric(horizontal: 12),
+
               items: UniversalEntityType.values.map((type) {
                 return DropdownMenuItem(
                   value: type,

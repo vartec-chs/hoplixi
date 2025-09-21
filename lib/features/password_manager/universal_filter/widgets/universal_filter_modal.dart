@@ -4,7 +4,15 @@ import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/universal_filter_barrel.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
-import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/password_filter.dart'
+    as password_models
+    show PasswordSortField, SortDirection;
+import 'package:hoplixi/hoplixi_store/models/password_filter.dart'
+    show PasswordFilter;
+import 'package:hoplixi/hoplixi_store/models/filter/notes_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter/otp_filter.dart'
+    as otp_filter;
+import 'package:hoplixi/hoplixi_store/models/filter/attachments_filter.dart';
 import 'package:hoplixi/features/password_manager/filters/category_filter/category_filter_widget.dart';
 import 'package:hoplixi/features/password_manager/filters/tag_filter/tag_filter_widget.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
@@ -186,42 +194,6 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
 
               const SizedBox(height: 24),
 
-              // Категории - заглушка пока что
-              _buildSection(
-                title: 'Категории',
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Фильтрация по категориям будет добавлена в следующих версиях',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Теги - заглушка пока что
-              _buildSection(
-                title: 'Теги',
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Фильтрация по тегам будет добавлена в следующих версиях',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
               // Специфичные для типа фильтры
               _buildTypeSpecificFilters(),
 
@@ -276,7 +248,6 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
   }
 
   Widget _buildPasswordSpecificFilters() {
-    final theme = Theme.of(context);
     final passwordFilter =
         _currentFilter.passwordFilter ?? const PasswordFilter();
 
@@ -316,23 +287,112 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
   }
 
   Widget _buildNoteSpecificFilters() {
-    final theme = Theme.of(context);
-    final notesFilter = _currentFilter.notesFilter;
+    final notesFilter =
+        _currentFilter.notesFilter ?? const NotesFilter(base: BaseFilter());
 
     return _buildSection(
       title: 'Фильтры для заметок',
       child: Column(
         children: [
+          // Фильтр по заголовку
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Фильтр по заголовку',
+              border: OutlineInputBorder(),
+            ),
+            controller: TextEditingController(text: notesFilter.title ?? ''),
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  notesFilter: notesFilter.copyWith(
+                    title: value.trim().isEmpty ? null : value.trim(),
+                  ),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Фильтр по содержимому
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Фильтр по содержимому',
+              border: OutlineInputBorder(),
+            ),
+            controller: TextEditingController(text: notesFilter.content ?? ''),
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  notesFilter: notesFilter.copyWith(
+                    content: value.trim().isEmpty ? null : value.trim(),
+                  ),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Диапазон длины содержимого
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Мин. длина содержимого',
+                    border: OutlineInputBorder(),
+                  ),
+                  controller: TextEditingController(
+                    text: notesFilter.minContentLength?.toString() ?? '',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    setState(() {
+                      final intValue = int.tryParse(value.trim());
+                      _currentFilter = _currentFilter.copyWith(
+                        notesFilter: notesFilter.copyWith(
+                          minContentLength: intValue,
+                        ),
+                      );
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Макс. длина содержимого',
+                    border: OutlineInputBorder(),
+                  ),
+                  controller: TextEditingController(
+                    text: notesFilter.maxContentLength?.toString() ?? '',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    setState(() {
+                      final intValue = int.tryParse(value.trim());
+                      _currentFilter = _currentFilter.copyWith(
+                        notesFilter: notesFilter.copyWith(
+                          maxContentLength: intValue,
+                        ),
+                      );
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
           CheckboxListTile(
             title: const Text('Только закрепленные'),
-            value: notesFilter?.base.isPinned,
+            value: notesFilter.base.isPinned,
             tristate: true,
             onChanged: (value) {
               setState(() {
-                final currentBase = notesFilter?.base ?? const BaseFilter();
                 _currentFilter = _currentFilter.copyWith(
-                  notesFilter: notesFilter?.copyWith(
-                    base: currentBase.copyWith(isPinned: value),
+                  notesFilter: notesFilter.copyWith(
+                    base: notesFilter.base.copyWith(isPinned: value),
                   ),
                 );
               });
@@ -341,12 +401,25 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
           ),
           CheckboxListTile(
             title: const Text('Только с содержимым'),
-            value: notesFilter?.hasContent,
+            value: notesFilter.hasContent,
             tristate: true,
             onChanged: (value) {
               setState(() {
                 _currentFilter = _currentFilter.copyWith(
-                  notesFilter: notesFilter?.copyWith(hasContent: value),
+                  notesFilter: notesFilter.copyWith(hasContent: value),
+                );
+              });
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          CheckboxListTile(
+            title: const Text('С вложениями'),
+            value: notesFilter.hasAttachments,
+            tristate: true,
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  notesFilter: notesFilter.copyWith(hasAttachments: value),
                 );
               });
             },
@@ -358,21 +431,135 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
   }
 
   Widget _buildOtpSpecificFilters() {
-    final theme = Theme.of(context);
-    final otpFilter = _currentFilter.otpFilter;
+    final otpFilter =
+        _currentFilter.otpFilter ??
+        const otp_filter.OtpFilter(base: BaseFilter());
 
     return _buildSection(
       title: 'Фильтры для OTP',
       child: Column(
         children: [
+          // Тип OTP
+          DropdownButtonFormField<otp_filter.OtpType?>(
+            decoration: primaryInputDecoration(
+              context,
+              labelText: 'Тип OTP',
+            ),
+            value: otpFilter.type,
+            items: [
+              const DropdownMenuItem(value: null, child: Text('Все типы')),
+              ...otp_filter.OtpType.values.map(
+                (type) => DropdownMenuItem(
+                  value: type,
+                  child: Text(type.name.toUpperCase()),
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  otpFilter: otpFilter.copyWith(type: value),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Фильтр по издателю (issuer)
+          TextField(
+            decoration: primaryInputDecoration(
+              context,
+              labelText: 'Издатель (Google, GitHub, и т.д.)',
+            ),
+            controller: TextEditingController(text: otpFilter.issuer ?? ''),
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  otpFilter: otpFilter.copyWith(
+                    issuer: value.trim().isEmpty ? null : value.trim(),
+                  ),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Фильтр по имени аккаунта
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Имя аккаунта',
+              border: OutlineInputBorder(),
+            ),
+            controller: TextEditingController(
+              text: otpFilter.accountName ?? '',
+            ),
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  otpFilter: otpFilter.copyWith(
+                    accountName: value.trim().isEmpty ? null : value.trim(),
+                  ),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Количество цифр
+          DropdownButtonFormField<int?>(
+            decoration: const InputDecoration(
+              labelText: 'Количество цифр',
+              border: OutlineInputBorder(),
+            ),
+            value: otpFilter.digits,
+            items: const [
+              DropdownMenuItem(value: null, child: Text('Любое')),
+              DropdownMenuItem(value: 6, child: Text('6 цифр')),
+              DropdownMenuItem(value: 8, child: Text('8 цифр')),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  otpFilter: otpFilter.copyWith(digits: value),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Период для TOTP
+          if (otpFilter.type == null ||
+              otpFilter.type == otp_filter.OtpType.totp)
+            TextField(
+              decoration: const InputDecoration(
+                labelText: 'Период (секунды)',
+                border: OutlineInputBorder(),
+              ),
+              controller: TextEditingController(
+                text: otpFilter.period?.toString() ?? '',
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                setState(() {
+                  final intValue = int.tryParse(value.trim());
+                  _currentFilter = _currentFilter.copyWith(
+                    otpFilter: otpFilter.copyWith(period: intValue),
+                  );
+                });
+              },
+            ),
+          if (otpFilter.type == null ||
+              otpFilter.type == otp_filter.OtpType.totp)
+            const SizedBox(height: 16),
+
           CheckboxListTile(
-            title: const Text('Только связанные с паролями'),
-            value: otpFilter?.hasPasswordLink,
+            title: const Text('Связан с паролем'),
+            value: otpFilter.hasPasswordLink,
             tristate: true,
             onChanged: (value) {
               setState(() {
                 _currentFilter = _currentFilter.copyWith(
-                  otpFilter: otpFilter?.copyWith(hasPasswordLink: value),
+                  otpFilter: otpFilter.copyWith(hasPasswordLink: value),
                 );
               });
             },
@@ -384,21 +571,165 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
   }
 
   Widget _buildAttachmentSpecificFilters() {
-    final theme = Theme.of(context);
-    final attachmentsFilter = _currentFilter.attachmentsFilter;
+    final attachmentFilter =
+        _currentFilter.attachmentsFilter ??
+        const AttachmentsFilter(base: BaseFilter());
 
     return _buildSection(
       title: 'Фильтры для вложений',
       child: Column(
         children: [
+          // Фильтр по имени файла
+          TextField(
+            decoration: primaryInputDecoration(
+              context,
+              labelText: 'Имя файла',
+            ),
+            controller: TextEditingController(
+              text: attachmentFilter.name ?? '',
+            ),
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  attachmentsFilter: attachmentFilter.copyWith(
+                    name: value.trim().isEmpty ? null : value.trim(),
+                  ),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Фильтр по описанию
+          TextField(
+            decoration: primaryInputDecoration(
+              context,
+              labelText: 'Описание',
+            ),
+            controller: TextEditingController(
+              text: attachmentFilter.description ?? '',
+            ),
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  attachmentsFilter: attachmentFilter.copyWith(
+                    description: value.trim().isEmpty ? null : value.trim(),
+                  ),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Расширение файла
+          TextField(
+            decoration: primaryInputDecoration(
+              context,
+              labelText: 'Расширение файла (pdf, jpg, png)',
+            ),
+            controller: TextEditingController(
+              text: attachmentFilter.fileExtension ?? '',
+            ),
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  attachmentsFilter: attachmentFilter.copyWith(
+                    fileExtension: value.trim().isEmpty ? null : value.trim(),
+                  ),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Диапазон размера файла
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: primaryInputDecoration(
+                    context,
+                    labelText: 'Мин. размер (байты)',
+                  ),
+                  controller: TextEditingController(
+                    text: attachmentFilter.minFileSize?.toString() ?? '',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    setState(() {
+                      final intValue = int.tryParse(value.trim());
+                      _currentFilter = _currentFilter.copyWith(
+                        attachmentsFilter: attachmentFilter.copyWith(
+                          minFileSize: intValue,
+                        ),
+                      );
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextField(
+                  decoration: primaryInputDecoration(
+                    context,
+                    labelText: 'Макс. размер (байты)',
+                  ),
+                  controller: TextEditingController(
+                    text: attachmentFilter.maxFileSize?.toString() ?? '',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) {
+                    setState(() {
+                      final intValue = int.tryParse(value.trim());
+                      _currentFilter = _currentFilter.copyWith(
+                        attachmentsFilter: attachmentFilter.copyWith(
+                          maxFileSize: intValue,
+                        ),
+                      );
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Тип родительского объекта
+          DropdownButtonFormField<AttachmentType?>(
+            decoration: primaryInputDecoration(
+              context,
+              labelText: 'Тип родительского объекта',
+            ),
+            value: attachmentFilter.attachedToType,
+            items: [
+              const DropdownMenuItem(value: null, child: Text('Все типы')),
+              ...AttachmentType.values.map(
+                (type) => DropdownMenuItem(
+                  value: type,
+                  child: Text(_getAttachmentTypeLabel(type)),
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _currentFilter = _currentFilter.copyWith(
+                  attachmentsFilter: attachmentFilter.copyWith(
+                    attachedToType: value,
+                  ),
+                );
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
           CheckboxListTile(
-            title: const Text('Только с контрольной суммой'),
-            value: attachmentsFilter?.hasChecksum,
+            title: const Text('Есть контрольная сумма'),
+            value: attachmentFilter.hasChecksum,
             tristate: true,
             onChanged: (value) {
               setState(() {
                 _currentFilter = _currentFilter.copyWith(
-                  attachmentsFilter: attachmentsFilter?.copyWith(
+                  attachmentsFilter: attachmentFilter.copyWith(
                     hasChecksum: value,
                   ),
                 );
@@ -521,16 +852,74 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
   Widget _buildSortingSection() {
     return _buildSection(
       title: 'Сортировка',
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Text(
-          'Настройки сортировки будут добавлены в следующих версиях',
-          style: TextStyle(fontStyle: FontStyle.italic),
-        ),
+      child: Column(
+        children: [
+          // Направление сортировки
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Направление сортировки',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment<bool>(
+                    value: true,
+                    label: Text('По возрастанию'),
+                    icon: Icon(Icons.arrow_upward, size: 16),
+                  ),
+                  ButtonSegment<bool>(
+                    value: false,
+                    label: Text('По убыванию'),
+                    icon: Icon(Icons.arrow_downward, size: 16),
+                  ),
+                ],
+                style: SegmentedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  textStyle: Theme.of(context).textTheme.bodyMedium,
+                ),
+                selected: {_getSortAscending()},
+                onSelectionChanged: (Set<bool> selection) {
+                  if (selection.isNotEmpty) {
+                    _setSortAscending(selection.first);
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Поле сортировки
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Сортировать по',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              DropdownButton<String>(
+                value: _getSortField(),
+                items: _getSortOptions().map((option) {
+                  return DropdownMenuItem<String>(
+                    value: option['value']!,
+                    child: Text(option['label']!),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    _setSortField(newValue);
+                  }
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -666,6 +1055,185 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
         return 'Поиск по issuer, аккаунту...';
       case UniversalEntityType.attachment:
         return 'Поиск по имени файла, описанию...';
+    }
+  }
+
+  // Методы для работы с сортировкой
+  bool _getSortAscending() {
+    switch (_currentFilter.entityType) {
+      case UniversalEntityType.password:
+        return _currentFilter.passwordFilter?.sortDirection ==
+            password_models.SortDirection.asc;
+      case UniversalEntityType.note:
+        return _currentFilter.notesFilter?.sortDirection == SortDirection.asc;
+      case UniversalEntityType.otp:
+        return _currentFilter.otpFilter?.sortDirection == SortDirection.asc;
+      case UniversalEntityType.attachment:
+        return _currentFilter.attachmentsFilter?.sortDirection ==
+            SortDirection.asc;
+    }
+  }
+
+  void _setSortAscending(bool ascending) {
+    setState(() {
+      switch (_currentFilter.entityType) {
+        case UniversalEntityType.password:
+          _currentFilter = _currentFilter.copyWith(
+            passwordFilter:
+                (_currentFilter.passwordFilter ?? const PasswordFilter())
+                    .copyWith(
+                      sortDirection: ascending
+                          ? password_models.SortDirection.asc
+                          : password_models.SortDirection.desc,
+                    ),
+          );
+          break;
+        case UniversalEntityType.note:
+          final currentFilter =
+              _currentFilter.notesFilter ??
+              const NotesFilter(base: BaseFilter());
+          _currentFilter = _currentFilter.copyWith(
+            notesFilter: currentFilter.copyWith(
+              sortDirection: ascending ? SortDirection.asc : SortDirection.desc,
+            ),
+          );
+          break;
+        case UniversalEntityType.otp:
+          final currentFilter =
+              _currentFilter.otpFilter ??
+              const otp_filter.OtpFilter(base: BaseFilter());
+          _currentFilter = _currentFilter.copyWith(
+            otpFilter: currentFilter.copyWith(
+              sortDirection: ascending ? SortDirection.asc : SortDirection.desc,
+            ),
+          );
+          break;
+        case UniversalEntityType.attachment:
+          final currentFilter =
+              _currentFilter.attachmentsFilter ??
+              const AttachmentsFilter(base: BaseFilter());
+          _currentFilter = _currentFilter.copyWith(
+            attachmentsFilter: currentFilter.copyWith(
+              sortDirection: ascending ? SortDirection.asc : SortDirection.desc,
+            ),
+          );
+          break;
+      }
+    });
+  }
+
+  String _getSortField() {
+    switch (_currentFilter.entityType) {
+      case UniversalEntityType.password:
+        return _currentFilter.passwordFilter?.sortField?.name ?? 'name';
+      case UniversalEntityType.note:
+        return _currentFilter.notesFilter?.sortField?.name ?? 'title';
+      case UniversalEntityType.otp:
+        return _currentFilter.otpFilter?.sortField?.name ?? 'issuer';
+      case UniversalEntityType.attachment:
+        return _currentFilter.attachmentsFilter?.sortField?.name ?? 'name';
+    }
+  }
+
+  void _setSortField(String field) {
+    setState(() {
+      switch (_currentFilter.entityType) {
+        case UniversalEntityType.password:
+          final sortField = password_models.PasswordSortField.values.firstWhere(
+            (f) => f.name == field,
+            orElse: () => password_models.PasswordSortField.name,
+          );
+          _currentFilter = _currentFilter.copyWith(
+            passwordFilter:
+                (_currentFilter.passwordFilter ?? const PasswordFilter())
+                    .copyWith(sortField: sortField),
+          );
+          break;
+        case UniversalEntityType.note:
+          final sortField = NotesSortField.values.firstWhere(
+            (f) => f.name == field,
+            orElse: () => NotesSortField.title,
+          );
+          final currentFilter =
+              _currentFilter.notesFilter ??
+              const NotesFilter(base: BaseFilter());
+          _currentFilter = _currentFilter.copyWith(
+            notesFilter: currentFilter.copyWith(sortField: sortField),
+          );
+          break;
+        case UniversalEntityType.otp:
+          final sortField = otp_filter.OtpSortField.values.firstWhere(
+            (f) => f.name == field,
+            orElse: () => otp_filter.OtpSortField.issuer,
+          );
+          final currentFilter =
+              _currentFilter.otpFilter ??
+              const otp_filter.OtpFilter(base: BaseFilter());
+          _currentFilter = _currentFilter.copyWith(
+            otpFilter: currentFilter.copyWith(sortField: sortField),
+          );
+          break;
+        case UniversalEntityType.attachment:
+          final sortField = AttachmentsSortField.values.firstWhere(
+            (f) => f.name == field,
+            orElse: () => AttachmentsSortField.name,
+          );
+          final currentFilter =
+              _currentFilter.attachmentsFilter ??
+              const AttachmentsFilter(base: BaseFilter());
+          _currentFilter = _currentFilter.copyWith(
+            attachmentsFilter: currentFilter.copyWith(sortField: sortField),
+          );
+          break;
+      }
+    });
+  }
+
+  String _getAttachmentTypeLabel(AttachmentType type) {
+    switch (type) {
+      case AttachmentType.password:
+        return 'Пароль';
+      case AttachmentType.totp:
+        return 'TOTP';
+      case AttachmentType.note:
+        return 'Заметка';
+    }
+  }
+
+  List<Map<String, String>> _getSortOptions() {
+    switch (_currentFilter.entityType) {
+      case UniversalEntityType.password:
+        return [
+          {'value': 'name', 'label': 'Название'},
+          {'value': 'createdAt', 'label': 'Дата создания'},
+          {'value': 'modifiedAt', 'label': 'Дата изменения'},
+          {'value': 'lastAccessed', 'label': 'Последний доступ'},
+          {'value': 'usedCount', 'label': 'Частота использования'},
+        ];
+      case UniversalEntityType.note:
+        return [
+          {'value': 'title', 'label': 'Заголовок'},
+          {'value': 'createdAt', 'label': 'Дата создания'},
+          {'value': 'modifiedAt', 'label': 'Дата изменения'},
+          {'value': 'lastAccessed', 'label': 'Последний доступ'},
+          {'value': 'contentLength', 'label': 'Длина содержимого'},
+        ];
+      case UniversalEntityType.otp:
+        return [
+          {'value': 'issuer', 'label': 'Издатель'},
+          {'value': 'accountName', 'label': 'Имя аккаунта'},
+          {'value': 'createdAt', 'label': 'Дата создания'},
+          {'value': 'modifiedAt', 'label': 'Дата изменения'},
+          {'value': 'lastAccessed', 'label': 'Последний доступ'},
+        ];
+      case UniversalEntityType.attachment:
+        return [
+          {'value': 'name', 'label': 'Название'},
+          {'value': 'fileSize', 'label': 'Размер файла'},
+          {'value': 'createdAt', 'label': 'Дата создания'},
+          {'value': 'modifiedAt', 'label': 'Дата изменения'},
+          {'value': 'mimeType', 'label': 'MIME тип'},
+        ];
     }
   }
 }
