@@ -130,14 +130,14 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
       context: context,
       builder: (context) => UniversalFilterModal(
         initialFilter: currentFilter,
-        onApply: (filter) {
+        onFilterApplied: (filter) {
           ref
               .read(universalFilterControllerProvider.notifier)
               .applyFilter(filter);
           logDebug('Applied filter: $filter');
-          Navigator.of(context).pop(true);
+          // Navigator.of(context).pop(true);
         },
-        onCancel: () => Navigator.of(context).pop(false),
+        // onCancel: () => Navigator.of(context).pop(false),
       ),
     );
 
