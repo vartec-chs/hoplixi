@@ -14,6 +14,9 @@ export 'password_tags_dao.dart';
 export 'note_tags_dao.dart';
 export 'otp_tags_dao.dart';
 
+// Специализированные DAO для фильтрации
+export 'filters_dao/password_filter_dao.dart';
+
 // DAO для истории
 export 'password_histories_dao.dart';
 export 'note_histories_dao.dart';

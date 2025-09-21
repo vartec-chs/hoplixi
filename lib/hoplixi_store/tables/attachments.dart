@@ -35,6 +35,7 @@ class Attachments extends Table {
       dateTime().clientDefault(() => DateTime.now())();
   DateTimeColumn get modifiedAt =>
       dateTime().clientDefault(() => DateTime.now())();
+  DateTimeColumn get lastAccessed => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -45,6 +46,10 @@ class Attachments extends Table {
   @override
   List<String> get customConstraints => [
     // Constraint: attachment must belong to exactly one entity (password, totp, or note)
-    'CHECK ((' '(password_id IS NOT NULL AND totp_id IS NULL AND note_id IS NULL) OR ' '(password_id IS NULL AND totp_id IS NOT NULL AND note_id IS NULL) OR ' '(password_id IS NULL AND totp_id IS NULL AND note_id IS NOT NULL)' '))',
+    'CHECK (('
+        '(password_id IS NOT NULL AND totp_id IS NULL AND note_id IS NULL) OR '
+        '(password_id IS NULL AND totp_id IS NOT NULL AND note_id IS NULL) OR '
+        '(password_id IS NULL AND totp_id IS NULL AND note_id IS NOT NULL)'
+        '))',
   ];
 }

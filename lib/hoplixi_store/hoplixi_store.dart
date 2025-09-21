@@ -47,6 +47,7 @@ part 'hoplixi_store.g.dart';
     TagsDao,
     PasswordsDao,
     PasswordTagsDao,
+    PasswordFilterDao,
     OtpsDao,
     OtpTagsDao,
     AttachmentsDao,
