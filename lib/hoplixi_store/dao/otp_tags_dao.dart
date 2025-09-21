@@ -1,34 +1,34 @@
 import 'package:drift/drift.dart';
 import '../hoplixi_store.dart';
-import '../tables/totp_tags.dart';
-import '../tables/totps.dart';
+import '../tables/otp_tags.dart';
+import '../tables/otps.dart';
 import '../tables/tags.dart';
 import '../enums/entity_types.dart';
 
-part 'totp_tags_dao.g.dart';
+part 'otp_tags_dao.g.dart';
 
-@DriftAccessor(tables: [TotpTags, Totps, Tags])
-class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
-    with _$TotpTagsDaoMixin {
-  TotpTagsDao(super.db);
+@DriftAccessor(tables: [OtpTags, Otps, Tags])
+class OtpTagsDao extends DatabaseAccessor<HoplixiStore>
+    with _$OtpTagsDaoMixin {
+  OtpTagsDao(super.db);
 
   /// Добавление тега к TOTP
   Future<void> addTagToTotp(String totpId, String tagId) async {
-    final companion = TotpTagsCompanion(
-      totpId: Value(totpId),
+    final companion = OtpTagsCompanion(
+      otpId: Value(totpId),
       tagId: Value(tagId),
     );
 
     await into(
-      attachedDatabase.totpTags,
+      attachedDatabase.otpTags,
     ).insert(companion, mode: InsertMode.insertOrIgnore);
   }
 
   /// Удаление тега у TOTP
   Future<bool> removeTagFromTotp(String totpId, String tagId) async {
     final rowsAffected =
-        await (delete(attachedDatabase.totpTags)..where(
-              (tbl) => tbl.totpId.equals(totpId) & tbl.tagId.equals(tagId),
+        await (delete(attachedDatabase.otpTags)..where(
+              (tbl) => tbl.otpId.equals(totpId) & tbl.tagId.equals(tagId),
             ))
             .go();
     return rowsAffected > 0;
@@ -38,45 +38,45 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
   Future<List<Tag>> getTagsForTotp(String totpId) async {
     final query = select(attachedDatabase.tags).join([
       innerJoin(
-        attachedDatabase.totpTags,
-        attachedDatabase.totpTags.tagId.equalsExp(attachedDatabase.tags.id),
+        attachedDatabase.otpTags,
+        attachedDatabase.otpTags.tagId.equalsExp(attachedDatabase.tags.id),
       ),
-    ])..where(attachedDatabase.totpTags.totpId.equals(totpId));
+    ])..where(attachedDatabase.otpTags.otpId.equals(totpId));
 
     final results = await query.get();
     return results.map((row) => row.readTable(attachedDatabase.tags)).toList();
   }
 
   /// Получение всех TOTP для тега
-  Future<List<Totp>> getTotpsForTag(String tagId) async {
-    final query = select(attachedDatabase.totps).join([
+  Future<List<Otp>> getTotpsForTag(String tagId) async {
+    final query = select(attachedDatabase.otps).join([
       innerJoin(
-        attachedDatabase.totpTags,
-        attachedDatabase.totpTags.totpId.equalsExp(attachedDatabase.totps.id),
+        attachedDatabase.otpTags,
+        attachedDatabase.otpTags.otpId.equalsExp(attachedDatabase.otps.id),
       ),
-    ])..where(attachedDatabase.totpTags.tagId.equals(tagId));
+    ])..where(attachedDatabase.otpTags.tagId.equals(tagId));
 
     final results = await query.get();
-    return results.map((row) => row.readTable(attachedDatabase.totps)).toList();
+    return results.map((row) => row.readTable(attachedDatabase.otps)).toList();
   }
 
-  /// Получение TOTP с тегами
-  Future<List<TotpWithTags>> getTotpsWithTags() async {
-    final totpsQuery = select(attachedDatabase.totps);
-    final totps = await totpsQuery.get();
+  /// Получение OTP с тегами
+  Future<List<OtpWithTags>> getOtpsWithTags() async {
+    final otpsQuery = select(attachedDatabase.otps);
+    final otps = await otpsQuery.get();
 
-    final List<TotpWithTags> result = [];
+    final List<OtpWithTags> result = [];
 
-    for (final totp in totps) {
-      final tags = await getTagsForTotp(totp.id);
-      result.add(TotpWithTags(totp: totp, tags: tags));
+    for (final otp in otps) {
+      final tags = await getTagsForTotp(otp.id);
+      result.add(OtpWithTags(otp: otp, tags: tags));
     }
 
     return result;
   }
 
   /// Получение TOTP по множественным тегам (AND условие)
-  Future<List<Totp>> getTotpsByTags(List<String> tagIds) async {
+  Future<List<Otp>> getTotpsByTags(List<String> tagIds) async {
     if (tagIds.isEmpty) return [];
 
     String placeholders = tagIds.map((_) => '?').join(',');
@@ -99,7 +99,7 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
     final results = await query.get();
     return results
         .map(
-          (row) => Totp(
+          (row) => Otp(
             id: row.read<String>('id'),
             passwordId: row.read<String?>('password_id'),
             
@@ -123,40 +123,40 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
         .toList();
   }
 
-  /// Получение TOTP по любому из тегов (OR условие)
-  Future<List<Totp>> getTotpsByAnyTag(List<String> tagIds) async {
+  /// Получение OTP по любому из тегов (OR условие)
+  Future<List<Otp>> getOtpsByAnyTag(List<String> tagIds) async {
     if (tagIds.isEmpty) return [];
 
-    final query = select(attachedDatabase.totps).join([
+    final query = select(attachedDatabase.otps).join([
       innerJoin(
-        attachedDatabase.totpTags,
-        attachedDatabase.totpTags.totpId.equalsExp(attachedDatabase.totps.id),
+        attachedDatabase.otpTags,
+        attachedDatabase.otpTags.otpId.equalsExp(attachedDatabase.otps.id),
       ),
-    ])..where(attachedDatabase.totpTags.tagId.isIn(tagIds));
+    ])..where(attachedDatabase.otpTags.tagId.isIn(tagIds));
 
     final results = await query.get();
-    return results.map((row) => row.readTable(attachedDatabase.totps)).toList();
+    return results.map((row) => row.readTable(attachedDatabase.otps)).toList();
   }
 
-  /// Замена всех тегов у TOTP
-  Future<void> replaceTotpTags(String totpId, List<String> tagIds) async {
+  /// Замена всех тегов у OTP
+  Future<void> replaceTotpTags(String otpId, List<String> tagIds) async {
     await transaction(() async {
       // Удаляем все существующие теги
       await (delete(
-        attachedDatabase.totpTags,
-      )..where((tbl) => tbl.totpId.equals(totpId))).go();
+        attachedDatabase.otpTags,
+      )..where((tbl) => tbl.otpId.equals(otpId))).go();
 
       // Добавляем новые теги
       for (final tagId in tagIds) {
-        await addTagToTotp(totpId, tagId);
+        await addTagToTotp(otpId, tagId);
       }
     });
   }
 
   /// Проверка наличия тега у TOTP
   Future<bool> totpHasTag(String totpId, String tagId) async {
-    final query = select(attachedDatabase.totpTags)
-      ..where((tbl) => tbl.totpId.equals(totpId) & tbl.tagId.equals(tagId));
+    final query = select(attachedDatabase.otpTags)
+      ..where((tbl) => tbl.otpId.equals(totpId) & tbl.tagId.equals(tagId));
 
     final result = await query.getSingleOrNull();
     return result != null;
@@ -164,18 +164,18 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
 
   /// Получение количества TOTP для каждого тега
   Future<Map<String, int>> getTotpCountPerTag() async {
-    final query = selectOnly(attachedDatabase.totpTags)
+    final query = selectOnly(attachedDatabase.otpTags)
       ..addColumns([
-        attachedDatabase.totpTags.tagId,
-        attachedDatabase.totpTags.totpId.count(),
+        attachedDatabase.otpTags.tagId,
+        attachedDatabase.otpTags.otpId.count(),
       ])
-      ..groupBy([attachedDatabase.totpTags.tagId]);
+      ..groupBy([attachedDatabase.otpTags.tagId]);
 
     final results = await query.get();
     return {
       for (final row in results)
-        row.read(attachedDatabase.totpTags.tagId)!:
-            row.read(attachedDatabase.totpTags.totpId.count()) ?? 0,
+        row.read(attachedDatabase.otpTags.tagId)!:
+            row.read(attachedDatabase.otpTags.otpId.count()) ?? 0,
     };
   }
 
@@ -183,10 +183,10 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
   Stream<List<Tag>> watchTagsForTotp(String totpId) {
     final query = select(attachedDatabase.tags).join([
       innerJoin(
-        attachedDatabase.totpTags,
-        attachedDatabase.totpTags.tagId.equalsExp(attachedDatabase.tags.id),
+        attachedDatabase.otpTags,
+        attachedDatabase.otpTags.tagId.equalsExp(attachedDatabase.tags.id),
       ),
-    ])..where(attachedDatabase.totpTags.totpId.equals(totpId));
+    ])..where(attachedDatabase.otpTags.otpId.equals(totpId));
 
     return query.watch().map(
       (rows) =>
@@ -195,17 +195,17 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   /// Stream для наблюдения за TOTP тега
-  Stream<List<Totp>> watchTotpsForTag(String tagId) {
-    final query = select(attachedDatabase.totps).join([
+  Stream<List<Otp>> watchTotpsForTag(String tagId) {
+    final query = select(attachedDatabase.otps).join([
       innerJoin(
-        attachedDatabase.totpTags,
-        attachedDatabase.totpTags.totpId.equalsExp(attachedDatabase.totps.id),
+        attachedDatabase.otpTags,
+        attachedDatabase.otpTags.otpId.equalsExp(attachedDatabase.otps.id),
       ),
-    ])..where(attachedDatabase.totpTags.tagId.equals(tagId));
+    ])..where(attachedDatabase.otpTags.tagId.equals(tagId));
 
     return query.watch().map(
       (rows) =>
-          rows.map((row) => row.readTable(attachedDatabase.totps)).toList(),
+          rows.map((row) => row.readTable(attachedDatabase.otps)).toList(),
     );
   }
 
@@ -217,12 +217,12 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
     await batch((batch) {
       for (final totpId in totpIds) {
         for (final tagId in tagIds) {
-          final companion = TotpTagsCompanion(
-            totpId: Value(totpId),
+          final companion = OtpTagsCompanion(
+            otpId: Value(totpId),
             tagId: Value(tagId),
           );
           batch.insert(
-            attachedDatabase.totpTags,
+            attachedDatabase.otpTags,
             companion,
             mode: InsertMode.insertOrIgnore,
           );
@@ -243,10 +243,10 @@ class TotpTagsDao extends DatabaseAccessor<HoplixiStore>
   }
 }
 
-/// Класс для TOTP с тегами
-class TotpWithTags {
-  final Totp totp;
+/// Класс для OTP с тегами
+class OtpWithTags {
+  final Otp otp;
   final List<Tag> tags;
 
-  TotpWithTags({required this.totp, required this.tags});
+  OtpWithTags({required this.otp, required this.tags});
 }

@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 import 'passwords.dart';
-import 'totps.dart';
+import 'otps.dart';
 import 'notes.dart';
 import '../utils/uuid_generator.dart';
 
@@ -27,7 +27,7 @@ class Attachments extends Table {
     onDelete: KeyAction.cascade,
   )();
   TextColumn get totpId =>
-      text().nullable().references(Totps, #id, onDelete: KeyAction.cascade)();
+      text().nullable().references(Otps, #id, onDelete: KeyAction.cascade)();
   TextColumn get noteId =>
       text().nullable().references(Notes, #id, onDelete: KeyAction.cascade)();
 

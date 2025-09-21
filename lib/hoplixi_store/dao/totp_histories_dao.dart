@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 import '../hoplixi_store.dart';
-import '../tables/totp_histories.dart';
+import '../tables/otp_histories.dart';
 
 part 'totp_histories_dao.g.dart';
 

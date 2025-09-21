@@ -13,9 +13,9 @@ import 'tables/tags.dart';
 import 'tables/passwords.dart';
 import 'tables/password_tags.dart';
 import 'tables/password_histories.dart';
-import 'tables/totps.dart';
-import 'tables/totp_tags.dart';
-import 'tables/totp_histories.dart';
+import 'tables/otps.dart';
+import 'tables/otp_tags.dart';
+import 'tables/otp_histories.dart';
 import 'tables/attachments.dart';
 import 'tables/notes.dart';
 import 'tables/note_tags.dart';
@@ -33,8 +33,8 @@ part 'hoplixi_store.g.dart';
     Passwords,
     PasswordTags,
     PasswordHistories,
-    Totps,
-    TotpTags,
+    Otps,
+    OtpTags,
     TotpHistories,
     Attachments,
     Notes,
@@ -47,8 +47,8 @@ part 'hoplixi_store.g.dart';
     TagsDao,
     PasswordsDao,
     PasswordTagsDao,
-    TotpsDao,
-    TotpTagsDao,
+    OtpsDao,
+    OtpTagsDao,
     AttachmentsDao,
     NotesDao,
     NoteTagsDao,

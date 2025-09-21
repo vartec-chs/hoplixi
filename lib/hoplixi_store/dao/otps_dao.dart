@@ -1,20 +1,20 @@
 import 'package:drift/drift.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import '../hoplixi_store.dart';
-import '../tables/totps.dart';
+import '../tables/otps.dart';
 import '../dto/db_dto.dart';
 import '../enums/entity_types.dart';
 
-part 'totps_dao.g.dart';
+part 'otps_dao.g.dart';
 
-@DriftAccessor(tables: [Totps])
-class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
-  TotpsDao(super.db);
+@DriftAccessor(tables: [Otps])
+class OtpsDao extends DatabaseAccessor<HoplixiStore> with _$OtpsDaoMixin {
+  OtpsDao(super.db);
 
   /// Создание нового TOTP
   Future<String> createTotp(CreateTotpDto dto) async {
     final id = UuidGenerator.generate();
-    final companion = TotpsCompanion(
+    final companion = OtpsCompanion(
       id: Value(id),
       passwordId: Value(dto.passwordId),
       type: Value(dto.type),
@@ -30,7 +30,7 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
     );
 
     await into(
-      attachedDatabase.totps,
+      attachedDatabase.otps,
     ).insert(companion, mode: InsertMode.insertOrIgnore);
 
     // Возвращаем сгенерированный UUID из companion
@@ -39,7 +39,7 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
 
   /// Обновление TOTP
   Future<bool> updateTotp(UpdateTotpDto dto) async {
-    final companion = TotpsCompanion(
+    final companion = OtpsCompanion(
       id: Value(dto.id),
       passwordId: dto.passwordId != null
           ? Value(dto.passwordId)
@@ -71,7 +71,7 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
     );
 
     final rowsAffected = await update(
-      attachedDatabase.totps,
+      attachedDatabase.otps,
     ).replace(companion);
     return rowsAffected;
   }
@@ -79,60 +79,60 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
   /// Удаление TOTP по ID
   Future<bool> deleteTotp(String id) async {
     final rowsAffected = await (delete(
-      attachedDatabase.totps,
+      attachedDatabase.otps,
     )..where((tbl) => tbl.id.equals(id))).go();
     return rowsAffected > 0;
   }
 
   /// Получение TOTP по ID
-  Future<Totp?> getTotpById(String id) async {
-    final query = select(attachedDatabase.totps)
+  Future<Otp?> getTotpById(String id) async {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.id.equals(id));
     return await query.getSingleOrNull();
   }
 
   /// Получение всех TOTP
-  Future<List<Totp>> getAllTotps() async {
-    final query = select(attachedDatabase.totps)
+  Future<List<Otp>> getAllTotps() async {
+    final query = select(attachedDatabase.otps)
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return await query.get();
   }
 
   /// Получение TOTP по категории
-  Future<List<Totp>> getTotpsByCategory(String categoryId) async {
-    final query = select(attachedDatabase.totps)
+  Future<List<Otp>> getTotpsByCategory(String categoryId) async {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.categoryId.equals(categoryId))
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return await query.get();
   }
 
   /// Получение TOTP по паролю
-  Future<List<Totp>> getTotpsByPassword(String passwordId) async {
-    final query = select(attachedDatabase.totps)
+  Future<List<Otp>> getTotpsByPassword(String passwordId) async {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.passwordId.equals(passwordId))
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return await query.get();
   }
 
-  /// Получение избранных TOTP
-  Future<List<Totp>> getFavoriteTotps() async {
-    final query = select(attachedDatabase.totps)
+  /// Получение избранных OTP
+  Future<List<Otp>> getFavoriteOtps() async {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.isFavorite.equals(true))
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return await query.get();
   }
 
-  /// Получение TOTP по типу (TOTP/HOTP)
-  Future<List<Totp>> getTotpsByType(OtpType type) async {
-    final query = select(attachedDatabase.totps)
+  /// Получение OTP по типу (TOTP/HOTP)
+  Future<List<Otp>> getOtpsByType(OtpType type) async {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.type.equals(type.name))
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return await query.get();
   }
 
-  /// Поиск TOTP по имени, эмитенту или аккаунту
-  Future<List<Totp>> searchTotps(String searchTerm) async {
-    final query = select(attachedDatabase.totps)
+  /// Поиск OTP по имени, эмитенту или аккаунту
+  Future<List<Otp>> searchOtps(String searchTerm) async {
+    final query = select(attachedDatabase.otps)
       ..where(
         (tbl) =>
             tbl.issuer.like('%$searchTerm%') |
@@ -143,9 +143,9 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
     return await query.get();
   }
 
-  /// Получение недавно использованных TOTP
-  Future<List<Totp>> getRecentlyAccessedTotps({int limit = 10}) async {
-    final query = select(attachedDatabase.totps)
+  /// Получение недавно использованных OTP
+  Future<List<Otp>> getRecentlyAccessedOtps({int limit = 10}) async {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.lastAccessed.isNotNull())
       ..orderBy([(t) => OrderingTerm.desc(t.lastAccessed)])
       ..limit(limit);
@@ -155,9 +155,9 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
   /// Обновление времени последнего доступа
   Future<void> updateLastAccessed(String id) async {
     await (update(
-      attachedDatabase.totps,
+      attachedDatabase.otps,
     )..where((tbl) => tbl.id.equals(id))).write(
-      TotpsCompanion(
+      OtpsCompanion(
         lastAccessed: Value(DateTime.now()),
         modifiedAt: Value(DateTime.now()),
       ),
@@ -167,9 +167,9 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
   /// Обновление счетчика для HOTP
   Future<void> updateHotpCounter(String id, int newCounter) async {
     await (update(
-      attachedDatabase.totps,
+      attachedDatabase.otps,
     )..where((tbl) => tbl.id.equals(id))).write(
-      TotpsCompanion(
+      OtpsCompanion(
         counter: Value(newCounter),
         modifiedAt: Value(DateTime.now()),
       ),
@@ -181,9 +181,9 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
     final totp = await getTotpById(id);
     if (totp != null) {
       await (update(
-        attachedDatabase.totps,
+        attachedDatabase.otps,
       )..where((tbl) => tbl.id.equals(id))).write(
-        TotpsCompanion(
+        OtpsCompanion(
           isFavorite: Value(!totp.isFavorite),
           modifiedAt: Value(DateTime.now()),
         ),
@@ -191,74 +191,74 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
     }
   }
 
-  /// Получение количества TOTP
-  Future<int> getTotpsCount() async {
-    final query = selectOnly(attachedDatabase.totps)
-      ..addColumns([attachedDatabase.totps.id.count()]);
+  /// Получение количества OTP
+  Future<int> getOtpsCount() async {
+    final query = selectOnly(attachedDatabase.otps)
+      ..addColumns([attachedDatabase.otps.id.count()]);
     final result = await query.getSingle();
-    return result.read(attachedDatabase.totps.id.count()) ?? 0;
+    return result.read(attachedDatabase.otps.id.count()) ?? 0;
   }
 
-  /// Получение количества TOTP по категориям
-  Future<Map<String?, int>> getTotpsCountByCategory() async {
-    final query = selectOnly(attachedDatabase.totps)
+  /// Получение количества OTP по категориям
+  Future<Map<String?, int>> getOtpsCountByCategory() async {
+    final query = selectOnly(attachedDatabase.otps)
       ..addColumns([
-        attachedDatabase.totps.categoryId,
-        attachedDatabase.totps.id.count(),
+        attachedDatabase.otps.categoryId,
+        attachedDatabase.otps.id.count(),
       ])
-      ..groupBy([attachedDatabase.totps.categoryId]);
+      ..groupBy([attachedDatabase.otps.categoryId]);
 
     final results = await query.get();
     return {
       for (final row in results)
-        row.read(attachedDatabase.totps.categoryId):
-            row.read(attachedDatabase.totps.id.count()) ?? 0,
+        row.read(attachedDatabase.otps.categoryId):
+            row.read(attachedDatabase.otps.id.count()) ?? 0,
     };
   }
 
-  /// Получение количества TOTP по типам
-  Future<Map<String, int>> getTotpsCountByType() async {
-    final query = selectOnly(attachedDatabase.totps)
+  /// Получение количества OTP по типам
+  Future<Map<String, int>> getOtpsCountByType() async {
+    final query = selectOnly(attachedDatabase.otps)
       ..addColumns([
-        attachedDatabase.totps.type,
-        attachedDatabase.totps.id.count(),
+        attachedDatabase.otps.type,
+        attachedDatabase.otps.id.count(),
       ])
-      ..groupBy([attachedDatabase.totps.type]);
+      ..groupBy([attachedDatabase.otps.type]);
 
     final results = await query.get();
     return {
       for (final row in results)
-        row.read(attachedDatabase.totps.type)!:
-            row.read(attachedDatabase.totps.id.count()) ?? 0,
+        row.read(attachedDatabase.otps.type)!:
+            row.read(attachedDatabase.otps.id.count()) ?? 0,
     };
   }
 
-  /// Stream для наблюдения за всеми TOTP
-  Stream<List<Totp>> watchAllTotps() {
-    final query = select(attachedDatabase.totps)
+  /// Stream для наблюдения за всеми OTP
+  Stream<List<Otp>> watchAllOtps() {
+    final query = select(attachedDatabase.otps)
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return query.watch();
   }
 
-  /// Stream для наблюдения за TOTP по категории
-  Stream<List<Totp>> watchTotpsByCategory(String categoryId) {
-    final query = select(attachedDatabase.totps)
+  /// Stream для наблюдения за OTP по категории
+  Stream<List<Otp>> watchOtpsByCategory(String categoryId) {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.categoryId.equals(categoryId))
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return query.watch();
   }
 
-  /// Stream для наблюдения за избранными TOTP
-  Stream<List<Totp>> watchFavoriteTotps() {
-    final query = select(attachedDatabase.totps)
+  /// Stream для наблюдения за избранными OTP
+  Stream<List<Otp>> watchFavoriteOtps() {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.isFavorite.equals(true))
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return query.watch();
   }
 
-  /// Stream для наблюдения за TOTP по паролю
-  Stream<List<Totp>> watchTotpsByPassword(String passwordId) {
-    final query = select(attachedDatabase.totps)
+  /// Stream для наблюдения за OTP по паролю
+  Stream<List<Otp>> watchOtpsByPassword(String passwordId) {
+    final query = select(attachedDatabase.otps)
       ..where((tbl) => tbl.passwordId.equals(passwordId))
       ..orderBy([(t) => OrderingTerm.desc(t.modifiedAt)]);
     return query.watch();
@@ -268,7 +268,7 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
   Future<void> createTotpsBatch(List<CreateTotpDto> dtos) async {
     await batch((batch) {
       for (final dto in dtos) {
-        final companion = TotpsCompanion(
+        final companion = OtpsCompanion(
           passwordId: Value(dto.passwordId),
           type: Value(dto.type),
           issuer: Value(dto.issuer),
@@ -281,7 +281,7 @@ class TotpsDao extends DatabaseAccessor<HoplixiStore> with _$TotpsDaoMixin {
           categoryId: Value(dto.categoryId),
           isFavorite: Value(dto.isFavorite),
         );
-        batch.insert(attachedDatabase.totps, companion);
+        batch.insert(attachedDatabase.otps, companion);
       }
     });
   }

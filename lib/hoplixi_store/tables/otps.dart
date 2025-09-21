@@ -4,8 +4,8 @@ import 'categories.dart';
 import '../utils/uuid_generator.dart';
 import '../enums/entity_types.dart';
 
-@DataClassName('Totp')
-class Totps extends Table {
+@DataClassName('Otp')
+class Otps extends Table {
   TextColumn get id =>
       text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
   TextColumn get passwordId => text().nullable().references(
