@@ -52,6 +52,7 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
     with TickerProviderStateMixin {
   TabController? _tabController;
   late final TextEditingController _searchController;
+  List<UniversalFilterTab> _currentTabs = [];
 
   @override
   void initState() {
@@ -81,24 +82,44 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
 
   void _initializeTabController() {
     final availableTabs = ref.read(availableFilterTabsProvider);
-    _tabController?.dispose();
-    _tabController = TabController(length: availableTabs.length, vsync: this);
 
-    // Слушаем изменения в табах
-    _tabController!.addListener(() {
-      if (!_tabController!.indexIsChanging) {
-        final availableTabs = ref.read(availableFilterTabsProvider);
-        if (_tabController!.index < availableTabs.length) {
-          final tab = availableTabs[_tabController!.index];
-          ref.read(universalFilterControllerProvider.notifier).switchTab(tab);
-        }
+    // Проверяем, нужно ли пересоздавать контроллер
+    if (_tabController?.length != availableTabs.length ||
+        !_tabsEqual(_currentTabs, availableTabs)) {
+      _tabController?.dispose();
+      _currentTabs = List.from(availableTabs);
+      _tabController = TabController(length: _currentTabs.length, vsync: this);
+
+      // Устанавливаем правильный индекс для активной вкладки
+      final filterState = ref.read(universalFilterControllerProvider);
+      final targetIndex = _currentTabs.indexOf(filterState.activeTab);
+      if (targetIndex >= 0 && targetIndex < _currentTabs.length) {
+        _tabController!.index = targetIndex;
       }
-    });
 
-    // Обновляем состояние
-    if (mounted) {
-      setState(() {});
+      // Слушаем изменения в табах
+      _tabController!.addListener(() {
+        if (!_tabController!.indexIsChanging && mounted) {
+          if (_tabController!.index < _currentTabs.length) {
+            final tab = _currentTabs[_tabController!.index];
+            ref.read(universalFilterControllerProvider.notifier).switchTab(tab);
+          }
+        }
+      });
+
+      // Обновляем состояние
+      if (mounted) {
+        setState(() {});
+      }
     }
+  }
+
+  bool _tabsEqual(List<UniversalFilterTab> a, List<UniversalFilterTab> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   void _showFilterModal() async {
@@ -133,20 +154,27 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
     final availableTabs = ref.watch(availableFilterTabsProvider);
 
     // Синхронизируем TabController с доступными вкладками
-    if (_tabController?.length != availableTabs.length) {
+    if (_tabController?.length != availableTabs.length ||
+        !_tabsEqual(_currentTabs, availableTabs)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _initializeTabController();
       });
     }
 
-    // Синхронизируем TabController с состоянием
-    final targetIndex = availableTabs.indexOf(filterState.activeTab);
-    if (targetIndex >= 0 && _tabController?.index != targetIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_tabController?.index != targetIndex) {
-          _tabController?.animateTo(targetIndex);
-        }
-      });
+    // Синхронизируем TabController с состоянием только если контроллер готов
+    if (_tabController != null && _currentTabs.isNotEmpty) {
+      final targetIndex = _currentTabs.indexOf(filterState.activeTab);
+      if (targetIndex >= 0 &&
+          targetIndex < _currentTabs.length &&
+          _tabController!.index != targetIndex) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_tabController != null &&
+              targetIndex >= 0 &&
+              targetIndex < _tabController!.length) {
+            _tabController!.animateTo(targetIndex);
+          }
+        });
+      }
     }
 
     // Синхронизируем текст поиска
@@ -294,7 +322,7 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8.0),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-          child: _tabController != null
+          child: (_tabController != null && _currentTabs.isNotEmpty)
               ? TabBar(
                   controller: _tabController,
                   indicatorSize: TabBarIndicatorSize.tab,
@@ -305,7 +333,7 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
                   labelColor: theme.colorScheme.onPrimary,
                   unselectedLabelColor: theme.colorScheme.onSurface,
                   dividerColor: Colors.transparent,
-                  tabs: availableTabs.map((tab) {
+                  tabs: _currentTabs.map((tab) {
                     return Tab(
                       icon: Icon(tab.icon, size: 20),
                       text: tab.label,

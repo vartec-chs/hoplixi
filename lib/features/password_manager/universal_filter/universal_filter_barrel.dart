@@ -1,4 +1,5 @@
 export 'providers/entity_type_provider.dart';
+export 'providers/services_providers.dart';
 export 'models/universal_filter.dart';
 export 'controllers/universal_filter_controller.dart';
 export 'widgets/universal_filter_section.dart';

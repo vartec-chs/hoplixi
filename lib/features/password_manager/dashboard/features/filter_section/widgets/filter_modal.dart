@@ -5,8 +5,8 @@ import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/features/filters/category_filter/category_filter_widget.dart';
-import 'package:hoplixi/features/filters/tag_filter/tag_filter_widget.dart';
+import 'package:hoplixi/features/password_manager/filters/category_filter/category_filter_widget.dart';
+import 'package:hoplixi/features/password_manager/filters/tag_filter/tag_filter_widget.dart';
 
 /// Полноэкранное модальное окно для настройки фильтров
 class FilterModal extends ConsumerStatefulWidget {

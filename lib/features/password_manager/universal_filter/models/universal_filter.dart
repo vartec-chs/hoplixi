@@ -5,6 +5,7 @@ import 'package:hoplixi/hoplixi_store/models/filter/notes_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/otp_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/providers/entity_type_provider.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 
 part 'universal_filter.freezed.dart';
 part 'universal_filter.g.dart';
@@ -163,6 +164,11 @@ extension UniversalFilterHelpers on UniversalFilter {
     }
   }
 
+  /// Обновить категории из объектов Category
+  UniversalFilter updateCategoriesFromObjects(List<store.Category> categories) {
+    return updateCategories(categories.map((c) => c.id).toList());
+  }
+
   /// Обновить теги в активном фильтре
   UniversalFilter updateTags(List<String> tagIds) {
     switch (entityType) {
@@ -196,6 +202,11 @@ extension UniversalFilterHelpers on UniversalFilter {
           ),
         );
     }
+  }
+
+  /// Обновить теги из объектов Tag
+  UniversalFilter updateTagsFromObjects(List<store.Tag> tags) {
+    return updateTags(tags.map((t) => t.id).toList());
   }
 
   /// Сбросить фильтр к начальному состоянию

@@ -25,7 +25,7 @@
 ## Использование
 
 ```dart
-import 'package:hoplixi/features/filters/tag_filter/tag_filter.dart';
+import 'package:hoplixi/features/password_manager/filters/tag_filter/tag_filter.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 

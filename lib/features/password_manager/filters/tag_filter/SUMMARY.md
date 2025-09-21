@@ -55,7 +55,7 @@ TagFilterButton(
 Для использования в других частях приложения:
 
 ```dart
-import 'package:hoplixi/features/filters/tag_filter/tag_filter.dart';
+import 'package:hoplixi/features/password_manager/filters/tag_filter/tag_filter.dart';
 ```
 
 Виджеты автоматически интегрируются с:

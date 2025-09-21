@@ -5,6 +5,10 @@ import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/universal_filter_barrel.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
+import 'package:hoplixi/features/password_manager/filters/category_filter/category_filter_widget.dart';
+import 'package:hoplixi/features/password_manager/filters/tag_filter/tag_filter_widget.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
+import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 
 /// Универсальное полноэкранное модальное окно для настройки фильтров
 class UniversalFilterModal extends ConsumerStatefulWidget {
@@ -35,6 +39,10 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
   late List<String> _selectedCategoryIds;
   late List<String> _selectedTagIds;
 
+  // Локальные состояния для категорий и тегов
+  List<store.Category> _selectedCategories = [];
+  List<store.Tag> _selectedTags = [];
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +53,55 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
 
     // Инициализация контроллера поиска
     _searchController.text = _currentFilter.searchQuery;
+
+    // Инициализация локальных состояний
+    _initializeLocalStates();
+  }
+
+  void _initializeLocalStates() async {
+    // Загружаем реальные категории по ID
+    if (_selectedCategoryIds.isNotEmpty) {
+      try {
+        final categoriesService = ref.read(categoriesServiceProvider);
+        final categories = <store.Category>[];
+
+        for (final id in _selectedCategoryIds) {
+          final category = await categoriesService.getCategory(id);
+          if (category != null) {
+            categories.add(category);
+          }
+        }
+
+        setState(() {
+          _selectedCategories = categories;
+        });
+      } catch (e) {
+        // Логирование ошибки
+        _selectedCategories = [];
+      }
+    }
+
+    // Загружаем реальные теги по ID
+    if (_selectedTagIds.isNotEmpty) {
+      try {
+        final tagsService = ref.read(tagsServiceProvider);
+        final tags = <store.Tag>[];
+
+        for (final id in _selectedTagIds) {
+          final tag = await tagsService.getTag(id);
+          if (tag != null) {
+            tags.add(tag);
+          }
+        }
+
+        setState(() {
+          _selectedTags = tags;
+        });
+      } catch (e) {
+        // Логирование ошибки
+        _selectedTags = [];
+      }
+    }
   }
 
   @override
@@ -54,10 +111,11 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
   }
 
   void _applyFilter() {
+    // Обновляем фильтр используя объекты категорий и тегов
     final updatedFilter = _currentFilter
         .updateSearchQuery(_searchController.text)
-        .updateCategories(_selectedCategoryIds)
-        .updateTags(_selectedTagIds);
+        .updateCategoriesFromObjects(_selectedCategories)
+        .updateTagsFromObjects(_selectedTags);
 
     widget.onApply(updatedFilter);
   }
@@ -67,6 +125,8 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
       _currentFilter = UniversalFilter.empty(_currentFilter.entityType);
       _selectedCategoryIds.clear();
       _selectedTagIds.clear();
+      _selectedCategories.clear();
+      _selectedTags.clear();
       _searchController.clear();
     });
   }
@@ -356,6 +416,59 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
       title: 'Общие фильтры',
       child: Column(
         children: [
+          // Фильтр по категориям
+          CategoryFilterWidget(
+            categoryType: _getCategoryType(_currentFilter.entityType),
+            selectedCategories: _selectedCategories,
+            onSelect: (category) {
+              setState(() {
+                if (!_selectedCategories.any((c) => c.id == category.id)) {
+                  _selectedCategories.add(category);
+                }
+              });
+            },
+            onRemove: (category) {
+              setState(() {
+                _selectedCategories.removeWhere((c) => c.id == category.id);
+              });
+            },
+            onClearAll: () {
+              setState(() {
+                _selectedCategories.clear();
+              });
+            },
+            searchPlaceholder: 'Выберите категории для фильтрации',
+            height: 56,
+          ),
+          const SizedBox(height: 16),
+
+          // Фильтр по тегам
+          TagFilterWidget(
+            tagType: _getTagType(_currentFilter.entityType),
+            selectedTags: _selectedTags,
+            onTagSelect: (tag) {
+              setState(() {
+                if (!_selectedTags.any((t) => t.id == tag.id)) {
+                  _selectedTags.add(tag);
+                }
+              });
+            },
+            onTagRemove: (tag) {
+              setState(() {
+                _selectedTags.removeWhere((t) => t.id == tag.id);
+              });
+            },
+            onClearAll: () {
+              setState(() {
+                _selectedTags.clear();
+              });
+            },
+            searchPlaceholder: 'Выберите теги для фильтрации',
+            height: 56,
+          ),
+          const SizedBox(height: 16),
+
+          // Остальные общие фильтры
           CheckboxListTile(
             title: const Text('Включать архивированные'),
             value: _getIsArchived(),
@@ -377,6 +490,32 @@ class _UniversalFilterModalState extends ConsumerState<UniversalFilterModal> {
         ],
       ),
     );
+  }
+
+  CategoryType _getCategoryType(UniversalEntityType entityType) {
+    switch (entityType) {
+      case UniversalEntityType.password:
+        return CategoryType.password;
+      case UniversalEntityType.note:
+        return CategoryType.notes;
+      case UniversalEntityType.otp:
+        return CategoryType.totp;
+      case UniversalEntityType.attachment:
+        return CategoryType.mixed; // Или создать отдельный тип для вложений
+    }
+  }
+
+  TagType _getTagType(UniversalEntityType entityType) {
+    switch (entityType) {
+      case UniversalEntityType.password:
+        return TagType.password;
+      case UniversalEntityType.note:
+        return TagType.notes;
+      case UniversalEntityType.otp:
+        return TagType.totp;
+      case UniversalEntityType.attachment:
+        return TagType.mixed; // Или создать отдельный тип для вложений
+    }
   }
 
   Widget _buildSortingSection() {
