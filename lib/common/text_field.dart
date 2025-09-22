@@ -209,6 +209,7 @@ class PrimaryTextField extends StatelessWidget {
       scrollPhysics: scrollPhysics,
       scrollPadding: scrollPadding,
       expands: expands,
+      
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
 import 'package:hoplixi/common/text_field.dart';
 
@@ -22,11 +23,11 @@ class BaseFilterSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Общие фильтры для $entityTypeName',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
+        // Text(
+        //   'Общие фильтры для $entityTypeName',
+        //   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        // ),
+        // const SizedBox(height: 16),
 
         // Булевые фильтры
         CheckboxListTile(
@@ -122,40 +123,51 @@ class BaseFilterSection extends ConsumerWidget {
         const SizedBox(height: 16),
 
         // Пагинация
-        const Text('Пагинация', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: PrimaryTextField(
-                label: 'Лимит',
-                controller: TextEditingController(
-                  text: filter.limit?.toString() ?? '',
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  final intValue = int.tryParse(value);
-                  onFilterChanged(filter.copyWith(limit: intValue));
-                },
+        Visibility(
+          visible: MainConstants.isProduction == false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Пагинация',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: PrimaryTextField(
-                label: 'Смещение',
-                controller: TextEditingController(
-                  text: filter.offset?.toString() ?? '',
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  final intValue = int.tryParse(value);
-                  onFilterChanged(filter.copyWith(offset: intValue));
-                },
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: PrimaryTextField(
+                      label: 'Лимит',
+                      controller: TextEditingController(
+                        text: filter.limit?.toString() ?? '',
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        final intValue = int.tryParse(value);
+                        onFilterChanged(filter.copyWith(limit: intValue));
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: PrimaryTextField(
+                      label: 'Смещение',
+                      controller: TextEditingController(
+                        text: filter.offset?.toString() ?? '',
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        final intValue = int.tryParse(value);
+                        onFilterChanged(filter.copyWith(offset: intValue));
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
 
         // Направление сортировки
         const Text(

@@ -192,10 +192,10 @@ class _FilterModalState extends ConsumerState<FilterModal> {
 
     return Dialog.fullscreen(
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.9,
-        height: MediaQuery.of(context).size.height * 0.8,
-        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 700),
-        padding: const EdgeInsets.all(24),
+        // width: MediaQuery.of(context).size.width * 0.9,
+        // height: MediaQuery.of(context).size.height * 0.8,
+        // constraints: const BoxConstraints(maxWidth: 800, maxHeight: 700),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -245,7 +245,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
             ),
 
             // Кнопки действий
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
             _buildActionButtons(context),
           ],
         ),
@@ -339,7 +339,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
       title: 'Общие фильтры',
       child: BaseFilterSection(
         filter: baseFilter,
-        entityTypeName: entityType.label,
+        entityTypeName: "",
         onFilterChanged: (newFilter) {
           ref.read(baseFilterProvider.notifier).applyFilter(newFilter);
         },
@@ -391,11 +391,11 @@ class _FilterModalState extends ConsumerState<FilterModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
+        // Text(
+        //   title,
+        //   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        // ),
+        // const SizedBox(height: 12),
         child,
       ],
     );
@@ -406,9 +406,11 @@ class _FilterModalState extends ConsumerState<FilterModal> {
       spacing: 12,
       children: [
         Expanded(
-          child: OutlinedButton(
+          child: SmoothButton(
             onPressed: _resetFilters,
-            child: const Text('Сбросить'),
+            label: 'Сбросить',
+            type: SmoothButtonType.text,
+            isFullWidth: true,
           ),
         ),
         Expanded(
