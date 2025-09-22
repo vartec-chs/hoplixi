@@ -28,6 +28,12 @@
 - `NotesFilterSection` - фильтры для заметок
 - `OtpFilterSection` - фильтры для OTP
 
+### Виджеты выбора типа сущности
+
+- `EntityTypeDropdown` - стандартный выпадающий список
+- `EntityTypeCompactDropdown` - компактная версия для AppBar
+- `EntityTypeChips` - чипы для быстрого переключения
+
 ## Использование
 
 ### Основное использование
@@ -47,6 +53,49 @@ void _openFilterModal() {
     ),
   );
 }
+```
+
+### Выбор типа сущности
+
+#### EntityTypeDropdown - стандартный выпадающий список
+
+```dart
+EntityTypeDropdown(
+  onEntityTypeChanged: (entityType) {
+    print('Выбран тип: ${entityType.label}');
+  },
+  decoration: InputDecoration(
+    labelText: 'Тип сущности',
+    border: OutlineInputBorder(),
+  ),
+)
+```
+
+#### EntityTypeCompactDropdown - компактная версия
+
+```dart
+AppBar(
+  title: const Text('Мой экран'),
+  actions: [
+    EntityTypeCompactDropdown(
+      onEntityTypeChanged: (entityType) {
+        // Обработка изменения типа
+      },
+    ),
+  ],
+)
+```
+
+#### EntityTypeChips - чипы для переключения
+
+```dart
+EntityTypeChips(
+  onEntityTypeChanged: (entityType) {
+    print('Переключено на: ${entityType.label}');
+  },
+  showIcons: true,
+  selectedColor: Colors.blue,
+)
 ```
 
 ### Управление типом сущности
@@ -171,3 +220,92 @@ FilterModal включает подробное логирование:
 - Ошибки и исключения
 
 Используйте `logDebug`, `logInfo`, `logError` для отслеживания работы компонента.
+
+## EntityTypeDropdown - Выбор типа сущности
+
+Виджет `EntityTypeDropdown` предоставляет несколько способов выбора типа сущности с интеграцией в систему провайдеров.
+
+### EntityTypeDropdown
+
+Стандартный выпадающий список на основе `DropdownButtonFormField`.
+
+**Особенности:**
+- Полная интеграция с `entityTypeControllerProvider`
+- Автоматическая обработка недоступных типов
+- Кастомизируемая декорация и стили
+- Валидация и обратные вызовы
+
+**Параметры:**
+- `onEntityTypeChanged` - callback при изменении типа
+- `decoration` - декорация для DropdownButtonFormField
+- `enabled` - включен ли dropdown
+- `hint` - подсказка при отсутствии выбора
+
+### EntityTypeCompactDropdown
+
+Компактная версия для использования в AppBar или тулбарах.
+
+**Особенности:**
+- Использует `PopupMenuButton` для компактности
+- Подходит для ограниченного пространства
+- Показывает иконку и текст текущего типа
+
+### EntityTypeChips
+
+Виджет с чипами для быстрого переключения между типами.
+
+**Особенности:**
+- Использует `ChoiceChip` для каждого типа
+- Визуально показывает текущий выбор
+- Поддержка иконок и кастомных цветов
+- Горизонтальная прокрутка при необходимости
+
+### Примеры интеграции
+
+```dart
+// В форме
+Column(
+  children: [
+    EntityTypeDropdown(
+      onEntityTypeChanged: (type) => setState(() => selectedType = type),
+    ),
+    const SizedBox(height: 16),
+    // Другие поля формы
+  ],
+)
+
+// В AppBar
+AppBar(
+  title: const Text('Управление'),
+  actions: [
+    Padding(
+      padding: const EdgeInsets.only(right: 16),
+      child: EntityTypeCompactDropdown(),
+    ),
+  ],
+)
+
+// В панели инструментов
+Container(
+  padding: const EdgeInsets.all(16),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text('Выберите тип:'),
+      const SizedBox(height: 8),
+      EntityTypeChips(
+        selectedColor: Theme.of(context).colorScheme.primary,
+      ),
+    ],
+  ),
+)
+```
+
+### Логирование и отладка
+
+Все виджеты включают подробное логирование:
+- Изменения типа сущности
+- Обработка недоступных типов
+- Ошибки валидации
+
+Используйте `logDebug`, `logInfo`, `logError` для отслеживания работы виджетов.

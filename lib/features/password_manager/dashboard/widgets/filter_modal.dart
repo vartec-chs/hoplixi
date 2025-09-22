@@ -190,7 +190,7 @@ class _FilterModalState extends ConsumerState<FilterModal> {
   Widget build(BuildContext context) {
     final currentEntityType = ref.watch(currentEntityTypeProvider);
 
-    return Dialog(
+    return Dialog.fullscreen(
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
         height: MediaQuery.of(context).size.height * 0.8,

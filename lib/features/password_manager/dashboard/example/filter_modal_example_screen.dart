@@ -8,6 +8,7 @@ import '../models/entety_type.dart';
 import '../providers/entety_type_provider.dart';
 import '../providers/filter_providers.dart';
 import '../widgets/filter_modal.dart';
+import '../widgets/entity_type_dropdown.dart';
 
 /// Демонстрационный экран для FilterModal
 /// Показывает как использовать FilterModal с провайдерами типа сущности и фильтров
@@ -47,8 +48,12 @@ class FilterModalExampleScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Селектор типа сущности
-            _buildEntityTypeSelector(context, ref, currentEntityType),
-            const SizedBox(height: 24),
+            EntityTypeDropdown(
+              onEntityTypeChanged: (entityType) {
+                logInfo('Тип сущности изменен: ${entityType.label}');
+              },
+            ),
+            const SizedBox(height: 16),
 
             // Кнопка открытия фильтра
             Center(
@@ -67,48 +72,6 @@ class FilterModalExampleScreen extends ConsumerWidget {
               context,
               baseFilter,
               specificFilterInfo,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEntityTypeSelector(
-    BuildContext context,
-    WidgetRef ref,
-    EntityType currentEntityType,
-  ) {
-    final availableTypes = ref.watch(availableEntityTypesProvider);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Тип сущности',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              children: availableTypes.map((type) {
-                final isSelected = type == currentEntityType;
-                return ChoiceChip(
-                  label: Text(type.label),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      ref
-                          .read(entityTypeControllerProvider.notifier)
-                          .changeEntityType(type);
-                      logInfo('Изменен тип сущности на: ${type.label}');
-                    }
-                  },
-                );
-              }).toList(),
             ),
           ],
         ),

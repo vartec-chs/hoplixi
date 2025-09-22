@@ -10,6 +10,7 @@ export 'providers/filter_providers.dart';
 
 // Виджеты
 export 'widgets/filter_modal.dart';
+export 'widgets/entity_type_dropdown.dart';
 
 // Секции фильтров
 export 'widgets/filter_sections/filter_sections.dart';
