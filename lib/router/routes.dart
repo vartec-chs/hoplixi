@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
+import 'package:hoplixi/features/password_manager/dashboard/example/filter_modal_example_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard_old/dashboard.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_manager_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard_old/features/password_form/password_form_screen.dart';
@@ -42,7 +43,7 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.dashboard,
-    builder: (context, state) => const PasswordManagerScreen(),
+    builder: (context, state) => const FilterModalExampleScreen(),
   ),
   // GoRoute(
   //   path: AppRoutes.passwordManager,
