@@ -4,7 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list/passwords_list_controller.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/passwords_list/passwords_list_controller.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'dart:typed_data';
 import 'dart:convert';

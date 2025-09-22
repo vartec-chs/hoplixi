@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section_controller.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/filter_section/filter_section.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/filter_section/filter_section_controller.dart';
 import 'package:hoplixi/hoplixi_store/models/password_filter.dart';
 
 /// Пример экрана с использованием FilterSection как SliverAppBar

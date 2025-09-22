@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/text_field.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section_controller.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/widgets/filter_modal.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/filter_section/filter_section_controller.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/filter_section/widgets/filter_modal.dart';
 
 /// Виджет секции фильтрации для паролей использующий SliverAppBar
 class FilterSection extends ConsumerStatefulWidget {

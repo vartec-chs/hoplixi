@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list_section/password_card.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/passwords_list_section/password_card.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'passwords_stream_provider.dart';

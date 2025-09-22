@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/filter_section/filter_section.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list/passwords_list_barrel.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/filter_section/filter_section.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/passwords_list/passwords_list_barrel.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'widgets/expandable_fab.dart';
 

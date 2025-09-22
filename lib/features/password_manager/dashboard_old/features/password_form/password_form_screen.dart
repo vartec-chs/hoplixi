@@ -5,7 +5,7 @@ import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_picker/categories_picker.dart';
-import 'package:hoplixi/features/password_manager/dashboard/features/passwords_list/passwords_list_controller.dart';
+import 'package:hoplixi/features/password_manager/dashboard_old/features/passwords_list/passwords_list_controller.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_picker/tags_picker.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'password_form_state.dart';
