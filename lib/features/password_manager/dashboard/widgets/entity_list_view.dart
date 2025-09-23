@@ -6,6 +6,7 @@ import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.d
 import 'package:hoplixi/features/password_manager/dashboard/providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/paginated_passwords_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/password_card.dart';
+import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_action_modal.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
 
@@ -81,6 +82,7 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
         onPasswordFavoriteToggle: _onPasswordFavoriteToggle,
         onPasswordEdit: _onPasswordEdit,
         onPasswordDelete: _onPasswordDelete,
+        onPasswordLongPress: _onPasswordLongPress,
       ),
     );
   }
@@ -116,6 +118,17 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
       ref.read(paginatedPasswordsProvider.notifier).deletePassword(password.id);
     }
   }
+
+  void _onPasswordLongPress(CardPasswordDto password) {
+    logInfo('EntityListView: Долгое нажатие на пароль ${password.id}');
+    EntityActionModalHelper.showPasswordActions(
+      context,
+      passwordName: password.name,
+      loginOrEmail: password.login ?? password.email ?? 'Нет данных',
+      onEdit: () => _onPasswordEdit(password),
+      onDelete: () => _onPasswordDelete(password),
+    );
+  }
 }
 
 /// Виджет списка паролей как Sliver
@@ -125,6 +138,7 @@ class _PasswordsSliverList extends StatelessWidget {
   final Function(CardPasswordDto) onPasswordFavoriteToggle;
   final Function(CardPasswordDto) onPasswordEdit;
   final Function(CardPasswordDto) onPasswordDelete;
+  final Function(CardPasswordDto) onPasswordLongPress;
 
   const _PasswordsSliverList({
     required this.state,
@@ -132,6 +146,7 @@ class _PasswordsSliverList extends StatelessWidget {
     required this.onPasswordFavoriteToggle,
     required this.onPasswordEdit,
     required this.onPasswordDelete,
+    required this.onPasswordLongPress,
   });
 
   @override
@@ -187,6 +202,7 @@ class _PasswordsSliverList extends StatelessWidget {
               onFavoriteToggle: () => onPasswordFavoriteToggle(password),
               onEdit: () => onPasswordEdit(password),
               onDelete: () => onPasswordDelete(password),
+              onLongPress: () => onPasswordLongPress(password),
             ),
           );
         },

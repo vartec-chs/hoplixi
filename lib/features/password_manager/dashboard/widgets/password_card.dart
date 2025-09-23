@@ -5,14 +5,12 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 
-
-
-
 class PasswordCard extends StatefulWidget {
   final CardPasswordDto password;
   final VoidCallback onFavoriteToggle;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onLongPress;
 
   const PasswordCard({
     super.key,
@@ -20,6 +18,7 @@ class PasswordCard extends StatefulWidget {
     required this.onFavoriteToggle,
     required this.onEdit,
     required this.onDelete,
+    this.onLongPress,
   });
 
   @override
@@ -99,6 +98,7 @@ class _PasswordCardState extends State<PasswordCard>
         color: Colors.transparent,
         child: InkWell(
           onTap: _toggleExpanded,
+          onLongPress: widget.onLongPress,
           borderRadius: BorderRadius.circular(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
