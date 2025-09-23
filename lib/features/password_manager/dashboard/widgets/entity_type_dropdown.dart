@@ -81,7 +81,7 @@ class EntityTypeDropdown extends ConsumerWidget {
     // Если нет доступных типов, показываем disabled dropdown
     if (availableTypes.isEmpty) {
       return DropdownButtonFormField<EntityType>(
-        value: null,
+        initialValue: null,
         items: const [],
         onChanged: null,
         decoration: (decoration ?? const InputDecoration()).copyWith(
@@ -103,7 +103,7 @@ class EntityTypeDropdown extends ConsumerWidget {
     }
 
     return DropdownButtonFormField<EntityType>(
-      value: availableTypes.contains(currentEntityType)
+      initialValue: availableTypes.contains(currentEntityType)
           ? currentEntityType
           : null,
       items: availableTypes.map((entityType) {
@@ -218,13 +218,13 @@ class EntityTypeCompactDropdown extends ConsumerWidget {
       menuPadding: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       style: ButtonStyle(
-        textStyle: MaterialStateProperty.all(
+        textStyle: WidgetStateProperty.all(
           textStyle ?? Theme.of(context).textTheme.bodyMedium,
         ),
-        padding: MaterialStateProperty.all(
+        padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
-        shape: MaterialStateProperty.all(
+        shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),

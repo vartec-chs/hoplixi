@@ -366,7 +366,7 @@ class _UniversalFilterSectionState extends ConsumerState<UniversalFilterSection>
                   indicatorAnimation: TabIndicatorAnimation.elastic,
 
                   dividerColor: Colors.transparent,
-                  overlayColor: MaterialStateProperty.all(
+                  overlayColor: WidgetStateProperty.all(
                     theme.colorScheme.secondary.withValues(alpha: 0.6),
                   ),
                   physics: const BouncingScrollPhysics(),

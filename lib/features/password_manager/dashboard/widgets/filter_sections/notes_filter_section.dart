@@ -244,7 +244,7 @@ class _NotesFilterSectionState extends State<NotesFilterSection> {
             context,
             labelText: 'Поле сортировки',
           ),
-          value: widget.filter.sortField,
+          initialValue: widget.filter.sortField,
           items: NotesSortField.values.map((field) {
             return DropdownMenuItem(
               value: field,

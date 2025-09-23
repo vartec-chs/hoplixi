@@ -42,7 +42,7 @@ class OtpFilterSection extends ConsumerWidget {
             labelText: 'Тип OTP',
             border: OutlineInputBorder(),
           ),
-          value: filter.type,
+          initialValue: filter.type,
           items: [
             const DropdownMenuItem(value: null, child: Text('Все типы')),
             ...OtpType.values.map(
@@ -98,7 +98,7 @@ class OtpFilterSection extends ConsumerWidget {
             labelText: 'Количество цифр',
             border: OutlineInputBorder(),
           ),
-          value: filter.digits,
+          initialValue: filter.digits,
           items: const [
             DropdownMenuItem(value: null, child: Text('Любое количество')),
             DropdownMenuItem(value: 6, child: Text('6 цифр')),

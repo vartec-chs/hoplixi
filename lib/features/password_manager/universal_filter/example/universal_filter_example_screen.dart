@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/universal_filter_barrel.dart';
-import 'package:hoplixi/features/password_manager/universal_filter/widgets/universal_filter_section.dart';
-import 'package:hoplixi/features/password_manager/universal_filter/widgets/universal_records_list.dart';
 
 /// Экран-пример использования универсального фильтра
 /// Демонстрирует интеграцию FilterSection и RecordsList с bottom navigation

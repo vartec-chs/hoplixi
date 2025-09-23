@@ -225,7 +225,7 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
 
       // Заголовок в свернутом состоянии
       title: Text(
-        '${currentEntityType.label}',
+        currentEntityType.label,
         style: theme.textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.w600,
         ),

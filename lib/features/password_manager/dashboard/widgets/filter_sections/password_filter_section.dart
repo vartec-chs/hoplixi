@@ -189,7 +189,7 @@ class _PasswordFilterSectionState extends State<PasswordFilterSection> {
             context,
             labelText: 'Поле сортировки',
           ),
-          value: widget.filter.sortField,
+          initialValue: widget.filter.sortField,
           items: PasswordSortField.values.map((field) {
             return DropdownMenuItem(
               value: field,

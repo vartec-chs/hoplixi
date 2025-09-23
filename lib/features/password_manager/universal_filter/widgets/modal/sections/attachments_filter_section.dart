@@ -94,7 +94,7 @@ class AttachmentsFilterSection extends ConsumerWidget {
             labelText: 'Тип прикрепления',
             border: OutlineInputBorder(),
           ),
-          value: filter.attachedToType,
+          initialValue: filter.attachedToType,
           items: [
             const DropdownMenuItem(value: null, child: Text('Все типы')),
             ...AttachmentType.values.map(

@@ -361,13 +361,16 @@ class _DashboardSliverAppBarExampleScreenState
     if (baseFilter.isFavorite != null) count++;
     if (baseFilter.isArchived != null) count++;
     if (baseFilter.hasNotes != null) count++;
-    if (baseFilter.createdAfter != null || baseFilter.createdBefore != null)
+    if (baseFilter.createdAfter != null || baseFilter.createdBefore != null) {
       count++;
-    if (baseFilter.modifiedAfter != null || baseFilter.modifiedBefore != null)
+    }
+    if (baseFilter.modifiedAfter != null || baseFilter.modifiedBefore != null) {
       count++;
+    }
     if (baseFilter.lastAccessedAfter != null ||
-        baseFilter.lastAccessedBefore != null)
+        baseFilter.lastAccessedBefore != null) {
       count++;
+    }
     return count;
   }
 

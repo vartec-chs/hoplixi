@@ -73,7 +73,7 @@ class _OtpFilterSectionState extends State<OtpFilterSection> {
         const SizedBox(height: 8),
         DropdownButtonFormField<OtpType>(
           decoration: primaryInputDecoration(context, labelText: 'Тип OTP'),
-          value: widget.filter.type,
+          initialValue: widget.filter.type,
           items: [
             const DropdownMenuItem<OtpType>(
               value: null,
@@ -168,7 +168,7 @@ class _OtpFilterSectionState extends State<OtpFilterSection> {
             context,
             labelText: 'Количество цифр в коде',
           ),
-          value: widget.filter.digits,
+          initialValue: widget.filter.digits,
           items: [
             const DropdownMenuItem<int>(
               value: null,
@@ -270,7 +270,7 @@ class _OtpFilterSectionState extends State<OtpFilterSection> {
             context,
             labelText: 'Поле сортировки',
           ),
-          value: widget.filter.sortField,
+          initialValue: widget.filter.sortField,
           items: OtpSortField.values.map((field) {
             return DropdownMenuItem(
               value: field,

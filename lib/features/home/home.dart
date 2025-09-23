@@ -407,8 +407,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
       ),
       actions: [
         Visibility(
-          child: const ThemeSwitcher(size: 24),
           visible: UniversalPlatform.isMobile,
+          child: const ThemeSwitcher(size: 24),
         ),
         IconButton(
           icon: const Icon(Icons.notifications_outlined),

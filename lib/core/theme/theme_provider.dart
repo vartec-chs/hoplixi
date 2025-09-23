@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/app_preferences/index.dart';
 
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 final themeProvider = AsyncNotifierProvider<ThemeProvider, ThemeMode>(
   ThemeProvider.new,
