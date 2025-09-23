@@ -266,11 +266,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   void _onCreatePassword() {
     logInfo('DashboardScreen: Создание нового пароля');
-    // TODO: Реализовать навигацию к экрану создания пароля
-    // context.go('/passwords/create');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Создание пароля - в разработке')),
-    );
+    context.push(AppRoutes.passwordForm);
   }
 
   void _onCreateCategory() {
