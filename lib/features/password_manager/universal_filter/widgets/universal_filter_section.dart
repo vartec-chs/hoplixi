@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/universal_filter_barrel.dart';
-import 'package:hoplixi/features/password_manager/universal_filter/widgets/universal_filter_modal.dart';
 
 /// Универсальный виджет секции фильтрации для любых типов записей
 /// Использует SliverAppBar для создания коллапсирующегося интерфейса

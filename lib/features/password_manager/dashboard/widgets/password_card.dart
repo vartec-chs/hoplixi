@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+import 'package:hoplixi/hoplixi_store/providers.dart';
 
-class PasswordCard extends StatefulWidget {
+class PasswordCard extends ConsumerStatefulWidget {
   final CardPasswordDto password;
   final VoidCallback onFavoriteToggle;
   final VoidCallback onEdit;
@@ -22,10 +23,10 @@ class PasswordCard extends StatefulWidget {
   });
 
   @override
-  State<PasswordCard> createState() => _PasswordCardState();
+  ConsumerState<PasswordCard> createState() => _PasswordCardState();
 }
 
-class _PasswordCardState extends State<PasswordCard>
+class _PasswordCardState extends ConsumerState<PasswordCard>
     with SingleTickerProviderStateMixin {
   bool _isExpanded = false;
   late final AnimationController _animationController;
@@ -61,17 +62,93 @@ class _PasswordCardState extends State<PasswordCard>
     });
   }
 
-  Future<void> _copyToClipboard(String text, String label) async {
+  Future<void> _copyPasswordToClipboard() async {
     try {
       if (!mounted) return;
 
-      if (text.isEmpty) {
-        return ToastHelper.info(title: 'Пусто', description: label);
+      final result = await ref
+          .read(passwordsServiceProvider)
+          .getPasswordById(widget.password.id);
+      if (result.success && result.data != null) {
+        final password = result.data!;
+        await Clipboard.setData(ClipboardData(text: password));
+        ToastHelper.success(
+          title: 'Пароль скопирован в буфер',
+         
+        );
+      } else if (result.data == null) {
+        ToastHelper.info(title: 'Пусто', description: 'Пароль не указан');
+      } else {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Не удалось получить пароль',
+        );
       }
-      await Clipboard.setData(ClipboardData(text: text));
-      ToastHelper.success(title: 'Копирование в буфер', description: label);
     } catch (e, s) {
-      logError('Ошибка копирования в буфер', error: e, stackTrace: s);
+      logError('Ошибка копирования пароля в буфер', error: e, stackTrace: s);
+      if (!mounted) return;
+      ToastHelper.error(title: 'Ошибка копирования', description: e.toString());
+    }
+  }
+
+  Future<void> _copyUrlToClipboard() async {
+    try {
+      if (!mounted) return;
+
+      final result = await ref
+          .read(passwordsServiceProvider)
+          .getPasswordUrlById(widget.password.id);
+      if (result.success && result.data != null) {
+        final url = result.data!;
+        if (url.isEmpty) {
+          ToastHelper.info(title: 'Пусто', description: 'URL не указан');
+          return;
+        }
+        await Clipboard.setData(ClipboardData(text: url));
+        ToastHelper.success(title: 'URL скопирован в буфер');
+      } else if (result.data == null) {
+        ToastHelper.info(title: 'Пусто', description: 'URL не указан');
+      } else {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Не удалось получить URL',
+        );
+      }
+    } catch (e, s) {
+      logError('Ошибка копирования URL в буфер', error: e, stackTrace: s);
+      if (!mounted) return;
+      ToastHelper.error(title: 'Ошибка копирования', description: e.toString());
+    }
+  }
+
+  Future<void> _copyLoginToClipboard() async {
+    try {
+      if (!mounted) return;
+
+      final result = await ref
+          .read(passwordsServiceProvider)
+          .getPasswordLoginOrEmailById(widget.password.id);
+      if (result.success && result.data != null) {
+        final loginOrEmail = result.data!;
+        if (loginOrEmail.isEmpty) {
+          ToastHelper.info(
+            title: 'Пусто',
+            description: 'Логин/Email не указан',
+          );
+          return;
+        }
+        await Clipboard.setData(ClipboardData(text: loginOrEmail));
+        ToastHelper.success(title: 'Логин скопирован в буфер');
+      } else if (result.data == null) {
+        ToastHelper.info(title: 'Пусто', description: 'Логин/Email не указан');
+      } else {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Не удалось получить логин',
+        );
+      }
+    } catch (e, s) {
+      logError('Ошибка копирования логина в буфер', error: e, stackTrace: s);
       if (!mounted) return;
       ToastHelper.error(title: 'Ошибка копирования', description: e.toString());
     }
@@ -261,11 +338,7 @@ class _PasswordCardState extends State<PasswordCard>
                                 child: _ActionButton(
                                   icon: Icons.link,
                                   label: 'URL',
-                                  onPressed: () => _copyToClipboard(
-                                    // предполагаем что в DTO есть поле url
-                                    "",
-                                    'URL',
-                                  ),
+                                  onPressed: _copyUrlToClipboard,
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -273,8 +346,7 @@ class _PasswordCardState extends State<PasswordCard>
                                 child: _ActionButton(
                                   icon: Icons.person,
                                   label: 'Логин',
-                                  onPressed: () =>
-                                      _copyToClipboard("", 'Логин'),
+                                  onPressed: _copyLoginToClipboard,
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -282,12 +354,7 @@ class _PasswordCardState extends State<PasswordCard>
                                 child: _ActionButton(
                                   icon: Icons.key,
                                   label: 'Пароль',
-                                  onPressed: () => _copyToClipboard(
-                                    // предполагаем что в DTO есть поле password
-                                    "",
-
-                                    'Пароль',
-                                  ),
+                                  onPressed: _copyPasswordToClipboard,
                                 ),
                               ),
                             ],

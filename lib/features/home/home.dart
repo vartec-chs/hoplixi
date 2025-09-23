@@ -7,8 +7,6 @@ import 'package:hoplixi/core/theme/index.dart';
 
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/common/button.dart';
-import 'package:hoplixi/core/constants/main_constants.dart';
-import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'home_controller.dart';
 import 'widgets/index.dart';
