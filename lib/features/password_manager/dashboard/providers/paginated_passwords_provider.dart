@@ -202,6 +202,66 @@ class PaginatedPasswordsNotifier
     state = await AsyncValue.guard(_loadInitialData);
   }
 
+  /// Переключение избранного состояния пароля с оптимистичным обновлением UI
+  Future<void> toggleFavorite(String passwordId) async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    try {
+      // Находим пароль в текущем списке
+      final passwordIndex = currentState.passwords.indexWhere(
+        (p) => p.id == passwordId,
+      );
+      if (passwordIndex == -1) return;
+
+      final password = currentState.passwords[passwordIndex];
+      final newFavoriteState = !password.isFavorite;
+
+      logDebug(
+        'PaginatedPasswordsNotifier: Переключение избранного для пароля $passwordId: ${password.isFavorite} -> $newFavoriteState',
+      );
+
+      // Оптимистично обновляем UI
+      final updatedPasswords = [...currentState.passwords];
+      updatedPasswords[passwordIndex] = password.copyWith(
+        isFavorite: newFavoriteState,
+      );
+
+      state = AsyncValue.data(
+        currentState.copyWith(passwords: updatedPasswords),
+      );
+
+      // Обновляем в базе данных
+      final service = ref.read(passwordsServiceProvider);
+      final result = await service.updatePassword(
+        UpdatePasswordDto(id: passwordId, isFavorite: newFavoriteState),
+      );
+
+      if (!result.success) {
+        // Откатываем изменения при ошибке
+        updatedPasswords[passwordIndex] = password;
+        state = AsyncValue.data(
+          currentState.copyWith(passwords: updatedPasswords),
+        );
+        logError(
+          'PaginatedPasswordsNotifier: Ошибка при обновлении избранного: ${result.message}',
+        );
+      } else {
+        logDebug(
+          'PaginatedPasswordsNotifier: Избранное успешно обновлено для пароля $passwordId',
+        );
+      }
+    } catch (e, stackTrace) {
+      // Перезагружаем список при критической ошибке
+      await refresh();
+      logError(
+        'PaginatedPasswordsNotifier: Ошибка при переключении избранного',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   /// Сбрасывает состояние и загружает данные заново
   void _resetAndLoad() {
     logDebug('PaginatedPasswordsNotifier: Сброс и перезагрузка');
