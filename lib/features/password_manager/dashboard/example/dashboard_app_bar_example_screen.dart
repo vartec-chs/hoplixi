@@ -5,21 +5,60 @@ import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.d
 import 'package:hoplixi/features/password_manager/dashboard/providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/base_filter_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_tabs_provider.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/paginated_passwords_provider.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/dashboard_app_bar.dart';
+import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_list_view.dart';
 
 /// Демонстрационный экран для DashboardSliverAppBar
 /// Показывает полнофункциональный SliverAppBar с фильтрацией и поиском
-class DashboardSliverAppBarExampleScreen extends ConsumerWidget {
+class DashboardSliverAppBarExampleScreen extends ConsumerStatefulWidget {
   const DashboardSliverAppBarExampleScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardSliverAppBarExampleScreen> createState() =>
+      _DashboardSliverAppBarExampleScreenState();
+}
+
+class _DashboardSliverAppBarExampleScreenState
+    extends ConsumerState<DashboardSliverAppBarExampleScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final entityType = ref.read(currentEntityTypeProvider);
+
+    // Пагинация только для паролей пока что
+    if (entityType != EntityType.password) return;
+
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      // Загружаем больше данных когда до конца остается 200 пикселей
+      ref.read(paginatedPasswordsProvider.notifier).loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentEntityType = ref.watch(currentEntityTypeProvider);
     final baseFilter = ref.watch(baseFilterProvider);
     final currentTab = ref.watch(filterTabsControllerProvider);
+    final lastRefresh = ref.watch(lastDataRefreshProvider);
 
     return Scaffold(
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           // Полнофункциональный SliverAppBar
           DashboardSliverAppBar(
@@ -126,6 +165,13 @@ class DashboardSliverAppBarExampleScreen extends ConsumerWidget {
                         _getActiveFiltersCount(baseFilter).toString(),
                         icon: Icons.filter_list,
                       ),
+                      const SizedBox(height: 8),
+                      _buildInfoSection(
+                        context,
+                        'Последнее обновление',
+                        _formatLastRefresh(lastRefresh),
+                        icon: Icons.update,
+                      ),
                     ],
                   ),
                 ),
@@ -133,48 +179,8 @@ class DashboardSliverAppBarExampleScreen extends ConsumerWidget {
             ),
           ),
 
-          // Контент страницы - список элементов для демонстрации скроллинга
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    title: Text('Элемент ${index + 1}'),
-                    subtitle: Text(
-                      'Описание элемента ${index + 1} для демонстрации',
-                    ),
-                    trailing: Icon(
-                      _getEntityIcon(currentEntityType),
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    onTap: () {
-                      logInfo(
-                        'DashboardSliverAppBarExample: Нажат элемент ${index + 1}',
-                      );
-                    },
-                  ),
-                );
-              },
-              childCount: 50, // Много элементов для демонстрации скроллинга
-            ),
-          ),
-
-          // Нижний отступ
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          // Главный контент - список сущностей с пагинацией
+          EntityListView(scrollController: _scrollController),
         ],
       ),
 
@@ -278,14 +284,31 @@ class DashboardSliverAppBarExampleScreen extends ConsumerWidget {
       ),
 
       // Floating Action Button для дополнительных действий
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Демонстрация программного сброса фильтров
-          ref.read(baseFilterProvider.notifier).reset();
-          logInfo('DashboardSliverAppBarExample: Сброс всех фильтров');
-        },
-        tooltip: 'Сбросить фильтры',
-        child: const Icon(Icons.refresh),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () {
+              // Демонстрация триггера обновления данных
+              DataRefreshHelper.refreshPasswords(ref);
+              logInfo(
+                'DashboardSliverAppBarExample: Триггер обновления паролей',
+              );
+            },
+            tooltip: 'Обновить данные',
+            child: const Icon(Icons.sync),
+          ),
+          const SizedBox(height: 16),
+          FloatingActionButton(
+            onPressed: () {
+              // Демонстрация программного сброса фильтров
+              ref.read(baseFilterProvider.notifier).reset();
+              logInfo('DashboardSliverAppBarExample: Сброс всех фильтров');
+            },
+            tooltip: 'Сбросить фильтры',
+            child: const Icon(Icons.refresh),
+          ),
+        ],
       ),
     );
   }
@@ -348,14 +371,18 @@ class DashboardSliverAppBarExampleScreen extends ConsumerWidget {
     return count;
   }
 
-  IconData _getEntityIcon(EntityType entityType) {
-    switch (entityType) {
-      case EntityType.password:
-        return Icons.password;
-      case EntityType.note:
-        return Icons.note;
-      case EntityType.otp:
-        return Icons.security;
+  String _formatLastRefresh(DateTime lastRefresh) {
+    final now = DateTime.now();
+    final difference = now.difference(lastRefresh);
+
+    if (difference.inSeconds < 60) {
+      return '${difference.inSeconds} сек назад';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} мин назад';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} ч назад';
+    } else {
+      return '${difference.inDays} д назад';
     }
   }
 }

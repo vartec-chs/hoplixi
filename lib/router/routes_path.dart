@@ -10,8 +10,11 @@ class AppRoutes {
   static const String passwordManager = '/password-manager';
   static const String baseSettings = '/base-settings';
   static const String categoryManager = '/category-manager';
+  static const String categoryCreate = '/category-manager/create';
   static const String iconManager = '/icon-manager';
+  static const String iconCreate = '/icon-manager/create';
   static const String tagsManager = '/tags-manager';
+  static const String tagCreate = '/tags-manager/create';
   static const String passwordForm = '/password-form';
   static const String universalFilterDemo = '/universal-filter-demo';
 }
