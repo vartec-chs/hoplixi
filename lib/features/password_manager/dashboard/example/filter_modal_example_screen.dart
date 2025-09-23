@@ -7,8 +7,10 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import '../models/entety_type.dart';
 import '../providers/entety_type_provider.dart';
 import '../providers/filter_providers.dart';
+import '../providers/filter_tabs_provider.dart';
 import '../widgets/filter_modal.dart';
 import '../widgets/entity_type_dropdown.dart';
+import '../widgets/filter_tabs.dart';
 
 /// Демонстрационный экран для FilterModal
 /// Показывает как использовать FilterModal с провайдерами типа сущности и фильтров
@@ -19,6 +21,15 @@ class FilterModalExampleScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentEntityType = ref.watch(currentEntityTypeProvider);
     final baseFilter = ref.watch(baseFilterProvider);
+    final currentTab = ref.watch(filterTabsControllerProvider);
+
+    // Слушаем изменения типа сущности для синхронизации вкладок
+    ref.listen(currentEntityTypeProvider, (previous, next) {
+      if (previous != next) {
+        ref.read(filterTabsControllerProvider.notifier).syncWithEntityType();
+        logInfo('Синхронизация FilterTabs с типом сущности: ${next.label}');
+      }
+    });
 
     // Получаем соответствующий специфический фильтр в зависимости от типа
     Widget specificFilterInfo;
@@ -55,6 +66,36 @@ class FilterModalExampleScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
+            // Компонент вкладок фильтров
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Вкладки фильтров',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    FilterTabs(
+                      onTabChanged: (tab) {
+                        logInfo('Изменена вкладка фильтра: ${tab.label}');
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Активная вкладка: ${currentTab.label}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Кнопка открытия фильтра
             Center(
               child: SmoothButton(
@@ -70,6 +111,7 @@ class FilterModalExampleScreen extends ConsumerWidget {
             // Информация о текущих фильтрах
             _buildCurrentFiltersSection(
               context,
+              ref,
               baseFilter,
               specificFilterInfo,
             ),
@@ -81,6 +123,7 @@ class FilterModalExampleScreen extends ConsumerWidget {
 
   Widget _buildCurrentFiltersSection(
     BuildContext context,
+    WidgetRef ref,
     dynamic baseFilter,
     Widget specificFilterInfo,
   ) {
@@ -108,6 +151,8 @@ class FilterModalExampleScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     _buildBaseFilterInfo(baseFilter),
+                    const Divider(),
+                    _buildFilterTabInfo(context, ref),
                   ],
                 ),
               ),
@@ -158,6 +203,50 @@ class FilterModalExampleScreen extends ConsumerWidget {
           _buildInfoRow('Лимит', baseFilter.limit.toString()),
         if (baseFilter.offset != null)
           _buildInfoRow('Смещение', baseFilter.offset.toString()),
+      ],
+    );
+  }
+
+  Widget _buildFilterTabInfo(BuildContext context, WidgetRef ref) {
+    final currentTab = ref.watch(filterTabsControllerProvider);
+    final availableTabs = ref.watch(availableFilterTabsProvider);
+    final currentEntityType = ref.watch(currentEntityTypeProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Информация о вкладках',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        _buildInfoRow('Текущая вкладка', currentTab.label),
+        _buildInfoRow('Тип сущности', currentEntityType.label),
+        _buildInfoRow('Доступные вкладки', '${availableTabs.length}'),
+        _buildInfoRow(
+          'Список доступных',
+          availableTabs.map((tab) => tab.label).join(', '),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              currentTab.icon,
+              size: 16,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Активный фильтр: ${currentTab.label}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

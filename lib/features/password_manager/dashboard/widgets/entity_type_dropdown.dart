@@ -212,6 +212,23 @@ class EntityTypeCompactDropdown extends ConsumerWidget {
     }
 
     return PopupMenuButton<EntityType>(
+      padding: EdgeInsets.all(24),
+      borderRadius: BorderRadius.circular(8),
+      splashRadius: 24,
+      menuPadding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      style: ButtonStyle(
+        textStyle: MaterialStateProperty.all(
+          textStyle ?? Theme.of(context).textTheme.bodyMedium,
+        ),
+        padding: MaterialStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        shape: MaterialStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      tooltip: 'Выберите тип сущности',
       onSelected: (EntityType newType) {
         logInfo(
           'Изменение типа сущности через compact dropdown',
@@ -227,6 +244,7 @@ class EntityTypeCompactDropdown extends ConsumerWidget {
       itemBuilder: (BuildContext context) {
         return availableTypes.map((entityType) {
           return PopupMenuItem<EntityType>(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             value: entityType,
             child: Row(
               children: [
