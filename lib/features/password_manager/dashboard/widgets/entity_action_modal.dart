@@ -30,6 +30,7 @@ class EntityActionModal extends StatefulWidget {
   final IconData entityIcon;
   final List<EntityAction> actions;
   final VoidCallback? onDeleteConfirmed;
+  final bool isMobile;
 
   const EntityActionModal({
     super.key,
@@ -38,6 +39,7 @@ class EntityActionModal extends StatefulWidget {
     required this.entityIcon,
     required this.actions,
     this.onDeleteConfirmed,
+    this.isMobile = true,
   });
 
   @override
@@ -49,6 +51,7 @@ class _EntityActionModalState extends State<EntityActionModal>
   bool _showDeleteConfirmation = false;
   late AnimationController _slideController;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
@@ -61,6 +64,10 @@ class _EntityActionModalState extends State<EntityActionModal>
         .animate(
           CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
         );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
 
     // Запускаем анимацию появления
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -104,18 +111,21 @@ class _EntityActionModalState extends State<EntityActionModal>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (widget.isMobile) {
+      // Мобильная версия - bottom sheet
+      return _buildMobileBottomSheet(theme);
+    } else {
+      // Десктопная версия - центрированная модалка
+      return _buildDesktopModal(theme);
+    }
+  }
+
+  Widget _buildMobileBottomSheet(ThemeData theme) {
     return Material(
+      color: Colors.transparent,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // Затемнение фона
-          // Expanded(
-          //   child: GestureDetector(
-          //     onTap: () => Navigator.of(context).pop(),
-          //     child: Container(color: Colors.black54),
-          //   ),
-          // ),
-
           // Модальное окно
           SlideTransition(
             position: _slideAnimation,
@@ -142,6 +152,46 @@ class _EntityActionModalState extends State<EntityActionModal>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopModal(ThemeData theme) {
+    return Material(
+      color: Colors.black54,
+      child: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Center(
+          child: GestureDetector(
+            onTap: () {}, // Предотвращаем закрытие при клике на модалку
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Container(
+                  margin: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.shadow.withOpacity(0.15),
+                        blurRadius: 30,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _showDeleteConfirmation
+                        ? _buildDeleteConfirmation(theme)
+                        : _buildActionsList(theme),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -380,6 +430,11 @@ class _EntityActionModalState extends State<EntityActionModal>
 
 /// Утилитарный класс для отображения модалки действий
 class EntityActionModalHelper {
+  /// Определяет, является ли устройство мобильным
+  static bool _isMobile(BuildContext context) {
+    return MediaQuery.of(context).size.width < 768;
+  }
+
   /// Показывает модалку с действиями для пароля
   static Future<void> showPasswordActions(
     BuildContext context, {
@@ -388,35 +443,68 @@ class EntityActionModalHelper {
     required VoidCallback onEdit,
     required VoidCallback onDelete,
   }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      enableDrag: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => EntityActionModal(
-        entityTitle: passwordName,
-        entitySubtitle: loginOrEmail,
-        entityIcon: Icons.password,
-        actions: [
-          EntityAction(
-            type: EntityActionType.edit,
-            title: 'Редактировать',
-            subtitle: 'Изменить данные пароля',
-            icon: Icons.edit_outlined,
-            onPressed: onEdit,
-          ),
-          EntityAction(
-            type: EntityActionType.delete,
-            title: 'Удалить',
-            subtitle: 'Безвозвратно удалить пароль',
-            icon: Icons.delete_outline,
-            onPressed: () {}, // Будет обработано в модалке
-          ),
-        ],
-        onDeleteConfirmed: onDelete,
-      ),
-    );
+    final isMobile = _isMobile(context);
+
+    if (isMobile) {
+      return showModalBottomSheet<void>(
+        context: context,
+        useSafeArea: true,
+        enableDrag: true,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => EntityActionModal(
+          entityTitle: passwordName,
+          entitySubtitle: loginOrEmail,
+          entityIcon: Icons.password,
+          isMobile: true,
+          actions: [
+            EntityAction(
+              type: EntityActionType.edit,
+              title: 'Редактировать',
+              subtitle: 'Изменить данные пароля',
+              icon: Icons.edit_outlined,
+              onPressed: onEdit,
+            ),
+            EntityAction(
+              type: EntityActionType.delete,
+              title: 'Удалить',
+              subtitle: 'Безвозвратно удалить пароль',
+              icon: Icons.delete_outline,
+              onPressed: () {}, // Будет обработано в модалке
+            ),
+          ],
+          onDeleteConfirmed: onDelete,
+        ),
+      );
+    } else {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => EntityActionModal(
+          entityTitle: passwordName,
+          entitySubtitle: loginOrEmail,
+          entityIcon: Icons.password,
+          isMobile: false,
+          actions: [
+            EntityAction(
+              type: EntityActionType.edit,
+              title: 'Редактировать',
+              subtitle: 'Изменить данные пароля',
+              icon: Icons.edit_outlined,
+              onPressed: onEdit,
+            ),
+            EntityAction(
+              type: EntityActionType.delete,
+              title: 'Удалить',
+              subtitle: 'Безвозвратно удалить пароль',
+              icon: Icons.delete_outline,
+              onPressed: () {}, // Будет обработано в модалке
+            ),
+          ],
+          onDeleteConfirmed: onDelete,
+        ),
+      );
+    }
   }
 
   /// Показывает модалку с действиями для заметки
@@ -427,33 +515,66 @@ class EntityActionModalHelper {
     required VoidCallback onEdit,
     required VoidCallback onDelete,
   }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => EntityActionModal(
-        entityTitle: noteTitle,
-        entitySubtitle: noteContent,
-        entityIcon: Icons.note,
-        actions: [
-          EntityAction(
-            type: EntityActionType.edit,
-            title: 'Редактировать',
-            subtitle: 'Изменить содержимое заметки',
-            icon: Icons.edit_outlined,
-            onPressed: onEdit,
-          ),
-          EntityAction(
-            type: EntityActionType.delete,
-            title: 'Удалить',
-            subtitle: 'Безвозвратно удалить заметку',
-            icon: Icons.delete_outline,
-            onPressed: () {}, // Будет обработано в модалке
-          ),
-        ],
-        onDeleteConfirmed: onDelete,
-      ),
-    );
+    final isMobile = _isMobile(context);
+
+    if (isMobile) {
+      return showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => EntityActionModal(
+          entityTitle: noteTitle,
+          entitySubtitle: noteContent,
+          entityIcon: Icons.note,
+          isMobile: true,
+          actions: [
+            EntityAction(
+              type: EntityActionType.edit,
+              title: 'Редактировать',
+              subtitle: 'Изменить содержимое заметки',
+              icon: Icons.edit_outlined,
+              onPressed: onEdit,
+            ),
+            EntityAction(
+              type: EntityActionType.delete,
+              title: 'Удалить',
+              subtitle: 'Безвозвратно удалить заметку',
+              icon: Icons.delete_outline,
+              onPressed: () {}, // Будет обработано в модалке
+            ),
+          ],
+          onDeleteConfirmed: onDelete,
+        ),
+      );
+    } else {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => EntityActionModal(
+          entityTitle: noteTitle,
+          entitySubtitle: noteContent,
+          entityIcon: Icons.note,
+          isMobile: false,
+          actions: [
+            EntityAction(
+              type: EntityActionType.edit,
+              title: 'Редактировать',
+              subtitle: 'Изменить содержимое заметки',
+              icon: Icons.edit_outlined,
+              onPressed: onEdit,
+            ),
+            EntityAction(
+              type: EntityActionType.delete,
+              title: 'Удалить',
+              subtitle: 'Безвозвратно удалить заметку',
+              icon: Icons.delete_outline,
+              onPressed: () {}, // Будет обработано в модалке
+            ),
+          ],
+          onDeleteConfirmed: onDelete,
+        ),
+      );
+    }
   }
 
   /// Показывает модалку с действиями для OTP
@@ -464,33 +585,66 @@ class EntityActionModalHelper {
     required VoidCallback onEdit,
     required VoidCallback onDelete,
   }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => EntityActionModal(
-        entityTitle: otpName,
-        entitySubtitle: issuer,
-        entityIcon: Icons.security,
-        actions: [
-          EntityAction(
-            type: EntityActionType.edit,
-            title: 'Редактировать',
-            subtitle: 'Изменить данные OTP',
-            icon: Icons.edit_outlined,
-            onPressed: onEdit,
-          ),
-          EntityAction(
-            type: EntityActionType.delete,
-            title: 'Удалить',
-            subtitle: 'Безвозвратно удалить OTP',
-            icon: Icons.delete_outline,
-            onPressed: () {}, // Будет обработано в модалке
-          ),
-        ],
-        onDeleteConfirmed: onDelete,
-      ),
-    );
+    final isMobile = _isMobile(context);
+
+    if (isMobile) {
+      return showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => EntityActionModal(
+          entityTitle: otpName,
+          entitySubtitle: issuer,
+          entityIcon: Icons.security,
+          isMobile: true,
+          actions: [
+            EntityAction(
+              type: EntityActionType.edit,
+              title: 'Редактировать',
+              subtitle: 'Изменить данные OTP',
+              icon: Icons.edit_outlined,
+              onPressed: onEdit,
+            ),
+            EntityAction(
+              type: EntityActionType.delete,
+              title: 'Удалить',
+              subtitle: 'Безвозвратно удалить OTP',
+              icon: Icons.delete_outline,
+              onPressed: () {}, // Будет обработано в модалке
+            ),
+          ],
+          onDeleteConfirmed: onDelete,
+        ),
+      );
+    } else {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => EntityActionModal(
+          entityTitle: otpName,
+          entitySubtitle: issuer,
+          entityIcon: Icons.security,
+          isMobile: false,
+          actions: [
+            EntityAction(
+              type: EntityActionType.edit,
+              title: 'Редактировать',
+              subtitle: 'Изменить данные OTP',
+              icon: Icons.edit_outlined,
+              onPressed: onEdit,
+            ),
+            EntityAction(
+              type: EntityActionType.delete,
+              title: 'Удалить',
+              subtitle: 'Безвозвратно удалить OTP',
+              icon: Icons.delete_outline,
+              onPressed: () {}, // Будет обработано в модалке
+            ),
+          ],
+          onDeleteConfirmed: onDelete,
+        ),
+      );
+    }
   }
 
   /// Универсальная функция для показа модалки
@@ -502,17 +656,35 @@ class EntityActionModalHelper {
     required List<EntityAction> actions,
     VoidCallback? onDeleteConfirmed,
   }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => EntityActionModal(
-        entityTitle: entityTitle,
-        entitySubtitle: entitySubtitle,
-        entityIcon: entityIcon,
-        actions: actions,
-        onDeleteConfirmed: onDeleteConfirmed,
-      ),
-    );
+    final isMobile = _isMobile(context);
+
+    if (isMobile) {
+      return showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => EntityActionModal(
+          entityTitle: entityTitle,
+          entitySubtitle: entitySubtitle,
+          entityIcon: entityIcon,
+          isMobile: true,
+          actions: actions,
+          onDeleteConfirmed: onDeleteConfirmed,
+        ),
+      );
+    } else {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => EntityActionModal(
+          entityTitle: entityTitle,
+          entitySubtitle: entitySubtitle,
+          entityIcon: entityIcon,
+          isMobile: false,
+          actions: actions,
+          onDeleteConfirmed: onDeleteConfirmed,
+        ),
+      );
+    }
   }
 }
