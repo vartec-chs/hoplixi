@@ -137,6 +137,9 @@ class _FilterTabsState extends ConsumerState<FilterTabs>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isScrollable = isMobile && _currentTabs.length > 3;
+    final tabAlignment = isScrollable ? TabAlignment.center : null;
 
     // Слушаем изменения типа сущности
     ref.listen<EntityType>(currentEntityTypeProvider, (previous, next) {
@@ -167,7 +170,7 @@ class _FilterTabsState extends ConsumerState<FilterTabs>
       ),
       child: TabBar(
         controller: _tabController,
-        isScrollable: _currentTabs.length > 3,
+        isScrollable: isScrollable,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
           color: theme.colorScheme.tertiary,
@@ -185,7 +188,7 @@ class _FilterTabsState extends ConsumerState<FilterTabs>
         physics: const BouncingScrollPhysics(),
         indicatorWeight: 2,
         labelStyle: theme.textTheme.bodyMedium,
-        tabAlignment: _currentTabs.length > 3 ? TabAlignment.center : null,
+        tabAlignment: tabAlignment,
         labelPadding: widget.labelPadding,
         splashBorderRadius: BorderRadius.circular(widget.borderRadius),
         tabs: _currentTabs.map((tab) {
