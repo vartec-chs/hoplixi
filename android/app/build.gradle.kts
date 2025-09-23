@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.hoplixi.app"
+    namespace = "com.example.hoplixi"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
