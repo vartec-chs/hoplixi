@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 import 'package:hoplixi/common/text_field.dart';
 
 /// Секция для настройки специфических фильтров паролей
-class PasswordFilterSection extends ConsumerWidget {
+class PasswordFilterSection extends StatefulWidget {
   final PasswordFilter filter;
   final Function(PasswordFilter) onFilterChanged;
 
@@ -15,7 +14,49 @@ class PasswordFilterSection extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<PasswordFilterSection> createState() => _PasswordFilterSectionState();
+}
+
+class _PasswordFilterSectionState extends State<PasswordFilterSection> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _urlController;
+  late final TextEditingController _usernameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.filter.name ?? '');
+    _urlController = TextEditingController(text: widget.filter.url ?? '');
+    _usernameController = TextEditingController(
+      text: widget.filter.username ?? '',
+    );
+  }
+
+  // @override
+  // void didUpdateWidget(PasswordFilterSection oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
+  //   // Обновляем текст контроллеров при изменении фильтра извне
+  //   if (oldWidget.filter.name != widget.filter.name) {
+  //     _nameController.text = widget.filter.name ?? '';
+  //   }
+  //   if (oldWidget.filter.url != widget.filter.url) {
+  //     _urlController.text = widget.filter.url ?? '';
+  //   }
+  //   if (oldWidget.filter.username != widget.filter.username) {
+  //     _usernameController.text = widget.filter.username ?? '';
+  //   }
+  // }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _urlController.dispose();
+    _usernameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -29,10 +70,12 @@ class PasswordFilterSection extends ConsumerWidget {
         PrimaryTextField(
           label: 'Название',
           hintText: 'Поиск по названию пароля',
-          controller: TextEditingController(text: filter.name ?? ''),
+          controller: _nameController,
           onChanged: (value) {
             final normalizedValue = value.trim().isEmpty ? null : value.trim();
-            onFilterChanged(filter.copyWith(name: normalizedValue));
+            widget.onFilterChanged(
+              widget.filter.copyWith(name: normalizedValue),
+            );
           },
           prefixIcon: const Icon(Icons.text_fields),
         ),
@@ -41,10 +84,12 @@ class PasswordFilterSection extends ConsumerWidget {
         PrimaryTextField(
           label: 'URL',
           hintText: 'Поиск по URL сайта',
-          controller: TextEditingController(text: filter.url ?? ''),
+          controller: _urlController,
           onChanged: (value) {
             final normalizedValue = value.trim().isEmpty ? null : value.trim();
-            onFilterChanged(filter.copyWith(url: normalizedValue));
+            widget.onFilterChanged(
+              widget.filter.copyWith(url: normalizedValue),
+            );
           },
           prefixIcon: const Icon(Icons.link),
           keyboardType: TextInputType.url,
@@ -54,10 +99,12 @@ class PasswordFilterSection extends ConsumerWidget {
         PrimaryTextField(
           label: 'Имя пользователя',
           hintText: 'Поиск по имени пользователя',
-          controller: TextEditingController(text: filter.username ?? ''),
+          controller: _usernameController,
           onChanged: (value) {
             final normalizedValue = value.trim().isEmpty ? null : value.trim();
-            onFilterChanged(filter.copyWith(username: normalizedValue));
+            widget.onFilterChanged(
+              widget.filter.copyWith(username: normalizedValue),
+            );
           },
           prefixIcon: const Icon(Icons.person),
         ),
@@ -70,28 +117,28 @@ class PasswordFilterSection extends ConsumerWidget {
         ),
         CheckboxListTile(
           title: const Text('Есть URL'),
-          value: filter.hasUrl,
+          value: widget.filter.hasUrl,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(hasUrl: value));
+            widget.onFilterChanged(widget.filter.copyWith(hasUrl: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
           title: const Text('Есть имя пользователя'),
-          value: filter.hasUsername,
+          value: widget.filter.hasUsername,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(hasUsername: value));
+            widget.onFilterChanged(widget.filter.copyWith(hasUsername: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
           title: const Text('Есть TOTP'),
-          value: filter.hasTotp,
+          value: widget.filter.hasTotp,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(hasTotp: value));
+            widget.onFilterChanged(widget.filter.copyWith(hasTotp: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
@@ -104,29 +151,31 @@ class PasswordFilterSection extends ConsumerWidget {
         ),
         CheckboxListTile(
           title: const Text('Скомпрометированный'),
-          value: filter.isCompromised,
+          value: widget.filter.isCompromised,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(isCompromised: value));
+            widget.onFilterChanged(
+              widget.filter.copyWith(isCompromised: value),
+            );
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
           title: const Text('Истекший'),
-          value: filter.isExpired,
+          value: widget.filter.isExpired,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(isExpired: value));
+            widget.onFilterChanged(widget.filter.copyWith(isExpired: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
           title: const Text('Часто используемый'),
           subtitle: Text('Более $kFrequentUsedThreshold использований'),
-          value: filter.isFrequent,
+          value: widget.filter.isFrequent,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(isFrequent: value));
+            widget.onFilterChanged(widget.filter.copyWith(isFrequent: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
@@ -140,7 +189,7 @@ class PasswordFilterSection extends ConsumerWidget {
             context,
             labelText: 'Поле сортировки',
           ),
-          value: filter.sortField,
+          value: widget.filter.sortField,
           items: PasswordSortField.values.map((field) {
             return DropdownMenuItem(
               value: field,
@@ -148,7 +197,7 @@ class PasswordFilterSection extends ConsumerWidget {
             );
           }).toList(),
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(sortField: value));
+            widget.onFilterChanged(widget.filter.copyWith(sortField: value));
           },
         ),
       ],

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
 import 'package:hoplixi/common/text_field.dart';
 
 /// Переиспользуемая секция для настройки базовых фильтров
 /// Содержит общие поля для всех типов фильтров
-class BaseFilterSection extends ConsumerWidget {
+class BaseFilterSection extends StatefulWidget {
   final BaseFilter filter;
   final Function(BaseFilter) onFilterChanged;
   final String entityTypeName; // Название типа сущности для UI
@@ -19,12 +18,50 @@ class BaseFilterSection extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<BaseFilterSection> createState() => _BaseFilterSectionState();
+}
+
+class _BaseFilterSectionState extends State<BaseFilterSection> {
+  late final TextEditingController _limitController;
+  late final TextEditingController _offsetController;
+
+  @override
+  void initState() {
+    super.initState();
+    _limitController = TextEditingController(
+      text: widget.filter.limit?.toString() ?? '',
+    );
+    _offsetController = TextEditingController(
+      text: widget.filter.offset?.toString() ?? '',
+    );
+  }
+
+  // @override
+  // void didUpdateWidget(BaseFilterSection oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
+  //   // Обновляем текст контроллеров при изменении фильтра извне
+  //   if (oldWidget.filter.limit != widget.filter.limit) {
+  //     _limitController.text = widget.filter.limit?.toString() ?? '';
+  //   }
+  //   if (oldWidget.filter.offset != widget.filter.offset) {
+  //     _offsetController.text = widget.filter.offset?.toString() ?? '';
+  //   }
+  // }
+
+  @override
+  void dispose() {
+    _limitController.dispose();
+    _offsetController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Text(
-        //   'Общие фильтры для $entityTypeName',
+        //   'Общие фильтры для ${widget.entityTypeName}',
         //   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         // ),
         // const SizedBox(height: 16),
@@ -32,28 +69,28 @@ class BaseFilterSection extends ConsumerWidget {
         // Булевые фильтры
         CheckboxListTile(
           title: const Text('Только избранные'),
-          value: filter.isFavorite,
+          value: widget.filter.isFavorite,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(isFavorite: value));
+            widget.onFilterChanged(widget.filter.copyWith(isFavorite: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
           title: const Text('Только архивированные'),
-          value: filter.isArchived,
+          value: widget.filter.isArchived,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(isArchived: value));
+            widget.onFilterChanged(widget.filter.copyWith(isArchived: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
         CheckboxListTile(
           title: const Text('Только с заметками'),
-          value: filter.hasNotes,
+          value: widget.filter.hasNotes,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(hasNotes: value));
+            widget.onFilterChanged(widget.filter.copyWith(hasNotes: value));
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
@@ -68,15 +105,19 @@ class BaseFilterSection extends ConsumerWidget {
         _buildDateRange(
           context,
           'После',
-          filter.createdAfter,
-          (date) => onFilterChanged(filter.copyWith(createdAfter: date)),
+          widget.filter.createdAfter,
+          (date) => widget.onFilterChanged(
+            widget.filter.copyWith(createdAfter: date),
+          ),
         ),
         const SizedBox(height: 8),
         _buildDateRange(
           context,
           'До',
-          filter.createdBefore,
-          (date) => onFilterChanged(filter.copyWith(createdBefore: date)),
+          widget.filter.createdBefore,
+          (date) => widget.onFilterChanged(
+            widget.filter.copyWith(createdBefore: date),
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -89,15 +130,19 @@ class BaseFilterSection extends ConsumerWidget {
         _buildDateRange(
           context,
           'После',
-          filter.modifiedAfter,
-          (date) => onFilterChanged(filter.copyWith(modifiedAfter: date)),
+          widget.filter.modifiedAfter,
+          (date) => widget.onFilterChanged(
+            widget.filter.copyWith(modifiedAfter: date),
+          ),
         ),
         const SizedBox(height: 8),
         _buildDateRange(
           context,
           'До',
-          filter.modifiedBefore,
-          (date) => onFilterChanged(filter.copyWith(modifiedBefore: date)),
+          widget.filter.modifiedBefore,
+          (date) => widget.onFilterChanged(
+            widget.filter.copyWith(modifiedBefore: date),
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -110,15 +155,19 @@ class BaseFilterSection extends ConsumerWidget {
         _buildDateRange(
           context,
           'После',
-          filter.lastAccessedAfter,
-          (date) => onFilterChanged(filter.copyWith(lastAccessedAfter: date)),
+          widget.filter.lastAccessedAfter,
+          (date) => widget.onFilterChanged(
+            widget.filter.copyWith(lastAccessedAfter: date),
+          ),
         ),
         const SizedBox(height: 8),
         _buildDateRange(
           context,
           'До',
-          filter.lastAccessedBefore,
-          (date) => onFilterChanged(filter.copyWith(lastAccessedBefore: date)),
+          widget.filter.lastAccessedBefore,
+          (date) => widget.onFilterChanged(
+            widget.filter.copyWith(lastAccessedBefore: date),
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -138,13 +187,13 @@ class BaseFilterSection extends ConsumerWidget {
                   Expanded(
                     child: PrimaryTextField(
                       label: 'Лимит',
-                      controller: TextEditingController(
-                        text: filter.limit?.toString() ?? '',
-                      ),
+                      controller: _limitController,
                       keyboardType: TextInputType.number,
                       onChanged: (value) {
                         final intValue = int.tryParse(value);
-                        onFilterChanged(filter.copyWith(limit: intValue));
+                        widget.onFilterChanged(
+                          widget.filter.copyWith(limit: intValue),
+                        );
                       },
                     ),
                   ),
@@ -152,13 +201,13 @@ class BaseFilterSection extends ConsumerWidget {
                   Expanded(
                     child: PrimaryTextField(
                       label: 'Смещение',
-                      controller: TextEditingController(
-                        text: filter.offset?.toString() ?? '',
-                      ),
+                      controller: _offsetController,
                       keyboardType: TextInputType.number,
                       onChanged: (value) {
                         final intValue = int.tryParse(value);
-                        onFilterChanged(filter.copyWith(offset: intValue));
+                        widget.onFilterChanged(
+                          widget.filter.copyWith(offset: intValue),
+                        );
                       },
                     ),
                   ),
@@ -181,10 +230,12 @@ class BaseFilterSection extends ConsumerWidget {
               child: RadioListTile<SortDirection>(
                 title: const Text('По возрастанию'),
                 value: SortDirection.asc,
-                groupValue: filter.sortDirection,
+                groupValue: widget.filter.sortDirection,
                 onChanged: (value) {
                   if (value != null) {
-                    onFilterChanged(filter.copyWith(sortDirection: value));
+                    widget.onFilterChanged(
+                      widget.filter.copyWith(sortDirection: value),
+                    );
                   }
                 },
               ),
@@ -193,10 +244,12 @@ class BaseFilterSection extends ConsumerWidget {
               child: RadioListTile<SortDirection>(
                 title: const Text('По убыванию'),
                 value: SortDirection.desc,
-                groupValue: filter.sortDirection,
+                groupValue: widget.filter.sortDirection,
                 onChanged: (value) {
                   if (value != null) {
-                    onFilterChanged(filter.copyWith(sortDirection: value));
+                    widget.onFilterChanged(
+                      widget.filter.copyWith(sortDirection: value),
+                    );
                   }
                 },
               ),
@@ -218,18 +271,23 @@ class BaseFilterSection extends ConsumerWidget {
         Expanded(child: Text(label)),
         Expanded(
           flex: 2,
-          child: OutlinedButton(
+          child: FilledButton.tonal(
             onPressed: () async {
               final date = await showDatePicker(
                 context: context,
                 initialDate: value ?? DateTime.now(),
                 firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
+                lastDate: DateTime(DateTime.now().year + 1),
+                keyboardType: TextInputType.datetime,
               );
               if (date != null) {
                 onChanged(date);
               }
             },
+            style: FilledButton.styleFrom(
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            ),
             child: Text(
               value != null
                   ? '${value.day}.${value.month}.${value.year}'

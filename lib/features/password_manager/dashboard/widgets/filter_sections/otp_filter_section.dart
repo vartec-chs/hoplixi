@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/otp_filter.dart';
 import 'package:hoplixi/common/text_field.dart';
 
 /// Секция для настройки специфических фильтров OTP
-class OtpFilterSection extends ConsumerWidget {
+class OtpFilterSection extends StatefulWidget {
   final OtpFilter filter;
   final Function(OtpFilter) onFilterChanged;
 
@@ -15,7 +14,51 @@ class OtpFilterSection extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  State<OtpFilterSection> createState() => _OtpFilterSectionState();
+}
+
+class _OtpFilterSectionState extends State<OtpFilterSection> {
+  late final TextEditingController _issuerController;
+  late final TextEditingController _accountNameController;
+  late final TextEditingController _periodController;
+
+  @override
+  void initState() {
+    super.initState();
+    _issuerController = TextEditingController(text: widget.filter.issuer ?? '');
+    _accountNameController = TextEditingController(
+      text: widget.filter.accountName ?? '',
+    );
+    _periodController = TextEditingController(
+      text: widget.filter.period?.toString() ?? '',
+    );
+  }
+
+  // @override
+  // void didUpdateWidget(OtpFilterSection oldWidget) {
+  //   super.didUpdateWidget(oldWidget);
+  //   // Обновляем текст контроллеров при изменении фильтра извне
+  //   if (oldWidget.filter.issuer != widget.filter.issuer) {
+  //     _issuerController.text = widget.filter.issuer ?? '';
+  //   }
+  //   if (oldWidget.filter.accountName != widget.filter.accountName) {
+  //     _accountNameController.text = widget.filter.accountName ?? '';
+  //   }
+  //   if (oldWidget.filter.period != widget.filter.period) {
+  //     _periodController.text = widget.filter.period?.toString() ?? '';
+  //   }
+  // }
+
+  @override
+  void dispose() {
+    _issuerController.dispose();
+    _accountNameController.dispose();
+    _periodController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -30,7 +73,7 @@ class OtpFilterSection extends ConsumerWidget {
         const SizedBox(height: 8),
         DropdownButtonFormField<OtpType>(
           decoration: primaryInputDecoration(context, labelText: 'Тип OTP'),
-          value: filter.type,
+          value: widget.filter.type,
           items: [
             const DropdownMenuItem<OtpType>(
               value: null,
@@ -44,7 +87,7 @@ class OtpFilterSection extends ConsumerWidget {
             }),
           ],
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(type: value));
+            widget.onFilterChanged(widget.filter.copyWith(type: value));
           },
         ),
         const SizedBox(height: 16),
@@ -53,10 +96,12 @@ class OtpFilterSection extends ConsumerWidget {
         PrimaryTextField(
           label: 'Издатель (Issuer)',
           hintText: 'Поиск по издателю (например, Google, GitHub)',
-          controller: TextEditingController(text: filter.issuer ?? ''),
+          controller: _issuerController,
           onChanged: (value) {
             final normalizedValue = value.trim().isEmpty ? null : value.trim();
-            onFilterChanged(filter.copyWith(issuer: normalizedValue));
+            widget.onFilterChanged(
+              widget.filter.copyWith(issuer: normalizedValue),
+            );
           },
           prefixIcon: const Icon(Icons.business),
         ),
@@ -65,10 +110,12 @@ class OtpFilterSection extends ConsumerWidget {
         PrimaryTextField(
           label: 'Имя аккаунта',
           hintText: 'Поиск по имени аккаунта',
-          controller: TextEditingController(text: filter.accountName ?? ''),
+          controller: _accountNameController,
           onChanged: (value) {
             final normalizedValue = value.trim().isEmpty ? null : value.trim();
-            onFilterChanged(filter.copyWith(accountName: normalizedValue));
+            widget.onFilterChanged(
+              widget.filter.copyWith(accountName: normalizedValue),
+            );
           },
           prefixIcon: const Icon(Icons.account_circle),
         ),
@@ -83,12 +130,15 @@ class OtpFilterSection extends ConsumerWidget {
         Wrap(
           spacing: 8,
           children: _getSupportedAlgorithms().map((algorithm) {
-            final isSelected = filter.algorithms?.contains(algorithm) ?? false;
+            final isSelected =
+                widget.filter.algorithms?.contains(algorithm) ?? false;
             return FilterChip(
               label: Text(algorithm),
               selected: isSelected,
               onSelected: (selected) {
-                List<String> newAlgorithms = List.from(filter.algorithms ?? []);
+                List<String> newAlgorithms = List.from(
+                  widget.filter.algorithms ?? [],
+                );
                 if (selected) {
                   if (!newAlgorithms.contains(algorithm)) {
                     newAlgorithms.add(algorithm);
@@ -96,8 +146,8 @@ class OtpFilterSection extends ConsumerWidget {
                 } else {
                   newAlgorithms.remove(algorithm);
                 }
-                onFilterChanged(
-                  filter.copyWith(
+                widget.onFilterChanged(
+                  widget.filter.copyWith(
                     algorithms: newAlgorithms.isEmpty ? null : newAlgorithms,
                   ),
                 );
@@ -118,7 +168,7 @@ class OtpFilterSection extends ConsumerWidget {
             context,
             labelText: 'Количество цифр в коде',
           ),
-          value: filter.digits,
+          value: widget.filter.digits,
           items: [
             const DropdownMenuItem<int>(
               value: null,
@@ -132,25 +182,23 @@ class OtpFilterSection extends ConsumerWidget {
             }),
           ],
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(digits: value));
+            widget.onFilterChanged(widget.filter.copyWith(digits: value));
           },
         ),
         const SizedBox(height: 16),
 
         // Период для TOTP
-        if (filter.type == null || filter.type == OtpType.totp) ...[
+        if (widget.filter.type == null ||
+            widget.filter.type == OtpType.totp) ...[
           const Text(
             'Период обновления (TOTP)',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           PrimaryTextField(
-            
             label: 'Период в секундах',
             hintText: 'От 1 до 300 секунд (например, 30)',
-            controller: TextEditingController(
-              text: filter.period?.toString() ?? '',
-            ),
+            controller: _periodController,
             keyboardType: TextInputType.number,
             onChanged: (value) {
               final intValue = int.tryParse(value);
@@ -158,11 +206,13 @@ class OtpFilterSection extends ConsumerWidget {
                   intValue != null && intValue > 0 && intValue <= 300
                   ? intValue
                   : null;
-              onFilterChanged(filter.copyWith(period: validValue));
+              widget.onFilterChanged(
+                widget.filter.copyWith(period: validValue),
+              );
             },
             prefixIcon: const Icon(Icons.timer),
           ),
-          if (filter.period != null && !filter.isValidPeriod) ...[
+          if (widget.filter.period != null && !widget.filter.isValidPeriod) ...[
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.all(8),
@@ -190,8 +240,8 @@ class OtpFilterSection extends ConsumerWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
           ],
-          const SizedBox(height: 16),
         ],
 
         // Булевые фильтры
@@ -201,10 +251,12 @@ class OtpFilterSection extends ConsumerWidget {
         ),
         CheckboxListTile(
           title: const Text('Есть связь с паролем'),
-          value: filter.hasPasswordLink,
+          value: widget.filter.hasPasswordLink,
           tristate: true,
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(hasPasswordLink: value));
+            widget.onFilterChanged(
+              widget.filter.copyWith(hasPasswordLink: value),
+            );
           },
           controlAffinity: ListTileControlAffinity.leading,
         ),
@@ -218,7 +270,7 @@ class OtpFilterSection extends ConsumerWidget {
             context,
             labelText: 'Поле сортировки',
           ),
-          value: filter.sortField,
+          value: widget.filter.sortField,
           items: OtpSortField.values.map((field) {
             return DropdownMenuItem(
               value: field,
@@ -226,7 +278,7 @@ class OtpFilterSection extends ConsumerWidget {
             );
           }).toList(),
           onChanged: (value) {
-            onFilterChanged(filter.copyWith(sortField: value));
+            widget.onFilterChanged(widget.filter.copyWith(sortField: value));
           },
         ),
       ],
