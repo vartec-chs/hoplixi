@@ -25,7 +25,7 @@
 
 
     <application
-        android:label="hoplixi"
+        android:label="Hoplixi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
