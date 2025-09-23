@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/paginated_passwords_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/password_card.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/router/routes_path.dart';
 
 /// Виджет для отображения списков различных сущностей с пагинацией
 class EntityListView extends ConsumerStatefulWidget {
@@ -98,12 +101,27 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
     logInfo(
       'EntityListView: Переключение избранного для пароля ${password.id}',
     );
-    // TODO: Реализовать переключение избранного
+    if (mounted) {
+      ref
+          .read(passwordsServiceProvider)
+          .updatePassword(
+            UpdatePasswordDto(
+              id: password.id,
+              isFavorite: !(password.isFavorite ?? false),
+            ),
+          )
+          .then((_) {
+            // Обновляем локальный кэш после успешного обновления
+            if (mounted) {
+              ref.read(paginatedPasswordsProvider.notifier).refresh();
+            }
+          });
+    }
   }
 
   void _onPasswordEdit(CardPasswordDto password) {
     logInfo('EntityListView: Редактирование пароля ${password.id}');
-    // TODO: Реализовать редактирование пароля
+    context.push('${AppRoutes.passwordForm}/${password.id}');
   }
 
   void _onPasswordDelete(CardPasswordDto password) {
