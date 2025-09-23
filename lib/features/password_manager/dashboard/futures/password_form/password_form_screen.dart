@@ -5,7 +5,7 @@ import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_picker/categories_picker.dart';
-import 'package:hoplixi/features/password_manager/dashboard_old/features/passwords_list/passwords_list_controller.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_picker/tags_picker.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'password_form_state.dart';
@@ -222,11 +222,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
       logDebug(
         'Password ${widget.passwordId != null ? 'updated' : 'created'}, closing form',
       );
-      try {
-        ref.read(passwordChangeNotifierProvider)();
-      } catch (e) {
-        logError('Error notifying password change: $e');
-      }
+      DataRefreshHelper.refreshPasswords(ref);
       context.pop(true); // Возвращаем true для обновления списка
     }
   }

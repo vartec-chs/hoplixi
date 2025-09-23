@@ -3,14 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
-import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart'
-    as dashboard;
-import 'package:hoplixi/features/password_manager/dashboard/example/filter_modal_example_screen.dart';
-import 'package:hoplixi/features/password_manager/dashboard_old/dashboard.dart';
+import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart';
+
 import 'package:hoplixi/features/password_manager/categories_manager/categories_manager_screen.dart';
-import 'package:hoplixi/features/password_manager/dashboard_old/features/password_form/password_form_screen.dart';
+import 'package:hoplixi/features/password_manager/dashboard/futures/password_form/password_form_screen.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons_management_screen.dart';
-import 'package:hoplixi/features/password_manager/screens/password_manager_screen.dart';
+
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
@@ -45,12 +43,8 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.dashboard,
-    builder: (context, state) => const dashboard.DashboardScreen(),
+    builder: (context, state) => const DashboardScreen(),
   ),
-  // GoRoute(
-  //   path: AppRoutes.passwordManager,
-  //   builder: (context, state) => const PasswordManagerScreen(),
-  // ),
   GoRoute(
     path: AppRoutes.baseSettings,
     builder: (context, state) => const DynamicSettingsScreen(),

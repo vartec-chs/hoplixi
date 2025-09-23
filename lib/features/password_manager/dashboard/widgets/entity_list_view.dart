@@ -112,7 +112,9 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
 
   void _onPasswordDelete(CardPasswordDto password) {
     logInfo('EntityListView: Удаление пароля ${password.id}');
-    // TODO: Реализовать удаление пароля
+    if (mounted) {
+      ref.read(paginatedPasswordsProvider.notifier).deletePassword(password.id);
+    }
   }
 }
 

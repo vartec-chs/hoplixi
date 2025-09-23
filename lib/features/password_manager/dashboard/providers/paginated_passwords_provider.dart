@@ -221,41 +221,145 @@ class PaginatedPasswordsNotifier
         'PaginatedPasswordsNotifier: Переключение избранного для пароля $passwordId: ${password.isFavorite} -> $newFavoriteState',
       );
 
-      // Оптимистично обновляем UI
-      final updatedPasswords = [...currentState.passwords];
-      updatedPasswords[passwordIndex] = password.copyWith(
-        isFavorite: newFavoriteState,
-      );
+      // Проверяем текущую вкладку фильтра
+      final currentTab = ref.read(filterTabsControllerProvider);
 
-      state = AsyncValue.data(
-        currentState.copyWith(passwords: updatedPasswords),
-      );
+      // Если текущая вкладка - "Избранные" и мы убираем из избранных,
+      // удаляем пароль из списка
+      if (currentTab == FilterTab.favorites && !newFavoriteState) {
+        logDebug(
+          'PaginatedPasswordsNotifier: Удаление пароля $passwordId из списка избранных',
+        );
 
-      // Обновляем в базе данных
-      final service = ref.read(passwordsServiceProvider);
-      final result = await service.updatePassword(
-        UpdatePasswordDto(id: passwordId, isFavorite: newFavoriteState),
-      );
+        final updatedPasswords = [...currentState.passwords];
+        updatedPasswords.removeAt(passwordIndex);
 
-      if (!result.success) {
-        // Откатываем изменения при ошибке
-        updatedPasswords[passwordIndex] = password;
+        state = AsyncValue.data(
+          currentState.copyWith(
+            passwords: updatedPasswords,
+            totalCount: currentState.totalCount - 1,
+          ),
+        );
+
+        // Обновляем в базе данных
+        final service = ref.read(passwordsServiceProvider);
+        final result = await service.updatePassword(
+          UpdatePasswordDto(id: passwordId, isFavorite: newFavoriteState),
+        );
+
+        if (!result.success) {
+          // Откатываем изменения при ошибке - возвращаем пароль в список
+          updatedPasswords.insert(passwordIndex, password);
+          state = AsyncValue.data(
+            currentState.copyWith(
+              passwords: updatedPasswords,
+              totalCount: currentState.totalCount,
+            ),
+          );
+          logError(
+            'PaginatedPasswordsNotifier: Ошибка при обновлении избранного: ${result.message}',
+          );
+        } else {
+          logDebug(
+            'PaginatedPasswordsNotifier: Избранное успешно обновлено для пароля $passwordId',
+          );
+        }
+      } else {
+        // Стандартное поведение - обновляем состояние пароля
+        final updatedPasswords = [...currentState.passwords];
+        updatedPasswords[passwordIndex] = password.copyWith(
+          isFavorite: newFavoriteState,
+        );
+
         state = AsyncValue.data(
           currentState.copyWith(passwords: updatedPasswords),
         );
-        logError(
-          'PaginatedPasswordsNotifier: Ошибка при обновлении избранного: ${result.message}',
+
+        // Обновляем в базе данных
+        final service = ref.read(passwordsServiceProvider);
+        final result = await service.updatePassword(
+          UpdatePasswordDto(id: passwordId, isFavorite: newFavoriteState),
         );
-      } else {
-        logDebug(
-          'PaginatedPasswordsNotifier: Избранное успешно обновлено для пароля $passwordId',
-        );
+
+        if (!result.success) {
+          // Откатываем изменения при ошибке
+          updatedPasswords[passwordIndex] = password;
+          state = AsyncValue.data(
+            currentState.copyWith(passwords: updatedPasswords),
+          );
+          logError(
+            'PaginatedPasswordsNotifier: Ошибка при обновлении избранного: ${result.message}',
+          );
+        } else {
+          logDebug(
+            'PaginatedPasswordsNotifier: Избранное успешно обновлено для пароля $passwordId',
+          );
+        }
       }
     } catch (e, stackTrace) {
       // Перезагружаем список при критической ошибке
       await refresh();
       logError(
         'PaginatedPasswordsNotifier: Ошибка при переключении избранного',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  /// Удаление пароля с оптимистичным обновлением UI
+  Future<void> deletePassword(String passwordId) async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    try {
+      // Находим пароль в текущем списке
+      final passwordIndex = currentState.passwords.indexWhere(
+        (p) => p.id == passwordId,
+      );
+      if (passwordIndex == -1) return;
+
+      final password = currentState.passwords[passwordIndex];
+
+      logDebug('PaginatedPasswordsNotifier: Удаление пароля $passwordId');
+
+      // Оптимистично удаляем пароль из UI
+      final updatedPasswords = [...currentState.passwords];
+      updatedPasswords.removeAt(passwordIndex);
+
+      state = AsyncValue.data(
+        currentState.copyWith(
+          passwords: updatedPasswords,
+          totalCount: currentState.totalCount - 1,
+        ),
+      );
+
+      // Удаляем пароль из базы данных
+      final service = ref.read(passwordsServiceProvider);
+      final result = await service.deletePassword(passwordId);
+
+      if (!result.success) {
+        // Откатываем изменения при ошибке - возвращаем пароль в список
+        updatedPasswords.insert(passwordIndex, password);
+        state = AsyncValue.data(
+          currentState.copyWith(
+            passwords: updatedPasswords,
+            totalCount: currentState.totalCount,
+          ),
+        );
+        logError(
+          'PaginatedPasswordsNotifier: Ошибка при удалении пароля: ${result.message}',
+        );
+      } else {
+        logDebug(
+          'PaginatedPasswordsNotifier: Пароль $passwordId успешно удален',
+        );
+      }
+    } catch (e, stackTrace) {
+      // Перезагружаем список при критической ошибке
+      await refresh();
+      logError(
+        'PaginatedPasswordsNotifier: Ошибка при удалении пароля',
         error: e,
         stackTrace: stackTrace,
       );
