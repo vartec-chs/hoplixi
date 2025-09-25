@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
@@ -73,6 +74,11 @@ class PasswordFilterDao extends DatabaseAccessor<HoplixiStore>
       // Для простых фильтров используем стандартные Drift запросы
       return await _getPasswordsWithSimpleFilter(filter);
     } catch (e) {
+      logError(
+        'Ошибка получения отфильтрованных паролей',
+        error: e,
+        tag: 'PasswordFilterDao',
+      );
       // В случае ошибки возвращаем пустой список
       return <CardPasswordDto>[];
     }

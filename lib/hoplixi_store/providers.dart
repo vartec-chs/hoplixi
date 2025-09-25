@@ -5,3 +5,46 @@ library;
 
 export 'hoplixi_store_providers.dart';
 export 'services_providers.dart';
+
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart';
+import 'package:hoplixi/hoplixi_store/services_providers.dart';
+
+final clearAllProvider =
+    AsyncNotifierProvider<ClearAllNotifier, void>(ClearAllNotifier.new);
+
+class ClearAllNotifier extends AsyncNotifier<void> {
+  @override
+  void build() {
+    // пусто
+  }
+
+  Future<void> clearAll() async {
+    state = const AsyncValue.loading();
+    try {
+      final providers = <ProviderBase>{
+        passwordFilterDaoProvider,
+        categoriesDaoProvider,
+        iconsDaoProvider,
+        tagsDaoProvider,
+        passwordsDaoProvider,
+        passwordTagsDaoProvider,
+        categoriesServiceProvider,
+        iconsServiceProvider,
+        tagsServiceProvider,
+        passwordsServiceProvider,
+      };
+
+      // Если нужно асинхронно что-то делать — await внутри цикла.
+      for (final p in providers) {
+        ref.invalidate(p);
+      }
+
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+}

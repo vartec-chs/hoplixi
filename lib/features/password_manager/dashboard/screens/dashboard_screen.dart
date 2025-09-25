@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/common/close_database_button.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/theme/theme_switcher.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
@@ -9,6 +10,7 @@ import 'package:hoplixi/features/password_manager/dashboard/providers/paginated_
 import 'package:hoplixi/features/password_manager/dashboard/widgets/dashboard_app_bar.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_list_view.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_fab.dart';
+import 'package:hoplixi/hoplixi_store/providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 
 /// Главный экран дашборда с полнофункциональным SliverAppBar
@@ -51,43 +53,84 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // Полнофункциональный SliverAppBar
-          Builder(
-            builder: (context) {
-              return DashboardSliverAppBar(
-                onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                onFilterApplied: () {
-                  logInfo('DashboardScreen: Фильтры применены');
+    final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
+    final dbNotifier = ref.read(hoplixiStoreProvider.notifier);
+    return PopScope(
+      canPop: false, // если false → блокирует закрытие
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          logInfo('Экран закрыт, результат: $result', tag: 'DashboardScreen');
+        } else {
+          logInfo('Попытка закрыть, но не получилось', tag: 'DashboardScreen');
+          if (isDatabaseOpen) {
+            final shouldClose = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Подтверждение'),
+                content: const Text(
+                  'Вы хотите закрыть приложение? Это закроет базу данных.',
+                ),
+                actions: [
+                  TextButton(
+                    child: const Text('Отмена'),
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                  TextButton(
+                    child: const Text('Закрыть'),
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ],
+              ),
+            );
+            if (shouldClose == true) {
+              await ref.read(clearAllProvider.notifier).clearAll();
+              await dbNotifier.closeDatabase();
+              if (context.mounted) context.go(AppRoutes.home);
+            }
+          }
+        }
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
+        body: SafeArea(
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              // Полнофункциональный SliverAppBar
+              Builder(
+                builder: (context) {
+                  return DashboardSliverAppBar(
+                    onMenuPressed: () =>
+                        _scaffoldKey.currentState?.openDrawer(),
+                    onFilterApplied: () {
+                      logInfo('DashboardScreen: Фильтры применены');
+                    },
+                    expandedHeight: 180.0,
+                    collapsedHeight: 60.0,
+                    pinned: true,
+                    floating: false,
+                    snap: false,
+                    showEntityTypeSelector: true,
+                  );
                 },
-                expandedHeight: 180.0,
-                collapsedHeight: 60.0,
-                pinned: true,
-                floating: false,
-                snap: false,
-                showEntityTypeSelector: true,
-              );
-            },
+              ),
+
+              // Главный контент - список сущностей с пагинацией
+              EntityListView(scrollController: _scrollController),
+            ],
           ),
+        ),
 
-          // Главный контент - список сущностей с пагинацией
-          EntityListView(scrollController: _scrollController),
-        ],
-      ),
+        // Drawer навигации
+        drawer: _buildDrawer(context),
 
-      // Drawer навигации
-      drawer: _buildDrawer(context),
-
-      // Expandable FAB для создания новых сущностей
-      floatingActionButton: ExpandableFAB(
-        onCreatePassword: _onCreatePassword,
-        onCreateCategory: _onCreateCategory,
-        onCreateTag: _onCreateTag,
-        onIconCreate: _onCreateIcon,
+        // Expandable FAB для создания новых сущностей
+        floatingActionButton: ExpandableFAB(
+          onCreatePassword: _onCreatePassword,
+          onCreateCategory: _onCreateCategory,
+          onCreateTag: _onCreateTag,
+          onIconCreate: _onCreateIcon,
+        ),
       ),
     );
   }
@@ -147,6 +190,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   logInfo('DashboardScreen: Уже на дашборде');
                 },
               ),
+
+              const CloseDatabaseButton(useListTile: true),
 
               const Divider(),
 

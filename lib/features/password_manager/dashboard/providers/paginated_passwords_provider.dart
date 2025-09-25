@@ -133,7 +133,7 @@ class PaginatedPasswordsNotifier
   /// Загружает начальные данные
   Future<PaginatedPasswordsState> _loadInitialData() async {
     try {
-      logDebug('PaginatedPasswordsNotifier: Загрузка начальных данных');
+      logDebug('PaginatedPasswordsNotifier: Загрузка начальных данных', tag: 'PaginatedPasswordsNotifier');
 
       // Проверяем, что база данных открыта
       final isDatabaseOpen = ref.read(isDatabaseOpenProvider);

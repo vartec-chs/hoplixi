@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:hoplixi/common/close_database_button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/theme/index.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/hoplixi_store/providers.dart';
 import 'package:window_manager/window_manager.dart';
 
 class TitleBar extends ConsumerStatefulWidget {
@@ -58,23 +58,7 @@ class _TitleBarState extends ConsumerState<TitleBar> {
                 spacing: 4,
 
                 children: [
-                  Visibility(
-                    visible: isDatabaseOpen,
-                    child: IconButton(
-                      padding: const EdgeInsets.all(6),
-                      tooltip: 'Закрыть бызу данных',
-
-                      constraints: constraints,
-                      icon: Icon(Icons.lock, size: 20),
-                      onPressed: () async => {
-                        isDatabaseOpen
-                            ? await dbNotifier.closeDatabase().then((_) {
-                                context.go(AppRoutes.home);
-                              })
-                            : null,
-                      },
-                    ),
-                  ),
+                  CloseDatabaseButton(),
                   ThemeSwitcher(size: 26),
 
                   IconButton(
