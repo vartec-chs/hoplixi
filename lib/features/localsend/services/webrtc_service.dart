@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/localsend/models/index.dart';
+import 'package:hoplixi/features/localsend/services/webrtc_config.dart'
+    as config;
 import 'package:uuid/uuid.dart';
 
 /// Менеджер WebRTC соединений для P2P передачи данных
@@ -342,7 +344,7 @@ class WebRTCService {
   /// Создает RTCPeerConnection
   Future<RTCPeerConnection> _createPeerConnection(String connectionId) async {
     final configuration = {
-      'iceServers': WebRTCConfig.iceServers,
+      'iceServers': config.WebRTCConfig.iceServers,
       'sdpSemantics': 'unified-plan',
     };
 
@@ -391,7 +393,7 @@ class WebRTCService {
   ) async {
     final dataChannel = await peerConnection.createDataChannel(
       'localsend_data',
-      WebRTCConfig.dataChannelConfig,
+      config.WebRTCConfig.dataChannelConfig,
     );
 
     _setupDataChannelHandlers(connectionId, dataChannel);

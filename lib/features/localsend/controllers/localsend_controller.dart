@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/localsend/models/index.dart';
 import 'package:hoplixi/features/localsend/services/index.dart';
 import 'package:hoplixi/features/localsend/providers/index.dart';
+import 'package:uuid/uuid.dart';
 
 /// Главный контроллер LocalSend для координации всех операций
 final localSendControllerProvider = Provider<LocalSendController>((ref) {
@@ -45,20 +46,35 @@ class LocalSendController {
     try {
       logInfo('Инициализация LocalSend контроллера', tag: _logTag);
 
-      // Запускаем сигналинг сервер
-      await _signalingService.start(8080);
-      logInfo('Сигналинг сервер запущен', tag: _logTag);
+      // Запускаем сигналинг сервер на конфигурируемом порту
+      const signalingPort = 53317; // WebRTCConfig.defaultSignalingPort
+      await _signalingService.start(signalingPort);
+      logInfo('Сигналинг сервер запущен на порту $signalingPort', tag: _logTag);
 
       // Обновляем информацию о текущем устройстве с реальным портом
       final currentDevice = _ref.read(currentDeviceProvider);
-      _currentDevice.updateDevice(currentDevice.copyWith(port: 8080));
+      _currentDevice.updateDevice(currentDevice.copyWith(port: signalingPort));
+
+      // Подписываемся на входящие сигналы
+      _signalingService.incomingSignals.listen(_handleIncomingSignal);
+
+      // Подписываемся на события обнаружения устройств
+      _discoveryService.deviceFound.listen(_handleDeviceFound);
+      _discoveryService.deviceLost.listen(_handleDeviceLost);
+      _discoveryService.deviceUpdated.listen(_handleDeviceUpdated);
+
+      // Подписываемся на события WebRTC соединений
+      _webrtcService.connectionStates.listen(_handleConnectionStateChange);
+      _webrtcService.incomingMessages.listen(_handleIncomingMessage);
+      _webrtcService.incomingFileChunks.listen(_handleIncomingFileChunk);
 
       // Запускаем обнаружение устройств
       await _discoveryService.startDiscovery();
       logInfo('Обнаружение устройств запущено', tag: _logTag);
 
       // Объявляем себя в сети
-      await _discoveryService.startBroadcast(_ref.read(currentDeviceProvider));
+      final updatedDevice = _ref.read(currentDeviceProvider);
+      await _discoveryService.startBroadcast(updatedDevice);
       logInfo('Объявление в сети запущено', tag: _logTag);
 
       _isInitialized = true;
@@ -261,4 +277,255 @@ class LocalSendController {
 
   /// Проверяет, инициализирован ли контроллер
   bool get isInitialized => _isInitialized;
+
+  // === Обработчики событий ===
+
+  /// Обрабатывает входящие сигналы WebRTC
+  void _handleIncomingSignal(SignalingMessage signal) async {
+    try {
+      logDebug(
+        'Получен входящий сигнал',
+        tag: _logTag,
+        data: {
+          'type': signal.type.name,
+          'from': signal.fromDeviceId,
+          'to': signal.toDeviceId,
+        },
+      );
+
+      switch (signal.type) {
+        case SignalingMessageType.offer:
+          await _handleWebRTCOffer(signal);
+          break;
+        case SignalingMessageType.answer:
+          await _handleWebRTCAnswer(signal);
+          break;
+        case SignalingMessageType.iceCandidate:
+          await _handleIceCandidate(signal);
+          break;
+        case SignalingMessageType.ping:
+          // Ping сигналы обычно не требуют обработки
+          break;
+        case SignalingMessageType.bye:
+          // Обрабатываем закрытие соединения
+          logInfo('Получен bye сигнал от ${signal.fromDeviceId}', tag: _logTag);
+          break;
+        // TODO: Добавить обработку других типов сигналов когда они будут нужны
+      }
+    } catch (e) {
+      logError('Ошибка обработки входящего сигнала', error: e, tag: _logTag);
+    }
+  }
+
+  /// Обрабатывает найденные устройства
+  void _handleDeviceFound(DeviceInfo device) {
+    logDebug('Найдено устройство: ${device.name}', tag: _logTag);
+    _discoveredDevices.addOrUpdateDevice(device);
+
+    ToastHelper.info(
+      title: 'Устройство найдено',
+      description: '${device.name} (${device.ipAddress})',
+    );
+  }
+
+  /// Обрабатывает потерянные устройства
+  void _handleDeviceLost(DeviceInfo device) {
+    logDebug('Устройство потеряно: ${device.name}', tag: _logTag);
+    _discoveredDevices.removeDevice(device.id);
+  }
+
+  /// Обрабатывает обновленные устройства
+  void _handleDeviceUpdated(DeviceInfo device) {
+    logDebug('Устройство обновлено: ${device.name}', tag: _logTag);
+    _discoveredDevices.addOrUpdateDevice(device);
+  }
+
+  /// Обрабатывает изменения состояния WebRTC соединений
+  void _handleConnectionStateChange(WebRTCConnection connection) {
+    logDebug(
+      'Изменение состояния соединения',
+      tag: _logTag,
+      data: {
+        'connectionId': connection.connectionId,
+        'state': connection.state.name,
+      },
+    );
+
+    _connections.updateConnection(connection.connectionId, connection);
+
+    // Показываем уведомление о важных изменениях состояния
+    switch (connection.state) {
+      case WebRTCConnectionState.connected:
+        ToastHelper.success(
+          title: 'Соединение установлено',
+          description: 'Готово к передаче данных',
+        );
+        break;
+      case WebRTCConnectionState.failed:
+        ToastHelper.error(
+          title: 'Соединение прервано',
+          description: connection.errorMessage ?? 'Неизвестная ошибка',
+        );
+        break;
+      case WebRTCConnectionState.disconnected:
+        ToastHelper.info(
+          title: 'Соединение завершено',
+          description: 'Устройство отключилось',
+        );
+        break;
+      default:
+        // Остальные состояния не требуют уведомлений
+        break;
+    }
+  }
+
+  /// Обрабатывает входящие сообщения
+  void _handleIncomingMessage(LocalSendMessage message) {
+    logDebug(
+      'Получено сообщение',
+      tag: _logTag,
+      data: {'messageId': message.id, 'sender': message.senderId},
+    );
+
+    _messages.addMessage(message);
+
+    ToastHelper.success(
+      title: 'Новое сообщение',
+      description: message.content.length > 50
+          ? '${message.content.substring(0, 50)}...'
+          : message.content,
+    );
+  }
+
+  /// Обрабатывает входящие чанки файлов
+  void _handleIncomingFileChunk(FileChunk chunk) async {
+    try {
+      logDebug(
+        'Получен чанк файла',
+        tag: _logTag,
+        data: {
+          'transferId': chunk.transferId,
+          'chunkIndex': chunk.chunkIndex,
+          'size': chunk.size,
+        },
+      );
+
+      // TODO: Обработка чанка файла через FileService будет добавлена позже
+      // await _fileService.processIncomingChunk(chunk);
+
+      // Обновляем прогресс передачи
+      final transfers = _ref.read(fileTransfersProvider);
+      final transfer = transfers[chunk.transferId];
+      if (transfer != null) {
+        final newTransferred = transfer.transferredBytes + chunk.size;
+        _transfers.updateTransferProgress(chunk.transferId, newTransferred);
+
+        // Проверяем завершение передачи
+        if (newTransferred >= transfer.fileSize) {
+          _transfers.updateTransfer(
+            chunk.transferId,
+            transfer.copyWith(status: FileTransferStatus.completed),
+          );
+
+          ToastHelper.success(
+            title: 'Файл получен',
+            description: transfer.fileName,
+          );
+        }
+      }
+    } catch (e) {
+      logError('Ошибка обработки чанка файла', error: e, tag: _logTag);
+    }
+  }
+
+  // === Обработчики WebRTC сигналов ===
+
+  /// Обрабатывает WebRTC offer
+  Future<void> _handleWebRTCOffer(SignalingMessage signal) async {
+    try {
+      final currentDevice = _ref.read(currentDeviceProvider);
+
+      // Принимаем входящее соединение
+      final connectionId = await _webrtcService.acceptConnection(
+        localDeviceId: currentDevice.id,
+        remoteDeviceId: signal.fromDeviceId,
+      );
+
+      // Устанавливаем remote description
+      final offer = signal.data;
+      await _webrtcService.setRemoteDescription(
+        connectionId,
+        RTCSessionDescription(offer['sdp'], offer['type']),
+      );
+
+      // Создаем answer
+      final answer = await _webrtcService.createAnswer(connectionId);
+
+      // Отправляем answer обратно
+      final devices = _ref.read(discoveredDevicesProvider);
+      final targetDevice = devices.firstWhere(
+        (device) => device.id == signal.fromDeviceId,
+        orElse: () => throw Exception('Устройство не найдено'),
+      );
+
+      // TODO: Создать SignalingMessage.answer конструктор в моделях
+      final answerSignal = SignalingMessage(
+        messageId: const Uuid().v4(),
+        fromDeviceId: currentDevice.id,
+        toDeviceId: signal.fromDeviceId,
+        type: SignalingMessageType.answer,
+        data: {'sdp': answer.sdp, 'type': answer.type},
+        timestamp: DateTime.now(),
+      );
+
+      await _signalingService.sendSignal(targetDevice, answerSignal);
+    } catch (e) {
+      logError('Ошибка обработки WebRTC offer', error: e, tag: _logTag);
+    }
+  }
+
+  /// Обрабатывает WebRTC answer
+  Future<void> _handleWebRTCAnswer(SignalingMessage signal) async {
+    try {
+      // Найти соединение по originalMessageId или другим критериям
+      final connections = _webrtcService.activeConnections;
+      final connection = connections.firstWhere(
+        (conn) => conn.remoteDeviceId == signal.fromDeviceId,
+        orElse: () => throw Exception('Соединение не найдено'),
+      );
+
+      // Устанавливаем remote description
+      final answer = signal.data;
+      await _webrtcService.setRemoteDescription(
+        connection.connectionId,
+        RTCSessionDescription(answer['sdp'], answer['type']),
+      );
+    } catch (e) {
+      logError('Ошибка обработки WebRTC answer', error: e, tag: _logTag);
+    }
+  }
+
+  /// Обрабатывает ICE candidate
+  Future<void> _handleIceCandidate(SignalingMessage signal) async {
+    try {
+      // Найти соединение
+      final connections = _webrtcService.activeConnections;
+      final connection = connections.firstWhere(
+        (conn) => conn.remoteDeviceId == signal.fromDeviceId,
+        orElse: () => throw Exception('Соединение не найдено'),
+      );
+
+      // Добавляем ICE candidate
+      final candidateData = signal.data;
+      final candidate = RTCIceCandidate(
+        candidateData['candidate'],
+        candidateData['sdpMid'],
+        candidateData['sdpMLineIndex'],
+      );
+
+      await _webrtcService.addIceCandidate(connection.connectionId, candidate);
+    } catch (e) {
+      logError('Ошибка обработки ICE candidate', error: e, tag: _logTag);
+    }
+  }
 }
