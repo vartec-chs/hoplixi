@@ -66,10 +66,9 @@ class PaginatedPasswordsState {
 
 /// Провайдер для пагинированного списка паролей
 final paginatedPasswordsProvider =
-    AsyncNotifierProvider.autoDispose<
-      PaginatedPasswordsNotifier,
-      PaginatedPasswordsState
-    >(() => PaginatedPasswordsNotifier());
+    AsyncNotifierProvider<PaginatedPasswordsNotifier, PaginatedPasswordsState>(
+      () => PaginatedPasswordsNotifier(),
+    );
 
 class PaginatedPasswordsNotifier
     extends AsyncNotifier<PaginatedPasswordsState> {

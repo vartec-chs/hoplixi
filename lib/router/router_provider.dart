@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,15 +18,29 @@ import 'package:universal_platform/universal_platform.dart';
 import 'routes_path.dart';
 import 'routes.dart';
 
+class RouterRefreshNotifier extends ChangeNotifier {
+  RouterRefreshNotifier(Ref ref) {
+    ref.listen(isDatabaseOpenProvider, (_, __) => notifyListeners());
+    ref.listen(storageInitProvider, (_, __) => notifyListeners());
+  }
+}
+
+final routerRefreshProvider = ChangeNotifierProvider<RouterRefreshNotifier>((
+  ref,
+) {
+  return RouterRefreshNotifier(ref);
+});
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.setup,
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
 
     observers: [GoTransition.observer, LoggingRouteObserver()],
+    // refreshListenable: ref.watch(routerRefreshProvider),
     redirect: (context, state) async {
       final initializationAsync = ref.watch(storageInitProvider);
-      final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
+      // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
 
       bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
       if (isFirstRun == false && state.fullPath == AppRoutes.setup) {
@@ -32,13 +48,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             .home; // Если настройка завершена, перенаправляем на домашний экран
       }
 
-      if (!isDatabaseOpen) {
-        logInfo('No database is open');
-        if (afterOpenDBPath.contains(state.path)) {
-          return AppRoutes.home;
-        }
-        return null; // Нет перенаправления, если база данных не открыта
-      }
+      // if (!isDatabaseOpen) {
+      //   logInfo('No database is open');
+      //   if (afterOpenDBPath.contains(state.path)) {
+      //     return AppRoutes.home;
+      //   }
+      //   return null; // Нет перенаправления, если база данных не открыта
+      // }
 
       initializationAsync.when(
         data: (data) {

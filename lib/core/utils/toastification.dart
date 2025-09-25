@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/global.dart';
 import 'package:toastification/toastification.dart';
 
@@ -13,8 +14,11 @@ class ToastHelper {
     Duration? autoCloseDuration,
     ToastificationCallbacks? callbacks,
   }) {
-    final contextToUse = context ?? navigatorKey.currentContext!;
-    final theme = Theme.of(contextToUse);
+    final contextToUse = context ?? navigatorKey.currentContext;
+    if (contextToUse == null) {
+      logError('No context available for toast notification');
+      return;
+    }
 
     // final textColor = theme.colorScheme.brightness == Brightness.dark
     //     ? Colors.black
@@ -56,8 +60,11 @@ class ToastHelper {
     Duration? autoCloseDuration,
     ToastificationCallbacks? callbacks,
   }) {
-    final contextToUse = context ?? navigatorKey.currentContext!;
-    final theme = Theme.of(contextToUse);
+    final contextToUse = context ?? navigatorKey.currentContext;
+    if (contextToUse == null) {
+      logError('No context available for toast notification');
+      return;
+    }
 
     final primaryColor = Colors.red.shade500;
 
@@ -128,8 +135,11 @@ class ToastHelper {
     Duration? autoCloseDuration,
     ToastificationCallbacks? callbacks,
   }) {
-    final contextToUse = context ?? navigatorKey.currentContext!;
-    final theme = Theme.of(contextToUse);
+    final contextToUse = context ?? navigatorKey.currentContext;
+    if (contextToUse == null) {
+      logError('No context available for toast notification');
+      return;
+    }
 
     final primaryColor = Colors.orange.shade500;
 
@@ -167,8 +177,11 @@ class ToastHelper {
     Duration? autoCloseDuration,
     ToastificationCallbacks? callbacks,
   }) {
-    final contextToUse = context ?? navigatorKey.currentContext!;
-    final theme = Theme.of(contextToUse);
+    final contextToUse = context ?? navigatorKey.currentContext;
+    if (contextToUse == null) {
+      logError('No context available for toast notification');
+      return;
+    }
 
     final primaryColor = Colors.blue.shade500;
 
@@ -215,7 +228,11 @@ class ToastHelper {
     bool? showProgressBar,
     ToastificationCallbacks? callbacks,
   }) {
-    final contextToUse = context ?? navigatorKey.currentContext!;
+    final contextToUse = context ?? navigatorKey.currentContext;
+    if (contextToUse == null) {
+      logError('No context available for toast notification');
+      return;
+    }
     final theme = Theme.of(contextToUse);
 
     toastification.show(
