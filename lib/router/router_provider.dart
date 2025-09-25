@@ -8,28 +8,16 @@ import 'package:go_transitions/go_transitions.dart';
 import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
-import 'package:hoplixi/core/secure_storage/index.dart';
+import 'package:hoplixi/providers/app_lifecycle_provider.dart';
+import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';
-import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/router/router_refresh_provider.dart';
 
 import 'package:universal_platform/universal_platform.dart';
 
 import 'routes_path.dart';
 import 'routes.dart';
-
-class RouterRefreshNotifier extends ChangeNotifier {
-  RouterRefreshNotifier(Ref ref) {
-    ref.listen(isDatabaseOpenProvider, (_, __) => notifyListeners());
-    ref.listen(storageInitProvider, (_, __) => notifyListeners());
-  }
-}
-
-final routerRefreshProvider = ChangeNotifierProvider<RouterRefreshNotifier>((
-  ref,
-) {
-  return RouterRefreshNotifier(ref);
-});
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -37,10 +25,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
 
     observers: [GoTransition.observer, LoggingRouteObserver()],
-    // refreshListenable: ref.watch(routerRefreshProvider),
+    refreshListenable: ref.watch(routerRefreshProvider.notifier),
     redirect: (context, state) async {
       final initializationAsync = ref.watch(storageInitProvider);
       // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
+      final dataCleared = ref.watch(dataClearedProvider);
+
+      // Если данные были очищены, перенаправляем на home
+      if (dataCleared) {
+        logInfo(
+          'Данные очищены, перенаправляем на home',
+          tag: 'GoRouter',
+          data: {'currentPath': state.fullPath},
+        );
+        return AppRoutes.home;
+      }
 
       bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
       if (isFirstRun == false && state.fullPath == AppRoutes.setup) {

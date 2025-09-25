@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/constants/responsive_constants.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/providers/app_lifecycle_provider.dart';
 
 // import 'package:hoplixi/core/theme/theme.dart';
 import 'package:hoplixi/core/utils/toast/toast_manager.dart';
@@ -32,12 +33,19 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   void dispose() {
     // Удаляем наблюдатель жизненного цикла
     WidgetsBinding.instance.removeObserver(this);
+
+    // Очищаем ресурсы провайдера
+    ref.read(appLifecycleProvider.notifier).cleanup();
+
     super.dispose();
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
+
+    // Используем новый провайдер для обработки жизненного цикла
+    await ref.read(appLifecycleProvider.notifier).handleLifecycleState(state);
 
     switch (state) {
       case AppLifecycleState.resumed:
@@ -47,7 +55,10 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         logInfo("AppLifecycleState: paused");
         break;
       case AppLifecycleState.detached:
-        logInfo("AppLifecycleState: detached");
+        logInfo(
+          "AppLifecycleState: detached - resources cleared",
+          tag: 'AppLifecycle',
+        );
         break;
       case AppLifecycleState.inactive:
         logInfo("AppLifecycleState: inactive");
