@@ -9,6 +9,7 @@ import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/core/secure_storage/index.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';
+import 'package:hoplixi/hoplixi_store/providers.dart';
 
 import 'package:universal_platform/universal_platform.dart';
 
@@ -23,12 +24,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     observers: [GoTransition.observer, LoggingRouteObserver()],
     redirect: (context, state) async {
       final initializationAsync = ref.watch(storageInitProvider);
-      // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
+      final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
 
       bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
       if (isFirstRun == false && state.fullPath == AppRoutes.setup) {
         return AppRoutes
             .home; // Если настройка завершена, перенаправляем на домашний экран
+      }
+
+      if (!isDatabaseOpen) {
+        logInfo('No database is open');
+        if (afterOpenDBPath.contains(state.path)) {
+          return AppRoutes.home;
+        }
+        return null; // Нет перенаправления, если база данных не открыта
       }
 
       initializationAsync.when(
@@ -100,6 +109,13 @@ const beforeOpenDBPath = [
   AppRoutes.openStore,
   AppRoutes.splash,
   AppRoutes.setup,
+];
+
+const afterOpenDBPath = [
+  AppRoutes.dashboard,
+  AppRoutes.categoryManager,
+  AppRoutes.tagsManager,
+  AppRoutes.passwordForm,
 ];
 
 void navigateBack(BuildContext context) {

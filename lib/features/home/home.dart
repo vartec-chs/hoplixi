@@ -93,6 +93,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
   void dispose() {
     _pageController.dispose();
     _fabAnimationController.dispose();
+
     super.dispose();
   }
 
@@ -135,8 +136,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
               _buildSettingsView(),
             ],
           ),
-          bottomNavigationBar: _buildModernBottomNav(selectedIndex),
-          floatingActionButton: _buildFloatingActionButton(),
+          // bottomNavigationBar: _buildModernBottomNav(selectedIndex),
+          // floatingActionButton: _buildFloatingActionButton(),
         );
       },
     );
@@ -438,7 +439,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
   Widget _buildQuickActions() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -484,7 +485,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     required bool isPrimary,
   }) {
     return Card(
-      elevation: isPrimary ? 4 : 2,
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
@@ -562,7 +563,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           }
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -581,8 +582,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                   onOpenManual: _handleManualOpen,
                   onRemove: _handleRemove,
                 ),
-                const SizedBox(height: 24),
-                const Divider(),
                 const SizedBox(height: 24),
               ],
             ),

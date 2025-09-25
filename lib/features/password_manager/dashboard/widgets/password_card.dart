@@ -72,10 +72,7 @@ class _PasswordCardState extends ConsumerState<PasswordCard>
       if (result.success && result.data != null) {
         final password = result.data!;
         await Clipboard.setData(ClipboardData(text: password));
-        ToastHelper.success(
-          title: 'Пароль скопирован в буфер',
-         
-        );
+        ToastHelper.success(title: 'Пароль скопирован в буфер');
       } else if (result.data == null) {
         ToastHelper.info(title: 'Пусто', description: 'Пароль не указан');
       } else {
@@ -373,6 +370,20 @@ class _PasswordCardState extends ConsumerState<PasswordCard>
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // used count
+                          SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              'Использован: ${widget.password.usedCount} раз',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
                                 ),
                               ),
                             ),

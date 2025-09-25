@@ -821,6 +821,7 @@ class PasswordFilterDao extends DatabaseAccessor<HoplixiStore>
       description: data.description,
       login: data.login,
       email: data.email,
+      usedCount: data.usedCount,
       categories: category != null ? [category] : null,
       tags: tags.isNotEmpty ? tags : null,
       isFavorite: data.isFavorite,

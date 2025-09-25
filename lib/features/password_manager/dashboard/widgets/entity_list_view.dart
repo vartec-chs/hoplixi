@@ -168,12 +168,12 @@ class _PasswordsSliverList extends StatelessWidget {
           if (index == state.passwords.length) {
             if (state.isLoadingMore) {
               return const Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(8.0),
                 child: Center(child: CircularProgressIndicator()),
               );
             } else if (!state.hasMore) {
               return Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(8.0),
                 child: Center(
                   child: Text(
                     'Все пароли загружены (${state.totalCount})',
@@ -192,9 +192,9 @@ class _PasswordsSliverList extends StatelessWidget {
           final password = state.passwords[index];
           return Padding(
             padding: EdgeInsets.fromLTRB(
-              16,
+              8,
               index == 0 ? 16 : 8,
-              16,
+              8,
               index == state.passwords.length - 1 && !state.hasMore ? 16 : 8,
             ),
             child: PasswordCard(

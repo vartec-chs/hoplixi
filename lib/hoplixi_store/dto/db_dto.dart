@@ -70,8 +70,10 @@ abstract class CardPasswordDto with _$CardPasswordDto {
     String? email,
     List<CardPasswordCategoryDto>? categories,
     List<CardPasswordTagDto>? tags,
+    int? usedCount,
     @Default(false) bool isFavorite,
-    @Default(false) bool isFrequentlyUsed,
+    @Default(false)
+    bool isFrequentlyUsed, // Флаг для часто используемых паролей
   }) = _CardPasswordDto;
 }
 
@@ -124,7 +126,7 @@ abstract class UpdateNoteDto with _$UpdateNoteDto {
 abstract class CreateTotpDto with _$CreateTotpDto {
   const factory CreateTotpDto({
     String? passwordId,
-   
+
     @Default(OtpType.totp) OtpType type,
     String? issuer,
     String? accountName,

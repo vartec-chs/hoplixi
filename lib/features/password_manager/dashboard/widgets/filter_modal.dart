@@ -190,11 +190,13 @@ class _FilterModalState extends ConsumerState<FilterModal> {
   Widget build(BuildContext context) {
     final currentEntityType = ref.watch(currentEntityTypeProvider);
 
-    return Dialog.fullscreen(
+    return Dialog(
+      insetPadding: const EdgeInsets.all(8),
+      // backgroundColor: Theme.of(context).colorScheme.surface,
       child: Container(
-        // width: MediaQuery.of(context).size.width * 0.9,
-        // height: MediaQuery.of(context).size.height * 0.8,
-        // constraints: const BoxConstraints(maxWidth: 800, maxHeight: 700),
+        width: MediaQuery.of(context).size.width * 1,
+        height: MediaQuery.of(context).size.height * 1,
+        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 900),
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -114,8 +114,8 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   Future<void> closeDatabase() async {
     try {
       state = const AsyncValue.loading();
-      final closedState = await _manager.closeDatabase();
-      state = AsyncValue.data(closedState);
+      await _manager.closeDatabase();
+      state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));
       logInfo('База данных закрыта успешно', tag: 'DatabaseAsyncNotifier');
     } catch (e, st) {
       logError(

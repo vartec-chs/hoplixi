@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/core/theme/theme_switcher.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/paginated_passwords_provider.dart';
@@ -129,6 +130,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ).colorScheme.onPrimary.withValues(alpha: 0.9),
                       ),
                     ),
+                    const SizedBox(height: 4),
+
+                    const ThemeSwitcher(size: 24),
                   ],
                 ),
               ),

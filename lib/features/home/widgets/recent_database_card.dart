@@ -27,8 +27,8 @@ class RecentDatabaseCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      elevation: 0,
+      // margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

@@ -20,8 +20,7 @@ class _TitleBarState extends ConsumerState<TitleBar> {
 
   @override
   Widget build(BuildContext context) {
-    final dbState = ref.watch(hoplixiStoreProvider);
-    final dbNotifier = ref.read(hoplixiStoreProvider.notifier);
+    final dbNotifier = ref.watch(hoplixiStoreProvider.notifier);
     return DragToMoveArea(
       child: Container(
         height: 40,
@@ -53,11 +52,27 @@ class _TitleBarState extends ConsumerState<TitleBar> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
 
-                spacing: 2,
+                spacing: 4,
 
                 children: [
+                  Visibility(
+                    visible: dbNotifier.isDatabaseOpen,
+                    child: IconButton(
+                      padding: const EdgeInsets.all(6),
+                      tooltip: 'Закрыть бызу данных',
+
+                      constraints: constraints,
+                      icon: Icon(Icons.lock, size: 20),
+                      onPressed: () async => {
+                        dbNotifier.isDatabaseOpen
+                            ? await dbNotifier.closeDatabase()
+                            : null,
+                        // await windowManager.close(),
+                      },
+                    ),
+                  ),
                   ThemeSwitcher(size: 26),
-                  const SizedBox(width: 4),
+
                   IconButton(
                     padding: const EdgeInsets.all(6),
                     icon: Icon(Icons.remove, size: 20),
@@ -79,7 +94,7 @@ class _TitleBarState extends ConsumerState<TitleBar> {
                     constraints: constraints,
                     icon: Icon(Icons.close, size: 20),
                     onPressed: () async => {
-                      dbState.value!.isOpen
+                      dbNotifier.isDatabaseOpen
                           ? await dbNotifier.closeDatabase()
                           : null,
                       await windowManager.close(),

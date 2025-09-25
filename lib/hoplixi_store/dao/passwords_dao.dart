@@ -275,20 +275,15 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   Future<void> incrementUsedCount(String passwordId) async {
-    await (update(attachedDatabase.passwords)..where(
-          (tbl) =>
-              tbl.id.equals(passwordId) & tbl.usedCount.isSmallerThanValue(100),
-        ))
-        .write(
-          PasswordsCompanion(
-            usedCount: const Value(1),
-            modifiedAt: Value(DateTime.now()),
-          ),
-        );
+    await customUpdate(
+      'UPDATE passwords SET used_count = used_count + 1, modified_at = ? WHERE id = ? AND used_count < 100',
+      variables: [Variable(DateTime.now()), Variable(passwordId)],
+    );
   }
 
   /// For coping password general info
   Future<String?> getPassword(String passwordId) async {
+    await incrementUsedCount(passwordId);
     final query = selectOnly(attachedDatabase.passwords)
       ..addColumns([attachedDatabase.passwords.password])
       ..where(passwords.id.equals(passwordId));
@@ -299,6 +294,7 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   Future<String> getLoginOrEmail(String passwordId) async {
+    await incrementUsedCount(passwordId);
     final query = select(attachedDatabase.passwords)
       ..where((tbl) => tbl.id.equals(passwordId));
     final password = await query.getSingle();
@@ -306,6 +302,7 @@ class PasswordsDao extends DatabaseAccessor<HoplixiStore>
   }
 
   Future<String?> getUrl(String passwordId) async {
+    await incrementUsedCount(passwordId);
     final query = selectOnly(attachedDatabase.passwords)
       ..addColumns([attachedDatabase.passwords.url])
       ..where((passwords.id.equals(passwordId)));

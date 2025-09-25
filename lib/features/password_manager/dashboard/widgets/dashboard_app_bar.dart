@@ -265,7 +265,7 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
+                      horizontal: 8.0,
                       vertical: 8.0,
                     ),
                     child: Column(
