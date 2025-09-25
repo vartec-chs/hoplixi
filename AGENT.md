@@ -1,15 +1,36 @@
 # Hoplixi Development Guide for AI Agents
 
-Hoplixi is a cross-platform Flutter password manager with local encrypted SQLite storage using SQLCipher and Drift ORM. The architecture follows a service-oriented pattern with Riverpod state management version 3 Notifi Api only, not use legacy api.
+Hoplixi is a cross-platform Flutter password manager with local encrypted SQLite storage using SQLCipher and Drift ORM. The architecture follows a service-oriented pattern with Riverpod state management version 3 Notify Api only, not use legacy api.
 
 ## Project Architecture
 
 ### Core Structure
 
-- `lib/hoplixi_store/` - Main data layer using Drift ORM with 14 tables for passwords, TOTP, notes, categories, tags, and histories
-- `lib/features/` - Feature modules (password_manager, setup, filters, etc.)
-- `lib/core/` - Shared utilities, themes, logging, secure storage services
-- `lib/router/` - GoRouter navigation with go_transitions
+- `lib/hoplixi_store/` - Data layer: 14 tables with Drift ORM, DAOs, services, triggers, and schema migrations
+- `lib/features/` - Feature modules organized by domain (password_manager, setup, home, titlebar)
+- `lib/common/` - Reusable UI components (SmoothButton, password_field, slider_button, text_field)
+- `lib/core/` - Infrastructure: themes, logging, preferences, secure storage, error handling
+- `lib/router/` - GoRouter navigation with go_transitions for smooth transitions
+
+### Critical Dependencies & Imports
+
+**Always use project-specific components:**
+
+```dart
+// Logging (mandatory for all operations)
+import 'package:hoplixi/core/logger/app_logger.dart';
+
+// UI Components (use instead of generic Flutter widgets)
+import 'package:hoplixi/common/text_field.dart';      // Custom styled text fields
+import 'package:hoplixi/common/password_field.dart';  // Secure password input
+import 'package:hoplixi/common/button.dart';          // SmoothButton with types/sizes
+import 'package:hoplixi/common/slider_button.dart';   // Confirmation slider
+
+// Utilities
+import 'package:hoplixi/core/utils/toastification.dart'; // Toast notifications
+import 'package:hoplixi/core/app_preferences/index.dart'; // SharedPreferences wrapper
+import 'package:hoplixi/core/theme/colors.dart';          // FlexColorScheme colors
+```
 
 ### Base
 
@@ -24,7 +45,7 @@ Hoplixi is a cross-platform Flutter password manager with local encrypted SQLite
 ### In project main dependencies
 
 - Use GoRouter: import 'package:go_router/go_router.dart';
-- Use Riverpod v3 only Notifi api no legacy: import 'package:flutter_riverpod/flutter_riverpod.dart';
+- Use Riverpod v3 only Notify api no legacy: import 'package:flutter_riverpod/flutter_riverpod.dart';
 - Use Flutter Material: import 'package:flutter/material.dart';
 - for all dependencies see pubspec.yaml
 

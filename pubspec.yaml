@@ -88,6 +88,9 @@ dependencies:
   json_annotation: ^4.9.0
   flutter_animate: ^4.5.2
 
+  bonsoir: ^6.0.1
+  flutter_webrtc: ^1.2.0
+
 
 
 dev_dependencies:

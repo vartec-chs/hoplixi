@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:hoplixi/hoplixi_store/providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 
