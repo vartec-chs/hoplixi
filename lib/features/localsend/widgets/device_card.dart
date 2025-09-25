@@ -4,6 +4,7 @@ import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/localsend/models/index.dart';
+import 'package:hoplixi/features/localsend/widgets/index.dart';
 
 /// Карточка обнаруженного устройства
 class DeviceCard extends ConsumerWidget {
@@ -145,10 +146,9 @@ class DeviceCard extends ConsumerWidget {
         tag: _logTag,
       );
 
-      // TODO: Реализовать диалог отправки сообщения
-      ToastHelper.info(
-        title: 'Сообщение',
-        description: 'Функция отправки сообщений будет добавлена позже',
+      await showDialog<void>(
+        context: context,
+        builder: (context) => MessageDialog(targetDevice: device),
       );
     } catch (e) {
       logError('Error opening message dialog', error: e, tag: _logTag);
@@ -166,10 +166,9 @@ class DeviceCard extends ConsumerWidget {
         tag: _logTag,
       );
 
-      // TODO: Реализовать диалог выбора и отправки файла
-      ToastHelper.info(
-        title: 'Отправка файла',
-        description: 'Функция отправки файлов будет добавлена позже',
+      await showDialog<void>(
+        context: context,
+        builder: (context) => SendFileDialog(targetDevice: device),
       );
     } catch (e) {
       logError('Error opening file send dialog', error: e, tag: _logTag);

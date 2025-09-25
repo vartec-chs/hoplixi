@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:hoplixi/features/localsend/models/index.dart';
 
 /// Внутреннее состояние передачи для resume функциональности
 class _TransferState {
@@ -731,5 +732,37 @@ class FileServiceV2 {
     } catch (e) {
       logError('Error during dispose', error: e, tag: _logTag);
     }
+  }
+
+  /// Создает FileTransfer для отправки файла
+  Future<FileTransfer> createFileTransferForSending({
+    required String filePath,
+    required String senderId,
+    required String receiverId,
+  }) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw FileSystemException('File not found', filePath);
+    }
+
+    final stat = await file.stat();
+    final fileName = filePath.split(Platform.pathSeparator).last;
+
+    return FileTransfer.sending(
+      senderId: senderId,
+      receiverId: receiverId,
+      fileName: fileName,
+      filePath: filePath,
+      fileSize: stat.size,
+    );
+  }
+
+  /// Форматирует размер файла в человеко-читаемый формат
+  String formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes Б';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} КБ';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} ГБ';
   }
 }

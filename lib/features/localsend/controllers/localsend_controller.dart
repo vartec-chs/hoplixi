@@ -174,6 +174,68 @@ class LocalSendController {
     }
   }
 
+  /// Отправляет выбранные файлы по их путям
+  Future<bool> sendFiles(String deviceId, List<String> filePaths) async {
+    try {
+      logInfo(
+        'Отправка файлов на устройство: $deviceId',
+        tag: _logTag,
+        data: {'fileCount': filePaths.length},
+      );
+
+      if (filePaths.isEmpty) {
+        logInfo('Список файлов пуст', tag: _logTag);
+        return false;
+      }
+
+      final currentDevice = _ref.read(currentDeviceProvider);
+
+      for (final filePath in filePaths) {
+        // Создаем передачу файла
+        final transfer = await _fileServiceV2.createFileTransferForSending(
+          filePath: filePath,
+          senderId: currentDevice.id,
+          receiverId: deviceId,
+        );
+
+        // Добавляем в состояние
+        _transfers.addTransfer(transfer);
+
+        // Создаем сообщение о файле
+        final fileMessage = LocalSendMessage.text(
+          senderId: currentDevice.id,
+          receiverId: deviceId,
+          content:
+              'Файл: ${transfer.fileName} (${_fileServiceV2.formatFileSize(transfer.fileSize)})',
+        );
+
+        _messages.addMessage(fileMessage);
+
+        // Обновляем статус на "в процессе"
+        _transfers.updateTransfer(
+          transfer.id,
+          transfer.copyWith(status: FileTransferStatus.inProgress),
+        );
+
+        // Отправляем файл через существующий механизм передачи
+        await sendFileWithResume(deviceId: deviceId, filePath: filePath);
+      }
+
+      ToastHelper.success(
+        title: 'Файлы отправлены',
+        description: 'Начата передача ${filePaths.length} файлов',
+      );
+      return true;
+    } catch (e) {
+      logError('Ошибка отправки файлов', error: e, tag: _logTag);
+      ToastHelper.error(
+        title: 'Ошибка отправки',
+        description: 'Не удалось отправить файлы',
+      );
+      return false;
+    }
+  }
+
   /// Отправляет текстовое сообщение
   Future<bool> sendTextMessage(String deviceId, String text) async {
     try {
@@ -540,7 +602,8 @@ class LocalSendController {
   }) async {
     try {
       // Находим соединение с устройством
-      final connection = _connections.state[deviceId];
+      final connections = _ref.read(webrtcConnectionsProvider);
+      final connection = connections[deviceId];
       if (connection == null || connection.dataChannel == null) {
         logError('Нет соединения с устройством: $deviceId', tag: _logTag);
         ToastHelper.error(
