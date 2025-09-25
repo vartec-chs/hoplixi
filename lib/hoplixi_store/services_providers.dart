@@ -50,9 +50,15 @@ final passwordTagsDaoProvider = Provider<PasswordTagsDao>((ref) {
   return PasswordTagsDao(db.currentDatabase);
 });
 
-
 final passwordFilterDaoProvider = Provider<PasswordFilterDao>((ref) {
   final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  ref.onDispose(() {
+    logInfo(
+      'Освобождение ресурсов PasswordFilterDao',
+      tag: 'ServicesProviders',
+    );
+  });
 
   return PasswordFilterDao(db.currentDatabase);
 });

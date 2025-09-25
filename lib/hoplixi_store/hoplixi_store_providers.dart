@@ -138,6 +138,11 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   HoplixiStore get currentDatabase {
     final db = _manager.database;
     if (db == null) {
+      logError(
+        'Попытка доступа к базе данных, когда она не открыта',
+        tag: 'DatabaseAsyncNotifier',
+        data: {'state': state.toString()},
+      );
       throw DatabaseError.operationFailed(
         operation: 'getCurrentDatabase',
         details:

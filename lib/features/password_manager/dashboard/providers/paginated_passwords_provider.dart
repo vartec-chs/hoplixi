@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'password_filter_provider.dart';
 import 'filter_tabs_provider.dart';
 import 'data_refresh_trigger_provider.dart';
@@ -76,9 +78,34 @@ class PaginatedPasswordsNotifier
   Future<PaginatedPasswordsState> build() async {
     logDebug('PaginatedPasswordsNotifier: Инициализация');
 
+    // Слушаем состояние базы данных
+    ref.listen(isDatabaseOpenProvider, (previous, next) {
+      if (previous != next) {
+        if (next) {
+          logDebug(
+            'PaginatedPasswordsNotifier: База данных открыта, перезагружаем данные',
+          );
+          // Задержка для обеспечения готовности всех провайдеров
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (ref.mounted) {
+              _resetAndLoad();
+            }
+          });
+        } else {
+          logDebug(
+            'PaginatedPasswordsNotifier: База данных закрыта, очищаем данные',
+          );
+          // При закрытии базы данных очищаем данные
+          if (ref.mounted) {
+            state = const AsyncValue.data(PaginatedPasswordsState());
+          }
+        }
+      }
+    });
+
     // Слушаем изменения фильтра паролей
     ref.listen(passwordFilterProvider, (previous, next) {
-      if (previous != next) {
+      if (previous != next && ref.read(isDatabaseOpenProvider)) {
         logDebug('PaginatedPasswordsNotifier: Изменение фильтра паролей');
         _resetAndLoad();
       }
@@ -86,7 +113,7 @@ class PaginatedPasswordsNotifier
 
     // Слушаем изменения вкладок фильтров
     ref.listen(filterTabsControllerProvider, (previous, next) {
-      if (previous != next) {
+      if (previous != next && ref.read(isDatabaseOpenProvider)) {
         logDebug('PaginatedPasswordsNotifier: Изменение вкладки фильтра');
         _resetAndLoad();
       }
@@ -94,7 +121,7 @@ class PaginatedPasswordsNotifier
 
     // Слушаем триггер обновления данных
     ref.listen(dataRefreshTriggerProvider, (previous, next) {
-      if (previous != next) {
+      if (previous != next && ref.read(isDatabaseOpenProvider)) {
         logDebug('PaginatedPasswordsNotifier: Триггер обновления данных');
         _resetAndLoad();
       }
@@ -107,6 +134,41 @@ class PaginatedPasswordsNotifier
   Future<PaginatedPasswordsState> _loadInitialData() async {
     try {
       logDebug('PaginatedPasswordsNotifier: Загрузка начальных данных');
+
+      // Проверяем, что база данных открыта
+      final isDatabaseOpen = ref.read(isDatabaseOpenProvider);
+      if (!isDatabaseOpen) {
+        logDebug(
+          'PaginatedPasswordsNotifier: База данных не открыта, возвращаем пустое состояние',
+        );
+        return const PaginatedPasswordsState();
+      }
+
+      // Проверяем доступность DAO
+      try {
+        final dao = ref.read(passwordFilterDaoProvider);
+        logDebug('PaginatedPasswordsNotifier: DAO получен успешно');
+
+        // Проверяем доступность базы данных через DAO
+        final testCount = await dao.countFilteredPasswords(
+          PasswordFilter.create().copyWith(
+            base: BaseFilter.create().copyWith(limit: 1, offset: 0),
+          ),
+        );
+        logDebug(
+          'PaginatedPasswordsNotifier: Тестовый запрос к БД выполнен, результат: $testCount',
+        );
+      } catch (e, s) {
+        logError(
+          'PaginatedPasswordsNotifier: Ошибка доступа к DAO или БД',
+          error: e,
+          stackTrace: s,
+        );
+        return PaginatedPasswordsState(
+          error: 'Ошибка доступа к базе данных: ${e.toString()}',
+          isLoading: false,
+        );
+      }
 
       final filter = _buildCurrentFilter();
       final dao = ref.read(passwordFilterDaoProvider);
@@ -146,7 +208,8 @@ class PaginatedPasswordsNotifier
     final currentState = state.value;
     if (currentState == null ||
         currentState.isLoadingMore ||
-        !currentState.hasMore) {
+        !currentState.hasMore ||
+        !ref.read(isDatabaseOpenProvider)) {
       return;
     }
 
@@ -196,6 +259,13 @@ class PaginatedPasswordsNotifier
 
   /// Обновляет данные (pull-to-refresh)
   Future<void> refresh() async {
+    if (!ref.read(isDatabaseOpenProvider)) {
+      logDebug(
+        'PaginatedPasswordsNotifier: База данных не открыта, пропускаем обновление',
+      );
+      return;
+    }
+
     logDebug('PaginatedPasswordsNotifier: Обновление данных');
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(_loadInitialData);
@@ -204,7 +274,7 @@ class PaginatedPasswordsNotifier
   /// Переключение избранного состояния пароля с оптимистичным обновлением UI
   Future<void> toggleFavorite(String passwordId) async {
     final currentState = state.value;
-    if (currentState == null) return;
+    if (currentState == null || !ref.read(isDatabaseOpenProvider)) return;
 
     try {
       // Находим пароль в текущем списке
@@ -309,7 +379,7 @@ class PaginatedPasswordsNotifier
   /// Удаление пароля с оптимистичным обновлением UI
   Future<void> deletePassword(String passwordId) async {
     final currentState = state.value;
-    if (currentState == null) return;
+    if (currentState == null || !ref.read(isDatabaseOpenProvider)) return;
 
     try {
       // Находим пароль в текущем списке
@@ -367,6 +437,13 @@ class PaginatedPasswordsNotifier
 
   /// Сбрасывает состояние и загружает данные заново
   void _resetAndLoad() {
+    if (!ref.read(isDatabaseOpenProvider)) {
+      logDebug(
+        'PaginatedPasswordsNotifier: База данных не открыта, пропускаем сброс и загрузку',
+      );
+      return;
+    }
+
     logDebug('PaginatedPasswordsNotifier: Сброс и перезагрузка');
     state = const AsyncValue.loading();
     ref.invalidateSelf();
@@ -377,14 +454,30 @@ class PaginatedPasswordsNotifier
     final passwordFilter = ref.read(passwordFilterProvider);
     final currentTab = ref.read(filterTabsControllerProvider);
 
+    logDebug(
+      'PaginatedPasswordsNotifier: Построение фильтра для страницы $page, вкладка: $currentTab',
+    );
+
     // Применяем фильтр текущей вкладки к базовому фильтру
+    final tabFilter = _getTabFilter(currentTab);
     final baseFilter = passwordFilter.base.copyWith(
-      isFavorite: _getTabFilter(currentTab),
+      isFavorite: tabFilter,
       limit: kPasswordsPageSize,
       offset: (page - 1) * kPasswordsPageSize,
     );
 
-    return passwordFilter.copyWith(base: baseFilter);
+    final finalFilter = passwordFilter.copyWith(base: baseFilter);
+
+    logDebug(
+      'PaginatedPasswordsNotifier: Фильтр построен - '
+      'isFavorite: ${baseFilter.isFavorite}, '
+      'isArchived: ${baseFilter.isArchived}, '
+      'limit: ${baseFilter.limit}, '
+      'offset: ${baseFilter.offset}, '
+      'searchQuery: ${baseFilter.query}',
+    );
+
+    return finalFilter;
   }
 
   /// Получает текущее количество паролей

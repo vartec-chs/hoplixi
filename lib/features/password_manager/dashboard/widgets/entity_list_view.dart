@@ -55,6 +55,8 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
   Widget build(BuildContext context) {
     final entityType = ref.watch(currentEntityTypeProvider);
 
+    logDebug('Текущий тип сущности: $entityType', tag: 'EntityListView');
+
     switch (entityType) {
       case EntityType.password:
         return _buildPasswordsList();
