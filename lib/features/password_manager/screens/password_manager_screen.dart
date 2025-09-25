@@ -403,6 +403,7 @@ class _PasswordManagerScreenState extends ConsumerState<PasswordManagerScreen> {
 
   void _showPasswordContextMenu(CardPasswordDto password) {
     showModalBottomSheet(
+      useSafeArea: true,
       context: context,
       builder: (context) => SafeArea(
         child: Column(

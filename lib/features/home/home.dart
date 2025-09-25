@@ -308,6 +308,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
   /// Показывает нижнее меню быстрых действий
   void _showQuickActionsBottomSheet() {
     showModalBottomSheet(
+      useSafeArea: true,
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(

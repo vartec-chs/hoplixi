@@ -128,6 +128,7 @@ class _CategoryFilterButtonState extends ConsumerState<CategoryFilterButton> {
       return await showModalBottomSheet<List<store.Category>>(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (context) => CategoryFilterModal(
           categoryType: widget.categoryType,

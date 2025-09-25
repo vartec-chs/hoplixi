@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as db;
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
@@ -155,6 +156,7 @@ class _TagsPickerState extends ConsumerState<TagsPicker> {
       return showModalBottomSheet<List<String>>(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (context) => _TagSelectorBottomSheet(
           tagType: widget.tagType,
@@ -359,9 +361,7 @@ class _TagSelectorContentState extends ConsumerState<_TagSelectorContent> {
         _isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Ошибка загрузки тегов')));
+        ToastHelper.error(title: 'Ошибка загрузки тегов', description: '$e');
       }
     }
   }

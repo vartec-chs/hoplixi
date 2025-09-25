@@ -149,6 +149,7 @@ class _CategoriesPickerState extends ConsumerState<CategoriesPicker> {
       return showModalBottomSheet<List<String>>(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (context) => _CategorySelectorBottomSheet(
           categoryType: widget.categoryType,

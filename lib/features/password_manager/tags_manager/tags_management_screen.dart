@@ -44,6 +44,7 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
   Future<void> _showCreateTagModal() async {
     await showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -54,8 +55,10 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
 
   Future<void> _showEditTagModal(store.Tag tag) async {
     await showModalBottomSheet(
+      
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

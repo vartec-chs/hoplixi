@@ -109,6 +109,7 @@ class _TagFilterButtonState extends ConsumerState<TagFilterButton> {
       return await showModalBottomSheet<List<store.Tag>>(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (context) => TagFilterModal(
           tagType: widget.tagType,

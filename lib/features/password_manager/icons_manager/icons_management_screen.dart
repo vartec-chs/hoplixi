@@ -96,6 +96,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       isScrollControlled: true,
       enableDrag: true,
       showDragHandle: false,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.9,
@@ -111,6 +112,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
   Future<void> _showDesktopDialog() async {
     await showDialog(
       context: context,
+      useSafeArea: true,
       barrierDismissible: true,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
@@ -142,6 +144,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
         context: context,
         isScrollControlled: true,
         enableDrag: true,
+        useSafeArea: true,
         // showDragHandle: true,
         backgroundColor: Colors.transparent,
         builder: (context) => Container(
@@ -217,7 +220,6 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
           ToastHelper.success(
             title: 'Иконка удалена',
             description: result.message ?? 'Иконка успешно удалена',
-          
           );
           // ref.invalidate(allIconsStreamProvider);
         }
@@ -226,7 +228,6 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
           ToastHelper.error(
             title: 'Ошибка',
             description: 'Ошибка удаления иконки: ${result.message}',
-           
           );
         }
       }
@@ -235,7 +236,6 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
         ToastHelper.error(
           title: 'Ошибка',
           description: 'Ошибка удаления иконки: $e',
-         
         );
       }
     }

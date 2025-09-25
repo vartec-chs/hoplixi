@@ -216,6 +216,7 @@ class _UniversalFilterExampleScreenState
     UniversalEntityType entityType,
   ) {
     showModalBottomSheet(
+      useSafeArea: true,
       context: context,
       builder: (context) =>
           _buildRecordActionsSheet(context, record, entityType),

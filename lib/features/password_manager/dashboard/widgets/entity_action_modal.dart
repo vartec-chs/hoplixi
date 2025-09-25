@@ -521,6 +521,7 @@ class EntityActionModalHelper {
       return showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (context) => EntityActionModal(
           entityTitle: noteTitle,
@@ -591,6 +592,7 @@ class EntityActionModalHelper {
       return showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (context) => EntityActionModal(
           entityTitle: otpName,
@@ -662,6 +664,7 @@ class EntityActionModalHelper {
       return showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (context) => EntityActionModal(
           entityTitle: entityTitle,
