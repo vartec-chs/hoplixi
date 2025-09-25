@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
@@ -7,10 +8,89 @@ import 'package:path_provider/path_provider.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/localsend/models/index.dart';
 
+/// Внутреннее состояние передачи для resume функциональности
+class _TransferState {
+  final String transferId;
+  final String filePath;
+  final int fileSize;
+  final String fileHash;
+  final int completedChunks;
+  final Set<int> receivedChunks;
+  final DateTime lastActivity;
+
+  _TransferState({
+    required this.transferId,
+    required this.filePath,
+    required this.fileSize,
+    required this.fileHash,
+    this.completedChunks = 0,
+    Set<int>? receivedChunks,
+    DateTime? lastActivity,
+  }) : receivedChunks = receivedChunks ?? <int>{},
+       lastActivity = lastActivity ?? DateTime.now();
+
+  _TransferState copyWith({
+    int? completedChunks,
+    Set<int>? receivedChunks,
+    DateTime? lastActivity,
+  }) {
+    return _TransferState(
+      transferId: transferId,
+      filePath: filePath,
+      fileSize: fileSize,
+      fileHash: fileHash,
+      completedChunks: completedChunks ?? this.completedChunks,
+      receivedChunks: receivedChunks ?? this.receivedChunks,
+      lastActivity: lastActivity ?? this.lastActivity,
+    );
+  }
+
+  /// Конвертирует в JSON для сохранения состояния
+  Map<String, dynamic> toJson() {
+    return {
+      'transferId': transferId,
+      'filePath': filePath,
+      'fileSize': fileSize,
+      'fileHash': fileHash,
+      'completedChunks': completedChunks,
+      'receivedChunks': receivedChunks.toList(),
+      'lastActivity': lastActivity.millisecondsSinceEpoch,
+    };
+  }
+
+  /// Создает из JSON
+  static _TransferState fromJson(Map<String, dynamic> json) {
+    return _TransferState(
+      transferId: json['transferId'],
+      filePath: json['filePath'],
+      fileSize: json['fileSize'],
+      fileHash: json['fileHash'],
+      completedChunks: json['completedChunks'] ?? 0,
+      receivedChunks: Set<int>.from(json['receivedChunks'] ?? []),
+      lastActivity: DateTime.fromMillisecondsSinceEpoch(json['lastActivity']),
+    );
+  }
+}
+
 /// Сервис для работы с файлами: выбор, сохранение, чтение и обработка передач
 class FileService {
   static const String _logTag = 'FileService';
-  static const int _chunkSize = 64 * 1024; // 64KB
+
+  // Используем конфигурацию chunk size из WebRTCConfig
+  static int get _chunkSize => 64 * 1024; // 64KB - можно настроить через config
+
+  static const String _transferStateExt = '.localsend_state';
+  static const String _tempFileExt = '.localsend_temp';
+
+  // Внутренние состояния для resume функциональности
+  final Map<String, _TransferState> _activeTransfers = {};
+  final Map<String, RandomAccessFile> _openFiles = {};
+  final StreamController<Map<String, dynamic>> _progressController =
+      StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Поток прогресса передач файлов
+  Stream<Map<String, dynamic>> get transferProgress =>
+      _progressController.stream;
 
   /// Выбирает файлы для отправки
   Future<List<File>> pickFiles() async {

@@ -23,6 +23,11 @@ final fileServiceProvider = Provider<FileService>((ref) {
   return FileService();
 });
 
+/// Провайдер для файлового сервиса v2 с поддержкой resume
+final fileServiceV2Provider = Provider<FileServiceV2>((ref) {
+  return FileServiceV2();
+});
+
 /// Провайдер для информации о текущем устройстве
 final currentDeviceProvider =
     NotifierProvider<CurrentDeviceNotifier, DeviceInfo>(

@@ -26,6 +26,7 @@ class LocalSendController {
   SignalingService get _signalingService => _ref.read(signalingServiceProvider);
   WebRTCService get _webrtcService => _ref.read(webrtcServiceProvider);
   FileService get _fileService => _ref.read(fileServiceProvider);
+  FileServiceV2 get _fileServiceV2 => _ref.read(fileServiceV2Provider);
 
   // Геттеры для нотификаторов
   CurrentDeviceNotifier get _currentDevice =>
@@ -527,5 +528,130 @@ class LocalSendController {
     } catch (e) {
       logError('Ошибка обработки ICE candidate', error: e, tag: _logTag);
     }
+  }
+
+  // Методы для работы с chunked file transfer
+
+  /// Отправляет файл с поддержкой resume
+  Future<bool> sendFileWithResume({
+    required String filePath,
+    required String deviceId,
+    Function(double)? onProgress,
+  }) async {
+    try {
+      // Находим соединение с устройством
+      final connection = _connections.state[deviceId];
+      if (connection == null || connection.dataChannel == null) {
+        logError('Нет соединения с устройством: $deviceId', tag: _logTag);
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Нет соединения с устройством',
+        );
+        return false;
+      }
+
+      final transferId = const Uuid().v4();
+
+      logInfo(
+        'Отправка файла с поддержкой resume',
+        tag: _logTag,
+        data: {
+          'filePath': filePath,
+          'deviceId': deviceId,
+          'transferId': transferId,
+        },
+      );
+
+      final success = await _fileServiceV2.sendFileChunked(
+        dataChannel: connection.dataChannel!,
+        filePath: filePath,
+        transferId: transferId,
+        onProgress: onProgress,
+      );
+
+      if (success) {
+        ToastHelper.success(
+          title: 'Успешно',
+          description: 'Файл отправлен успешно',
+        );
+      } else {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Ошибка отправки файла',
+        );
+      }
+
+      return success;
+    } catch (e) {
+      logError('Ошибка отправки файла с resume', error: e, tag: _logTag);
+      ToastHelper.error(title: 'Ошибка', description: 'Ошибка отправки файла');
+      return false;
+    }
+  }
+
+  /// Возобновляет прерванную передачу
+  Future<bool> resumeTransfer(String transferId) async {
+    try {
+      logInfo(
+        'Возобновление передачи',
+        tag: _logTag,
+        data: {'transferId': transferId},
+      );
+
+      final success = await _fileServiceV2.resumeTransfer(transferId);
+
+      if (success) {
+        ToastHelper.success(
+          title: 'Успешно',
+          description: 'Передача возобновлена',
+        );
+      } else {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Не удалось возобновить передачу',
+        );
+      }
+
+      return success;
+    } catch (e) {
+      logError('Ошибка возобновления передачи', error: e, tag: _logTag);
+      ToastHelper.error(
+        title: 'Ошибка',
+        description: 'Ошибка возобновления передачи',
+      );
+      return false;
+    }
+  }
+
+  /// Отменяет передачу
+  Future<void> cancelTransfer(String transferId) async {
+    try {
+      logInfo(
+        'Отмена передачи',
+        tag: _logTag,
+        data: {'transferId': transferId},
+      );
+
+      await _fileServiceV2.cancelTransfer(transferId);
+      ToastHelper.info(title: 'Информация', description: 'Передача отменена');
+    } catch (e) {
+      logError('Ошибка отмены передачи', error: e, tag: _logTag);
+      ToastHelper.error(title: 'Ошибка', description: 'Ошибка отмены передачи');
+    }
+  }
+
+  /// Получает статус всех активных передач
+  Map<String, Map<String, dynamic>> getActiveTransfersStatus() {
+    try {
+      return _fileServiceV2.getActiveTransfersStatus();
+    } catch (e) {
+      logError('Ошибка получения статуса передач', error: e, tag: _logTag);
+      return {};
+    }
+  }
+
+  /// Подписывается на прогресс передач файлов
+  Stream<Map<String, dynamic>> get fileTransferProgress {
+    return _fileServiceV2.transferProgress;
   }
 }

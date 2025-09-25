@@ -98,6 +98,14 @@ abstract class WebRTCConnection with _$WebRTCConnection {
     /// Состояние соединения
     @Default(WebRTCConnectionState.initializing) WebRTCConnectionState state,
 
+    /// WebRTC PeerConnection
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    RTCPeerConnection? peerConnection,
+
+    /// DataChannel для передачи файлов и сообщений
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    RTCDataChannel? dataChannel,
+
     /// Время создания соединения
     required DateTime createdAt,
 

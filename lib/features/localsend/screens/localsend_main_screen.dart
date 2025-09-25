@@ -5,8 +5,9 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/localsend/controllers/index.dart';
 import 'package:hoplixi/features/localsend/providers/index.dart';
-import 'package:hoplixi/features/localsend/widgets/index.dart';
-import 'package:hoplixi/router/router_provider.dart';
+import 'devices_tab.dart';
+import 'transfers_tab.dart';
+import 'messages_tab.dart';
 
 /// Основной экран LocalSend с вкладками для устройств, передач и настроек
 class LocalSendMainScreen extends ConsumerStatefulWidget {
@@ -126,7 +127,7 @@ class _LocalSendMainScreenState extends ConsumerState<LocalSendMainScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [DevicesTab(), TransfersTab(), MessagesTab()],
+        children: const [DevicesTab(), TransfersTab(), MessagesTab()],
       ),
     );
   }

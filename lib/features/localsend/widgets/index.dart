@@ -1,4 +1,5 @@
 // Экспорт виджетов LocalSend
-export 'devices_tab.dart';
-export 'transfers_tab.dart';
-export 'messages_tab.dart';
+export 'device_card.dart';
+export 'message_card.dart';
+export 'transfer_progress_card.dart';
+export 'active_transfers_view.dart';
