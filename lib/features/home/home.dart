@@ -490,6 +490,19 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuickActionCard(
+                    icon: Icons.send,
+                    label: 'LocalSend',
+                    onTap: () => context.push(AppRoutes.localSend),
+                    isPrimary: false,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
