@@ -21,7 +21,7 @@ class CloseDatabaseButton extends ConsumerWidget {
     final dbNotifier = ref.read(hoplixiStoreProvider.notifier);
     final clearState = ref.watch(clearAllProvider);
 
-    void _showConfirmationDialog() {
+    void showConfirmationDialog() {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -57,14 +57,14 @@ class CloseDatabaseButton extends ConsumerWidget {
           ? ListTile(
               leading: const Icon(Icons.lock),
               title: const Text('Закрыть базу данных'),
-              onTap: _showConfirmationDialog,
+              onTap: showConfirmationDialog,
             )
           : IconButton(
               padding: const EdgeInsets.all(6),
               tooltip: 'Закрыть бызу данных',
               constraints: constraints,
               icon: const Icon(Icons.lock, size: 20),
-              onPressed: _showConfirmationDialog,
+              onPressed: showConfirmationDialog,
             ),
     );
   }

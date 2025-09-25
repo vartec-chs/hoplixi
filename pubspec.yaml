@@ -86,6 +86,7 @@ dependencies:
   flutter_svg: ^2.2.1
   flutter_colorpicker: ^1.1.0
   json_annotation: ^4.9.0
+  flutter_animate: ^4.5.2
 
 
 

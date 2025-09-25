@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
@@ -377,14 +378,31 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
       backgroundColor: Colors.transparent,
       flexibleSpace: FlexibleSpaceBar(
         titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
-        title: Text(
-          MainConstants.appName,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 28,
-            color: Theme.of(context).colorScheme.onSurface,
+        title: Animate(
+          effects: [
+            // будем бесконечно смещать градиент
+            ShimmerEffect(
+              duration: 2000.ms,
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.onPrimary,
+                Theme.of(context).colorScheme.primary,
+              ],
+              angle: -30, // угол пробегающего блика
+            ),
+          ],
+          onComplete: (controller) =>
+              controller.repeat(), // бесконечная анимация Text(
+          child: Text(
+            MainConstants.appName,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 28,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ),
+
         background: Container(
           decoration: BoxDecoration(
             backgroundBlendMode: BlendMode.overlay,
