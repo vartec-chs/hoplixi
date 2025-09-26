@@ -69,6 +69,15 @@ class LocalSendController {
       _webrtcService.incomingMessages.listen(_handleIncomingMessage);
       _webrtcService.incomingFileChunks.listen(_handleIncomingFileChunk);
 
+      // Подписываемся на входящие сигналы
+      _signalingService.incomingSignals.listen(_handleIncomingSignal);
+
+      // Запускаем сигналинг сервер
+      await _signalingService.start(
+        53317,
+      ); // Используем стандартный порт LocalSend
+      logInfo('Сигналинг сервер запущен', tag: _logTag);
+
       // Запускаем обнаружение устройств
       await _discoveryService.startDiscovery();
       logInfo('Обнаружение устройств запущено', tag: _logTag);
@@ -247,21 +256,178 @@ class LocalSendController {
         content: text,
       );
 
-      // Добавляем в историю
+      // Добавляем в локальную историю
       _messages.addMessage(message);
 
-      // Симулируем отправку (в реальном приложении здесь будет WebRTC)
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Найти активное WebRTC соединение с устройством
+      final webrtcConnections = _ref.read(webrtcConnectionsProvider);
+      var connection = webrtcConnections.values
+          .where(
+            (conn) =>
+                conn.remoteDeviceId == deviceId &&
+                conn.state == WebRTCConnectionState.connected,
+          )
+          .firstOrNull;
 
+      if (connection == null) {
+        logInfo(
+          'Соединение отсутствует, устанавливаем соединение с устройством: $deviceId',
+          tag: _logTag,
+        );
+
+        // Устанавливаем соединение
+        final connected = await connectToDevice(deviceId);
+        if (!connected) {
+          logError(
+            'Не удалось установить соединение с устройством: $deviceId',
+            tag: _logTag,
+          );
+          _messages.updateMessageStatus(
+            message.id,
+            MessageDeliveryStatus.failed,
+          );
+
+          ToastHelper.error(
+            title: 'Ошибка отправки',
+            description: 'Не удалось подключиться к устройству',
+          );
+          return false;
+        }
+
+        // Ждем некоторое время для установки соединения
+        await Future.delayed(const Duration(seconds: 3));
+
+        // Проверяем соединение еще раз
+        final updatedConnections = _ref.read(webrtcConnectionsProvider);
+        connection = updatedConnections.values
+            .where(
+              (conn) =>
+                  conn.remoteDeviceId == deviceId &&
+                  conn.state == WebRTCConnectionState.connected,
+            )
+            .firstOrNull;
+      }
+
+      if (connection == null) {
+        logError(
+          'Активное соединение с устройством не найдено после подключения: $deviceId',
+          tag: _logTag,
+        );
+        _messages.updateMessageStatus(message.id, MessageDeliveryStatus.failed);
+
+        ToastHelper.error(
+          title: 'Ошибка отправки',
+          description: 'Нет активного соединения с устройством',
+        );
+        return false;
+      }
+
+      // Отправляем сообщение через WebRTC
+      await _webrtcService.sendMessage(connection.connectionId, message);
       _messages.updateMessageStatus(message.id, MessageDeliveryStatus.sent);
 
-      logInfo('Сообщение отправлено', tag: _logTag);
+      logInfo(
+        'Сообщение отправлено через WebRTC',
+        tag: _logTag,
+        data: {
+          'connectionId': connection.connectionId,
+          'messageId': message.id,
+        },
+      );
       return true;
     } catch (e) {
       logError('Ошибка отправки сообщения', error: e, tag: _logTag);
       ToastHelper.error(
         title: 'Ошибка отправки',
         description: 'Не удалось отправить сообщение',
+      );
+      return false;
+    }
+  }
+
+  /// Устанавливает WebRTC соединение с устройством
+  Future<bool> connectToDevice(String deviceId) async {
+    try {
+      final device = _ref
+          .read(discoveredDevicesProvider)
+          .where((d) => d.id == deviceId)
+          .firstOrNull;
+
+      if (device == null) {
+        logError('Устройство не найдено: $deviceId', tag: _logTag);
+        return false;
+      }
+
+      logInfo(
+        'Установка соединения с устройством: ${device.name}',
+        tag: _logTag,
+      );
+
+      // Проверяем, существует ли уже соединение
+      final connections = _ref.read(webrtcConnectionsProvider);
+      final existingConnection = connections.values
+          .where(
+            (conn) =>
+                conn.remoteDeviceId == deviceId &&
+                conn.state == WebRTCConnectionState.connected,
+          )
+          .firstOrNull;
+
+      if (existingConnection != null) {
+        logInfo(
+          'Соединение уже установлено с устройством: $deviceId',
+          tag: _logTag,
+        );
+        return true;
+      }
+
+      // Получаем текущее устройство
+      final currentDevice = _ref.read(currentDeviceProvider);
+
+      // Создаем WebRTC соединение
+      final connectionId = await _webrtcService.createConnection(
+        localDeviceId: currentDevice.id,
+        remoteDeviceId: deviceId,
+      );
+
+      // Создаем offer и начинаем сигналинг
+      final offer = await _webrtcService.createOffer(connectionId);
+
+      // Создаем сообщение сигналинга
+      final signalingMessage = SignalingMessage(
+        messageId: const Uuid().v4(),
+        fromDeviceId: currentDevice.id,
+        toDeviceId: deviceId,
+        type: SignalingMessageType.offer,
+        timestamp: DateTime.now(),
+        data: {
+          'connectionId': connectionId,
+          'sdp': offer.sdp,
+          'type': offer.type,
+        },
+      );
+
+      // Отправляем offer через сигналинг
+      final success = await _signalingService.sendSignal(
+        device,
+        signalingMessage,
+      );
+
+      if (success) {
+        logInfo('Offer отправлен устройству: ${device.name}', tag: _logTag);
+        return true;
+      } else {
+        logError(
+          'Не удалось отправить offer устройству: ${device.name}',
+          tag: _logTag,
+        );
+        return false;
+      }
+    } catch (e) {
+      logError('Ошибка установки соединения', error: e, tag: _logTag);
+      ToastHelper.error(
+        title: 'Ошибка подключения',
+        description: 'Не удалось подключиться к устройству',
       );
       return false;
     }
