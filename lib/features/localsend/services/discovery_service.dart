@@ -168,8 +168,13 @@ class DiscoveryService {
           final resolvedEvent = event as BonsoirDiscoveryServiceResolvedEvent;
           final service = resolvedEvent.service;
 
-          // Пропускаем наше собственное устройство
-          if (service.attributes['id'] == _currentDevice?.id) {
+          // Пропускаем наше собственное устройство (проверяем по ID и имени)
+          if (service.attributes['id'] == _currentDevice?.id ||
+              service.name == _currentDevice?.name) {
+            logDebug(
+              'Пропускаем собственное устройство: ${service.name}',
+              tag: _logTag,
+            );
             return;
           }
 
@@ -187,8 +192,13 @@ class DiscoveryService {
           final updatedEvent = event as BonsoirDiscoveryServiceUpdatedEvent;
           final service = updatedEvent.service;
 
-          // Пропускаем наше собственное устройство
-          if (service.attributes['id'] == _currentDevice?.id) {
+          // Пропускаем наше собственное устройство (проверяем по ID и имени)
+          if (service.attributes['id'] == _currentDevice?.id ||
+              service.name == _currentDevice?.name) {
+            logDebug(
+              'Пропускаем обновление собственного устройства: ${service.name}',
+              tag: _logTag,
+            );
             return;
           }
 

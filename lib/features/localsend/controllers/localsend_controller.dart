@@ -839,6 +839,20 @@ class LocalSendController {
 
   /// Обрабатывает найденные устройства
   void _handleDeviceFound(DeviceInfo device) {
+    final currentDevice = _ref.read(currentDeviceProvider);
+
+    // Дополнительная проверка против собственного устройства
+    if (device.id == currentDevice.id ||
+        device.name == currentDevice.name ||
+        (device.ipAddress == currentDevice.ipAddress &&
+            device.port == currentDevice.port)) {
+      logDebug(
+        'Пропуск обнаружения собственного устройства: ${device.name}',
+        tag: _logTag,
+      );
+      return;
+    }
+
     logDebug('Найдено устройство: ${device.name}', tag: _logTag);
     _discoveredDevices.addOrUpdateDevice(device);
 
