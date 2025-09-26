@@ -21,6 +21,8 @@ class WebRTCService {
       StreamController<LocalSendMessage>.broadcast();
   final StreamController<FileChunk> _fileChunkController =
       StreamController<FileChunk>.broadcast();
+  final StreamController<IceCandidateEvent> _iceCandidateController =
+      StreamController<IceCandidateEvent>.broadcast();
 
   /// Поток состояний соединений
   Stream<WebRTCConnection> get connectionStates =>
@@ -31,6 +33,19 @@ class WebRTCService {
 
   /// Поток входящих чанков файлов
   Stream<FileChunk> get incomingFileChunks => _fileChunkController.stream;
+
+  /// Поток ICE кандидатов
+  Stream<IceCandidateEvent> get iceCandidates => _iceCandidateController.stream;
+
+  /// Находит connectionId по deviceId
+  String? _findConnectionIdByDeviceId(String deviceId) {
+    for (final entry in _connections.entries) {
+      if (entry.value.remoteDeviceId == deviceId) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
 
   /// Создает новое WebRTC соединение как инициатор (caller)
   Future<String> createConnection({
@@ -181,13 +196,47 @@ class WebRTCService {
         throw Exception('Соединение не найдено: $connectionId');
       }
 
+      // Проверяем текущее состояние signaling
+      final currentState = peerConnection.signalingState;
+
       logDebug(
         'Установка remote description',
         tag: _logTag,
-        data: {'connectionId': connectionId, 'type': description.type},
+        data: {
+          'connectionId': connectionId,
+          'type': description.type,
+          'currentSignalingState': currentState?.name ?? 'unknown',
+        },
       );
 
+      // Проверяем совместимость состояния с типом описания
+      if (description.type == 'offer') {
+        // Offer можно устанавливать в состояниях: stable, have-local-offer
+        if (currentState != RTCSignalingState.RTCSignalingStateStable &&
+            currentState != RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+          logWarning(
+            'Неподходящее состояние для установки offer: ${currentState?.name}',
+            tag: _logTag,
+          );
+        }
+      } else if (description.type == 'answer') {
+        // Answer можно устанавливать только в состоянии have-local-offer
+        if (currentState != RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+          logWarning(
+            'Неподходящее состояние для установки answer: ${currentState?.name}',
+            tag: _logTag,
+          );
+          return; // Пропускаем установку answer в неподходящем состоянии
+        }
+      }
+
       await peerConnection.setRemoteDescription(description);
+
+      logDebug(
+        'Remote description установлен успешно',
+        tag: _logTag,
+        data: {'connectionId': connectionId},
+      );
     } catch (e) {
       logError('Ошибка установки remote description', error: e, tag: _logTag);
       _updateConnectionState(
@@ -337,6 +386,7 @@ class WebRTCService {
     await _connectionStateController.close();
     await _messageController.close();
     await _fileChunkController.close();
+    await _iceCandidateController.close();
 
     logInfo('WebRTCService освобожден', tag: _logTag);
   }
@@ -528,9 +578,99 @@ class WebRTCService {
 
   /// Обрабатывает новые ICE кандидаты
   void _onIceCandidate(String connectionId, RTCIceCandidate candidate) {
-    // В реальном приложении здесь должен быть код для отправки
-    // ICE кандидата через сигналинг сервер
-    // Это будет реализовано в провайдерах
+    logInfo(
+      'Получен новый ICE candidate для соединения: $connectionId',
+      tag: _logTag,
+      data: {
+        'candidate': candidate.candidate,
+        'sdpMid': candidate.sdpMid,
+        'sdpMLineIndex': candidate.sdpMLineIndex,
+      },
+    );
+
+    // ICE кандидат должен быть отправлен через сигналинг
+    // Находим соединение и используем remoteDeviceId
+    final connection = _connections[connectionId];
+    if (connection == null) {
+      logError(
+        'Соединение $connectionId не найдено для ICE кандидата',
+        tag: _logTag,
+      );
+      return;
+    }
+
+    final event = IceCandidateEvent.fromRTCIceCandidate(
+      deviceId: connection
+          .remoteDeviceId, // Используем remoteDeviceId, а не connectionId
+      candidate: candidate,
+    );
+
+    _iceCandidateController.add(event);
+
+    logInfo(
+      'ICE candidate отправлен в поток для обработки контроллером',
+      tag: _logTag,
+      data: {
+        'connectionId': connectionId,
+        'remoteDeviceId': connection.remoteDeviceId,
+      },
+    );
+  }
+
+  /// Обрабатывает входящий ICE candidate от удаленного устройства
+  Future<bool> handleIncomingIceCandidate(IceCandidateEvent event) async {
+    try {
+      logInfo(
+        'Обработка входящего ICE candidate от ${event.deviceId}',
+        tag: _logTag,
+        data: {
+          'candidate': event.candidate,
+          'sdpMid': event.sdpMid,
+          'sdpMLineIndex': event.sdpMLineIndex,
+        },
+      );
+
+      // Найти connectionId по deviceId
+      final connectionId = _findConnectionIdByDeviceId(event.deviceId);
+      if (connectionId == null) {
+        logWarning(
+          'Не найдено соединение для устройства ${event.deviceId}',
+          tag: _logTag,
+        );
+        return false;
+      }
+
+      final peerConnection = _peerConnections[connectionId];
+      if (peerConnection == null) {
+        logWarning(
+          'Нет активного PeerConnection для connectionId $connectionId (deviceId: ${event.deviceId})',
+          tag: _logTag,
+        );
+        return false;
+      }
+
+      final candidate = RTCIceCandidate(
+        event.candidate,
+        event.sdpMid,
+        event.sdpMLineIndex,
+      );
+
+      await peerConnection.addCandidate(candidate);
+
+      logInfo(
+        'ICE candidate успешно добавлен для connectionId: $connectionId (deviceId: ${event.deviceId})',
+        tag: _logTag,
+      );
+
+      return true;
+    } catch (e) {
+      logError(
+        'Ошибка при обработке ICE candidate от ${event.deviceId}',
+        error: e,
+        tag: _logTag,
+      );
+      return false;
+    }
   }
 
   /// Обновляет состояние соединения

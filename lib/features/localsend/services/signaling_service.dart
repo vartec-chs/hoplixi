@@ -69,10 +69,16 @@ class SignalingService {
       final url = 'http://${targetDevice.fullAddress}/signal';
       final uri = Uri.parse(url);
 
-      logDebug(
-        'Отправка сигнала на $url',
+      logInfo(
+        '=== ОТПРАВКА СИГНАЛА ===',
         tag: _logTag,
-        data: {'type': message.type.name, 'messageId': message.messageId},
+        data: {
+          'url': url,
+          'type': message.type.name,
+          'messageId': message.messageId,
+          'fromDevice': message.fromDeviceId,
+          'toDevice': message.toDeviceId,
+        },
       );
 
       final request = await client.postUrl(uri);
@@ -82,23 +88,42 @@ class SignalingService {
       request.write(jsonData);
 
       final response = await request.close();
+
+      final responseBody = await response.transform(utf8.decoder).join();
       client.close();
 
       if (response.statusCode == 200) {
-        logDebug('Сигнал успешно отправлен', tag: _logTag);
+        logInfo(
+          'Сигнал успешно отправлен и принят',
+          tag: _logTag,
+          data: {
+            'statusCode': response.statusCode,
+            'responseBody': responseBody,
+          },
+        );
         return true;
       } else {
-        logWarning(
-          'Ошибка отправки сигнала: ${response.statusCode}',
+        logError(
+          'Ошибка отправки сигнала - неверный статус',
           tag: _logTag,
+          data: {
+            'statusCode': response.statusCode,
+            'responseBody': responseBody,
+            'url': url,
+          },
         );
         return false;
       }
     } catch (e) {
       logError(
-        'Ошибка отправки сигнала на ${targetDevice.fullAddress}',
+        'Исключение при отправке сигнала',
         error: e,
         tag: _logTag,
+        data: {
+          'targetAddress': targetDevice.fullAddress,
+          'messageType': message.type.name,
+          'deviceName': targetDevice.name,
+        },
       );
       return false;
     }
@@ -163,22 +188,30 @@ class SignalingService {
 
       final message = SignalingMessage.fromJson(jsonData);
 
-      logDebug(
-        'Получен сигнал',
+      logInfo(
+        '=== ПОЛУЧЕН СИГНАЛ ===',
         tag: _logTag,
         data: {
           'type': message.type.name,
           'from': message.fromDeviceId,
+          'to': message.toDeviceId,
           'messageId': message.messageId,
+          'fromAddress':
+              request.connectionInfo?.remoteAddress.address ?? 'unknown',
+          'timestamp': message.timestamp.toIso8601String(),
         },
       );
 
+      // Отправляем в поток для обработки
       _messageController.add(message);
 
+      // Отправляем подтверждение
       request.response.statusCode = 200;
       request.response.headers.set('Content-Type', 'application/json');
       request.response.write(jsonEncode({'status': 'ok'}));
       await request.response.close();
+
+      logInfo('Сигнал обработан и подтвержден', tag: _logTag);
     } catch (e) {
       logError('Ошибка обработки сигнала', error: e, tag: _logTag);
 

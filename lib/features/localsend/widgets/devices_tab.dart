@@ -67,7 +67,7 @@ class DevicesTab extends ConsumerWidget {
           ),
         ),
 
-        // Заголовок списка устройств
+        // Заголовок списка устройств и кнопки управления
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
@@ -79,6 +79,12 @@ class DevicesTab extends ConsumerWidget {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),
+              // Кнопка обновления поиска
+              IconButton(
+                onPressed: () => _refreshDevices(ref),
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Обновить поиск устройств',
+              ),
               if (discoveredDevices.isEmpty)
                 TextButton.icon(
                   onPressed: () => _addTestDevices(ref),
@@ -122,6 +128,12 @@ class DevicesTab extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  /// Перезапускает поиск устройств
+  Future<void> _refreshDevices(WidgetRef ref) async {
+    logInfo('Перезапуск поиска устройств из DevicesTab', tag: _logTag);
+    await ref.read(localSendControllerProvider).refreshDeviceDiscovery();
   }
 
   void _addTestDevices(WidgetRef ref) {

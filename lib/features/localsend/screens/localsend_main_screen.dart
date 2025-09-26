@@ -135,7 +135,15 @@ class _LocalSendMainScreenState extends ConsumerState<LocalSendMainScreen>
   Future<void> _refreshDiscovery() async {
     try {
       logInfo('Обновление поиска устройств', tag: _logTag);
-      // В будущем здесь можно будет перезапустить discovery
+      final controller = ref.read(localSendControllerProvider);
+      if (!controller.isInitialized) {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'LocalSend не инициализирован',
+        );
+        return;
+      }
+      await controller.refreshDeviceDiscovery();
       ToastHelper.info(
         title: 'Поиск устройств',
         description: 'Обновление списка устройств...',
