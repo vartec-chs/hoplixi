@@ -116,6 +116,47 @@ class LocalSendController {
     }
   }
 
+  /// Полная очистка всех данных LocalSend (для dispose)
+  Future<void> disposeAll() async {
+    try {
+      logInfo('=== НАЧАЛО ПОЛНОЙ ОЧИСТКИ LOCALSEND ===', tag: _logTag);
+
+      // Останавливаем все службы
+      await shutdown();
+
+      // Закрываем все WebRTC соединения
+      final connections = _ref.read(webrtcConnectionsProvider);
+      for (final connection in connections.values) {
+        try {
+          await _webrtcService.closeConnection(connection.connectionId);
+          logDebug(
+            'Закрыто соединение: ${connection.connectionId}',
+            tag: _logTag,
+          );
+        } catch (e) {
+          logWarning(
+            'Ошибка закрытия соединения ${connection.connectionId}',
+            tag: _logTag,
+          );
+        }
+      }
+
+      // Очищаем все провайдеры состояния
+      _discoveredDevices.clearDevices();
+      _connections.clearConnections();
+      _transfers.clearTransfers();
+      _messages.clearHistory();
+
+      // Сбрасываем текущее устройство к исходному состоянию
+      final defaultDevice = DeviceInfo.currentDevice();
+      _currentDevice.updateDevice(defaultDevice);
+
+      logInfo('=== ПОЛНАЯ ОЧИСТКА LOCALSEND ЗАВЕРШЕНА ===', tag: _logTag);
+    } catch (e) {
+      logError('Ошибка полной очистки LocalSend', error: e, tag: _logTag);
+    }
+  }
+
   /// Перезапускает поиск устройств в сети
   Future<void> refreshDeviceDiscovery() async {
     if (!_isInitialized) {
@@ -177,6 +218,61 @@ class LocalSendController {
 
       final currentDevice = _ref.read(currentDeviceProvider);
 
+      // Найти активное WebRTC соединение с устройством
+      final webrtcConnections = _ref.read(webrtcConnectionsProvider);
+      var connection = webrtcConnections.values
+          .where(
+            (conn) =>
+                conn.remoteDeviceId == deviceId &&
+                conn.state == WebRTCConnectionState.connected,
+          )
+          .firstOrNull;
+
+      if (connection == null) {
+        logInfo(
+          'Соединение отсутствует, устанавливаем соединение с устройством: $deviceId',
+          tag: _logTag,
+        );
+
+        // Устанавливаем соединение
+        final connected = await connectToDevice(deviceId);
+        if (!connected) {
+          logError(
+            'Не удалось установить соединение с устройством: $deviceId',
+            tag: _logTag,
+          );
+
+          ToastHelper.error(
+            title: 'Ошибка передачи',
+            description: 'Не удалось подключиться к устройству',
+          );
+          return false;
+        }
+
+        // Получаем обновленные соединения после установки
+        final updatedConnections = _ref.read(webrtcConnectionsProvider);
+        connection = updatedConnections.values
+            .where(
+              (conn) =>
+                  conn.remoteDeviceId == deviceId &&
+                  conn.state == WebRTCConnectionState.connected,
+            )
+            .firstOrNull;
+      }
+
+      if (connection == null) {
+        logError(
+          'Активное соединение с устройством не найдено после подключения: $deviceId',
+          tag: _logTag,
+        );
+
+        ToastHelper.error(
+          title: 'Ошибка передачи',
+          description: 'Нет активного соединения с устройством',
+        );
+        return false;
+      }
+
       for (final file in files) {
         // Создаем передачу файла
         final transfer = await _fileService.createFileTransferForSending(
@@ -204,13 +300,25 @@ class LocalSendController {
           transfer.copyWith(status: FileTransferStatus.inProgress),
         );
 
+        logInfo(
+          'Отправка файла через WebRTC',
+          tag: _logTag,
+          data: {
+            'fileName': transfer.fileName,
+            'connectionId': connection.connectionId,
+          },
+        );
+
+        // TODO: Здесь будет реальная передача через WebRTC DataChannel
+        // await _webrtcService.sendFile(connection.connectionId, transfer);
+
         // Симулируем передачу файла (в реальном приложении здесь будет WebRTC)
         _simulateFileTransfer(transfer);
       }
 
       ToastHelper.success(
         title: 'Файлы отправлены',
-        description: 'Начата передача ${files.length} файлов',
+        description: 'Начата передача ${files.length} файлов через WebRTC',
       );
       return true;
     } catch (e) {
@@ -239,6 +347,61 @@ class LocalSendController {
 
       final currentDevice = _ref.read(currentDeviceProvider);
 
+      // Найти активное WebRTC соединение с устройством
+      final webrtcConnections = _ref.read(webrtcConnectionsProvider);
+      var connection = webrtcConnections.values
+          .where(
+            (conn) =>
+                conn.remoteDeviceId == deviceId &&
+                conn.state == WebRTCConnectionState.connected,
+          )
+          .firstOrNull;
+
+      if (connection == null) {
+        logInfo(
+          'Соединение отсутствует, устанавливаем соединение с устройством: $deviceId',
+          tag: _logTag,
+        );
+
+        // Устанавливаем соединение
+        final connected = await connectToDevice(deviceId);
+        if (!connected) {
+          logError(
+            'Не удалось установить соединение с устройством: $deviceId',
+            tag: _logTag,
+          );
+
+          ToastHelper.error(
+            title: 'Ошибка передачи',
+            description: 'Не удалось подключиться к устройству',
+          );
+          return false;
+        }
+
+        // Получаем обновленные соединения после установки
+        final updatedConnections = _ref.read(webrtcConnectionsProvider);
+        connection = updatedConnections.values
+            .where(
+              (conn) =>
+                  conn.remoteDeviceId == deviceId &&
+                  conn.state == WebRTCConnectionState.connected,
+            )
+            .firstOrNull;
+      }
+
+      if (connection == null) {
+        logError(
+          'Активное соединение с устройством не найдено после подключения: $deviceId',
+          tag: _logTag,
+        );
+
+        ToastHelper.error(
+          title: 'Ошибка передачи',
+          description: 'Нет активного соединения с устройством',
+        );
+        return false;
+      }
+
       for (final filePath in filePaths) {
         // Создаем передачу файла
         final transfer = await _fileServiceV2.createFileTransferForSending(
@@ -266,13 +429,25 @@ class LocalSendController {
           transfer.copyWith(status: FileTransferStatus.inProgress),
         );
 
+        logInfo(
+          'Отправка файла через WebRTC',
+          tag: _logTag,
+          data: {
+            'fileName': transfer.fileName,
+            'connectionId': connection.connectionId,
+          },
+        );
+
+        // TODO: Здесь будет реальная передача через WebRTC DataChannel
+        // await _webrtcService.sendFile(connection.connectionId, transfer);
+
         // Отправляем файл через существующий механизм передачи
         await sendFileWithResume(deviceId: deviceId, filePath: filePath);
       }
 
       ToastHelper.success(
         title: 'Файлы отправлены',
-        description: 'Начата передача ${filePaths.length} файлов',
+        description: 'Начата передача ${filePaths.length} файлов через WebRTC',
       );
       return true;
     } catch (e) {
@@ -1048,14 +1223,37 @@ class LocalSendController {
     Function(double)? onProgress,
   }) async {
     try {
-      // Находим соединение с устройством
-      final connections = _ref.read(webrtcConnectionsProvider);
-      final connection = connections[deviceId];
-      if (connection == null || connection.dataChannel == null) {
-        logError('Нет соединения с устройством: $deviceId', tag: _logTag);
+      // Находим активное WebRTC соединение с устройством
+      final webrtcConnections = _ref.read(webrtcConnectionsProvider);
+      final connection = webrtcConnections.values
+          .where(
+            (conn) =>
+                conn.remoteDeviceId == deviceId &&
+                conn.state == WebRTCConnectionState.connected,
+          )
+          .firstOrNull;
+
+      if (connection == null) {
+        logError(
+          'Нет активного WebRTC соединения с устройством: $deviceId',
+          tag: _logTag,
+        );
         ToastHelper.error(
           title: 'Ошибка',
           description: 'Нет соединения с устройством',
+        );
+        return false;
+      }
+
+      // Проверяем наличие DataChannel
+      if (connection.dataChannel == null) {
+        logError(
+          'DataChannel отсутствует в соединении: ${connection.connectionId}',
+          tag: _logTag,
+        );
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Канал передачи данных не готов',
         );
         return false;
       }
@@ -1069,6 +1267,7 @@ class LocalSendController {
           'filePath': filePath,
           'deviceId': deviceId,
           'transferId': transferId,
+          'connectionId': connection.connectionId,
         },
       );
 

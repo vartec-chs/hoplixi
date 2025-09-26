@@ -126,6 +126,12 @@ class WebRTCConnectionsNotifier
     return {};
   }
 
+  /// Очищает все подключения
+  void clearConnections() {
+    state = {};
+    logInfo('Очищены все WebRTC подключения', tag: _logTag);
+  }
+
   /// Добавляет новое подключение
   void addConnection(WebRTCConnection connection) {
     state = {...state, connection.connectionId: connection};
