@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/localsend/models/index.dart';
 
 /// Внутреннее состояние передачи для resume функциональности
@@ -72,18 +73,23 @@ class _TransferState {
   }
 }
 
-/// Сервис для работы с файлами в LocalSend с поддержкой resume
-class FileServiceV2 {
-  static const String _logTag = 'FileServiceV2';
-  static const int _chunkSize = 16384; // 16KB
+/// Объединенный сервис для работы с файлами LocalSend
+/// Включает функционал выбора файлов, chunked transfer с resume и проверки целостности
+class UnifiedFileService {
+  static const String _logTag = 'UnifiedFileService';
+
+  // Конфигурация chunk размеров для разных операций
+  static const int _defaultChunkSize = 16384; // 16KB для WebRTC DataChannel
+  static const int _streamChunkSize = 65536; // 64KB для File streams
+
   static const String _transferStateExt = '.localsend_state';
   static const String _tempFileExt = '.localsend_temp';
 
-  // Внутренние карты для отслеживания состояния
+  // Внутренние состояния для resume функциональности и управления файлами
   final Map<String, _TransferState> _activeTransfers = {};
   final Map<String, RandomAccessFile> _openFiles = {};
 
-  /// Контроллер для уведомлений о прогрессе
+  /// Контроллер для уведомлений о прогрессе передач
   final StreamController<Map<String, dynamic>> _progressController =
       StreamController<Map<String, dynamic>>.broadcast();
 
@@ -91,23 +97,204 @@ class FileServiceV2 {
   Stream<Map<String, dynamic>> get transferProgress =>
       _progressController.stream;
 
+  // ========== Методы выбора и управления файлами ==========
+
+  /// Выбирает файлы для отправки через FilePicker
+  Future<List<File>> pickFiles() async {
+    try {
+      logInfo('Выбор файлов для отправки', tag: _logTag);
+
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.any,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        logDebug('Файлы не выбраны', tag: _logTag);
+        return [];
+      }
+
+      final files = <File>[];
+      for (final file in result.files) {
+        if (file.path != null) {
+          files.add(File(file.path!));
+        }
+      }
+
+      logInfo('Выбрано файлов: ${files.length}', tag: _logTag);
+      return files;
+    } catch (e) {
+      logError('Ошибка выбора файлов', error: e, tag: _logTag);
+      rethrow;
+    }
+  }
+
+  /// Получает информацию о файле
+  Future<Map<String, dynamic>?> getFileInfo(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        return null;
+      }
+
+      final stat = await file.stat();
+      final fileName = filePath.split(Platform.pathSeparator).last;
+
+      return {
+        'name': fileName,
+        'path': filePath,
+        'size': stat.size,
+        'modified': stat.modified.millisecondsSinceEpoch,
+        'type': stat.type.toString(),
+      };
+    } catch (e) {
+      logError(
+        'Ошибка получения информации о файле: $filePath',
+        error: e,
+        tag: _logTag,
+      );
+      return null;
+    }
+  }
+
+  /// Удаляет файл
+  Future<void> deleteFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        logInfo('Файл удален: $filePath', tag: _logTag);
+      }
+    } catch (e) {
+      logError('Ошибка удаления файла: $filePath', error: e, tag: _logTag);
+    }
+  }
+
+  /// Получает директорию Downloads пользователя
+  Future<Directory> getDownloadsDirectory() async {
+    try {
+      if (Platform.isAndroid) {
+        final directory = await getExternalStorageDirectory();
+        return Directory('${directory!.path}/Download');
+      } else if (Platform.isWindows) {
+        final home = Platform.environment['USERPROFILE'];
+        return Directory('$home\\Downloads');
+      } else if (Platform.isMacOS || Platform.isLinux) {
+        final home = Platform.environment['HOME'];
+        return Directory('$home/Downloads');
+      } else {
+        // Fallback для других платформ
+        return await getApplicationDocumentsDirectory();
+      }
+    } catch (e) {
+      logError('Ошибка получения директории Downloads', error: e, tag: _logTag);
+      return await getApplicationDocumentsDirectory();
+    }
+  }
+
+  // ========== Методы создания FileTransfer ==========
+
+  /// Создает FileTransfer для отправки файла
+  Future<FileTransfer> createFileTransferForSending({
+    required File file,
+    required String senderId,
+    required String receiverId,
+  }) async {
+    try {
+      final fileStat = await file.stat();
+      final fileName = file.path.split(Platform.pathSeparator).last;
+      final fileHash = await _calculateFileHash(file.path);
+
+      logInfo(
+        'Создание FileTransfer для отправки',
+        tag: _logTag,
+        data: {'fileName': fileName, 'fileSize': fileStat.size},
+      );
+
+      return FileTransfer.sending(
+        senderId: senderId,
+        receiverId: receiverId,
+        fileName: fileName,
+        fileSize: fileStat.size,
+        filePath: file.path,
+        fileHash: fileHash,
+        metadata: {
+          'originalPath': file.path,
+          'lastModified': fileStat.modified.millisecondsSinceEpoch,
+        },
+      );
+    } catch (e) {
+      logError(
+        'Ошибка создания FileTransfer для отправки',
+        error: e,
+        tag: _logTag,
+      );
+      rethrow;
+    }
+  }
+
+  /// Создает FileTransfer для получения файла
+  Future<FileTransfer> createFileTransferForReceiving({
+    required String senderId,
+    required String receiverId,
+    required String fileName,
+    required int fileSize,
+    String? fileHash,
+    Map<String, dynamic>? metadata,
+  }) async {
+    try {
+      final savePath = await _getSaveFilePath(fileName);
+
+      logInfo(
+        'Создание FileTransfer для получения',
+        tag: _logTag,
+        data: {
+          'fileName': fileName,
+          'fileSize': fileSize,
+          'savePath': savePath,
+        },
+      );
+
+      return FileTransfer.receiving(
+        senderId: senderId,
+        receiverId: receiverId,
+        fileName: fileName,
+        fileSize: fileSize,
+        savePath: savePath,
+        fileHash: fileHash,
+        metadata: metadata,
+      );
+    } catch (e) {
+      logError(
+        'Ошибка создания FileTransfer для получения',
+        error: e,
+        tag: _logTag,
+      );
+      rethrow;
+    }
+  }
+
+  // ========== WebRTC DataChannel методы с resume ==========
+
   /// Отправляет файл по частям через DataChannel с поддержкой resume
   Future<bool> sendFileChunked({
     required RTCDataChannel dataChannel,
     required String filePath,
     required String transferId,
     Function(double)? onProgress,
-    int chunkSize = 16384, // 16KB chunks
+    int? chunkSize,
   }) async {
+    final effectiveChunkSize = chunkSize ?? _defaultChunkSize;
+
     try {
       final file = File(filePath);
       if (!await file.exists()) {
-        logError('File not found: $filePath', tag: _logTag);
+        logError('Файл не найден: $filePath', tag: _logTag);
         return false;
       }
 
       final fileSize = await file.length();
-      final fileName = file.path.split(Platform.pathSeparator).last;
+      final fileName = filePath.split(Platform.pathSeparator).last;
 
       // Вычисляем хеш файла для проверки целостности
       final fileHash = await _calculateFileHash(filePath);
@@ -121,12 +308,13 @@ class FileServiceV2 {
       );
 
       logInfo(
-        'Starting chunked file send',
+        'Начало chunked отправки файла',
         tag: _logTag,
         data: {
           'fileName': fileName,
           'fileSize': fileSize,
-          'chunks': (fileSize / chunkSize).ceil(),
+          'chunkSize': effectiveChunkSize,
+          'totalChunks': (fileSize / effectiveChunkSize).ceil(),
           'resumeFrom': transferState.completedChunks,
         },
       );
@@ -140,22 +328,22 @@ class FileServiceV2 {
         transferId,
       );
 
-      final totalChunks = (fileSize / chunkSize).ceil();
+      final totalChunks = (fileSize / effectiveChunkSize).ceil();
       final raf = await file.open();
       _openFiles[transferId] = raf;
 
       try {
-        // Начинаем с последнего завершенного чанка
+        // Начинаем с последнего завершенного чанка для resume
         for (
           int chunkIndex = transferState.completedChunks;
           chunkIndex < totalChunks;
           chunkIndex++
         ) {
-          final offset = chunkIndex * chunkSize;
+          final offset = chunkIndex * effectiveChunkSize;
           final remainingBytes = fileSize - offset;
-          final currentChunkSize = remainingBytes < chunkSize
+          final currentChunkSize = remainingBytes < effectiveChunkSize
               ? remainingBytes
-              : chunkSize;
+              : effectiveChunkSize;
 
           await raf.setPosition(offset);
           final chunkData = await raf.read(currentChunkSize);
@@ -170,10 +358,8 @@ class FileServiceV2 {
             'isLast': chunkIndex == totalChunks - 1,
           };
 
-          // Отправляем заголовок
+          // Отправляем заголовок и данные
           dataChannel.send(RTCDataChannelMessage(jsonEncode(chunkHeader)));
-
-          // Отправляем данные чанка
           dataChannel.send(RTCDataChannelMessage.fromBinary(chunkData));
 
           // Обновляем состояние
@@ -208,9 +394,9 @@ class FileServiceV2 {
         dataChannel.send(RTCDataChannelMessage(jsonEncode(completionMessage)));
 
         logInfo(
-          'File sent successfully',
+          'Файл отправлен успешно',
           tag: _logTag,
-          data: {'transferId': transferId},
+          data: {'transferId': transferId, 'fileName': fileName},
         );
 
         // Очищаем состояние после успешной отправки
@@ -221,7 +407,7 @@ class FileServiceV2 {
         _openFiles.remove(transferId);
       }
     } catch (e) {
-      logError('Failed to send file chunked', error: e, tag: _logTag);
+      logError('Ошибка chunked отправки файла', error: e, tag: _logTag);
       return false;
     }
   }
@@ -247,11 +433,11 @@ class FileServiceV2 {
           return await _handleFileComplete(data, transferId);
 
         default:
-          logWarning('Unknown message type: $messageType', tag: _logTag);
+          logWarning('Неизвестный тип сообщения: $messageType', tag: _logTag);
           return false;
       }
     } catch (e) {
-      logError('Failed to receive file chunk', error: e, tag: _logTag);
+      logError('Ошибка получения файла по частям', error: e, tag: _logTag);
       return false;
     }
   }
@@ -266,18 +452,18 @@ class FileServiceV2 {
     try {
       final transferState = _activeTransfers[transferId];
       if (transferState == null) {
-        logError('Transfer state not found: $transferId', tag: _logTag);
+        logError('Состояние передачи не найдено: $transferId', tag: _logTag);
         return false;
       }
 
       final raf = _openFiles[transferId];
       if (raf == null) {
-        logError('File not open for transfer: $transferId', tag: _logTag);
+        logError('Файл не открыт для передачи: $transferId', tag: _logTag);
         return false;
       }
 
       // Записываем чанк в правильную позицию
-      final offset = chunkIndex * _chunkSize;
+      final offset = chunkIndex * _defaultChunkSize;
       await raf.setPosition(offset);
       await raf.writeFrom(chunkData);
       await raf.flush();
@@ -294,7 +480,7 @@ class FileServiceV2 {
       await _saveTransferState(updatedState);
 
       // Уведомляем о прогрессе
-      final totalChunks = (transferState.fileSize / _chunkSize).ceil();
+      final totalChunks = (transferState.fileSize / _defaultChunkSize).ceil();
       final progress = newReceivedChunks.length / totalChunks;
       onProgress?.call(progress);
       _progressController.add({
@@ -307,10 +493,101 @@ class FileServiceV2 {
 
       return true;
     } catch (e) {
-      logError('Failed to handle chunk data', error: e, tag: _logTag);
+      logError('Ошибка обработки данных чанка', error: e, tag: _logTag);
       return false;
     }
   }
+
+  // ========== Stream-based методы (для локальных операций) ==========
+
+  /// Читает файл по чанкам для отправки через Stream
+  Stream<FileChunk> readFileAsChunks(FileTransfer transfer) async* {
+    try {
+      final file = File(transfer.filePath!);
+      final randomAccessFile = await file.open(mode: FileMode.read);
+
+      try {
+        int chunkIndex = 0;
+        final totalChunks = (transfer.fileSize / _streamChunkSize).ceil();
+
+        logInfo(
+          'Начало чтения файла по чанкам',
+          tag: _logTag,
+          data: {'fileName': transfer.fileName, 'totalChunks': totalChunks},
+        );
+
+        while (true) {
+          final chunkData = await randomAccessFile.read(_streamChunkSize);
+          if (chunkData.isEmpty) break;
+
+          final checksum = _calculateChunkChecksum(chunkData);
+
+          final chunk = FileChunk(
+            transferId: transfer.id,
+            chunkIndex: chunkIndex,
+            totalChunks: totalChunks,
+            data: Uint8List.fromList(chunkData),
+            size: chunkData.length,
+            checksum: checksum,
+          );
+
+          yield chunk;
+          chunkIndex++;
+
+          logDebug('Отправлен чанк $chunkIndex/$totalChunks', tag: _logTag);
+        }
+
+        logInfo('Чтение файла завершено', tag: _logTag);
+      } finally {
+        await randomAccessFile.close();
+      }
+    } catch (e) {
+      logError('Ошибка чтения файла по чанкам', error: e, tag: _logTag);
+      rethrow;
+    }
+  }
+
+  /// Записывает чанк файла при получении через Stream
+  Future<void> writeFileChunk(FileTransfer transfer, FileChunk chunk) async {
+    try {
+      final file = File(transfer.filePath!);
+
+      // Создаем директорию если не существует
+      final directory = file.parent;
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
+
+      final randomAccessFile = await file.open(mode: FileMode.writeOnlyAppend);
+
+      try {
+        // Проверяем контрольную сумму чанка
+        if (chunk.checksum != null) {
+          final actualChecksum = _calculateChunkChecksum(chunk.data);
+          if (actualChecksum != chunk.checksum) {
+            throw Exception(
+              'Неверная контрольная сумма чанка ${chunk.chunkIndex}',
+            );
+          }
+        }
+
+        await randomAccessFile.writeFrom(chunk.data);
+        await randomAccessFile.flush();
+
+        logDebug(
+          'Записан чанк ${chunk.chunkIndex + 1}/${chunk.totalChunks}',
+          tag: _logTag,
+        );
+      } finally {
+        await randomAccessFile.close();
+      }
+    } catch (e) {
+      logError('Ошибка записи чанка файла', error: e, tag: _logTag);
+      rethrow;
+    }
+  }
+
+  // ========== Resume и управление передачами ==========
 
   /// Возобновляет прерванную передачу
   Future<bool> resumeTransfer(String transferId) async {
@@ -318,7 +595,7 @@ class FileServiceV2 {
       final transferState = await _loadTransferState(transferId);
       if (transferState == null) {
         logError(
-          'No transfer state found for resume: $transferId',
+          'Состояние передачи для resume не найдено: $transferId',
           tag: _logTag,
         );
         return false;
@@ -328,7 +605,7 @@ class FileServiceV2 {
       final tempFilePath = '${transferState.filePath}$_tempFileExt';
       if (!await File(tempFilePath).exists()) {
         logError(
-          'Temporary file not found for resume: $tempFilePath',
+          'Временный файл не найден для resume: $tempFilePath',
           tag: _logTag,
         );
         return false;
@@ -338,7 +615,7 @@ class FileServiceV2 {
       _activeTransfers[transferId] = transferState;
 
       logInfo(
-        'Transfer resumed',
+        'Передача возобновлена',
         tag: _logTag,
         data: {
           'transferId': transferId,
@@ -349,7 +626,7 @@ class FileServiceV2 {
 
       return true;
     } catch (e) {
-      logError('Failed to resume transfer', error: e, tag: _logTag);
+      logError('Ошибка возобновления передачи', error: e, tag: _logTag);
       return false;
     }
   }
@@ -382,12 +659,12 @@ class FileServiceV2 {
       });
 
       logInfo(
-        'Transfer cancelled',
+        'Передача отменена',
         tag: _logTag,
         data: {'transferId': transferId},
       );
     } catch (e) {
-      logError('Failed to cancel transfer', error: e, tag: _logTag);
+      logError('Ошибка отмены передачи', error: e, tag: _logTag);
     }
   }
 
@@ -397,7 +674,7 @@ class FileServiceV2 {
 
     for (final entry in _activeTransfers.entries) {
       final state = entry.value;
-      final totalChunks = (state.fileSize / _chunkSize).ceil();
+      final totalChunks = (state.fileSize / _defaultChunkSize).ceil();
 
       status[entry.key] = {
         'filePath': state.filePath,
@@ -415,7 +692,94 @@ class FileServiceV2 {
     return status;
   }
 
-  // Private helper methods
+  // ========== Проверка целостности ==========
+
+  /// Проверяет целостность полученного файла
+  Future<bool> verifyFileIntegrity(FileTransfer transfer) async {
+    try {
+      if (transfer.fileHash == null) {
+        logWarning('Нет хеша для проверки целостности файла', tag: _logTag);
+        return true; // Считаем файл валидным если хеша нет
+      }
+
+      final file = File(transfer.filePath!);
+      if (!await file.exists()) {
+        return false;
+      }
+
+      final fileStat = await file.stat();
+      if (fileStat.size != transfer.fileSize) {
+        logError(
+          'Размер файла не совпадает',
+          tag: _logTag,
+          data: {'expected': transfer.fileSize, 'actual': fileStat.size},
+        );
+        return false;
+      }
+
+      final actualHash = await _calculateFileHash(transfer.filePath!);
+      final isValid = actualHash == transfer.fileHash;
+
+      logInfo(
+        'Проверка целостности файла',
+        tag: _logTag,
+        data: {'fileName': transfer.fileName, 'isValid': isValid},
+      );
+
+      return isValid;
+    } catch (e) {
+      logError('Ошибка проверки целостности файла', error: e, tag: _logTag);
+      return false;
+    }
+  }
+
+  // ========== Утилиты ==========
+
+  /// Форматирует размер файла для отображения
+  String formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes Б';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} КБ';
+    if (bytes < 1024 * 1024 * 1024)
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} ГБ';
+  }
+
+  // ========== Cleanup и dispose ==========
+
+  /// Закрывает все активные передачи и очищает ресурсы
+  Future<void> dispose() async {
+    try {
+      logInfo('Начало dispose UnifiedFileService', tag: _logTag);
+
+      // Закрываем все открытые файлы
+      for (final entry in _openFiles.entries) {
+        try {
+          await entry.value.close();
+          logDebug('Закрыт файл: ${entry.key}', tag: _logTag);
+        } catch (e) {
+          logWarning('Ошибка закрытия файла ${entry.key}', tag: _logTag);
+        }
+      }
+      _openFiles.clear();
+
+      // Сохраняем состояния всех активных передач для возможного resume
+      for (final state in _activeTransfers.values) {
+        await _saveTransferState(state);
+      }
+
+      // Очищаем активные передачи
+      _activeTransfers.clear();
+
+      // Закрываем контроллер прогресса
+      await _progressController.close();
+
+      logInfo('UnifiedFileService disposed', tag: _logTag);
+    } catch (e) {
+      logError('Ошибка при dispose', error: e, tag: _logTag);
+    }
+  }
+
+  // ========== Приватные методы ==========
 
   /// Обработка метаданных файла
   Future<bool> _handleFileMetadata(
@@ -454,7 +818,7 @@ class FileServiceV2 {
       await raf.truncate(fileSize);
 
       logInfo(
-        'Ready to receive file',
+        'Готов к получению файла',
         tag: _logTag,
         data: {
           'fileName': fileName,
@@ -472,7 +836,7 @@ class FileServiceV2 {
 
       return true;
     } catch (e) {
-      logError('Failed to handle file metadata', error: e, tag: _logTag);
+      logError('Ошибка обработки метаданных файла', error: e, tag: _logTag);
       return false;
     }
   }
@@ -488,19 +852,19 @@ class FileServiceV2 {
 
       final transferState = _activeTransfers[transferId];
       if (transferState == null) {
-        logError('Transfer state not found: $transferId', tag: _logTag);
+        logError('Состояние передачи не найдено: $transferId', tag: _logTag);
         return false;
       }
 
       // Проверяем, не получили ли мы уже этот чанк
       if (transferState.receivedChunks.contains(chunkIndex)) {
-        logDebug('Chunk already received: $chunkIndex', tag: _logTag);
+        logDebug('Чанк уже получен: $chunkIndex', tag: _logTag);
         return true;
       }
 
       final raf = _openFiles[transferId];
       if (raf == null) {
-        logError('File not open for transfer: $transferId', tag: _logTag);
+        logError('Файл не открыт для передачи: $transferId', tag: _logTag);
         return false;
       }
 
@@ -508,7 +872,7 @@ class FileServiceV2 {
       // Фактическая запись происходит в handleChunkData
       return true;
     } catch (e) {
-      logError('Failed to handle file chunk', error: e, tag: _logTag);
+      logError('Ошибка обработки чанка файла', error: e, tag: _logTag);
       return false;
     }
   }
@@ -523,7 +887,7 @@ class FileServiceV2 {
       final transferState = _activeTransfers[transferId];
 
       if (transferState == null) {
-        logError('Transfer state not found: $transferId', tag: _logTag);
+        logError('Состояние передачи не найдено: $transferId', tag: _logTag);
         return false;
       }
 
@@ -538,7 +902,7 @@ class FileServiceV2 {
 
       if (actualHash != expectedHash) {
         logError(
-          'File integrity check failed',
+          'Проверка целостности файла не прошла',
           tag: _logTag,
           data: {'expected': expectedHash, 'actual': actualHash},
         );
@@ -549,7 +913,7 @@ class FileServiceV2 {
         _progressController.add({
           'type': 'transfer_failed',
           'transferId': transferId,
-          'error': 'File integrity check failed',
+          'error': 'Проверка целостности файла не прошла',
         });
 
         return false;
@@ -559,7 +923,7 @@ class FileServiceV2 {
       await File(tempFilePath).rename(transferState.filePath);
 
       logInfo(
-        'File received successfully',
+        'Файл получен успешно',
         tag: _logTag,
         data: {
           'filePath': transferState.filePath,
@@ -577,7 +941,7 @@ class FileServiceV2 {
       await _cleanupTransfer(transferId);
       return true;
     } catch (e) {
-      logError('Failed to handle file complete', error: e, tag: _logTag);
+      logError('Ошибка завершения получения файла', error: e, tag: _logTag);
       return false;
     }
   }
@@ -629,7 +993,7 @@ class FileServiceV2 {
       );
       await stateFile.writeAsString(jsonEncode(state.toJson()));
     } catch (e) {
-      logError('Failed to save transfer state', error: e, tag: _logTag);
+      logError('Ошибка сохранения состояния передачи', error: e, tag: _logTag);
     }
   }
 
@@ -650,7 +1014,7 @@ class FileServiceV2 {
 
       return _TransferState.fromJson(json);
     } catch (e) {
-      logError('Failed to load transfer state', error: e, tag: _logTag);
+      logError('Ошибка загрузки состояния передачи', error: e, tag: _logTag);
       return null;
     }
   }
@@ -675,11 +1039,11 @@ class FileServiceV2 {
         await stateFile.delete();
       }
     } catch (e) {
-      logError('Failed to cleanup transfer', error: e, tag: _logTag);
+      logError('Ошибка очистки состояния передачи', error: e, tag: _logTag);
     }
   }
 
-  /// Отправляет метаданные файла
+  /// Отправляет метаданные файла через DataChannel
   Future<void> _sendFileMetadata(
     RTCDataChannel dataChannel,
     String fileName,
@@ -706,63 +1070,51 @@ class FileServiceV2 {
       final digest = sha256.convert(bytes);
       return digest.toString();
     } catch (e) {
-      logError('Failed to calculate file hash', error: e, tag: _logTag);
+      logError('Ошибка вычисления хеша файла', error: e, tag: _logTag);
       rethrow;
     }
   }
 
-  /// Закрывает все активные передачи и очищает ресурсы
-  Future<void> dispose() async {
+  /// Вычисляет контрольную сумму чанка
+  String _calculateChunkChecksum(Uint8List data) {
+    final digest = md5.convert(data);
+    return digest.toString();
+  }
+
+  /// Получает путь для сохранения файла
+  Future<String> _getSaveFilePath(String fileName) async {
     try {
-      // Закрываем все открытые файлы
-      for (final raf in _openFiles.values) {
-        await raf.close();
-      }
-      _openFiles.clear();
+      final downloadsDir = await getDownloadsDirectory();
 
-      // Сохраняем состояния всех активных передач
-      for (final state in _activeTransfers.values) {
-        await _saveTransferState(state);
+      // Обеспечиваем существование директории
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
       }
 
-      // Закрываем контроллер
-      await _progressController.close();
+      var savePath = '${downloadsDir.path}$delimiter$fileName';
+      var counter = 1;
 
-      logInfo('FileServiceV2 disposed', tag: _logTag);
+      // Если файл уже существует, добавляем счетчик
+      while (await File(savePath).exists()) {
+        final extension = fileName.contains('.')
+            ? '.${fileName.split('.').last}'
+            : '';
+        final baseName = fileName.contains('.')
+            ? fileName.substring(0, fileName.lastIndexOf('.'))
+            : fileName;
+
+        savePath =
+            '${downloadsDir.path}$delimiter$baseName ($counter)$extension';
+        counter++;
+      }
+
+      return savePath;
     } catch (e) {
-      logError('Error during dispose', error: e, tag: _logTag);
+      logError('Ошибка получения пути сохранения', error: e, tag: _logTag);
+      rethrow;
     }
   }
 
-  /// Создает FileTransfer для отправки файла
-  Future<FileTransfer> createFileTransferForSending({
-    required String filePath,
-    required String senderId,
-    required String receiverId,
-  }) async {
-    final file = File(filePath);
-    if (!await file.exists()) {
-      throw FileSystemException('File not found', filePath);
-    }
-
-    final stat = await file.stat();
-    final fileName = filePath.split(Platform.pathSeparator).last;
-
-    return FileTransfer.sending(
-      senderId: senderId,
-      receiverId: receiverId,
-      fileName: fileName,
-      filePath: filePath,
-      fileSize: stat.size,
-    );
-  }
-
-  /// Форматирует размер файла в человеко-читаемый формат
-  String formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes Б';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} КБ';
-    if (bytes < 1024 * 1024 * 1024)
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ';
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} ГБ';
-  }
+  /// Получает правильный разделитель пути для текущей платформы
+  String get delimiter => Platform.pathSeparator;
 }

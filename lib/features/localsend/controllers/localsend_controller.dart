@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -25,8 +26,7 @@ class LocalSendController {
   DiscoveryService get _discoveryService => _ref.read(discoveryServiceProvider);
   SignalingService get _signalingService => _ref.read(signalingServiceProvider);
   WebRTCService get _webrtcService => _ref.read(webrtcServiceProvider);
-  FileService get _fileService => _ref.read(fileServiceProvider);
-  FileServiceV2 get _fileServiceV2 => _ref.read(fileServiceV2Provider);
+  UnifiedFileService get _fileService => _ref.read(unifiedFileServiceProvider);
 
   // Геттеры для нотификаторов
   CurrentDeviceNotifier get _currentDevice =>
@@ -404,8 +404,9 @@ class LocalSendController {
 
       for (final filePath in filePaths) {
         // Создаем передачу файла
-        final transfer = await _fileServiceV2.createFileTransferForSending(
-          filePath: filePath,
+        final file = File(filePath);
+        final transfer = await _fileService.createFileTransferForSending(
+          file: file,
           senderId: currentDevice.id,
           receiverId: deviceId,
         );
@@ -418,7 +419,7 @@ class LocalSendController {
           senderId: currentDevice.id,
           receiverId: deviceId,
           content:
-              'Файл: ${transfer.fileName} (${_fileServiceV2.formatFileSize(transfer.fileSize)})',
+              'Файл: ${transfer.fileName} (${_fileService.formatFileSize(transfer.fileSize)})',
         );
 
         _messages.addMessage(fileMessage);
@@ -1271,7 +1272,7 @@ class LocalSendController {
         },
       );
 
-      final success = await _fileServiceV2.sendFileChunked(
+      final success = await _fileService.sendFileChunked(
         dataChannel: connection.dataChannel!,
         filePath: filePath,
         transferId: transferId,
@@ -1307,7 +1308,7 @@ class LocalSendController {
         data: {'transferId': transferId},
       );
 
-      final success = await _fileServiceV2.resumeTransfer(transferId);
+      final success = await _fileService.resumeTransfer(transferId);
 
       if (success) {
         ToastHelper.success(
@@ -1341,7 +1342,7 @@ class LocalSendController {
         data: {'transferId': transferId},
       );
 
-      await _fileServiceV2.cancelTransfer(transferId);
+      await _fileService.cancelTransfer(transferId);
       ToastHelper.info(title: 'Информация', description: 'Передача отменена');
     } catch (e) {
       logError('Ошибка отмены передачи', error: e, tag: _logTag);
@@ -1352,7 +1353,7 @@ class LocalSendController {
   /// Получает статус всех активных передач
   Map<String, Map<String, dynamic>> getActiveTransfersStatus() {
     try {
-      return _fileServiceV2.getActiveTransfersStatus();
+      return _fileService.getActiveTransfersStatus();
     } catch (e) {
       logError('Ошибка получения статуса передач', error: e, tag: _logTag);
       return {};
@@ -1361,6 +1362,6 @@ class LocalSendController {
 
   /// Подписывается на прогресс передач файлов
   Stream<Map<String, dynamic>> get fileTransferProgress {
-    return _fileServiceV2.transferProgress;
+    return _fileService.transferProgress;
   }
 }

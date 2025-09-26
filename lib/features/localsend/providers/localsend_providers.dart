@@ -18,14 +18,16 @@ final webrtcServiceProvider = Provider<WebRTCService>((ref) {
   return WebRTCService();
 });
 
-/// Провайдер для файлового сервиса
-final fileServiceProvider = Provider<FileService>((ref) {
-  return FileService();
-});
+/// Провайдер для объединенного файлового сервиса
+final unifiedFileServiceProvider = Provider<UnifiedFileService>((ref) {
+  final service = UnifiedFileService();
 
-/// Провайдер для файлового сервиса v2 с поддержкой resume
-final fileServiceV2Provider = Provider<FileServiceV2>((ref) {
-  return FileServiceV2();
+  // Добавляем dispose callback
+  ref.onDispose(() async {
+    await service.dispose();
+  });
+
+  return service;
 });
 
 /// Провайдер для информации о текущем устройстве
