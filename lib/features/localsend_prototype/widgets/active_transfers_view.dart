@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/controllers/index.dart';
-import 'package:hoplixi/features/localsend/widgets/transfer_progress_card.dart';
+import 'package:hoplixi/features/localsend_prototype/controllers/index.dart';
+import 'package:hoplixi/features/localsend_prototype/widgets/transfer_progress_card.dart';
 
 /// Виджет для отображения активных передач файлов
 class ActiveTransfersView extends ConsumerStatefulWidget {

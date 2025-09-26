@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/localsend/providers/index.dart';
-import 'package:hoplixi/features/localsend/widgets/index.dart';
+import 'package:hoplixi/features/localsend_prototype/providers/index.dart';
+import 'package:hoplixi/features/localsend_prototype/widgets/index.dart';
 
 /// Вкладка с историей сообщений
 class MessagesTab extends ConsumerWidget {

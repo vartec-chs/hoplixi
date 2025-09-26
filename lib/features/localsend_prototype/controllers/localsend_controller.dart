@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
-import 'package:hoplixi/features/localsend/services/index.dart';
-import 'package:hoplixi/features/localsend/providers/index.dart';
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/services/index.dart';
+import 'package:hoplixi/features/localsend_prototype/providers/index.dart';
 import 'package:uuid/uuid.dart';
 
 /// Главный контроллер LocalSend для координации всех операций
@@ -462,39 +462,39 @@ class LocalSendController {
         return false;
       }
 
-      // Проверяем готовность DataChannel для передачи файлов
-      if (connection.dataChannel == null) {
-        logError(
-          'DataChannel отсутствует в соединении: ${connection.connectionId}',
-          tag: _logTag,
-        );
-        ToastHelper.error(
-          title: 'Ошибка передачи',
-          description: 'Канал передачи данных не готов',
-        );
-        return false;
-      }
+      // // Проверяем готовность DataChannel для передачи файлов
+      // if (connection.dataChannel == null) {
+      //   logError(
+      //     'DataChannel отсутствует в соединении: ${connection.connectionId}',
+      //     tag: _logTag,
+      //   );
+      //   ToastHelper.error(
+      //     title: 'Ошибка передачи',
+      //     description: 'Канал передачи данных не готов',
+      //   );
+      //   return false;
+      // }
 
-      if (connection.dataChannel!.state !=
-          RTCDataChannelState.RTCDataChannelOpen) {
-        logError(
-          'DataChannel не в открытом состоянии: ${connection.dataChannel!.state}',
-          tag: _logTag,
-        );
-        ToastHelper.error(
-          title: 'Ошибка передачи',
-          description: 'Канал передачи данных не готов',
-        );
-        return false;
-      }
+      // if (connection.dataChannel!.state !=
+      //     RTCDataChannelState.RTCDataChannelOpen) {
+      //   logError(
+      //     'DataChannel не в открытом состоянии: ${connection.dataChannel!.state}',
+      //     tag: _logTag,
+      //   );
+      //   ToastHelper.error(
+      //     title: 'Ошибка передачи',
+      //     description: 'Канал передачи данных не готов',
+      //   );
+      //   return false;
+      // }
 
       logDebug(
         'DataChannel готов к передаче файлов',
         tag: _logTag,
         data: {
           'connectionId': connection.connectionId,
-          'dataChannelState': connection.dataChannel!.state.toString(),
-          'dataChannelId': connection.dataChannel!.id,
+          // 'dataChannelState': connection.dataChannel!.state.toString(),
+          // 'dataChannelId': connection.dataChannel!.id,
         },
       );
 
@@ -536,9 +536,25 @@ class LocalSendController {
           },
         );
 
+        final conn = _ref
+            .read(webrtcConnectionsProvider.notifier)
+            .getDataChannel(connection.connectionId);
+
+        if (conn == null) {
+          logError(
+            'DataChannel отсутствует в соединении: ${connection.connectionId}',
+            tag: _logTag,
+          );
+          ToastHelper.error(
+            title: 'Ошибка передачи',
+            description: 'Канал передачи данных не готов',
+          );
+          return false;
+        }
+
         // Отправляем файл через уже установленное соединение
         final success = await _fileService.sendFileChunked(
-          dataChannel: connection.dataChannel!,
+          dataChannel: conn,
           filePath: filePath,
           transferId: transfer.id,
           onProgress: (progress) {

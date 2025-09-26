@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
-import 'package:hoplixi/features/localsend/widgets/index.dart';
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/widgets/index.dart';
 
 /// Карточка обнаруженного устройства
 class DeviceCard extends ConsumerWidget {

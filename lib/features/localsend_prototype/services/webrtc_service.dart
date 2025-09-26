@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
-import 'package:hoplixi/features/localsend/services/webrtc_config.dart'
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/services/webrtc_config.dart'
     as config;
 import 'package:uuid/uuid.dart';
 
@@ -45,6 +45,10 @@ class WebRTCService {
       }
     }
     return null;
+  }
+
+  RTCDataChannel getDataChannel(String connectionId) {
+    return _dataChannels[connectionId]!;
   }
 
   /// Создает новое WebRTC соединение как инициатор (caller)

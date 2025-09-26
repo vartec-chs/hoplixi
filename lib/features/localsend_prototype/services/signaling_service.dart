@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
 
 /// HTTP сервер для обмена WebRTC сигналами (SDP/ICE)
 class SignalingService {

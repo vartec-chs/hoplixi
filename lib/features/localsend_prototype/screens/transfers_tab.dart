@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/localsend/widgets/active_transfers_view.dart';
+import 'package:hoplixi/features/localsend_prototype/widgets/active_transfers_view.dart';
 
 /// Вкладка с активными передачами файлов
 class TransfersTab extends ConsumerWidget {

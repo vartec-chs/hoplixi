@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
 
 /// Карточка сообщения в истории
 class MessageCard extends ConsumerWidget {

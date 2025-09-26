@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/controllers/index.dart';
-import 'package:hoplixi/features/localsend/providers/index.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/controllers/index.dart';
+import 'package:hoplixi/features/localsend_prototype/providers/index.dart';
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
 import 'package:hoplixi/common/button.dart';
 
 /// Вкладка со списком обнаруженных устройств

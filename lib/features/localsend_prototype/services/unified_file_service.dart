@@ -7,7 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
 
 /// Внутреннее состояние передачи для resume функциональности
 class _TransferState {

@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/services/index.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/services/index.dart';
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
 
 /// Провайдер для сервиса обнаружения устройств
 final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
@@ -177,6 +178,11 @@ class WebRTCConnectionsNotifier
           (connection) => connection.state == WebRTCConnectionState.connected,
         )
         .toList();
+  }
+
+  /// Получает канала по ID подключения
+  RTCDataChannel? getDataChannel(String connectionId) {
+    return state[connectionId]?.dataChannel;
   }
 }
 

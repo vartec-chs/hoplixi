@@ -4,9 +4,9 @@ import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/localsend/controllers/index.dart';
-import 'package:hoplixi/features/localsend/models/index.dart';
-import 'package:hoplixi/features/localsend/providers/index.dart';
+import 'package:hoplixi/features/localsend_prototype/controllers/index.dart';
+import 'package:hoplixi/features/localsend_prototype/models/index.dart';
+import 'package:hoplixi/features/localsend_prototype/providers/index.dart';
 
 /// Диалог отправки текстового сообщения
 class MessageDialog extends ConsumerStatefulWidget {
