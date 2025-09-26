@@ -43,7 +43,7 @@ class _LocalSendMainScreenState extends ConsumerState<LocalSendMainScreen>
       if (!controller.isInitialized) {
         await controller.initialize();
         // Добавляем тестовые устройства для демонстрации
-        controller.addTestDevices();
+        // controller.addTestDevices();
       }
     } catch (e) {
       logError('Ошибка инициализации LocalSend', error: e, tag: _logTag);

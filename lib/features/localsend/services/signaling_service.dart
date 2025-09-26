@@ -20,6 +20,15 @@ class SignalingService {
   /// Запускает HTTP сервер на указанном порту
   Future<void> start(int port) async {
     try {
+      // Проверяем, не запущен ли уже сервер
+      if (_server != null) {
+        logWarning(
+          'Сигналинг сервер уже запущен на порту $_port',
+          tag: _logTag,
+        );
+        return;
+      }
+
       _port = port;
 
       logInfo('Запуск сигналинг сервера на порту $_port', tag: _logTag);

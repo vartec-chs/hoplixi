@@ -42,7 +42,10 @@ class LocalSendController {
 
   /// Инициализирует LocalSend службы
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized) {
+      logInfo('LocalSend контроллер уже инициализирован', tag: _logTag);
+      return;
+    }
 
     try {
       logInfo('Инициализация LocalSend контроллера', tag: _logTag);
@@ -68,15 +71,6 @@ class LocalSendController {
       _webrtcService.connectionStates.listen(_handleConnectionStateChange);
       _webrtcService.incomingMessages.listen(_handleIncomingMessage);
       _webrtcService.incomingFileChunks.listen(_handleIncomingFileChunk);
-
-      // Подписываемся на входящие сигналы
-      _signalingService.incomingSignals.listen(_handleIncomingSignal);
-
-      // Запускаем сигналинг сервер
-      await _signalingService.start(
-        53317,
-      ); // Используем стандартный порт LocalSend
-      logInfo('Сигналинг сервер запущен', tag: _logTag);
 
       // Запускаем обнаружение устройств
       await _discoveryService.startDiscovery();
