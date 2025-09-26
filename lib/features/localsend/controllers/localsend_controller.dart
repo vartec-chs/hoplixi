@@ -273,6 +273,42 @@ class LocalSendController {
         return false;
       }
 
+      // Проверяем готовность DataChannel для передачи файлов
+      if (connection.dataChannel == null) {
+        logError(
+          'DataChannel отсутствует в соединении: ${connection.connectionId}',
+          tag: _logTag,
+        );
+        ToastHelper.error(
+          title: 'Ошибка передачи',
+          description: 'Канал передачи данных не готов',
+        );
+        return false;
+      }
+
+      if (connection.dataChannel!.state !=
+          RTCDataChannelState.RTCDataChannelOpen) {
+        logError(
+          'DataChannel не в открытом состоянии: ${connection.dataChannel!.state}',
+          tag: _logTag,
+        );
+        ToastHelper.error(
+          title: 'Ошибка передачи',
+          description: 'Канал передачи данных не готов',
+        );
+        return false;
+      }
+
+      logDebug(
+        'DataChannel готов к передаче файлов',
+        tag: _logTag,
+        data: {
+          'connectionId': connection.connectionId,
+          'dataChannelState': connection.dataChannel!.state.toString(),
+          'dataChannelId': connection.dataChannel!.id,
+        },
+      );
+
       for (final file in files) {
         // Создаем передачу файла
         final transfer = await _fileService.createFileTransferForSending(
@@ -306,14 +342,38 @@ class LocalSendController {
           data: {
             'fileName': transfer.fileName,
             'connectionId': connection.connectionId,
+            'transferId': transfer.id,
           },
         );
 
-        // TODO: Здесь будет реальная передача через WebRTC DataChannel
-        // await _webrtcService.sendFile(connection.connectionId, transfer);
+        // Отправляем файл через уже установленное соединение
+        final success = await _fileService.sendFileChunked(
+          dataChannel: connection.dataChannel!,
+          filePath: file.path,
+          transferId: transfer.id,
+          onProgress: (progress) {
+            // Обновляем прогресс передачи (progress от 0.0 до 1.0)
+            final transferredBytes = (transfer.fileSize * progress).round();
+            _transfers.updateTransfer(
+              transfer.id,
+              transfer.copyWith(transferredBytes: transferredBytes),
+            );
+          },
+        );
 
-        // Симулируем передачу файла (в реальном приложении здесь будет WebRTC)
-        _simulateFileTransfer(transfer);
+        if (success) {
+          _transfers.updateTransfer(
+            transfer.id,
+            transfer.copyWith(status: FileTransferStatus.completed),
+          );
+          logInfo('Файл ${transfer.fileName} отправлен успешно', tag: _logTag);
+        } else {
+          _transfers.updateTransfer(
+            transfer.id,
+            transfer.copyWith(status: FileTransferStatus.failed),
+          );
+          logError('Ошибка отправки файла ${transfer.fileName}', tag: _logTag);
+        }
       }
 
       ToastHelper.success(
@@ -402,6 +462,42 @@ class LocalSendController {
         return false;
       }
 
+      // Проверяем готовность DataChannel для передачи файлов
+      if (connection.dataChannel == null) {
+        logError(
+          'DataChannel отсутствует в соединении: ${connection.connectionId}',
+          tag: _logTag,
+        );
+        ToastHelper.error(
+          title: 'Ошибка передачи',
+          description: 'Канал передачи данных не готов',
+        );
+        return false;
+      }
+
+      if (connection.dataChannel!.state !=
+          RTCDataChannelState.RTCDataChannelOpen) {
+        logError(
+          'DataChannel не в открытом состоянии: ${connection.dataChannel!.state}',
+          tag: _logTag,
+        );
+        ToastHelper.error(
+          title: 'Ошибка передачи',
+          description: 'Канал передачи данных не готов',
+        );
+        return false;
+      }
+
+      logDebug(
+        'DataChannel готов к передаче файлов',
+        tag: _logTag,
+        data: {
+          'connectionId': connection.connectionId,
+          'dataChannelState': connection.dataChannel!.state.toString(),
+          'dataChannelId': connection.dataChannel!.id,
+        },
+      );
+
       for (final filePath in filePaths) {
         // Создаем передачу файла
         final file = File(filePath);
@@ -436,14 +532,38 @@ class LocalSendController {
           data: {
             'fileName': transfer.fileName,
             'connectionId': connection.connectionId,
+            'transferId': transfer.id,
           },
         );
 
-        // TODO: Здесь будет реальная передача через WebRTC DataChannel
-        // await _webrtcService.sendFile(connection.connectionId, transfer);
+        // Отправляем файл через уже установленное соединение
+        final success = await _fileService.sendFileChunked(
+          dataChannel: connection.dataChannel!,
+          filePath: filePath,
+          transferId: transfer.id,
+          onProgress: (progress) {
+            // Обновляем прогресс передачи (progress от 0.0 до 1.0)
+            final transferredBytes = (transfer.fileSize * progress).round();
+            _transfers.updateTransfer(
+              transfer.id,
+              transfer.copyWith(transferredBytes: transferredBytes),
+            );
+          },
+        );
 
-        // Отправляем файл через существующий механизм передачи
-        await sendFileWithResume(deviceId: deviceId, filePath: filePath);
+        if (success) {
+          _transfers.updateTransfer(
+            transfer.id,
+            transfer.copyWith(status: FileTransferStatus.completed),
+          );
+          logInfo('Файл ${transfer.fileName} отправлен успешно', tag: _logTag);
+        } else {
+          _transfers.updateTransfer(
+            transfer.id,
+            transfer.copyWith(status: FileTransferStatus.failed),
+          );
+          logError('Ошибка отправки файла ${transfer.fileName}', tag: _logTag);
+        }
       }
 
       ToastHelper.success(
@@ -721,41 +841,6 @@ class LocalSendController {
         description: 'Не удалось подключиться к устройству',
       );
       return false;
-    }
-  }
-
-  /// Симулирует передачу файла для демонстрации
-  void _simulateFileTransfer(FileTransfer transfer) async {
-    try {
-      final totalSize = transfer.fileSize;
-      const chunkSize = 64 * 1024; // 64KB
-      int transferred = 0;
-
-      while (transferred < totalSize) {
-        await Future.delayed(const Duration(milliseconds: 100));
-
-        transferred = (transferred + chunkSize).clamp(0, totalSize);
-        _transfers.updateTransferProgress(transfer.id, transferred);
-
-        if (transferred >= totalSize) {
-          _transfers.updateTransfer(
-            transfer.id,
-            transfer.copyWith(status: FileTransferStatus.completed),
-          );
-          break;
-        }
-      }
-
-      logInfo(
-        'Симуляция передачи файла завершена: ${transfer.fileName}',
-        tag: _logTag,
-      );
-    } catch (e) {
-      logError('Ошибка симуляции передачи файла', error: e, tag: _logTag);
-      _transfers.updateTransfer(
-        transfer.id,
-        transfer.copyWith(status: FileTransferStatus.failed),
-      );
     }
   }
 
