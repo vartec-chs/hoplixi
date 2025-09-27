@@ -88,7 +88,7 @@ class _SendFileDialogState extends ConsumerState<SendFileDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colors.surfaceVariant.withOpacity(0.3),
+                color: colors.surfaceContainerHighest.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: colors.outline.withOpacity(0.2)),
               ),
@@ -249,7 +249,7 @@ class _SendFileDialogState extends ConsumerState<SendFileDialog> {
                 decoration: BoxDecoration(
                   color: isLarge
                       ? colors.errorContainer.withOpacity(0.3)
-                      : colors.surfaceVariant.withOpacity(0.3),
+                      : colors.surfaceContainerHighest.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isLarge
@@ -361,8 +361,9 @@ class _SendFileDialogState extends ConsumerState<SendFileDialog> {
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '$bytes Б';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} КБ';
-    if (bytes < 1024 * 1024 * 1024)
+    if (bytes < 1024 * 1024 * 1024) {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} МБ';
+    }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} ГБ';
   }
 

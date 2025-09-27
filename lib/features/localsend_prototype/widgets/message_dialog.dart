@@ -92,7 +92,7 @@ class _MessageDialogState extends ConsumerState<MessageDialog> {
                 constraints: const BoxConstraints(maxHeight: 120),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: colors.surfaceVariant.withOpacity(0.3),
+                  color: colors.surfaceContainerHighest.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: colors.outline.withOpacity(0.2)),
                 ),

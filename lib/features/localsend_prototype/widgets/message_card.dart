@@ -69,7 +69,7 @@ class MessageCard extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: colors.surfaceVariant.withOpacity(0.5),
+                color: colors.surfaceContainerHighest.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(message.content, style: theme.textTheme.bodyMedium),

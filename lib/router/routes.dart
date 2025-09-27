@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
+import 'package:hoplixi/features/localsend/screens/test_discovery_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
 import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart';
 
@@ -13,7 +14,6 @@ import 'package:hoplixi/features/password_manager/tags_manager/tags_management_s
 
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/example/universal_filter_example_screen.dart';
-import 'package:hoplixi/features/localsend_prototype/index.dart';
 import 'package:hoplixi/features/setup/setup.dart';
 import 'routes_path.dart';
 
@@ -79,7 +79,7 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.localSend,
-    builder: (context, state) => const LocalSendMainScreen(),
+    builder: (context, state) => const TestDiscoveryScreen(),
   ),
 ];
 

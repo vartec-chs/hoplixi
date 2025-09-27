@@ -124,7 +124,7 @@ class TransferProgressCard extends ConsumerWidget {
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: colors.surfaceVariant,
+                  backgroundColor: colors.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     _getProgressColor(context),
                   ),

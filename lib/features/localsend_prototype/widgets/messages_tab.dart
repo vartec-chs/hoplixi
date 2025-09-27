@@ -186,7 +186,7 @@ class MessageCard extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: isOutgoing
                         ? theme.colorScheme.primary
-                        : theme.colorScheme.surfaceVariant,
+                        : theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(16).copyWith(
                       topLeft: isOutgoing
                           ? const Radius.circular(16)
