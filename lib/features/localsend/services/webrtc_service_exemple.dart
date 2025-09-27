@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/localsend/models/connection.dart';
@@ -7,9 +9,10 @@ import 'package:hoplixi/features/localsend/models/file_transfer.dart';
 import 'package:hoplixi/features/localsend/models/ice_candidate_event.dart';
 import 'package:hoplixi/features/localsend/models/message.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_config.dart' as config;
+import 'package:hoplixi/features/localsend/services/http_signaling_service.dart';
 import 'package:uuid/uuid.dart';
-
-/// EXAMPLE WebRTC Service Implementation
+import 'package:crypto/crypto.dart';
+import 'package:path/path.dart' as path;
 
 /// Менеджер WebRTC соединений для P2P передачи данных
 class WebRTCService {
