@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/common/index.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/router/routes_path.dart';
 import '../models/device_info.dart';
 import '../providers/discovery_provider.dart';
 
-class TestDiscoveryScreen extends ConsumerWidget {
-  const TestDiscoveryScreen({super.key});
+class DiscoveryScreen extends ConsumerWidget {
+  const DiscoveryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final devicesAsync = ref.watch(discoveryProvider);
     final discoveryController = ref.read(discoveryProvider.notifier);
-    final selfDevice = discoveryController.selfDevice;
 
     return Scaffold(
       appBar: AppBar(
@@ -23,68 +25,100 @@ class TestDiscoveryScreen extends ConsumerWidget {
             context.pop();
           },
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              discoveryController
+                  .reloadDiscovery()
+                  .then((success) {
+                    ToastHelper.success(title: 'Обнаружение перезагружено');
+                  })
+                  .onError((error, stackTrace) {
+                    ToastHelper.error(
+                      title: 'Ошибка при перезагрузке обнаружения',
+                      description: error.toString(),
+                    );
+                  });
+            },
+            tooltip: 'Перезагрузить обнаружение',
+          ),
+        ],
       ),
       body: SafeArea(
         child: devicesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stack) => Center(child: Text('Error: $error')),
-          data: (devices) => Column(
-            children: [
-              // Карточка нашего устройства
-              Card(
-                margin: const EdgeInsets.all(16),
-                elevation: 4,
-                child: ListTile(
-                  leading: Text(
-                    selfDevice.deviceIcon,
-                    style: const TextStyle(fontSize: 32),
-                  ),
-                  title: Text(
-                    selfDevice.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
+          data: (devices) => Consumer(
+            builder: (context, ref, child) {
+              final selfDevice = ref.watch(selfDeviceProvider);
+              return Column(
+                children: [
+                  // Карточка нашего устройства
+                  Card(
+                    margin: const EdgeInsets.all(8),
+                    elevation: 4,
+                    child: ListTile(
+                      leading: Text(
+                        selfDevice.deviceIcon,
+                        style: const TextStyle(fontSize: 32),
+                      ),
+                      title: Text(
+                        selfDevice.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${selfDevice.ipAddress}:${selfDevice.port} - ${selfDevice.status.name} (Это ваше устройство)',
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () =>
+                            _showRenameDialog(context, ref, selfDevice.name),
+                      ),
                     ),
                   ),
-                  subtitle: Text(
-                    '${selfDevice.ipAddress}:${selfDevice.port} - ${selfDevice.status.name}',
+                  // Разделитель
+                  const Divider(),
+                  // Список других устройств
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: devices.length,
+                      itemBuilder: (context, index) {
+                        final device = devices[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 8,
+                          ),
+                          elevation: 4,
+                          child: InkWell(
+                            onTap: () {
+                              context.push(
+                                AppRoutes.localSendTransfer,
+                                extra: device,
+                              );
+                            },
+                            child: ListTile(
+                              leading: Text(
+                                device.deviceIcon,
+                                style: const TextStyle(fontSize: 32),
+                              ),
+                              title: Text(device.name),
+                              subtitle: Text(
+                                '${device.ipAddress}:${device.port} - ${device.status.name}',
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () =>
-                        _showRenameDialog(context, ref, selfDevice.name),
-                  ),
-                ),
-              ),
-              // Разделитель
-              const Divider(),
-              // Список других устройств
-              Expanded(
-                child: ListView.builder(
-                  itemCount: devices.length,
-                  itemBuilder: (context, index) {
-                    final device = devices[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      elevation: 4,
-                      child: ListTile(
-                        leading: Text(
-                          device.deviceIcon,
-                          style: const TextStyle(fontSize: 32),
-                        ),
-                        title: Text(device.name),
-                        subtitle: Text(
-                          '${device.ipAddress}:${device.port} - ${device.status.name}',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -103,7 +137,7 @@ class TestDiscoveryScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Переименовать устройство'),
-        content: TextField(
+        content: PrimaryTextField(
           controller: controller,
           decoration: const InputDecoration(
             labelText: 'Новое имя',

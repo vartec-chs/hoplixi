@@ -14,6 +14,11 @@ final discoveryProvider =
       DiscoveryNotifier.new,
     );
 
+final selfDeviceProvider = Provider.autoDispose<DeviceInfo>((ref) {
+  final discoveryNotifier = ref.watch(discoveryProvider.notifier);
+  return discoveryNotifier.selfDevice;
+});
+
 class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
   BonsoirDiscovery? _discovery;
   BonsoirBroadcast? _broadcast;
@@ -32,7 +37,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
     ref.onDispose(() {
       _dispose();
     });
-   
+
     state = AsyncValue.data(List.unmodifiable(_devices));
     return List.unmodifiable(_devices);
   }
@@ -43,6 +48,27 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
     _selfDevice = _selfDevice.copyWith(name: name);
     logInfo('Device name set to $name', tag: _logTag);
     _updateState();
+  }
+
+  /// Перезагрузка обнаружения устройств
+  Future<bool> reloadDiscovery() async {
+    try {
+      logInfo('Перезагрузка обнаружения устройств', tag: _logTag);
+      await stopDiscovery();
+      await stopBroadcast();
+      _devices.clear();
+      _updateState();
+      await startDiscovery();
+      return true;
+    } catch (e, stack) {
+      logError(
+        'Ошибка перезагрузки обнаружения',
+        error: e,
+        stackTrace: stack,
+        tag: _logTag,
+      );
+      rethrow;
+    }
   }
 
   // Начать поиск устройств

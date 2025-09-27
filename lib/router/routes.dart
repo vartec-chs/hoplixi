@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
+import 'package:hoplixi/features/localsend/models/device_info.dart' as di;
 import 'package:hoplixi/features/localsend/screens/discovery_screen.dart';
+import 'package:hoplixi/features/localsend/screens/transceive_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
 import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart';
 
@@ -79,7 +81,15 @@ final List<GoRoute> appRoutes = [
   ),
   GoRoute(
     path: AppRoutes.localSend,
-    builder: (context, state) => const TestDiscoveryScreen(),
+    builder: (context, state) => const DiscoveryScreen(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.localSendTransfer,
+    builder: (context, state) {
+      final deviceInfo = state.extra as di.DeviceInfo?;
+      return TransceiverScreen(deviceInfo: deviceInfo);
+    },
   ),
 ];
 

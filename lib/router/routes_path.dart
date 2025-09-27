@@ -18,4 +18,5 @@ class AppRoutes {
   static const String passwordForm = '/password-form';
   static const String universalFilterDemo = '/universal-filter-demo';
   static const String localSend = '/localsend';
+  static const String localSendTransfer = '/localsend/transfer';
 }
