@@ -6,9 +6,10 @@ import 'package:hoplixi/features/localsend/models/connection.dart';
 import 'package:hoplixi/features/localsend/models/file_transfer.dart';
 import 'package:hoplixi/features/localsend/models/ice_candidate_event.dart';
 import 'package:hoplixi/features/localsend/models/message.dart';
-import 'package:hoplixi/features/localsend/models/webrtc_config.dart'
-    as config;
+import 'package:hoplixi/features/localsend/models/webrtc_config.dart' as config;
 import 'package:uuid/uuid.dart';
+
+/// EXAMPLE WebRTC Service Implementation
 
 /// Менеджер WebRTC соединений для P2P передачи данных
 class WebRTCService {
