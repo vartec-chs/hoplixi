@@ -28,21 +28,21 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
   Future<List<DeviceInfo>> build() async {
     state = const AsyncValue.loading();
     await startDiscovery();
-    // startDiscovery уже вызывает startBroadcasting(), чтобы не запускать трансляцию дважды.
-    // await startBroadcasting(); // удалено
 
     ref.onDispose(() {
-      // Попытка корректно завершить ресурсы (не await, т.к. onDispose синхронный)
       _dispose();
     });
-    // вернём текущее значение — будет пустой список или уже найденные устройства
+   
     state = AsyncValue.data(List.unmodifiable(_devices));
     return List.unmodifiable(_devices);
   }
 
+  DeviceInfo get selfDevice => _selfDevice;
+
   void setName(String name) {
     _selfDevice = _selfDevice.copyWith(name: name);
     logInfo('Device name set to $name', tag: _logTag);
+    _updateState();
   }
 
   // Начать поиск устройств
@@ -57,7 +57,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
       await _discovery!.start();
       _isDiscovering = true;
       // Добавляем текущее устройство
-      _devices.add(_selfDevice);
+      // _devices.add(_selfDevice);
       _updateState();
       // Начинаем трансляцию текущего устройства
       await startBroadcasting();

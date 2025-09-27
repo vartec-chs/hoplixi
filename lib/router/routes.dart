@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
-import 'package:hoplixi/features/localsend/screens/test_discovery_screen.dart';
+import 'package:hoplixi/features/localsend/screens/discovery_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
 import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart';
 
