@@ -88,7 +88,77 @@ class CurrentConnectionNotifier extends Notifier<WebRTCConnection?> {
 
   /// Получает информацию об удаленном устройстве текущего соединения
   String? get currentRemoteDeviceId => state?.remoteDeviceId;
+
+  /// Обновляет состояние текущего соединения
+  void updateConnectionState(
+    String connectionId,
+    WebRTCConnectionState newState,
+  ) {
+    if (state?.connectionId == connectionId) {
+      final updatedConnection = state!.copyWith(state: newState);
+      logInfo(
+        'Обновление состояния текущего соединения',
+        tag: _logTag,
+        data: {
+          'connectionId': connectionId,
+          'oldState': state!.state.name,
+          'newState': newState.name,
+        },
+      );
+      state = updatedConnection;
+    }
+  }
+
+  /// Проверяет, находится ли соединение в процессе подключения
+  bool get isConnecting => state?.state == WebRTCConnectionState.connecting;
+
+  /// Проверяет, не удалось ли подключиться
+  bool get isFailed => state?.state == WebRTCConnectionState.failed;
+
+  /// Проверяет, отключено ли соединение
+  bool get isDisconnected => state?.state == WebRTCConnectionState.disconnected;
+
+  /// Получает текстовое описание состояния соединения
+  String get connectionStatusText {
+    if (state == null) return 'Нет соединения';
+
+    switch (state!.state) {
+      case WebRTCConnectionState.initializing:
+        return 'Инициализация...';
+      case WebRTCConnectionState.connecting:
+        return 'Подключение...';
+      case WebRTCConnectionState.connected:
+        return 'Подключено';
+      case WebRTCConnectionState.disconnecting:
+        return 'Отключение...';
+      case WebRTCConnectionState.disconnected:
+        return 'Отключено';
+      case WebRTCConnectionState.failed:
+        return 'Ошибка подключения';
+    }
+  }
+
+  /// Получает цвет для отображения статуса соединения
+  ConnectionStatusColor get connectionStatusColor {
+    if (state == null) return ConnectionStatusColor.grey;
+
+    switch (state!.state) {
+      case WebRTCConnectionState.initializing:
+      case WebRTCConnectionState.connecting:
+        return ConnectionStatusColor.orange;
+      case WebRTCConnectionState.connected:
+        return ConnectionStatusColor.green;
+      case WebRTCConnectionState.disconnecting:
+      case WebRTCConnectionState.disconnected:
+        return ConnectionStatusColor.grey;
+      case WebRTCConnectionState.failed:
+        return ConnectionStatusColor.red;
+    }
+  }
 }
+
+/// Цвета для отображения статуса соединения
+enum ConnectionStatusColor { green, orange, red, grey }
 
 /// Notifier для управления WebRTC соединениями
 class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
@@ -304,23 +374,46 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
       },
     );
 
-    // Обновляем состояние
+    // Обновляем состояние списка соединений
     final currentConnections = _webrtcService.activeConnections;
     state = AsyncData(currentConnections);
 
-    // Если соединение установлено, устанавливаем его как текущее
-    if (connection.state == WebRTCConnectionState.connected) {
-      setCurrentConnection(connection);
+    // Обновляем текущее соединение если оно совпадает
+    final currentConnectionNotifier = ref.read(
+      currentConnectionProvider.notifier,
+    );
+    if (currentConnectionNotifier.isCurrentConnection(
+      connection.connectionId,
+    )) {
+      currentConnectionNotifier.updateConnectionState(
+        connection.connectionId,
+        connection.state,
+      );
     }
 
-    // Если соединение разорвано, убираем его из текущего
-    if (connection.state == WebRTCConnectionState.disconnected ||
-        connection.state == WebRTCConnectionState.failed) {
-      final currentConnection = ref.read(currentConnectionProvider);
-      if (currentConnection?.connectionId == connection.connectionId) {
-        setCurrentConnection(null);
-      }
+    // Если соединение установлено и нет текущего соединения, устанавливаем его как текущее
+    if (connection.state == WebRTCConnectionState.connected &&
+        !currentConnectionNotifier.hasActiveConnection) {
+      _setCurrentConnection(connection);
     }
+
+    // Если соединение разорвано и это было текущее соединение, убираем его
+    if ((connection.state == WebRTCConnectionState.disconnected ||
+            connection.state == WebRTCConnectionState.failed ||
+            connection.state == WebRTCConnectionState.disconnecting) &&
+        currentConnectionNotifier.isCurrentConnection(
+          connection.connectionId,
+        )) {
+      currentConnectionNotifier.clearConnection();
+    }
+  }
+
+  /// Устанавливает текущее соединение
+  void _setCurrentConnection(WebRTCConnection connection) {
+    final currentConnectionNotifier = ref.read(
+      currentConnectionProvider.notifier,
+    );
+    currentConnectionNotifier.setConnection(connection);
   }
 
   /// Обрабатывает входящие сообщения

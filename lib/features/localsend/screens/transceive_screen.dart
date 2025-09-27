@@ -34,15 +34,13 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
     with SingleTickerProviderStateMixin {
   String? _connectionId;
   bool _isConnecting = false;
+  bool _hasInitialized = false;
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    if (widget.deviceInfo != null) {
-      _initializeConnection();
-    }
   }
 
   @override
@@ -76,10 +74,16 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
 
       if (connectionId != null) {
         setState(() => _connectionId = connectionId);
-        logInfo('Соединение инициализировано', tag: _logTag);
-        ToastHelper.success(title: 'Подключение к ${widget.deviceInfo!.name}');
+        logInfo(
+          'Соединение инициализировано, ожидание подключения...',
+          tag: _logTag,
+        );
+        ToastHelper.info(
+          title: 'Подключение к ${widget.deviceInfo!.name}',
+          description: 'Ожидание установки соединения...',
+        );
       } else {
-        ToastHelper.error(title: 'Не удалось установить соединение');
+        ToastHelper.error(title: 'Не удалось инициировать соединение');
       }
     } catch (e) {
       logError('Ошибка инициализации соединения', error: e, tag: _logTag);
@@ -255,6 +259,42 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
     final transfersAsync = ref.watch(fileTransferProvider);
     final messagesAsync = ref.watch(messageProvider);
     final currentConnection = ref.watch(currentConnectionProvider);
+
+    // Автоинициализация подключения при первой загрузке
+    if (!_hasInitialized && widget.deviceInfo != null) {
+      _hasInitialized = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeConnection();
+      });
+    }
+
+    // Отслеживание изменений соединения
+    ref.listen(currentConnectionProvider, (previous, next) {
+      if (_connectionId != null && next?.connectionId == _connectionId) {
+        switch (next?.state) {
+          case WebRTCConnectionState.connected:
+            ToastHelper.success(
+              title: 'Подключено к ${widget.deviceInfo!.name}',
+              description: 'Теперь можно отправлять файлы и сообщения',
+            );
+            break;
+          case WebRTCConnectionState.failed:
+            ToastHelper.error(
+              title: 'Не удалось подключиться',
+              description: 'Проверьте сетевое подключение',
+            );
+            break;
+          case WebRTCConnectionState.disconnected:
+          case WebRTCConnectionState.disconnecting:
+            if (previous?.state == WebRTCConnectionState.connected) {
+              ToastHelper.info(title: 'Соединение разорвано');
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
