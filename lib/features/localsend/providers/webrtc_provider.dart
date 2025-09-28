@@ -176,11 +176,25 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
     // Подписываемся на изменения соединений
     _connectionSubscription = _webrtcService.connectionStates.listen(
       _onConnectionStateChanged,
+      onError: (error) {
+        logError(
+          'Ошибка в стриме connectionStates',
+          error: error,
+          tag: _logTag,
+        );
+      },
     );
 
     // Подписываемся на входящие сообщения
     _messageSubscription = _webrtcService.incomingMessages.listen(
       _onMessageReceived,
+      onError: (error) {
+        logError(
+          'Ошибка в стриме incomingMessages',
+          error: error,
+          tag: _logTag,
+        );
+      },
     );
 
     ref.onDispose(() {
@@ -227,6 +241,18 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
         tag: _logTag,
         data: {'connectionId': connectionId},
       );
+
+      // В режиме инициатора сразу устанавливаем созданное соединение как текущее
+      // Это нужно для корректного отображения UI до установления WebRTC соединения
+      final connection = _webrtcService.getConnection(connectionId);
+      if (connection != null && ref.mounted) {
+        ref.read(currentConnectionProvider.notifier).setConnection(connection);
+        logInfo(
+          'Установлено текущее соединение (режим инициатора)',
+          tag: _logTag,
+          data: {'connectionId': connectionId, 'state': connection.state.name},
+        );
+      }
 
       return connectionId;
     } catch (e) {
@@ -298,6 +324,38 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
       // В режиме ожидания WebRTCService автоматически обработает
       // входящие offer сообщения через _handleOfferMessage
 
+      // Создаем временное соединение для корректного отображения UI
+      final temporaryConnection = WebRTCConnection(
+        connectionId: 'listening_for_incoming',
+        localDeviceId: localDeviceId,
+        remoteDeviceId: 'unknown', // Будет обновлено при получении offer
+        remoteIp: '0.0.0.0', // Будет обновлено при получении offer
+        remotePort: 0, // Будет обновлено при получении offer
+        role: WebRTCRole.callee,
+        state: WebRTCConnectionState.connecting,
+        createdAt: DateTime.now(),
+      );
+
+      if (!ref.mounted) {
+        logDebug(
+          'Ref disposed, пропускаем создание временного соединения',
+          tag: _logTag,
+        );
+        return;
+      }
+
+      ref
+          .read(currentConnectionProvider.notifier)
+          .setConnection(temporaryConnection);
+      logInfo(
+        'Установлено временное соединение (режим получателя)',
+        tag: _logTag,
+        data: {
+          'temporaryId': 'listening_for_incoming',
+          'state': temporaryConnection.state.name,
+        },
+      );
+
       logInfo('Режим ожидания активен', tag: _logTag);
     } catch (e) {
       logError('Ошибка запуска режима ожидания', error: e, tag: _logTag);
@@ -352,9 +410,11 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
       await _webrtcService.closeConnection(connectionId);
 
       // Обновляем текущее соединение если оно было закрыто
-      final currentConnection = ref.read(currentConnectionProvider);
-      if (currentConnection?.connectionId == connectionId) {
-        ref.read(currentConnectionProvider.notifier).clearConnection();
+      if (ref.mounted) {
+        final currentConnection = ref.read(currentConnectionProvider);
+        if (currentConnection?.connectionId == connectionId) {
+          ref.read(currentConnectionProvider.notifier).clearConnection();
+        }
       }
 
       logInfo(
@@ -375,7 +435,9 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
         await closeConnection(connection.connectionId);
       }
 
-      ref.read(currentConnectionProvider.notifier).clearConnection();
+      if (ref.mounted) {
+        ref.read(currentConnectionProvider.notifier).clearConnection();
+      }
       await _webrtcService.stopSignalingServer();
 
       logInfo('Все соединения закрыты', tag: _logTag);
@@ -391,6 +453,10 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
 
   /// Устанавливает текущее активное соединение
   void setCurrentConnection(WebRTCConnection? connection) {
+    if (!ref.mounted) {
+      logDebug('Ref disposed, пропускаем установку соединения', tag: _logTag);
+      return;
+    }
     ref.read(currentConnectionProvider.notifier).setConnection(connection);
   }
 
@@ -405,6 +471,12 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
         'remoteDevice': connection.remoteDeviceId,
       },
     );
+
+    // Проверяем, что ref еще активен перед использованием
+    if (!ref.mounted) {
+      logDebug('Ref disposed, пропускаем обновление состояния', tag: _logTag);
+      return;
+    }
 
     // Обновляем состояние списка соединений
     final currentConnections = _webrtcService.activeConnections;
@@ -423,25 +495,48 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
       );
     }
 
-    // Если соединение установлено и нет текущего соединения, устанавливаем его как текущее
-    // ИЛИ если это режим receiver и пришло реальное соединение
-    if (connection.state == WebRTCConnectionState.connected &&
-        (!currentConnectionNotifier.hasActiveConnection ||
-            currentConnectionNotifier.currentConnectionId ==
-                'listening_for_incoming')) {
-      _setCurrentConnection(connection);
+    // Если соединение установлено, всегда устанавливаем его как текущее
+    // Это покрывает случаи:
+    // 1. Нет активного соединения
+    // 2. Режим receiver - замена временного ID на реальное соединение
+    // 3. Режим initiator - обновление созданного соединения при подключении
+    if (connection.state == WebRTCConnectionState.connected) {
+      // Проверяем, нужно ли обновить текущее соединение
+      final shouldUpdateConnection =
+          !currentConnectionNotifier.hasActiveConnection ||
+          currentConnectionNotifier.currentConnectionId ==
+              'listening_for_incoming' ||
+          !currentConnectionNotifier.isConnected;
 
-      logInfo(
-        'Установлено текущее соединение',
-        tag: _logTag,
-        data: {
-          'connectionId': connection.connectionId,
-          'state': connection.state.name,
-          'reason': !currentConnectionNotifier.hasActiveConnection
-              ? 'no_active_connection'
-              : 'receiver_mode_real_connection',
-        },
-      );
+      if (shouldUpdateConnection) {
+        _setCurrentConnection(connection);
+
+        logInfo(
+          'Установлено текущее соединение',
+          tag: _logTag,
+          data: {
+            'connectionId': connection.connectionId,
+            'state': connection.state.name,
+            'reason': !currentConnectionNotifier.hasActiveConnection
+                ? 'no_active_connection'
+                : currentConnectionNotifier.currentConnectionId ==
+                      'listening_for_incoming'
+                ? 'receiver_mode_real_connection'
+                : 'initiator_mode_connected',
+          },
+        );
+      } else {
+        logDebug(
+          'Соединение подключено, но текущее соединение уже установлено',
+          tag: _logTag,
+          data: {
+            'connectionId': connection.connectionId,
+            'currentConnectionId':
+                currentConnectionNotifier.currentConnectionId,
+            'isCurrentConnected': currentConnectionNotifier.isConnected,
+          },
+        );
+      }
     }
 
     // Если соединение разорвано и это было текущее соединение, убираем его
@@ -457,6 +552,10 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
 
   /// Устанавливает текущее соединение
   void _setCurrentConnection(WebRTCConnection connection) {
+    if (!ref.mounted) {
+      logDebug('Ref disposed, пропускаем установку соединения', tag: _logTag);
+      return;
+    }
     final currentConnectionNotifier = ref.read(
       currentConnectionProvider.notifier,
     );
@@ -494,6 +593,13 @@ class FileTransferNotifier extends AsyncNotifier<List<FileTransfer>> {
     // Подписываемся на обновления передач файлов
     _transferSubscription = _webrtcService.fileTransferUpdates.listen(
       _onFileTransferUpdate,
+      onError: (error) {
+        logError(
+          'Ошибка в стриме fileTransferUpdates',
+          error: error,
+          tag: _logTag,
+        );
+      },
     );
 
     ref.onDispose(() {
@@ -541,7 +647,9 @@ class FileTransferNotifier extends AsyncNotifier<List<FileTransfer>> {
       return transferId;
     } catch (e) {
       logError('Ошибка отправки файла', error: e, tag: _logTag);
-      state = AsyncError(e, StackTrace.current);
+      if (ref.mounted) {
+        state = AsyncError(e, StackTrace.current);
+      }
       return null;
     }
   }
@@ -633,7 +741,9 @@ class FileTransferNotifier extends AsyncNotifier<List<FileTransfer>> {
     );
 
     // Обновляем состояние
-    final currentTransfers = _webrtcService.activeFileTransfers;
-    state = AsyncData(currentTransfers);
+    if (ref.mounted) {
+      final currentTransfers = _webrtcService.activeFileTransfers;
+      state = AsyncData(currentTransfers);
+    }
   }
 }

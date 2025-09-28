@@ -101,6 +101,28 @@ class WebRTCService {
     required int remotePort,
   }) async {
     try {
+      // Проверяем, нет ли уже активного соединения с этим устройством
+      final existingConnectionId = _findConnectionIdByDeviceId(remoteDeviceId);
+      if (existingConnectionId != null) {
+        final existingConnection = _connections[existingConnectionId];
+        logInfo(
+          'Найдено существующее соединение с устройством',
+          tag: _logTag,
+          data: {
+            'existingConnectionId': existingConnectionId,
+            'state': existingConnection?.state.name ?? 'unknown',
+            'remoteDeviceId': remoteDeviceId,
+          },
+        );
+
+        // Если соединение активно, возвращаем его
+        if (existingConnection?.state == WebRTCConnectionState.connected ||
+            existingConnection?.state == WebRTCConnectionState.connecting) {
+          logInfo('Возвращаем существующее активное соединение', tag: _logTag);
+          return existingConnectionId;
+        }
+      }
+
       final connectionId = const Uuid().v4();
 
       // IP уже должен быть резолвлен в DiscoveryProvider, но проверим на всякий случай
@@ -134,15 +156,9 @@ class WebRTCService {
       _connectionStateController.add(connection);
 
       final peerConnection = await _createPeerConnection(connectionId);
-      final dataChannel = await _createDataChannel(
-        peerConnection,
-        connectionId,
-      );
-
       _peerConnections[connectionId] = peerConnection;
-      _dataChannels[connectionId] = dataChannel;
 
-      // Создаем и отправляем offer на резолвленый IP
+      // Создаем и отправляем offer на резолвленый IP (DataChannel создается внутри)
       await _createAndSetOffer(connectionId, resolvedIp, remotePort);
 
       return connectionId;
@@ -569,26 +585,21 @@ class WebRTCService {
     };
 
     peerConnection.onDataChannel = (RTCDataChannel dataChannel) {
-      logInfo('Получен DataChannel от удаленного устройства', tag: _logTag);
+      logInfo(
+        'Получен DataChannel от удаленного устройства',
+        tag: _logTag,
+        data: {
+          'connectionId': connectionId,
+          'label': dataChannel.label,
+          'id': dataChannel.id,
+          'state': dataChannel.state?.name ?? 'unknown',
+        },
+      );
       _dataChannels[connectionId] = dataChannel;
       _setupDataChannelHandlers(connectionId, dataChannel);
     };
 
     return peerConnection;
-  }
-
-  /// Создает DataChannel
-  Future<RTCDataChannel> _createDataChannel(
-    RTCPeerConnection peerConnection,
-    String connectionId,
-  ) async {
-    final dataChannel = await peerConnection.createDataChannel(
-      'fileTransfer',
-      RTCDataChannelInit()..ordered = true,
-    );
-
-    _setupDataChannelHandlers(connectionId, dataChannel);
-    return dataChannel;
   }
 
   /// Настраивает обработчики событий DataChannel
@@ -682,6 +693,42 @@ class WebRTCService {
     );
   }
 
+  /// Детальная диагностика при failed соединении
+  Future<void> _debugConnectionFailure(String connectionId) async {
+    final connection = _connections[connectionId];
+    final peerConnection = _peerConnections[connectionId];
+    final dataChannel = _dataChannels[connectionId];
+
+    if (connection == null) {
+      logError('Connection не найден для диагностики failed', tag: _logTag);
+      return;
+    }
+
+    final signalingState = peerConnection != null
+        ? await peerConnection.getSignalingState()
+        : null;
+    final iceGatheringState = peerConnection != null
+        ? await peerConnection.getIceGatheringState()
+        : null;
+
+    logError(
+      'Диагностика failed соединения',
+      tag: _logTag,
+      data: {
+        'connectionId': connectionId,
+        'role': connection.role.name,
+        'remoteIp': connection.remoteIp,
+        'remotePort': connection.remotePort,
+        'ourState': connection.state.name,
+        'signalingState': signalingState?.name ?? 'null',
+        'iceGatheringState': iceGatheringState?.name ?? 'null',
+        'hasPeerConnection': peerConnection != null,
+        'hasDataChannel': dataChannel != null,
+        'dataChannelState': dataChannel?.state?.name ?? 'null',
+      },
+    );
+  }
+
   /// Создает и устанавливает offer
   Future<void> _createAndSetOffer(
     String connectionId,
@@ -698,6 +745,34 @@ class WebRTCService {
       );
       return;
     }
+
+    // Создаем DataChannel ДО создания offer
+    logInfo(
+      'Создание DataChannel для инициатора',
+      tag: _logTag,
+      data: {'connectionId': connectionId},
+    );
+
+    final dataChannel = await peerConnection.createDataChannel(
+      'fileTransfer',
+      RTCDataChannelInit()
+        ..ordered = true
+        ..maxRetransmits = 30,
+    );
+
+    logInfo(
+      'DataChannel создан для инициатора',
+      tag: _logTag,
+      data: {
+        'connectionId': connectionId,
+        'label': dataChannel.label,
+        'id': dataChannel.id,
+        'initialState': dataChannel.state?.name ?? 'unknown',
+      },
+    );
+
+    _dataChannels[connectionId] = dataChannel;
+    _setupDataChannelHandlers(connectionId, dataChannel);
 
     logInfo(
       'Создание WebRTC offer',
@@ -1053,6 +1128,21 @@ class WebRTCService {
         'type': message.type.name,
         'from': message.fromDeviceId,
         'to': message.toDeviceId,
+        'messageId': message.messageId,
+        'hasData': message.data.isNotEmpty,
+      },
+    );
+
+    // Добавим диагностику активных соединений
+    logDebug(
+      'Текущие активные соединения',
+      tag: _logTag,
+      data: {
+        'connectionCount': _connections.length,
+        'connectionIds': _connections.keys.toList(),
+        'connections': _connections.values
+            .map((c) => '${c.connectionId}:${c.state.name}')
+            .toList(),
       },
     );
 
@@ -1114,7 +1204,13 @@ class WebRTCService {
       logInfo(
         'Получен WebRTC offer - автоматически принимаем',
         tag: _logTag,
-        data: {'from': message.fromDeviceId, 'messageId': message.messageId},
+        data: {
+          'from': message.fromDeviceId,
+          'to': message.toDeviceId,
+          'messageId': message.messageId,
+          'offerType': message.data['sdpOffer']?['type'],
+          'sdpLength': message.data['sdpOffer']?['sdp']?.length ?? 0,
+        },
       );
 
       // Проверяем, нет ли уже соединения с этим устройством
@@ -1434,10 +1530,39 @@ class WebRTCService {
       }
 
       final candidateData = message.data;
+      final candidateStr = candidateData['candidate'] ?? '';
+
+      // Парсим тип кандидата для диагностики
+      String candidateType = 'unknown';
+      if (candidateStr.contains('typ host')) {
+        candidateType = 'host';
+      } else if (candidateStr.contains('typ srflx')) {
+        candidateType = 'server-reflexive';
+      } else if (candidateStr.contains('typ relay')) {
+        candidateType = 'relay';
+      } else if (candidateStr.contains('typ prflx')) {
+        candidateType = 'peer-reflexive';
+      }
+
       final candidate = RTCIceCandidate(
         candidateData['candidate'],
         candidateData['sdpMid'],
         candidateData['sdpMLineIndex'],
+      );
+
+      logInfo(
+        'Обработка входящего ICE candidate',
+        tag: _logTag,
+        data: {
+          'connectionId': connectionId,
+          'messageId': message.messageId,
+          'candidateType': candidateType,
+          'sdpMid': candidateData['sdpMid'],
+          'sdpMLineIndex': candidateData['sdpMLineIndex'],
+          'candidatePreview': candidateStr.length > 100
+              ? '${candidateStr.substring(0, 100)}...'
+              : candidateStr,
+        },
       );
 
       await peerConnection.addCandidate(candidate);
@@ -1446,7 +1571,7 @@ class WebRTCService {
       _processedMessageIds.add(message.messageId);
 
       logDebug(
-        'ICE candidate добавлен',
+        'ICE candidate добавлен в PeerConnection',
         tag: _logTag,
         data: {'connectionId': connectionId, 'messageId': message.messageId},
       );
@@ -1573,6 +1698,9 @@ class WebRTCService {
           tag: _logTag,
           data: {'connectionId': connectionId},
         );
+        // Обновляем состояние соединения на connected
+        _updateConnectionState(connectionId, WebRTCConnectionState.connected);
+
         // Диагностика после установления ICE соединения
         Future.delayed(const Duration(seconds: 1), () {
           _debugConnectionState(connectionId);
@@ -1583,6 +1711,12 @@ class WebRTCService {
           'ICE соединение не удалось - проблемы с сетевой связностью',
           tag: _logTag,
           data: {'connectionId': connectionId},
+        );
+        // Детальная диагностика при failed
+        _debugConnectionFailure(connectionId);
+        _updateConnectionState(
+          connectionId,
+          WebRTCConnectionState.disconnected,
         );
         break;
       case RTCIceConnectionState.RTCIceConnectionStateDisconnected:
@@ -1609,12 +1743,31 @@ class WebRTCService {
       return;
     }
 
-    logDebug(
+    // Парсим тип кандидата для диагностики
+    final candidateStr = candidate.candidate ?? '';
+    String candidateType = 'unknown';
+    if (candidateStr.contains('typ host')) {
+      candidateType = 'host';
+    } else if (candidateStr.contains('typ srflx')) {
+      candidateType = 'server-reflexive';
+    } else if (candidateStr.contains('typ relay')) {
+      candidateType = 'relay';
+    } else if (candidateStr.contains('typ prflx')) {
+      candidateType = 'peer-reflexive';
+    }
+
+    logInfo(
       'Сгенерирован ICE candidate',
       tag: _logTag,
       data: {
         'connectionId': connectionId,
-        'candidate': candidate.candidate?.substring(0, 50),
+        'role': connection.role.name,
+        'candidateType': candidateType,
+        'sdpMid': candidate.sdpMid,
+        'sdpMLineIndex': candidate.sdpMLineIndex,
+        'candidatePreview': candidateStr.length > 100
+            ? '${candidateStr.substring(0, 100)}...'
+            : candidateStr,
       },
     );
 
@@ -1653,12 +1806,13 @@ class WebRTCService {
       );
 
       logDebug(
-        'ICE candidate отправлен',
+        'ICE candidate отправлен успешно',
         tag: _logTag,
         data: {
           'connectionId': connection.connectionId,
           'remoteIp': connection.remoteIp,
           'remotePort': connection.remotePort,
+          'messageId': iceCandidateMessage.messageId,
         },
       );
     } catch (e) {
@@ -1666,7 +1820,11 @@ class WebRTCService {
         'Ошибка отправки ICE candidate',
         error: e,
         tag: _logTag,
-        data: {'connectionId': connection.connectionId},
+        data: {
+          'connectionId': connection.connectionId,
+          'remoteIp': connection.remoteIp,
+          'remotePort': connection.remotePort,
+        },
       );
     }
   }

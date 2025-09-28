@@ -354,6 +354,19 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
 
     // Отслеживание изменений соединения
     ref.listen(currentConnectionProvider, (previous, next) {
+      logInfo(
+        'TransceiverScreen: изменение currentConnectionProvider',
+        tag: _logTag,
+        data: {
+          'previousId': previous?.connectionId,
+          'previousState': previous?.state.name,
+          'nextId': next?.connectionId,
+          'nextState': next?.state.name,
+          'nextRemoteDeviceId': next?.remoteDeviceId,
+          'widgetDeviceId': widget.deviceInfo?.id,
+        },
+      );
+
       if (next != null && next.remoteDeviceId == widget.deviceInfo?.id) {
         switch (next.state) {
           case WebRTCConnectionState.connected:
@@ -377,6 +390,16 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
           default:
             break;
         }
+      } else if (next != null) {
+        logInfo(
+          'TransceiverScreen: соединение не соответствует текущему устройству',
+          tag: _logTag,
+          data: {
+            'connectionRemoteId': next.remoteDeviceId,
+            'widgetDeviceId': widget.deviceInfo?.id,
+            'connectionState': next.state.name,
+          },
+        );
       }
     });
 
