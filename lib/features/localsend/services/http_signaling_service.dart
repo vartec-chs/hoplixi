@@ -71,7 +71,7 @@ class HttpSignalingService {
 
   // Connect as a client to remote websocket server
   Future<void> connect(String uri) async {
-    _clientSocket = await WebSocket.connect(uri);
+    _clientSocket = await WebSocket.connect(uri.replaceAll('http', 'ws'));
     _clientSocket!.listen(
       (data) {
         try {

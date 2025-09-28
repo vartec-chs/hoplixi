@@ -18,6 +18,7 @@ import 'package:hoplixi/features/password_manager/tags_manager/tags_management_s
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
 import 'package:hoplixi/features/password_manager/universal_filter/example/universal_filter_example_screen.dart';
 import 'package:hoplixi/features/setup/setup.dart';
+import 'package:hoplixi/router/router_provider.dart';
 import 'routes_path.dart';
 
 final List<GoRoute> appRoutes = [
@@ -97,7 +98,7 @@ final List<GoRoute> appRoutes = [
           connectionMode: connectionMode,
         );
       }
-      return const TransceiveScreen();
+      return const SplashScreen(title: 'Ошибка: нет данных');
     },
   ),
 ];
@@ -108,6 +109,17 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: Center(child: Text(title ?? 'Splash Screen')));
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Splash Screen'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            navigateBack(context);
+          },
+        ),
+      ),
+      body: Center(child: Text(title ?? '')),
+    );
   }
 }

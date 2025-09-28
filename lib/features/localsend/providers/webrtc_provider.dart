@@ -61,12 +61,12 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
     try {
       final config = <String, dynamic>{
         'iceServers': [
-          {'urls': 'stun:stun.l.google.com:19302'},
-          {'url': 'stun:stun.l.google.com:19302'},
-          {'url': 'stun:stun4.l.google.com:19302'},
-          {'url': 'stun:iphone-stun.strato-iphone.de:3478'},
-          {'url': 'stun:numb.viagenie.ca:3478'},
-          {'url': 'stun:s1.taraba.net:3478'},
+          // {'urls': 'stun:stun.l.google.com:19302'},
+          // {'url': 'stun:stun.l.google.com:19302'},
+          // {'url': 'stun:stun4.l.google.com:19302'},
+          // {'url': 'stun:iphone-stun.strato-iphone.de:3478'},
+          // {'url': 'stun:numb.viagenie.ca:3478'},
+          // {'url': 'stun:s1.taraba.net:3478'},
           {'urls': 'stun:stun.l.google.com:19302'},
           {'urls': 'stun:stun1.l.google.com:19302'},
           {'urls': 'stun:stun2.l.google.com:19302'},
@@ -75,21 +75,46 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
 
       _pc = await createPeerConnection(config);
 
+      // Подписываемся на состояние подключения, чтобы обновлять провайдер и логировать
+      _pc!.onConnectionState = (connectionState) {
+        logInfo('PeerConnection state: $connectionState', tag: _logTag);
+        final isConnected =
+            connectionState ==
+            RTCPeerConnectionState.RTCPeerConnectionStateConnected;
+        state = AsyncData(WebrtcProviderState(connected: isConnected));
+      };
+
+      _pc!.onIceConnectionState = (iceState) {
+        logInfo('ICE connection state: $iceState', tag: _logTag);
+        if (iceState == RTCIceConnectionState.RTCIceConnectionStateFailed ||
+            iceState ==
+                RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+          state = AsyncData(
+            WebrtcProviderState(
+              connected: false,
+              error: 'ICE connection failed: $iceState',
+            ),
+          );
+        }
+      };
+
+      _pc!.onIceGatheringState = (gatheringState) {
+        logInfo('ICE gathering state: $gatheringState', tag: _logTag);
+      };
+
       _pc!.onDataChannel = (RTCDataChannel dc) {
         _setDataChannel(dc);
       };
 
       _pc!.onIceCandidate = (candidate) {
-        if (candidate != null) {
-          _httpSignalingService.send({
-            'type': 'candidate',
-            'candidate': {
-              'candidate': candidate.candidate,
-              'sdpMid': candidate.sdpMid,
-              'sdpMLineIndex': candidate.sdpMLineIndex,
-            },
-          });
-        }
+        _httpSignalingService.send({
+          'type': 'candidate',
+          'candidate': {
+            'candidate': candidate.candidate,
+            'sdpMid': candidate.sdpMid,
+            'sdpMLineIndex': candidate.sdpMLineIndex,
+          },
+        });
       };
 
       _sigSub = _httpSignalingService.onMessageWs.listen(
@@ -150,19 +175,21 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
     _dataChannel = dc;
 
     // push initial state
-    _dcStateCtr.add(_dataChannel!.state.toString());
+    if (!_dcStateCtr.isClosed) _dcStateCtr.add(_dataChannel!.state.toString());
 
     // входящие сообщения
     _dataChannel!.onMessage = (RTCDataChannelMessage message) {
-      final text = message.isBinary ? null : (message.text ?? '');
+      final text = message.isBinary ? null : message.text;
       if (text == null) {
-        _dcMessageCtr.add({
-          'from': 'peer',
-          'username': 'peer',
-          'text': '<binary>',
-          'id': DateTime.now().microsecondsSinceEpoch.toString(),
-          'ts': DateTime.now().toIso8601String(),
-        });
+        if (!_dcMessageCtr.isClosed) {
+          _dcMessageCtr.add({
+            'from': 'peer',
+            'username': 'peer',
+            'text': '<binary>',
+            'id': DateTime.now().microsecondsSinceEpoch.toString(),
+            'ts': DateTime.now().toIso8601String(),
+          });
+        }
         return;
       }
 
@@ -177,35 +204,41 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
         final msgText = parsed['text']?.toString() ?? '';
         final ts = parsed['ts']?.toString() ?? DateTime.now().toIso8601String();
 
-        _dcMessageCtr.add({
-          'from': 'peer',
-          'id': id,
-          'username': username,
-          'text': msgText,
-          'ts': ts,
-        });
+        if (!_dcMessageCtr.isClosed) {
+          _dcMessageCtr.add({
+            'from': 'peer',
+            'id': id,
+            'username': username,
+            'text': msgText,
+            'ts': ts,
+          });
+        }
       } catch (e) {
         // не JSON — просто текст
-        _dcMessageCtr.add({
-          'from': 'peer',
-          'id': DateTime.now().microsecondsSinceEpoch.toString(),
-          'username': 'peer',
-          'text': text,
-          'ts': DateTime.now().toIso8601String(),
-        });
+        if (!_dcMessageCtr.isClosed) {
+          _dcMessageCtr.add({
+            'from': 'peer',
+            'id': DateTime.now().microsecondsSinceEpoch.toString(),
+            'username': 'peer',
+            'text': text,
+            'ts': DateTime.now().toIso8601String(),
+          });
+        }
       }
     };
 
     // отслеживаем состояние канала
     _dataChannel!.onDataChannelState = (state) {
-      _dcStateCtr.add(state.toString());
-      _dcMessageCtr.add({
-        'from': 'system',
-        'id': DateTime.now().microsecondsSinceEpoch.toString(),
-        'username': 'system',
-        'text': 'datachannel state: $state',
-        'ts': DateTime.now().toIso8601String(),
-      });
+      if (!_dcStateCtr.isClosed) _dcStateCtr.add(state.toString());
+      if (!_dcMessageCtr.isClosed) {
+        _dcMessageCtr.add({
+          'from': 'system',
+          'id': DateTime.now().microsecondsSinceEpoch.toString(),
+          'username': 'system',
+          'text': 'datachannel state: $state',
+          'ts': DateTime.now().toIso8601String(),
+        });
+      }
     };
   }
 
@@ -233,7 +266,7 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
       } else if (type == 'chat_fallback') {
         // Получили fallback-чат через signaling — отобразим как входящее сообщение
         final payload = msg['payload'] as Map<String, dynamic>?;
-        if (payload != null) {
+        if (payload != null && !_dcMessageCtr.isClosed) {
           _dcMessageCtr.add({
             'from': 'peer',
             'id':
@@ -284,14 +317,18 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
       final jsonText = jsonEncode(payload);
       _dataChannel!.send(RTCDataChannelMessage(jsonText));
       // локально добавляем сообщение в поток, чтобы UI сразу показал
-      _dcMessageCtr.add({
-        'from': 'me',
-        'id': id,
-        'username': username,
-        'text': text,
-        'ts': payload['ts'],
-      });
+      if (!_dcMessageCtr.isClosed) {
+        _dcMessageCtr.add({
+          'from': 'me',
+          'id': id,
+          'username': username,
+          'text': text,
+          'ts': payload['ts'],
+        });
+      }
     } else {
+      logError('DataChannel is not open, cannot send message', tag: _logTag);
+      // не кидаем исключение — просто логируем ошибку
       throw WebrtcProviderException('DataChannel is not open');
     }
   }
@@ -322,7 +359,17 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
       await _dcStateCtr.close();
     } catch (e) {
       logError('Ошибка при закрытии dcStateCtr', error: e, tag: _logTag);
+    }
+
+    // всегда останавливаем signaling
+    try {
       await _httpSignalingService.stop();
+    } catch (e) {
+      logError(
+        'Ошибка при остановке signaling сервиса',
+        error: e,
+        tag: _logTag,
+      );
     }
   }
 
