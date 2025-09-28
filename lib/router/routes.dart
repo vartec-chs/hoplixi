@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/localsend/models/device_info.dart' as di;
+import 'package:hoplixi/features/localsend/models/connection_mode.dart';
 import 'package:hoplixi/features/localsend/screens/discovery_screen.dart';
 import 'package:hoplixi/features/localsend/screens/transceive_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
@@ -87,8 +88,23 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.localSendTransfer,
     builder: (context, state) {
-      final deviceInfo = state.extra as di.DeviceInfo?;
-      return TransceiverScreen(deviceInfo: deviceInfo);
+      // Обрабатываем как новый формат (Map), так и старый (DeviceInfo)
+      if (state.extra is Map<String, dynamic>) {
+        final data = state.extra as Map<String, dynamic>;
+        final deviceInfo = data['device'] as di.DeviceInfo?;
+        final connectionMode = data['mode'] as ConnectionMode?;
+        return TransceiverScreen(
+          deviceInfo: deviceInfo,
+          connectionMode: connectionMode,
+        );
+      } else {
+        // Поддерживаем старый формат для совместимости
+        final deviceInfo = state.extra as di.DeviceInfo?;
+        return TransceiverScreen(
+          deviceInfo: deviceInfo,
+          connectionMode: ConnectionMode.initiator, // По умолчанию инициатор
+        );
+      }
     },
   ),
 ];

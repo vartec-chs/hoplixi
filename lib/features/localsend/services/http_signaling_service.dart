@@ -90,8 +90,24 @@ class HttpSignalingService {
     SignalingMessage message,
   ) async {
     try {
+      // Проверяем IP адрес на валидность
+      if (!_isValidLocalIp(targetIp)) {
+        logWarning(
+          'Подозрительный IP адрес для локальной сети',
+          tag: _logTag,
+          data: {
+            'targetIp': targetIp,
+            'isPrivateRange': _isPrivateIpRange(targetIp),
+            'isLoopback': targetIp.startsWith('127.'),
+            'isLinkLocal': targetIp.startsWith('169.254.'),
+          },
+        );
+      }
+
       final httpClient = HttpClient();
-      httpClient.connectionTimeout = const Duration(seconds: 10);
+      httpClient.connectionTimeout = const Duration(
+        seconds: 5,
+      ); // Уменьшили таймаут
       final uri = Uri.parse('http://$targetIp:$targetPort/signaling');
 
       logInfo(
@@ -103,6 +119,7 @@ class HttpSignalingService {
           'to': targetDeviceId,
           'target': '$targetIp:$targetPort',
           'uri': uri.toString(),
+          'isValidLocalIp': _isValidLocalIp(targetIp),
         },
       );
 
@@ -140,8 +157,18 @@ class HttpSignalingService {
       httpClient.close();
       return success;
     } catch (e, stackTrace) {
+      // Дополнительная диагностика для разных типов ошибок
+      String errorContext = 'Unknown error';
+      if (e is SocketException) {
+        errorContext = 'Network connectivity issue: ${e.message}';
+      } else if (e is TimeoutException) {
+        errorContext = 'Connection timeout - device may be unreachable';
+      } else if (e is HttpException) {
+        errorContext = 'HTTP protocol error: ${e.message}';
+      }
+
       logError(
-        'Исключение при отправке сигналинг сообщения',
+        'Исключение при отправке сигналинг сообщения: $errorContext',
         error: e,
         stackTrace: stackTrace,
         tag: _logTag,
@@ -149,6 +176,9 @@ class HttpSignalingService {
           'target': '$targetIp:$targetPort',
           'targetDevice': targetDeviceId,
           'messageType': message.type.name,
+          'errorType': e.runtimeType.toString(),
+          'isValidLocalIp': _isValidLocalIp(targetIp),
+          'suggestedAction': _getSuggestedAction(targetIp, e),
         },
       );
       return false;
@@ -399,5 +429,54 @@ class HttpSignalingService {
         tag: _logTag,
       );
     }
+  }
+
+  /// Проверяет, является ли IP адрес валидным для локальной сети
+  bool _isValidLocalIp(String ip) {
+    // Проверяем базовый формат IP
+    final ipRegex = RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$');
+    if (!ipRegex.hasMatch(ip)) return false;
+
+    // Проверяем, что это приватный IP диапазон
+    return _isPrivateIpRange(ip) ||
+        ip.startsWith('127.') || // loopback
+        ip.startsWith('169.254.'); // link-local
+  }
+
+  /// Проверяет, находится ли IP в приватном диапазоне
+  bool _isPrivateIpRange(String ip) {
+    final parts = ip.split('.').map(int.tryParse).toList();
+    if (parts.length != 4 || parts.contains(null)) return false;
+
+    final a = parts[0]!;
+    final b = parts[1]!;
+
+    // 10.0.0.0/8
+    if (a == 10) return true;
+
+    // 172.16.0.0/12
+    if (a == 172 && b >= 16 && b <= 31) return true;
+
+    // 192.168.0.0/16
+    if (a == 192 && b == 168) return true;
+
+    return false;
+  }
+
+  /// Возвращает предложение по исправлению проблемы на основе IP и ошибки
+  String _getSuggestedAction(String targetIp, Object error) {
+    if (!_isValidLocalIp(targetIp)) {
+      return 'Check DNS resolution - IP seems to be outside local network';
+    }
+
+    if (error is SocketException) {
+      if (error.message.contains('timed out')) {
+        return 'Device unreachable - check if target device is on same network';
+      } else if (error.message.contains('refused')) {
+        return 'Connection refused - check if signaling server is running on target';
+      }
+    }
+
+    return 'Check network connectivity and firewall settings';
   }
 }

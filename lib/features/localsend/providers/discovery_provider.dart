@@ -367,16 +367,67 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
           const Duration(seconds: 3), // Таймаут для DNS запроса
         );
 
-        // Ищем первый IPv4 адрес
+        // Отображаем все найденные адреса для диагностики
+        logInfo(
+          'DNS резолюция найдены адреса для устройства',
+          tag: _logTag,
+          data: {
+            'hostname': hostname,
+            'foundAddresses': addresses
+                .map((a) => '${a.address} (${a.type})')
+                .toList(),
+            'addressCount': addresses.length,
+          },
+        );
+
+        // Сначала ищем приватные IP адреса (предпочтительно)
         for (final address in addresses) {
           if (address.type == InternetAddressType.IPv4) {
-            final resolvedIp = address.address;
-            logInfo(
-              'Успешно резолвлен .local адрес',
+            final ip = address.address;
+            if (_isPrivateIpRange(ip)) {
+              logInfo(
+                'Найден приватный IPv4 адрес',
+                tag: _logTag,
+                data: {
+                  'hostname': hostname,
+                  'resolvedIp': ip,
+                  'type': 'private',
+                },
+              );
+              return ip;
+            }
+          }
+        }
+
+        // Если не найдены приватные, ищем любые локальные IPv4
+        for (final address in addresses) {
+          if (address.type == InternetAddressType.IPv4) {
+            final ip = address.address;
+            if (_isLocalNetworkIp(ip)) {
+              logInfo(
+                'Найден локальный IPv4 адрес',
+                tag: _logTag,
+                data: {'hostname': hostname, 'resolvedIp': ip, 'type': 'local'},
+              );
+              return ip;
+            }
+          }
+        }
+
+        // В крайнем случае берем первый IPv4, но предупреждаем
+        for (final address in addresses) {
+          if (address.type == InternetAddressType.IPv4) {
+            final ip = address.address;
+            logWarning(
+              'Используем первый доступный IPv4 адрес (может быть внешним)',
               tag: _logTag,
-              data: {'hostname': hostname, 'resolvedIp': resolvedIp},
+              data: {
+                'hostname': hostname,
+                'resolvedIp': ip,
+                'type': 'fallback',
+              },
             );
-            return resolvedIp;
+            return ip;
           }
         }
 
@@ -440,6 +491,33 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
       logError('Ошибка получения локального IP', error: e, tag: _logTag);
       return '127.0.0.1';
     }
+  }
+
+  /// Проверяет, является ли IP адрес из локальной сети
+  bool _isLocalNetworkIp(String ip) {
+    return _isPrivateIpRange(ip) ||
+        ip.startsWith('127.') || // loopback
+        ip.startsWith('169.254.'); // link-local
+  }
+
+  /// Проверяет, находится ли IP в приватном диапазоне
+  bool _isPrivateIpRange(String ip) {
+    final parts = ip.split('.').map(int.tryParse).toList();
+    if (parts.length != 4 || parts.contains(null)) return false;
+
+    final a = parts[0]!;
+    final b = parts[1]!;
+
+    // 10.0.0.0/8
+    if (a == 10) return true;
+
+    // 172.16.0.0/12
+    if (a == 172 && b >= 16 && b <= 31) return true;
+
+    // 192.168.0.0/16
+    if (a == 192 && b == 168) return true;
+
+    return false;
   }
 
   void _updateState() {

@@ -9,6 +9,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/localsend/models/device_info.dart'
     as localsend;
 import 'package:hoplixi/features/localsend/models/connection.dart';
+import 'package:hoplixi/features/localsend/models/connection_mode.dart';
 import 'package:hoplixi/features/localsend/models/file_transfer.dart';
 import 'package:hoplixi/features/localsend/models/message.dart';
 import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
@@ -22,9 +23,10 @@ import 'package:hoplixi/features/localsend/widgets/message_list_widget.dart';
 const _logTag = 'TransceiverScreen';
 
 class TransceiverScreen extends ConsumerStatefulWidget {
-  const TransceiverScreen({super.key, this.deviceInfo});
+  const TransceiverScreen({super.key, this.deviceInfo, this.connectionMode});
 
   final localsend.DeviceInfo? deviceInfo;
+  final ConnectionMode? connectionMode;
 
   @override
   ConsumerState<TransceiverScreen> createState() => _TransceiverScreenState();
@@ -65,6 +67,8 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
       return;
     }
 
+    final mode = widget.connectionMode ?? ConnectionMode.initiator;
+
     setState(() => _isConnecting = true);
     logInfo('Состояние _isConnecting установлено в true', tag: _logTag);
 
@@ -85,6 +89,7 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
           'targetPort': widget.deviceInfo!.port,
           'selfDevice': selfDevice.name,
           'selfDeviceId': selfDevice.id,
+          'connectionMode': mode.name,
         },
       );
 
@@ -94,27 +99,60 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
       await webrtcService.initialize();
       logInfo('WebRTCService инициализирован', tag: _logTag);
 
-      final connectionId = await webrtcNotifier.connectToDevice(
-        localDeviceId: selfDevice.id,
-        targetDevice: widget.deviceInfo!,
-      );
-      logInfo(
-        'connectToDevice завершен, connectionId: $connectionId',
-        tag: _logTag,
-      );
+      String? connectionId;
+
+      switch (mode) {
+        case ConnectionMode.initiator:
+          // Режим инициатора - создаем соединение и отправляем offer
+          connectionId = await webrtcNotifier.connectToDevice(
+            localDeviceId: selfDevice.id,
+            targetDevice: widget.deviceInfo!,
+          );
+          logInfo(
+            'Режим инициатора: connectToDevice завершен, connectionId: $connectionId',
+            tag: _logTag,
+          );
+
+          if (connectionId != null) {
+            ToastHelper.info(
+              title: 'Подключение к ${widget.deviceInfo!.name}',
+              description: 'Отправляется запрос на соединение...',
+            );
+          }
+          break;
+
+        case ConnectionMode.receiver:
+          // Режим получателя - запускаем прослушивание входящих соединений
+          logInfo(
+            'Режим получателя: запуск прослушивания входящих соединений...',
+            tag: _logTag,
+          );
+          await webrtcNotifier.startListeningForConnections(
+            localDeviceId: selfDevice.id,
+          );
+          logInfo(
+            'Прослушивание входящих соединений активировано',
+            tag: _logTag,
+          );
+
+          ToastHelper.info(
+            title: 'Ожидание подключения от ${widget.deviceInfo!.name}',
+            description: 'Сервер запущен, ожидание входящего соединения...',
+          );
+
+          // В режиме получателя connectionId будет установлен при получении входящего offer
+          connectionId = 'listening_for_incoming'; // Временный ID
+          break;
+      }
 
       if (connectionId != null) {
         setState(() => _connectionId = connectionId);
         logInfo(
-          'Соединение инициализировано, ожидание подключения...',
+          'Соединение инициализировано в режиме ${mode.name}',
           tag: _logTag,
         );
-        ToastHelper.info(
-          title: 'Подключение к ${widget.deviceInfo!.name}',
-          description: 'Ожидание установки соединения...',
-        );
       } else {
-        logError('connectToDevice вернул null', tag: _logTag);
+        logError('Не удалось инициализировать соединение', tag: _logTag);
         ToastHelper.error(title: 'Не удалось инициировать соединение');
       }
     } catch (e) {
@@ -348,7 +386,19 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.deviceInfo?.name ?? 'LocalSend'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.deviceInfo?.name ?? 'LocalSend'),
+            if (widget.connectionMode != null)
+              Text(
+                '${widget.connectionMode!.icon} ${widget.connectionMode!.displayName}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {

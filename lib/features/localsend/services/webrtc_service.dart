@@ -10,6 +10,7 @@ import 'package:hoplixi/features/localsend/models/ice_candidate_event.dart';
 import 'package:hoplixi/features/localsend/models/message.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_config.dart' as config;
 import 'package:hoplixi/features/localsend/services/http_signaling_service.dart';
+import 'package:hoplixi/features/localsend/utils/ip_utils.dart';
 import 'package:uuid/uuid.dart';
 import 'package:crypto/crypto.dart';
 
@@ -1209,20 +1210,61 @@ class WebRTCService {
       // Если это .local адрес, пытаемся резолвить
       if (hostname.endsWith('.local')) {
         logDebug('Резолюция .local адреса', tag: _logTag);
-        final addresses = await InternetAddress.lookup(hostname);
+        final addresses = await InternetAddress.lookup(
+          hostname,
+        ).timeout(const Duration(seconds: 3));
 
-        // Ищем первый IPv4 адрес
+        // Отображаем все найденные адреса для диагностики
+        logInfo(
+          'DNS резолюция найдены адреса',
+          tag: _logTag,
+          data: {
+            'hostname': hostname,
+            'foundAddresses': addresses
+                .map((a) => '${a.address} (${a.type})')
+                .toList(),
+            'addressCount': addresses.length,
+          },
+        );
+
+        // Ищем первый подходящий IPv4 адрес из локальной сети
         for (final address in addresses) {
           if (address.type == InternetAddressType.IPv4) {
-            final resolvedIp = address.address;
+            final ip = address.address;
+            final isLocalNetwork = _isLocalNetworkIp(ip);
+
             logInfo(
-              'Успешно резолвлен .local адрес',
+              'Проверка IPv4 адреса',
               tag: _logTag,
-              data: {'hostname': hostname, 'resolvedIp': resolvedIp},
+              data: {
+                'ip': ip,
+                'isLocalNetwork': isLocalNetwork,
+                'isPrivate': _isPrivateIpRange(ip),
+                'isLoopback': ip.startsWith('127.'),
+              },
             );
-            return resolvedIp;
+
+            // Используем только адреса, подходящие для локального соединения
+            if (IpUtils.isValidForLocalConnection(ip)) {
+              logInfo(
+                'Успешно резолвлен .local адрес в локальный IP',
+                tag: _logTag,
+                data: {
+                  'hostname': hostname,
+                  'resolvedIp': ip,
+                  'priority': IpUtils.getIpPriority(ip),
+                },
+              );
+              return ip;
+            }
           }
         }
+
+        logWarning(
+          'Не найден подходящий локальный IPv4 адрес для .local домена',
+          tag: _logTag,
+          data: {'hostname': hostname},
+        );
       }
 
       // Если не удалось резолвить, возвращаем оригинал
@@ -1241,6 +1283,33 @@ class WebRTCService {
       );
       return hostname; // Возвращаем оригинал при ошибке
     }
+  }
+
+  /// Проверяет, является ли IP адрес из локальной сети
+  bool _isLocalNetworkIp(String ip) {
+    return _isPrivateIpRange(ip) ||
+        ip.startsWith('127.') || // loopback
+        ip.startsWith('169.254.'); // link-local
+  }
+
+  /// Проверяет, находится ли IP в приватном диапазоне
+  bool _isPrivateIpRange(String ip) {
+    final parts = ip.split('.').map(int.tryParse).toList();
+    if (parts.length != 4 || parts.contains(null)) return false;
+
+    final a = parts[0]!;
+    final b = parts[1]!;
+
+    // 10.0.0.0/8
+    if (a == 10) return true;
+
+    // 172.16.0.0/12
+    if (a == 172 && b >= 16 && b <= 31) return true;
+
+    // 192.168.0.0/16
+    if (a == 192 && b == 168) return true;
+
+    return false;
   }
 
   /// Получает локальный IP адрес

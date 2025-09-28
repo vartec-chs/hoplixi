@@ -277,6 +277,34 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
     }
   }
 
+  /// Запускает режим ожидания входящих соединений
+  Future<void> startListeningForConnections({
+    required String localDeviceId,
+  }) async {
+    try {
+      logInfo(
+        'Запуск режима ожидания входящих соединений',
+        tag: _logTag,
+        data: {'localDeviceId': localDeviceId},
+      );
+
+      // Запускаем сигналинг сервер если он еще не запущен
+      final signalingPort = await _webrtcService.startSignalingServer();
+      logInfo(
+        'Сигналинг сервер запущен для входящих соединений на порту $signalingPort',
+        tag: _logTag,
+      );
+
+      // В режиме ожидания WebRTCService автоматически обработает
+      // входящие offer сообщения через _handleOfferMessage
+
+      logInfo('Режим ожидания активен', tag: _logTag);
+    } catch (e) {
+      logError('Ошибка запуска режима ожидания', error: e, tag: _logTag);
+      state = AsyncError(e, StackTrace.current);
+    }
+  }
+
   /// Отправляет сообщение через указанное соединение
   Future<bool> sendMessage({
     required String connectionId,

@@ -7,6 +7,8 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import '../models/device_info.dart';
 import '../providers/discovery_provider.dart';
+import '../screens/network_diagnostics_screen.dart';
+import '../widgets/connection_mode_dialog.dart';
 
 const _logTag = 'DiscoveryScreen';
 
@@ -28,6 +30,11 @@ class DiscoveryScreen extends ConsumerWidget {
           },
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.network_check),
+            onPressed: () => _openNetworkDiagnostics(context),
+            tooltip: 'Диагностика сети',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
@@ -97,7 +104,7 @@ class DiscoveryScreen extends ConsumerWidget {
                           ),
                           elevation: 4,
                           child: InkWell(
-                            onTap: () {
+                            onTap: () async {
                               logInfo(
                                 'Пользователь нажал на устройство',
                                 tag: _logTag,
@@ -109,10 +116,24 @@ class DiscoveryScreen extends ConsumerWidget {
                                   'deviceType': device.type.name,
                                 },
                               );
-                              context.push(
-                                AppRoutes.localSendTransfer,
-                                extra: device,
-                              );
+
+                              // Показываем диалог выбора режима подключения
+                              final selectedMode =
+                                  await ConnectionModeDialog.show(
+                                    context,
+                                    device,
+                                  );
+
+                              if (selectedMode != null && context.mounted) {
+                                // Переходим на экран обмена с информацией о режиме
+                                context.push(
+                                  AppRoutes.localSendTransfer,
+                                  extra: {
+                                    'device': device,
+                                    'mode': selectedMode,
+                                  },
+                                );
+                              }
                             },
                             child: ListTile(
                               leading: Text(
@@ -176,6 +197,12 @@ class DiscoveryScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _openNetworkDiagnostics(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const NetworkDiagnosticsScreen()),
     );
   }
 }

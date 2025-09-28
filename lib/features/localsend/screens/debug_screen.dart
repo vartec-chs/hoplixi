@@ -5,6 +5,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/localsend/models/device_info.dart';
 import 'package:hoplixi/features/localsend/providers/discovery_provider.dart';
 import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend/screens/network_diagnostics_screen.dart';
 import 'package:hoplixi/features/localsend/utils/dns_test.dart';
 
 const _logTag = 'LocalSendDebug';
@@ -171,11 +172,10 @@ class _LocalSendDebugScreenState extends ConsumerState<LocalSendDebugScreen> {
 
             // Диагностические функции
             const SizedBox(height: 16),
-            Text(
-              'Диагностика DNS',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text('Диагностика', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
+
+            // Первый ряд кнопок
             Row(
               children: [
                 Expanded(
@@ -199,6 +199,16 @@ class _LocalSendDebugScreenState extends ConsumerState<LocalSendDebugScreen> {
                   ),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Второй ряд - диагностика сети
+            SmoothButton(
+              type: SmoothButtonType.filled,
+              size: SmoothButtonSize.medium,
+              label: 'Полная диагностика сети',
+              onPressed: () => _openNetworkDiagnostics(),
             ),
           ],
         ),
@@ -299,5 +309,11 @@ class _LocalSendDebugScreenState extends ConsumerState<LocalSendDebugScreen> {
       await DNSTestUtil.testLocalResolution(device.ipAddress);
       await DNSTestUtil.testHttpConnectivity(device.ipAddress, device.port);
     }
+  }
+
+  void _openNetworkDiagnostics() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const NetworkDiagnosticsScreen()),
+    );
   }
 }

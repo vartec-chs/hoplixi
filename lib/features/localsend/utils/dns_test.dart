@@ -63,15 +63,41 @@ class DNSTestUtil {
       );
 
       final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 3);
+      client.connectionTimeout = const Duration(seconds: 5);
 
+      // Сначала тестируем health endpoint
+      try {
+        final request = await client.getUrl(
+          Uri.parse('http://$ipAddress:$port/health'),
+        );
+        final response = await request.close();
+
+        logInfo(
+          'HTTP health check успешен',
+          tag: _logTag,
+          data: {
+            'statusCode': response.statusCode,
+            'contentLength': response.contentLength,
+          },
+        );
+
+        client.close();
+        return;
+      } catch (e) {
+        logWarning(
+          'Health endpoint недоступен, пробуем основной',
+          tag: _logTag,
+        );
+      }
+
+      // Если health не работает, пробуем основной endpoint
       final request = await client.getUrl(
         Uri.parse('http://$ipAddress:$port/'),
       );
       final response = await request.close();
 
       logInfo(
-        'HTTP ответ получен',
+        'HTTP основной endpoint ответил',
         tag: _logTag,
         data: {
           'statusCode': response.statusCode,
@@ -81,11 +107,32 @@ class DNSTestUtil {
 
       client.close();
     } catch (e) {
+      String errorType = 'Unknown error';
+      String suggestion = 'Check network connectivity';
+
+      if (e is SocketException) {
+        if (e.message.contains('timed out')) {
+          errorType = 'Connection timeout';
+          suggestion = 'Device unreachable or no signaling server';
+        } else if (e.message.contains('refused')) {
+          errorType = 'Connection refused';
+          suggestion = 'Signaling server not running on target';
+        } else if (e.message.contains('No route')) {
+          errorType = 'No route to host';
+          suggestion = 'Devices on different networks';
+        }
+      }
+
       logError(
-        'Ошибка HTTP подключения',
+        'Ошибка HTTP подключения: $errorType',
         error: e,
         tag: _logTag,
-        data: {'ip': ipAddress, 'port': port},
+        data: {
+          'ip': ipAddress,
+          'port': port,
+          'errorType': errorType,
+          'suggestion': suggestion,
+        },
       );
     }
   }
