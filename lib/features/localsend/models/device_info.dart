@@ -51,7 +51,7 @@ abstract class DeviceInfo with _$DeviceInfo {
       name: deviceName,
       type: deviceType,
       ipAddress: '0.0.0.0', // Будет обновлено при получении реального IP
-      port: customPort ?? 8080,
+      port: customPort ?? 53317,
       attributes: {
         'platform': Platform.operatingSystem,
         'version': Platform.operatingSystemVersion,

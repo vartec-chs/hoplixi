@@ -8,7 +8,7 @@ import 'package:uuid/uuid.dart';
 /// Сервис для HTTP сигналинга между устройствами
 class HttpSignalingService {
   static const String _logTag = 'HttpSignalingService';
-  static const int _defaultPort = 8080;
+  static const int _defaultPort = 53317;
   static const Duration _messageTimeout = Duration(seconds: 30);
 
   HttpServer? _server;
@@ -16,6 +16,8 @@ class HttpSignalingService {
   final Map<String, DateTime> _messageTimestamps = {};
   final StreamController<SignalingMessage> _messageController =
       StreamController<SignalingMessage>.broadcast();
+  final StreamController<Map<String, String>> _remoteIpController =
+      StreamController<Map<String, String>>.broadcast();
 
   int? _port;
   bool _isRunning = false;
@@ -23,6 +25,9 @@ class HttpSignalingService {
 
   /// Поток входящих сообщений сигналинга
   Stream<SignalingMessage> get incomingMessages => _messageController.stream;
+
+  /// Поток информации о реальных IP адресах отправителей
+  Stream<Map<String, String>> get remoteIpInfo => _remoteIpController.stream;
 
   /// Текущий порт сервера
   int? get port => _port;
@@ -244,6 +249,7 @@ class HttpSignalingService {
   Future<void> dispose() async {
     await stopServer();
     await _messageController.close();
+    await _remoteIpController.close();
   }
 
   /// Пытается привязать сервер к доступному порту
@@ -327,6 +333,9 @@ class HttpSignalingService {
       final messageJson = json.decode(body) as Map<String, dynamic>;
       final message = SignalingMessage.fromJson(messageJson);
 
+      // Получаем реальный IP адрес отправителя из HTTP request
+      final realSenderIp = request.connectionInfo?.remoteAddress.address;
+
       logInfo(
         'Получено сигналинг сообщение',
         tag: _logTag,
@@ -334,6 +343,7 @@ class HttpSignalingService {
           'type': message.type.name,
           'from': message.fromDeviceId,
           'to': message.toDeviceId,
+          'realSenderIp': realSenderIp,
         },
       );
 
@@ -342,6 +352,15 @@ class HttpSignalingService {
 
       // Уведомляем слушателей
       _messageController.add(message);
+
+      // Отправляем информацию о реальном IP отправителя
+      if (realSenderIp != null) {
+        _remoteIpController.add({
+          'deviceId': message.fromDeviceId,
+          'realIp': realSenderIp,
+          'messageType': message.type.name,
+        });
+      }
 
       request.response.statusCode = 200;
       request.response.write('OK');

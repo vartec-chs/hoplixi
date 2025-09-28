@@ -41,6 +41,13 @@ class WebRTCService {
   /// Порт сигналинг сервера
   int? _signalingPort;
 
+  /// Кэш реальных IP адресов устройств (deviceId -> realIp)
+  final Map<String, String> _realDeviceIps = {};
+
+  /// Кэш обработанных сообщений для предотвращения дубликатов
+  final Set<String> _processedMessageIds = {};
+  Timer? _cacheCleanupTimer;
+
   /// Поток состояний соединений
   Stream<WebRTCConnection> get connectionStates =>
       _connectionStateController.stream;
@@ -61,6 +68,15 @@ class WebRTCService {
 
     // Подписываемся на сообщения сигналинга
     _signalingService.incomingMessages.listen(_handleSignalingMessage);
+
+    // Подписываемся на информацию о реальных IP адресах
+    _signalingService.remoteIpInfo.listen(_handleRemoteIpInfo);
+
+    // Запускаем периодическую очистку кэша обработанных сообщений (каждые 30 минут)
+    _cacheCleanupTimer = Timer.periodic(
+      const Duration(minutes: 30),
+      (_) => _cleanupMessageCache(),
+    );
 
     logInfo('WebRTCService инициализирован', tag: _logTag);
   }
@@ -92,7 +108,7 @@ class WebRTCService {
 
       logInfo(
         'Создание WebRTC соединения',
-        tag: _logTag,
+        tag: '${_logTag}_createConnections',
         data: {
           'connectionId': connectionId,
           'localDeviceId': localDeviceId,
@@ -461,6 +477,9 @@ class WebRTCService {
   Future<void> dispose() async {
     logInfo('Освобождение WebRTCService', tag: _logTag);
 
+    // Останавливаем таймер очистки кэша
+    _cacheCleanupTimer?.cancel();
+
     // Останавливаем все таймеры передач
     _transferTimers.values.forEach((timer) => timer.cancel());
     _transferTimers.clear();
@@ -481,6 +500,27 @@ class WebRTCService {
     await _signalingService.dispose();
 
     logInfo('WebRTCService освобожден', tag: _logTag);
+  }
+
+  /// Очищает кэш обработанных сообщений, оставляя только последние элементы
+  void _cleanupMessageCache() {
+    const maxCacheSize = 1000; // Максимальный размер кэша
+
+    if (_processedMessageIds.length > maxCacheSize) {
+      // Преобразуем в список и оставляем только последние элементы
+      // Поскольку Set не поддерживает порядок, очищаем весь кэш
+      final removedCount = _processedMessageIds.length;
+      _processedMessageIds.clear();
+
+      logInfo(
+        'Очистка кэша обработанных сообщений',
+        tag: _logTag,
+        data: {
+          'removedMessages': removedCount,
+          'reason': 'превышен максимальный размер кэша',
+        },
+      );
+    }
   }
 
   /// Создает RTCPeerConnection
@@ -934,25 +974,114 @@ class WebRTCService {
     }
   }
 
+  /// Обрабатывает информацию о реальных IP адресах устройств
+  void _handleRemoteIpInfo(Map<String, String> ipInfo) {
+    final deviceId = ipInfo['deviceId'];
+    final realIp = ipInfo['realIp'];
+    final messageType = ipInfo['messageType'];
+
+    if (deviceId != null && realIp != null) {
+      _realDeviceIps[deviceId] = realIp;
+
+      logInfo(
+        'Получена информация о реальном IP устройства',
+        tag: _logTag,
+        data: {
+          'deviceId': deviceId,
+          'realIp': realIp,
+          'messageType': messageType,
+        },
+      );
+    }
+  }
+
   /// Обрабатывает offer сообщение
   Future<void> _handleOfferMessage(SignalingMessage message) async {
     try {
+      // Проверяем, не обрабатывали ли мы уже это сообщение
+      if (_processedMessageIds.contains(message.messageId)) {
+        logInfo(
+          'Offer уже был обработан ранее - игнорируем дубликат',
+          tag: _logTag,
+          data: {
+            'messageId': message.messageId,
+            'fromDevice': message.fromDeviceId,
+          },
+        );
+        return;
+      }
+
       logInfo(
         'Получен WebRTC offer - автоматически принимаем',
         tag: _logTag,
-        data: {'from': message.fromDeviceId},
+        data: {'from': message.fromDeviceId, 'messageId': message.messageId},
       );
+
+      // Проверяем, нет ли уже соединения с этим устройством
+      final existingConnectionId = _findConnectionIdByDeviceId(
+        message.fromDeviceId,
+      );
+      if (existingConnectionId != null) {
+        final existingConnection = _connections[existingConnectionId];
+        logInfo(
+          'Уже есть соединение с этим устройством',
+          tag: _logTag,
+          data: {
+            'existingConnectionId': existingConnectionId,
+            'existingState': existingConnection?.state.name,
+            'fromDevice': message.fromDeviceId,
+            'messageId': message.messageId,
+          },
+        );
+
+        // Если соединение уже подключено или подключается, игнорируем offer
+        if (existingConnection?.state == WebRTCConnectionState.connected ||
+            existingConnection?.state == WebRTCConnectionState.connecting) {
+          logInfo(
+            'Игнорируем дублирующий offer - соединение уже активно',
+            tag: _logTag,
+            data: {'messageId': message.messageId},
+          );
+          _processedMessageIds.add(message.messageId);
+          return;
+        }
+      }
 
       // Извлекаем информацию о соединении из offer
       final connectionInfo =
           message.data['connectionInfo'] as Map<String, dynamic>?;
-      final remoteIp = connectionInfo?['ip'] as String? ?? '127.0.0.1';
+
+      // ВАЖНО: Используем реальный IP инициатора из HTTP request context
+      // вместо того что он сам сообщил (может быть недоступен)
+      final offeredIp = connectionInfo?['ip'] as String?;
       final remotePort = connectionInfo?['port'] as int? ?? 53317;
 
-      // Генерируем ID для локального устройства
-      final localDeviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
+      // Получаем реальный IP из кэша или используем предложенный
+      final realRemoteIp =
+          _realDeviceIps[message.fromDeviceId] ?? offeredIp ?? '127.0.0.1';
 
-      // Автоматически принимаем соединение с исправленной структурой данных
+      logInfo(
+        'IP адреса для обратной связи',
+        tag: _logTag,
+        data: {
+          'offeredIp': offeredIp,
+          'cachedRealIp': _realDeviceIps[message.fromDeviceId],
+          'willUse': realRemoteIp,
+          'port': remotePort,
+          'messageId': message.messageId,
+        },
+      );
+
+      final remoteIp = realRemoteIp;
+
+      // Получаем ожидаемый ID локального устройства из сообщения (если указан)
+      // В offer поле toDeviceId должно содержать ID принимающего устройства,
+      // используем его для корректного сопоставления ответов (answer) у инициатора.
+      final localDeviceId = message.toDeviceId.isNotEmpty
+          ? message.toDeviceId
+          : 'device_${DateTime.now().millisecondsSinceEpoch}';
+
+      // Автоматически принимаем соединение с корректным localDeviceId
       await acceptConnection(
         localDeviceId: localDeviceId,
         remoteDeviceId: message.fromDeviceId,
@@ -960,6 +1089,9 @@ class WebRTCService {
         remotePort: remotePort,
         offerData: {'sdp': message.data['sdp'], 'type': message.data['type']},
       );
+
+      // Помечаем сообщение как успешно обработанное
+      _processedMessageIds.add(message.messageId);
 
       logInfo(
         'WebRTC offer автоматически принят',
@@ -969,16 +1101,41 @@ class WebRTCService {
           'localDeviceId': localDeviceId,
           'remoteIp': remoteIp,
           'remotePort': remotePort,
+          'messageId': message.messageId,
         },
       );
     } catch (e) {
-      logError('Ошибка обработки offer сообщения', error: e, tag: _logTag);
+      // Помечаем как обработанный даже при ошибке, чтобы не повторять
+      _processedMessageIds.add(message.messageId);
+
+      logError(
+        'Ошибка обработки offer сообщения',
+        error: e,
+        tag: _logTag,
+        data: {
+          'messageId': message.messageId,
+          'fromDevice': message.fromDeviceId,
+        },
+      );
     }
   }
 
   /// Обрабатывает answer сообщение
   Future<void> _handleAnswerMessage(SignalingMessage message) async {
     try {
+      // Проверяем, не обрабатывали ли мы уже это сообщение
+      if (_processedMessageIds.contains(message.messageId)) {
+        logInfo(
+          'Answer уже был обработан ранее - игнорируем дубликат',
+          tag: _logTag,
+          data: {
+            'messageId': message.messageId,
+            'fromDevice': message.fromDeviceId,
+          },
+        );
+        return;
+      }
+
       final connectionId = _findConnectionIdByDeviceId(message.fromDeviceId);
       if (connectionId == null) {
         logWarning('Соединение не найдено для answer', tag: _logTag);
@@ -991,36 +1148,162 @@ class WebRTCService {
         return;
       }
 
+      // Проверяем состояние PeerConnection перед установкой remote description
+      final signalingState = await peerConnection.getSignalingState();
+
+      logInfo(
+        'Получен answer, проверка состояния PeerConnection',
+        tag: _logTag,
+        data: {
+          'connectionId': connectionId,
+          'signalingState': signalingState?.name ?? 'unknown',
+          'fromDevice': message.fromDeviceId,
+          'messageId': message.messageId,
+        },
+      );
+
+      // Answer можно устанавливать только в состоянии 'have-local-offer'
+      if (signalingState != RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+        logWarning(
+          'Неправильное состояние PeerConnection для answer',
+          tag: _logTag,
+          data: {
+            'expectedState': 'have-local-offer',
+            'currentState': signalingState?.name ?? 'unknown',
+            'connectionId': connectionId,
+            'messageId': message.messageId,
+          },
+        );
+
+        // Если уже в stable - возможно, answer уже был обработан
+        if (signalingState == RTCSignalingState.RTCSignalingStateStable) {
+          logInfo(
+            'PeerConnection уже в stable состоянии - answer уже обработан',
+            tag: _logTag,
+            data: {'messageId': message.messageId},
+          );
+          // Помечаем как обработанный, чтобы не пытаться снова
+          _processedMessageIds.add(message.messageId);
+          return;
+        }
+
+        // Для других состояний тоже возвращаемся без ошибки
+        _processedMessageIds.add(message.messageId);
+        return;
+      }
+
       final answerData = message.data;
       final answer = RTCSessionDescription(
         answerData['sdp'],
         answerData['type'],
       );
 
+      // Ещё одна проверка перед вызовом setRemoteDescription
+      final stateBeforeSet = await peerConnection.getSignalingState();
+      if (stateBeforeSet != RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+        logWarning(
+          'Состояние изменилось между проверками - пропускаем answer',
+          tag: _logTag,
+          data: {
+            'expectedState': 'have-local-offer',
+            'actualState': stateBeforeSet?.name ?? 'unknown',
+            'connectionId': connectionId,
+            'messageId': message.messageId,
+          },
+        );
+        _processedMessageIds.add(message.messageId);
+        return;
+      }
+
+      logDebug(
+        'Установка remote description для answer',
+        tag: _logTag,
+        data: {
+          'connectionId': connectionId,
+          'messageId': message.messageId,
+          'sdpType': answer.type,
+        },
+      );
+
       await peerConnection.setRemoteDescription(answer);
 
+      // Помечаем сообщение как успешно обработанное
+      _processedMessageIds.add(message.messageId);
+
+      final stateAfterSet = await peerConnection.getSignalingState();
+
       logInfo(
-        'WebRTC answer обработан',
+        'WebRTC answer успешно обработан',
         tag: _logTag,
-        data: {'connectionId': connectionId},
+        data: {
+          'connectionId': connectionId,
+          'newState': stateAfterSet?.name ?? 'unknown',
+          'messageId': message.messageId,
+        },
       );
     } catch (e) {
-      logError('Ошибка обработки answer сообщения', error: e, tag: _logTag);
+      // Помечаем как обработанный даже при ошибке, чтобы не повторять
+      _processedMessageIds.add(message.messageId);
+
+      // Дополнительная информация в логе ошибки
+      final connectionId = _findConnectionIdByDeviceId(message.fromDeviceId);
+      final peerConnection = _peerConnections[connectionId ?? ''];
+      final currentState = peerConnection != null
+          ? (await peerConnection.getSignalingState())?.name ?? 'unknown'
+          : 'no-peer-connection';
+
+      logError(
+        'Ошибка обработки answer сообщения',
+        error: e,
+        tag: _logTag,
+        data: {
+          'connectionId': connectionId,
+          'currentState': currentState,
+          'messageId': message.messageId,
+          'fromDevice': message.fromDeviceId,
+        },
+      );
     }
   }
 
   /// Обрабатывает ICE candidate сообщение
   Future<void> _handleIceCandidateMessage(SignalingMessage message) async {
     try {
+      // Проверяем, не обрабатывали ли мы уже это сообщение
+      if (_processedMessageIds.contains(message.messageId)) {
+        logDebug(
+          'ICE candidate уже был обработан ранее - игнорируем дубликат',
+          tag: _logTag,
+          data: {
+            'messageId': message.messageId,
+            'fromDevice': message.fromDeviceId,
+          },
+        );
+        return;
+      }
+
       final connectionId = _findConnectionIdByDeviceId(message.fromDeviceId);
       if (connectionId == null) {
-        logWarning('Соединение не найдено для ICE candidate', tag: _logTag);
+        logWarning(
+          'Соединение не найдено для ICE candidate',
+          tag: _logTag,
+          data: {
+            'messageId': message.messageId,
+            'fromDevice': message.fromDeviceId,
+          },
+        );
+        _processedMessageIds.add(message.messageId);
         return;
       }
 
       final peerConnection = _peerConnections[connectionId];
       if (peerConnection == null) {
-        logWarning('PeerConnection не найден для ICE candidate', tag: _logTag);
+        logWarning(
+          'PeerConnection не найден для ICE candidate',
+          tag: _logTag,
+          data: {'connectionId': connectionId, 'messageId': message.messageId},
+        );
+        _processedMessageIds.add(message.messageId);
         return;
       }
 
@@ -1033,24 +1316,36 @@ class WebRTCService {
 
       await peerConnection.addCandidate(candidate);
 
+      // Помечаем сообщение как успешно обработанное
+      _processedMessageIds.add(message.messageId);
+
       logDebug(
         'ICE candidate добавлен',
         tag: _logTag,
-        data: {'connectionId': connectionId},
+        data: {'connectionId': connectionId, 'messageId': message.messageId},
       );
     } catch (e) {
+      // Помечаем как обработанный даже при ошибке, чтобы не повторять
+      _processedMessageIds.add(message.messageId);
+
       logError(
         'Ошибка обработки ICE candidate сообщения',
         error: e,
         tag: _logTag,
+        data: {
+          'messageId': message.messageId,
+          'fromDevice': message.fromDeviceId,
+        },
       );
     }
   }
 
-  /// Находит connectionId по deviceId
+  /// Находит connectionId по deviceId (ищет как в remoteDeviceId, так и в localDeviceId)
   String? _findConnectionIdByDeviceId(String deviceId) {
     for (final entry in _connections.entries) {
-      if (entry.value.remoteDeviceId == deviceId) {
+      // Проверяем как удаленное, так и локальное устройство
+      if (entry.value.remoteDeviceId == deviceId ||
+          entry.value.localDeviceId == deviceId) {
         return entry.key;
       }
     }
