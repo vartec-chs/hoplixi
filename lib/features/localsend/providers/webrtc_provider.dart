@@ -1,7 +1,6 @@
 // состояние для Notifier
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 import 'dart:io';
 
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -10,6 +9,7 @@ import 'package:hoplixi/features/localsend/services/http_signaling_service.dart'
 import 'package:hoplixi/features/localsend/providers/signaling_service_provider.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_error.dart';
+import 'package:hoplixi/features/localsend/services/file_transfer_service.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -30,6 +30,7 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
   static const _logTag = 'WebRTCConnectionNotifier';
   WebRTCConnectionNotifier(this._remoteUriOrEmpty);
   late final HttpSignalingService _httpSignalingService;
+  late final FileTransferService _fileTransferService;
   RTCPeerConnection? _pc;
   StreamSubscription? _sigSub;
 
@@ -44,14 +45,22 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
   final _dcStateCtr = StreamController<String>.broadcast();
   Stream<String> get dataChannelStateStream => _dcStateCtr.stream;
 
+  /// Получить сервис передачи файлов
+  FileTransferService get fileTransferService => _fileTransferService;
+
   @override
   Future<WebRTCConnectionStatus> build() async {
     _httpSignalingService = ref.read(
       signalingServiceProvider(_remoteUriOrEmpty),
     );
 
+    // Инициализируем сервис передачи файлов
+    _fileTransferService = FileTransferService();
+    _fileTransferService.onSendData = _sendDataChannelMessage;
+
     ref.onDispose(() {
       _cleanup();
+      _fileTransferService.dispose();
     });
 
     // Начальное состояние
@@ -250,6 +259,14 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
       // пытаемся распарсить JSON-строку с {id, username, text, ts}
       try {
         final parsed = jsonDecode(text) as Map<String, dynamic>;
+
+        // Проверяем, является ли это сообщением передачи файла
+        if (parsed['type'] == 'file_transfer') {
+          final payload = parsed['payload'] as Map<String, dynamic>;
+          _fileTransferService.handleFileTransferMessage(payload);
+          return;
+        }
+
         // normalize fields
         final id =
             parsed['id']?.toString() ??
@@ -435,6 +452,18 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
           ),
         );
       }
+    }
+  }
+
+  /// Отправляет данные через DataChannel (для FileTransferService)
+  Future<void> _sendDataChannelMessage(Map<String, dynamic> data) async {
+    if (_dataChannel != null &&
+        _dataChannel!.state == RTCDataChannelState.RTCDataChannelOpen) {
+      final jsonText = jsonEncode(data);
+      _dataChannel!.send(RTCDataChannelMessage(jsonText));
+    } else {
+      logError('DataChannel не открыт для отправки данных', tag: _logTag);
+      throw WebrtcProviderException('DataChannel is not open');
     }
   }
 

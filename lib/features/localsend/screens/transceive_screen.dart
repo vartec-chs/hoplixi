@@ -12,6 +12,8 @@ import 'package:hoplixi/features/localsend/models/device_info.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_error.dart';
 import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend/widgets/file_transfer_widgets.dart';
+import 'package:hoplixi/features/localsend/models/file_transfer.dart';
 
 class TransceiveScreen extends ConsumerStatefulWidget {
   const TransceiveScreen({super.key, this.deviceInfo, this.connectionMode});
@@ -38,6 +40,8 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
 
   List<Map<String, dynamic>> _messages = [];
   String _dataChannelState = 'unknown';
+  List<FileTransfer> _fileTransfers = [];
+  StreamSubscription<FileTransfer>? _fileTransferSubscription;
 
   @override
   void initState() {
@@ -60,6 +64,7 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
     _usernameController.dispose();
     _messageSubscription?.cancel();
     _dataChannelStateSubscription?.cancel();
+    _fileTransferSubscription?.cancel();
     super.dispose();
   }
 
@@ -73,6 +78,7 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
   void _setupStreams(WebRTCConnectionNotifier notifier) {
     _messageSubscription?.cancel();
     _dataChannelStateSubscription?.cancel();
+    _fileTransferSubscription?.cancel();
 
     _messageSubscription = notifier.onDataMessage.listen((message) {
       if (mounted) {
@@ -93,6 +99,33 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
         logInfo('DataChannel state changed: $state', tag: _logTag);
       }
     });
+
+    // Подписка на обновления передач файлов
+    _fileTransferSubscription = notifier.fileTransferService.transferUpdates
+        .listen((transfer) {
+          if (mounted) {
+            setState(() {
+              final index = _fileTransfers.indexWhere(
+                (t) => t.id == transfer.id,
+              );
+              if (index >= 0) {
+                _fileTransfers[index] = transfer;
+              } else {
+                _fileTransfers.add(transfer);
+              }
+            });
+
+            logInfo(
+              'Обновление передачи файла',
+              tag: _logTag,
+              data: {
+                'transferId': transfer.id,
+                'state': transfer.state.name,
+                'progress': '${(transfer.progress * 100).toStringAsFixed(1)}%',
+              },
+            );
+          }
+        });
   }
 
   void _scrollToBottom() {
@@ -128,6 +161,124 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
         title: 'Ошибка отправки сообщения',
         description: e.toString(),
       );
+    }
+  }
+
+  // Обработчики передачи файлов
+  Future<void> _handleSelectFiles() async {
+    try {
+      final notifier = ref.read(signalingNotifierProvider(_remoteUri).notifier);
+      final fileTransferService = notifier.fileTransferService;
+
+      final transfers = await fileTransferService.selectFilesToSend();
+      if (transfers == null || transfers.isEmpty) return;
+
+      setState(() {
+        _fileTransfers.addAll(transfers);
+      });
+
+      // Запускаем передачу для каждого файла
+      for (final transfer in transfers) {
+        await fileTransferService.startFileTransfer(transfer.id);
+      }
+
+      logInfo(
+        'Выбрано файлов для отправки',
+        tag: _logTag,
+        data: {'count': transfers.length},
+      );
+    } catch (e) {
+      logError('Ошибка выбора файлов', error: e, tag: _logTag);
+      ToastHelper.error(
+        title: 'Ошибка выбора файлов',
+        description: e.toString(),
+      );
+    }
+  }
+
+  Future<void> _handleAcceptTransfer(String transferId) async {
+    try {
+      final notifier = ref.read(signalingNotifierProvider(_remoteUri).notifier);
+      final success = await notifier.fileTransferService.acceptFileTransfer(
+        transferId,
+      );
+
+      if (success) {
+        ToastHelper.success(
+          title: 'Файл принят',
+          description: 'Начинается загрузка файла',
+        );
+      }
+    } catch (e) {
+      logError('Ошибка принятия файла', error: e, tag: _logTag);
+      ToastHelper.error(
+        title: 'Ошибка принятия файла',
+        description: e.toString(),
+      );
+    }
+  }
+
+  Future<void> _handleRejectTransfer(String transferId) async {
+    try {
+      final notifier = ref.read(signalingNotifierProvider(_remoteUri).notifier);
+      await notifier.fileTransferService.rejectFileTransfer(transferId);
+
+      setState(() {
+        _fileTransfers.removeWhere((t) => t.id == transferId);
+      });
+
+      ToastHelper.info(
+        title: 'Файл отклонен',
+        description: 'Передача файла отклонена',
+      );
+    } catch (e) {
+      logError('Ошибка отклонения файла', error: e, tag: _logTag);
+    }
+  }
+
+  Future<void> _handleCancelTransfer(String transferId) async {
+    try {
+      final notifier = ref.read(signalingNotifierProvider(_remoteUri).notifier);
+      await notifier.fileTransferService.cancelFileTransfer(transferId);
+
+      setState(() {
+        _fileTransfers.removeWhere((t) => t.id == transferId);
+      });
+
+      ToastHelper.info(
+        title: 'Передача отменена',
+        description: 'Передача файла отменена',
+      );
+    } catch (e) {
+      logError('Ошибка отмены передачи', error: e, tag: _logTag);
+    }
+  }
+
+  Future<void> _handlePauseTransfer(String transferId) async {
+    try {
+      final notifier = ref.read(signalingNotifierProvider(_remoteUri).notifier);
+      await notifier.fileTransferService.pauseFileTransfer(transferId);
+
+      ToastHelper.info(
+        title: 'Передача приостановлена',
+        description: 'Передача файла приостановлена',
+      );
+    } catch (e) {
+      logError('Ошибка приостановки передачи', error: e, tag: _logTag);
+    }
+  }
+
+  Future<void> _handleResumeTransfer(String transferId) async {
+    try {
+      final notifier = ref.read(signalingNotifierProvider(_remoteUri).notifier);
+      await notifier.fileTransferService.resumeFileTransfer(transferId);
+
+      ToastHelper.info(
+        title: 'Передача возобновлена',
+        description: 'Передача файла возобновлена',
+      );
+    } catch (e) {
+      logError('Ошибка возобновления передачи', error: e, tag: _logTag);
     }
   }
 
@@ -218,6 +369,67 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFileTransferSection() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final webrtcState = ref.watch(
+          signalingNotifierProvider(deviceInfo?.fullAddress ?? ''),
+        );
+
+        return webrtcState.when(
+          data: (state) {
+            if (state.state != WebRTCConnectionState.connected) {
+              return const Text('Нет подключения');
+            }
+
+            return Card(
+              margin: const EdgeInsets.all(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.file_copy_outlined,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Передача файлов',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const Spacer(),
+                        SendFilesButton(
+                          onPressed: _handleSelectFiles,
+                          isEnabled:
+                              state.state == WebRTCConnectionState.connected,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    FileTransferList(
+                      transfers: _fileTransfers,
+                      onAcceptTransfer: _handleAcceptTransfer,
+                      onRejectTransfer: _handleRejectTransfer,
+                      onCancelTransfer: _handleCancelTransfer,
+                      onPauseTransfer: _handlePauseTransfer,
+                      onResumeTransfer: _handleResumeTransfer,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        );
+      },
     );
   }
 
@@ -579,6 +791,7 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
             return Column(
               children: [
                 _buildConnectionHeader(),
+                _buildFileTransferSection(),
                 _buildMessagesList(),
                 _buildMessageInput(),
               ],
