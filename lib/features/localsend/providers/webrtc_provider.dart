@@ -34,6 +34,10 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
   RTCPeerConnection? _pc;
   StreamSubscription? _sigSub;
 
+  // Флаги состояния для контроля cleanup
+  bool _isDisposed = false;
+  bool _isCleaningUp = false;
+
   final String _remoteUriOrEmpty;
 
   // DataChannel
@@ -59,8 +63,7 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
     _fileTransferService.onSendData = _sendDataChannelMessage;
 
     ref.onDispose(() {
-      _cleanup();
-      _fileTransferService.dispose();
+      cleanup();
     });
 
     // Начальное состояние
@@ -375,6 +378,11 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
     required String username,
     required String text,
   }) async {
+    if (_isDisposed) {
+      logWarning('Попытка отправки сообщения после dispose', tag: _logTag);
+      throw WebrtcProviderException('Connection is disposed');
+    }
+
     if (_dataChannel != null &&
         _dataChannel!.state == RTCDataChannelState.RTCDataChannelOpen) {
       final id = Uuid().v4();
@@ -405,6 +413,11 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
 
   /// Принудительное переподключение
   Future<void> reconnect() async {
+    if (_isDisposed) {
+      logWarning('Попытка переподключения после dispose', tag: _logTag);
+      return;
+    }
+
     final currentState = state.value;
     if (currentState == null) return;
 
@@ -417,7 +430,7 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
       );
 
       // Очищаем текущие ресурсы
-      await _cleanup();
+      await cleanup();
 
       // Ждем немного перед переподключением
       await Future.delayed(const Duration(seconds: 1));
@@ -457,6 +470,14 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
 
   /// Отправляет данные через DataChannel (для FileTransferService)
   Future<void> _sendDataChannelMessage(Map<String, dynamic> data) async {
+    if (_isDisposed) {
+      logWarning(
+        'Попытка отправки файловых данных после dispose',
+        tag: _logTag,
+      );
+      throw WebrtcProviderException('Connection is disposed');
+    }
+
     if (_dataChannel != null &&
         _dataChannel!.state == RTCDataChannelState.RTCDataChannelOpen) {
       final jsonText = jsonEncode(data);
@@ -468,43 +489,102 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
   }
 
   // очистка ресурсов
-  Future<void> _cleanup() async {
-    if (!ref.mounted) return;
-    await _sigSub?.cancel();
-    _sigSub = null;
-
-    try {
-      await _dataChannel?.close();
-    } catch (e) {
-      logError('Ошибка при закрытии dataChannel', error: e, tag: _logTag);
-    }
-    _dataChannel = null;
-
-    if (_pc != null) {
-      await _pc!.close();
-      _pc = null;
+  Future<void> cleanup() async {
+    // Предотвращаем повторный cleanup
+    if (_isDisposed || _isCleaningUp) {
+      logDebug('Cleanup уже выполняется или завершен', tag: _logTag);
+      return;
     }
 
-    try {
-      await _dcMessageCtr.close();
-    } catch (e) {
-      logError('Ошибка при закрытии dcMessageCtr', error: e, tag: _logTag);
-    }
-    try {
-      await _dcStateCtr.close();
-    } catch (e) {
-      logError('Ошибка при закрытии dcStateCtr', error: e, tag: _logTag);
-    }
+    _isCleaningUp = true;
+    logInfo('Начинаем cleanup WebRTC соединения', tag: _logTag);
 
-    // всегда останавливаем signaling
     try {
-      await _httpSignalingService.stop();
-    } catch (e) {
+      // 1. Отменяем подписки
+      await _sigSub?.cancel();
+      _sigSub = null;
+      logDebug('Signaling subscription отменена', tag: _logTag);
+
+      // 2. Закрываем DataChannel
+      if (_dataChannel != null) {
+        try {
+          await _dataChannel!.close();
+          logDebug('DataChannel закрыт', tag: _logTag);
+        } catch (e) {
+          logError('Ошибка при закрытии dataChannel', error: e, tag: _logTag);
+        } finally {
+          _dataChannel = null;
+        }
+      }
+
+      // 3. Закрываем PeerConnection
+      if (_pc != null) {
+        try {
+          await _pc!.close();
+          logDebug('PeerConnection закрыт', tag: _logTag);
+        } catch (e) {
+          logError(
+            'Ошибка при закрытии PeerConnection',
+            error: e,
+            tag: _logTag,
+          );
+        } finally {
+          _pc = null;
+        }
+      }
+
+      // 4. Закрываем StreamController'ы
+      final controllers = [
+        ('dcMessageCtr', _dcMessageCtr),
+        ('dcStateCtr', _dcStateCtr),
+      ];
+
+      for (final (name, controller) in controllers) {
+        if (!controller.isClosed) {
+          try {
+            await controller.close();
+            logDebug('$name закрыт', tag: _logTag);
+          } catch (e) {
+            logError('Ошибка при закрытии $name', error: e, tag: _logTag);
+          }
+        }
+      }
+
+      // 5. Очищаем FileTransferService
+      try {
+        _fileTransferService.dispose();
+        logDebug('FileTransferService очищен', tag: _logTag);
+      } catch (e) {
+        logError(
+          'Ошибка при очистке FileTransferService',
+          error: e,
+          tag: _logTag,
+        );
+      }
+
+      // 6. Останавливаем signaling сервис
+      try {
+        await _httpSignalingService.stop();
+        logDebug('Signaling service остановлен', tag: _logTag);
+      } catch (e) {
+        logError(
+          'Ошибка при остановке signaling сервиса',
+          error: e,
+          tag: _logTag,
+        );
+      }
+
+      logInfo('Cleanup WebRTC соединения завершен успешно', tag: _logTag);
+    } catch (e, stackTrace) {
       logError(
-        'Ошибка при остановке signaling сервиса',
+        'Критическая ошибка при cleanup WebRTC соединения',
         error: e,
+        stackTrace: stackTrace,
         tag: _logTag,
       );
+    } finally {
+      _isDisposed = true;
+      _isCleaningUp = false;
     }
   }
 

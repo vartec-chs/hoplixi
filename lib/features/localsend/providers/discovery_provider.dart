@@ -30,6 +30,10 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
   late LocalSendDeviceInfo _selfDevice = LocalSendDeviceInfo.currentDevice();
   final List<LocalSendDeviceInfo> _devices = [];
 
+  // Флаги состояния для контроля cleanup
+  bool _isDisposed = false;
+  bool _isCleaningUp = false;
+
   @override
   Future<List<LocalSendDeviceInfo>> build() async {
     state = const AsyncValue.loading();
@@ -74,6 +78,11 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
 
   // Начать поиск устройств
   Future<void> startDiscovery() async {
+    if (_isDisposed) {
+      logWarning('Попытка запуска discovery после dispose', tag: _logTag);
+      return;
+    }
+
     try {
       if (_isDiscovering) return;
       _discovery = BonsoirDiscovery(type: _serviceType);
@@ -127,6 +136,11 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
 
   /// Начинает трансляцию текущего устройства
   Future<void> startBroadcasting() async {
+    if (_isDisposed) {
+      logWarning('Попытка запуска broadcasting после dispose', tag: _logTag);
+      return;
+    }
+
     try {
       if (_isBroadcasting) return;
       _isBroadcasting = true;
@@ -148,15 +162,15 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
               _selfDevice.attributes?['platform'] ??
               await deviceInfo.deviceInfo.then((info) {
                 if (Platform.isAndroid) {
-                  return (info as AndroidDeviceInfo).model ?? 'Android';
+                  return (info as AndroidDeviceInfo).model;
                 } else if (Platform.isIOS) {
-                  return (info as IosDeviceInfo).name ?? 'iOS';
+                  return (info as IosDeviceInfo).name;
                 } else if (Platform.isLinux) {
-                  return (info as LinuxDeviceInfo).prettyName ?? 'Linux';
+                  return (info as LinuxDeviceInfo).prettyName;
                 } else if (Platform.isMacOS) {
-                  return (info as MacOsDeviceInfo).model ?? 'macOS';
+                  return (info as MacOsDeviceInfo).model;
                 } else if (Platform.isWindows) {
-                  return (info as WindowsDeviceInfo).computerName ?? 'Windows';
+                  return (info as WindowsDeviceInfo).computerName;
                 } else {
                   return 'unknown';
                 }
@@ -375,21 +389,79 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
   }
 
   void _updateState() {
+    if (_isDisposed) {
+      logDebug('Попытка обновления состояния после dispose', tag: _logTag);
+      return;
+    }
     state = AsyncValue.data(List.unmodifiable(_devices));
   }
 
   Future<void> _dispose() async {
-    await _discoverySubscription?.cancel();
-    await _broadcastSubscription?.cancel();
+    // Предотвращаем повторный dispose
+    if (_isDisposed || _isCleaningUp) {
+      logDebug('Dispose уже выполняется или завершен', tag: _logTag);
+      return;
+    }
+
+    _isCleaningUp = true;
+    logInfo('Начинаем dispose Discovery сервиса', tag: _logTag);
+
     try {
-      await _discovery?.stop();
-    } catch (_) {}
-    try {
-      await _broadcast?.stop();
-    } catch (_) {}
-    _discovery = null;
-    _broadcast = null;
-    _discoverySubscription = null;
-    _broadcastSubscription = null;
+      // 1. Отменяем подписки
+      final subscriptions = [
+        ('discoverySubscription', _discoverySubscription),
+        ('broadcastSubscription', _broadcastSubscription),
+      ];
+
+      for (final (name, subscription) in subscriptions) {
+        if (subscription != null) {
+          try {
+            await subscription.cancel();
+            logDebug('$name отменена', tag: _logTag);
+          } catch (e) {
+            logError('Ошибка при отмене $name', error: e, tag: _logTag);
+          }
+        }
+      }
+
+      // 2. Останавливаем discovery
+      if (_discovery != null && _isDiscovering) {
+        try {
+          await _discovery!.stop();
+          logDebug('Discovery остановлено', tag: _logTag);
+        } catch (e) {
+          logError('Ошибка остановки discovery', error: e, tag: _logTag);
+        }
+      }
+
+      // 3. Останавливаем broadcast
+      if (_broadcast != null && _isBroadcasting) {
+        try {
+          await _broadcast!.stop();
+          logDebug('Broadcast остановлено', tag: _logTag);
+        } catch (e) {
+          logError('Ошибка остановки broadcast', error: e, tag: _logTag);
+        }
+      }
+
+      logInfo('Dispose Discovery сервиса завершен успешно', tag: _logTag);
+    } catch (e, stackTrace) {
+      logError(
+        'Критическая ошибка при dispose Discovery сервиса',
+        error: e,
+        stackTrace: stackTrace,
+        tag: _logTag,
+      );
+    } finally {
+      // Гарантированно очищаем ресурсы
+      _discovery = null;
+      _broadcast = null;
+      _discoverySubscription = null;
+      _broadcastSubscription = null;
+      _isDiscovering = false;
+      _isBroadcasting = false;
+      _isDisposed = true;
+      _isCleaningUp = false;
+    }
   }
 }
