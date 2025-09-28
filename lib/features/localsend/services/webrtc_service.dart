@@ -197,7 +197,26 @@ class WebRTCService {
 
       // Устанавливаем удаленный offer и создаем answer
       final offer = RTCSessionDescription(offerData['sdp'], offerData['type']);
-      await peerConnection.setRemoteDescription(offer);
+
+      try {
+        await peerConnection.setRemoteDescription(offer);
+      } catch (setRemoteError) {
+        final currentState = await peerConnection.getSignalingState();
+        final errorString = setRemoteError.toString();
+
+        logError(
+          'Ошибка установки remote description для offer',
+          error: setRemoteError,
+          tag: _logTag,
+          data: {
+            'connectionId': connectionId,
+            'currentState': currentState?.name ?? 'unknown',
+            'errorString': errorString,
+          },
+        );
+
+        rethrow; // Перебрасываем, так как это критическая ошибка для offer
+      }
 
       final answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
@@ -537,6 +556,18 @@ class WebRTCService {
       _onPeerConnectionStateChange(connectionId, state);
     };
 
+    peerConnection.onSignalingState = (RTCSignalingState state) {
+      _onSignalingStateChange(connectionId, state);
+    };
+
+    peerConnection.onIceGatheringState = (RTCIceGatheringState state) {
+      _onIceGatheringStateChange(connectionId, state);
+    };
+
+    peerConnection.onIceConnectionState = (RTCIceConnectionState state) {
+      _onIceConnectionStateChange(connectionId, state);
+    };
+
     peerConnection.onDataChannel = (RTCDataChannel dataChannel) {
       logInfo('Получен DataChannel от удаленного устройства', tag: _logTag);
       _dataChannels[connectionId] = dataChannel;
@@ -566,20 +597,89 @@ class WebRTCService {
     RTCDataChannel dataChannel,
   ) {
     dataChannel.stateChangeStream.listen((RTCDataChannelState state) {
-      logDebug(
+      logInfo(
         'DataChannel состояние изменено',
         tag: _logTag,
-        data: {'connectionId': connectionId, 'state': state.name},
+        data: {
+          'connectionId': connectionId,
+          'dataChannelState': state.name,
+          'label': dataChannel.label,
+        },
       );
 
-      if (state == RTCDataChannelState.RTCDataChannelOpen) {
-        _updateConnectionState(connectionId, WebRTCConnectionState.connected);
+      switch (state) {
+        case RTCDataChannelState.RTCDataChannelOpen:
+          logInfo(
+            'DataChannel открыт - готов к передаче данных!',
+            tag: _logTag,
+            data: {'connectionId': connectionId},
+          );
+          _updateConnectionState(connectionId, WebRTCConnectionState.connected);
+          break;
+        case RTCDataChannelState.RTCDataChannelClosed:
+          logWarning(
+            'DataChannel закрыт',
+            tag: _logTag,
+            data: {'connectionId': connectionId},
+          );
+          break;
+        case RTCDataChannelState.RTCDataChannelClosing:
+          logInfo(
+            'DataChannel закрывается',
+            tag: _logTag,
+            data: {'connectionId': connectionId},
+          );
+          break;
+        default:
+          logDebug(
+            'DataChannel состояние: ${state.name}',
+            tag: _logTag,
+            data: {'connectionId': connectionId},
+          );
       }
     });
 
     dataChannel.messageStream.listen((RTCDataChannelMessage message) {
       _handleDataChannelMessage(connectionId, message);
     });
+  }
+
+  /// Диагностика состояния соединения
+  Future<void> _debugConnectionState(String connectionId) async {
+    final connection = _connections[connectionId];
+    final peerConnection = _peerConnections[connectionId];
+    final dataChannel = _dataChannels[connectionId];
+
+    if (connection == null) {
+      logError('Connection не найден', tag: _logTag);
+      return;
+    }
+
+    final signalingState = peerConnection != null
+        ? await peerConnection.getSignalingState()
+        : null;
+    final iceConnectionState = peerConnection != null
+        ? await peerConnection.getIceConnectionState()
+        : null;
+    final iceGatheringState = peerConnection != null
+        ? await peerConnection.getIceGatheringState()
+        : null;
+
+    logInfo(
+      'Полная диагностика соединения',
+      tag: _logTag,
+      data: {
+        'connectionId': connectionId,
+        'ourState': connection.state.name,
+        'signalingState': signalingState?.name ?? 'null',
+        'iceConnectionState': iceConnectionState?.name ?? 'null',
+        'iceGatheringState': iceGatheringState?.name ?? 'null',
+        'hasPeerConnection': peerConnection != null,
+        'hasDataChannel': dataChannel != null,
+        'dataChannelState': dataChannel?.state?.name ?? 'null',
+        'dataChannelLabel': dataChannel?.label ?? 'null',
+      },
+    );
   }
 
   /// Создает и устанавливает offer
@@ -1198,23 +1298,6 @@ class WebRTCService {
         answerData['type'],
       );
 
-      // Ещё одна проверка перед вызовом setRemoteDescription
-      final stateBeforeSet = await peerConnection.getSignalingState();
-      if (stateBeforeSet != RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
-        logWarning(
-          'Состояние изменилось между проверками - пропускаем answer',
-          tag: _logTag,
-          data: {
-            'expectedState': 'have-local-offer',
-            'actualState': stateBeforeSet?.name ?? 'unknown',
-            'connectionId': connectionId,
-            'messageId': message.messageId,
-          },
-        );
-        _processedMessageIds.add(message.messageId);
-        return;
-      }
-
       logDebug(
         'Установка remote description для answer',
         tag: _logTag,
@@ -1225,22 +1308,65 @@ class WebRTCService {
         },
       );
 
-      await peerConnection.setRemoteDescription(answer);
+      // Используем try-catch для безопасной установки remote description
+      // Если PeerConnection уже в stable, значит answer уже был обработан
+      try {
+        await peerConnection.setRemoteDescription(answer);
 
-      // Помечаем сообщение как успешно обработанное
-      _processedMessageIds.add(message.messageId);
+        // Помечаем сообщение как успешно обработанное
+        _processedMessageIds.add(message.messageId);
 
-      final stateAfterSet = await peerConnection.getSignalingState();
+        final stateAfterSet = await peerConnection.getSignalingState();
 
-      logInfo(
-        'WebRTC answer успешно обработан',
-        tag: _logTag,
-        data: {
-          'connectionId': connectionId,
-          'newState': stateAfterSet?.name ?? 'unknown',
-          'messageId': message.messageId,
-        },
-      );
+        logInfo(
+          'WebRTC answer успешно обработан',
+          tag: _logTag,
+          data: {
+            'connectionId': connectionId,
+            'newState': stateAfterSet?.name ?? 'unknown',
+            'messageId': message.messageId,
+          },
+        );
+      } catch (setRemoteError) {
+        // Проверяем, не является ли ошибка результатом того, что соединение уже в stable
+        final currentState = await peerConnection.getSignalingState();
+        final errorString = setRemoteError.toString();
+
+        // Специальная обработка для ошибки "Called in wrong state: stable"
+        if (currentState == RTCSignalingState.RTCSignalingStateStable ||
+            errorString.contains('Called in wrong state: stable')) {
+          logInfo(
+            'Answer не установлен - PeerConnection уже в stable состоянии (дубликат или race condition)',
+            tag: _logTag,
+            data: {
+              'connectionId': connectionId,
+              'messageId': message.messageId,
+              'currentState': currentState?.name ?? 'unknown',
+              'errorType': 'stable_state_duplicate',
+            },
+          );
+
+          // Помечаем как обработанный, так как соединение уже установлено
+          _processedMessageIds.add(message.messageId);
+          return;
+        }
+
+        // Для других ошибок перебрасываем исключение
+        logError(
+          'Неожиданная ошибка при установке remote description',
+          error: setRemoteError,
+          tag: _logTag,
+          data: {
+            'connectionId': connectionId,
+            'currentState': currentState?.name ?? 'unknown',
+            'messageId': message.messageId,
+            'errorString': errorString,
+          },
+        );
+
+        // Перебрасываем ошибку для обработки во внешнем catch
+        rethrow;
+      }
     } catch (e) {
       // Помечаем как обработанный даже при ошибке, чтобы не повторять
       _processedMessageIds.add(message.messageId);
@@ -1391,6 +1517,88 @@ class WebRTCService {
     }
 
     _updateConnectionState(connectionId, connectionState);
+  }
+
+  /// Обрабатывает изменения состояния сигналинга
+  void _onSignalingStateChange(String connectionId, RTCSignalingState state) {
+    logInfo(
+      'Изменение состояния сигналинга',
+      tag: _logTag,
+      data: {'connectionId': connectionId, 'signalingState': state.name},
+    );
+  }
+
+  /// Обрабатывает изменения состояния ICE gathering
+  void _onIceGatheringStateChange(
+    String connectionId,
+    RTCIceGatheringState state,
+  ) {
+    logInfo(
+      'Изменение состояния ICE gathering',
+      tag: _logTag,
+      data: {'connectionId': connectionId, 'iceGatheringState': state.name},
+    );
+
+    // Особенно важно отследить завершение ICE gathering
+    if (state == RTCIceGatheringState.RTCIceGatheringStateComplete) {
+      logInfo(
+        'ICE gathering завершен - все кандидаты собраны',
+        tag: _logTag,
+        data: {'connectionId': connectionId},
+      );
+
+      // Выполняем диагностику через небольшую задержку
+      Future.delayed(const Duration(seconds: 2), () {
+        _debugConnectionState(connectionId);
+      });
+    }
+  }
+
+  /// Обрабатывает изменения состояния ICE соединения
+  void _onIceConnectionStateChange(
+    String connectionId,
+    RTCIceConnectionState state,
+  ) {
+    logInfo(
+      'Изменение состояния ICE соединения',
+      tag: _logTag,
+      data: {'connectionId': connectionId, 'iceConnectionState': state.name},
+    );
+
+    // Критические состояния ICE соединения
+    switch (state) {
+      case RTCIceConnectionState.RTCIceConnectionStateConnected:
+        logInfo(
+          'ICE соединение установлено - P2P канал активен!',
+          tag: _logTag,
+          data: {'connectionId': connectionId},
+        );
+        // Диагностика после установления ICE соединения
+        Future.delayed(const Duration(seconds: 1), () {
+          _debugConnectionState(connectionId);
+        });
+        break;
+      case RTCIceConnectionState.RTCIceConnectionStateFailed:
+        logError(
+          'ICE соединение не удалось - проблемы с сетевой связностью',
+          tag: _logTag,
+          data: {'connectionId': connectionId},
+        );
+        break;
+      case RTCIceConnectionState.RTCIceConnectionStateDisconnected:
+        logWarning(
+          'ICE соединение разорвано',
+          tag: _logTag,
+          data: {'connectionId': connectionId},
+        );
+        break;
+      default:
+        logDebug(
+          'ICE состояние: ${state.name}',
+          tag: _logTag,
+          data: {'connectionId': connectionId},
+        );
+    }
   }
 
   /// Обрабатывает новые ICE кандидаты

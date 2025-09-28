@@ -386,7 +386,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
               duration: 2000.ms,
               colors: [
                 Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.onPrimary,
+                Theme.of(context).colorScheme.secondary,
                 Theme.of(context).colorScheme.primary,
               ],
               angle: -30, // угол пробегающего блика

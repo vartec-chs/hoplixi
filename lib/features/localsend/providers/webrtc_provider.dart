@@ -424,9 +424,24 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
     }
 
     // Если соединение установлено и нет текущего соединения, устанавливаем его как текущее
+    // ИЛИ если это режим receiver и пришло реальное соединение
     if (connection.state == WebRTCConnectionState.connected &&
-        !currentConnectionNotifier.hasActiveConnection) {
+        (!currentConnectionNotifier.hasActiveConnection ||
+            currentConnectionNotifier.currentConnectionId ==
+                'listening_for_incoming')) {
       _setCurrentConnection(connection);
+
+      logInfo(
+        'Установлено текущее соединение',
+        tag: _logTag,
+        data: {
+          'connectionId': connection.connectionId,
+          'state': connection.state.name,
+          'reason': !currentConnectionNotifier.hasActiveConnection
+              ? 'no_active_connection'
+              : 'receiver_mode_real_connection',
+        },
+      );
     }
 
     // Если соединение разорвано и это было текущее соединение, убираем его

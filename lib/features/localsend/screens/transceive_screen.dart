@@ -34,7 +34,6 @@ class TransceiverScreen extends ConsumerStatefulWidget {
 
 class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
     with SingleTickerProviderStateMixin {
-  String? _connectionId;
   bool _isConnecting = false;
   bool _hasInitialized = false;
   late TabController _tabController;
@@ -146,7 +145,6 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
       }
 
       if (connectionId != null) {
-        setState(() => _connectionId = connectionId);
         logInfo(
           'Соединение инициализировано в режиме ${mode.name}',
           tag: _logTag,
@@ -164,7 +162,8 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
   }
 
   Future<void> _pickAndSendFile() async {
-    if (_connectionId == null) {
+    final currentConnection = ref.read(currentConnectionProvider);
+    if (currentConnection == null) {
       ToastHelper.error(title: 'Нет активного соединения');
       return;
     }
@@ -188,7 +187,7 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
 
       final fileTransferNotifier = ref.read(fileTransferProvider.notifier);
       final transferId = await fileTransferNotifier.sendFile(
-        connectionId: _connectionId!,
+        connectionId: currentConnection.connectionId,
         filePath: filePath,
         fileName: file.name,
         mimeType: _getMimeType(file.extension),
@@ -211,29 +210,27 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
   }
 
   Future<void> _sendMessage(String content) async {
-    if (_connectionId == null || content.trim().isEmpty) return;
+    final currentConnection = ref.read(currentConnectionProvider);
+    if (currentConnection == null || content.trim().isEmpty) return;
 
     try {
       final webrtcNotifier = ref.read(webrtcConnectionProvider.notifier);
       final success = await webrtcNotifier.sendMessage(
-        connectionId: _connectionId!,
+        connectionId: currentConnection.connectionId,
         content: content.trim(),
       );
 
       if (success) {
         // Добавляем отправленное сообщение в список
         final selfDevice = ref.read(selfDeviceProvider);
-        final connection = webrtcNotifier.getConnection(_connectionId!);
-        if (connection != null) {
-          final messageNotifier = ref.read(messageProvider.notifier);
-          messageNotifier.addMessage(
-            LocalSendMessage.text(
-              senderId: selfDevice.id,
-              receiverId: connection.remoteDeviceId,
-              content: content.trim(),
-            ),
-          );
-        }
+        final messageNotifier = ref.read(messageProvider.notifier);
+        messageNotifier.addMessage(
+          LocalSendMessage.text(
+            senderId: selfDevice.id,
+            receiverId: currentConnection.remoteDeviceId,
+            content: content.trim(),
+          ),
+        );
         ToastHelper.success(title: 'Сообщение отправлено');
       } else {
         ToastHelper.error(title: 'Не удалось отправить сообщение');
@@ -283,13 +280,12 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
   }
 
   Future<void> _disconnectDevice() async {
-    if (_connectionId == null) return;
+    final currentConnection = ref.read(currentConnectionProvider);
+    if (currentConnection == null) return;
 
     try {
       final webrtcNotifier = ref.read(webrtcConnectionProvider.notifier);
-      await webrtcNotifier.closeConnection(_connectionId!);
-
-      setState(() => _connectionId = null);
+      await webrtcNotifier.closeConnection(currentConnection.connectionId);
 
       // Очищаем сообщения при отключении
       ref.read(messageProvider.notifier).clearMessages();
@@ -358,8 +354,8 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
 
     // Отслеживание изменений соединения
     ref.listen(currentConnectionProvider, (previous, next) {
-      if (_connectionId != null && next?.connectionId == _connectionId) {
-        switch (next?.state) {
+      if (next != null && next.remoteDeviceId == widget.deviceInfo?.id) {
+        switch (next.state) {
           case WebRTCConnectionState.connected:
             ToastHelper.success(
               title: 'Подключено к ${widget.deviceInfo!.name}',
@@ -403,7 +399,8 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
           icon: const Icon(Icons.arrow_back),
           onPressed: () async {
             // Закрываем соединение при выходе
-            if (_connectionId != null) {
+            final currentConnection = ref.read(currentConnectionProvider);
+            if (currentConnection != null) {
               await _disconnectDevice();
             }
             if (context.mounted) {
@@ -412,7 +409,7 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
           },
         ),
         actions: [
-          if (_connectionId != null)
+          if (currentConnection != null)
             IconButton(
               icon: const Icon(Icons.close),
               onPressed: _disconnectDevice,

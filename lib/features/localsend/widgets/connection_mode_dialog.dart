@@ -11,6 +11,7 @@ class ConnectionModeDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       title: Row(
         children: [
           Text(targetDevice.deviceIcon, style: const TextStyle(fontSize: 24)),
