@@ -2,18 +2,15 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:io';
 
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/localsend/services/http_signaling_service.dart';
 import 'package:hoplixi/features/localsend/providers/signaling_service_provider.dart';
+import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
+import 'package:hoplixi/features/localsend/models/webrtc_error.dart';
 import 'package:riverpod/riverpod.dart';
-
-class WebrtcProviderState {
-  final bool connected; // имеются ли активные websocket/peer
-  final String? error;
-  WebrtcProviderState({required this.connected, this.error});
-}
 
 class WebrtcProviderException implements Exception {
   final String message;
@@ -24,11 +21,11 @@ class WebrtcProviderException implements Exception {
 }
 
 final signalingNotifierProvider = AsyncNotifierProvider.family
-    .autoDispose<WebRTCConnectionNotifier, WebrtcProviderState, String>(
+    .autoDispose<WebRTCConnectionNotifier, WebRTCConnectionStatus, String>(
       WebRTCConnectionNotifier.new,
     );
 
-class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
+class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
   static const _logTag = 'WebRTCConnectionNotifier';
   WebRTCConnectionNotifier(this._remoteUriOrEmpty);
   late final HttpSignalingService _httpSignalingService;
@@ -49,7 +46,7 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
   final _rand = Random();
 
   @override
-  Future<WebrtcProviderState> build() async {
+  Future<WebRTCConnectionStatus> build() async {
     _httpSignalingService = ref.read(
       signalingServiceProvider(_remoteUriOrEmpty),
     );
@@ -58,88 +55,15 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
       _cleanup();
     });
 
+    // Начальное состояние
+    final initialStatus = WebRTCConnectionStatus(
+      state: WebRTCConnectionState.initializing,
+      lastStateChange: DateTime.now(),
+    );
+
     try {
-      final config = <String, dynamic>{
-        'iceServers': [
-          // {'urls': 'stun:stun.l.google.com:19302'},
-          // {'url': 'stun:stun.l.google.com:19302'},
-          // {'url': 'stun:stun4.l.google.com:19302'},
-          // {'url': 'stun:iphone-stun.strato-iphone.de:3478'},
-          // {'url': 'stun:numb.viagenie.ca:3478'},
-          // {'url': 'stun:s1.taraba.net:3478'},
-          {'urls': 'stun:stun.l.google.com:19302'},
-          {'urls': 'stun:stun1.l.google.com:19302'},
-          {'urls': 'stun:stun2.l.google.com:19302'},
-        ],
-      };
-
-      _pc = await createPeerConnection(config);
-
-      // Подписываемся на состояние подключения, чтобы обновлять провайдер и логировать
-      _pc!.onConnectionState = (connectionState) {
-        logInfo('PeerConnection state: $connectionState', tag: _logTag);
-        final isConnected =
-            connectionState ==
-            RTCPeerConnectionState.RTCPeerConnectionStateConnected;
-        state = AsyncData(WebrtcProviderState(connected: isConnected));
-      };
-
-      _pc!.onIceConnectionState = (iceState) {
-        logInfo('ICE connection state: $iceState', tag: _logTag);
-        if (iceState == RTCIceConnectionState.RTCIceConnectionStateFailed ||
-            iceState ==
-                RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
-          state = AsyncData(
-            WebrtcProviderState(
-              connected: false,
-              error: 'ICE connection failed: $iceState',
-            ),
-          );
-        }
-      };
-
-      _pc!.onIceGatheringState = (gatheringState) {
-        logInfo('ICE gathering state: $gatheringState', tag: _logTag);
-      };
-
-      _pc!.onDataChannel = (RTCDataChannel dc) {
-        _setDataChannel(dc);
-      };
-
-      _pc!.onIceCandidate = (candidate) {
-        _httpSignalingService.send({
-          'type': 'candidate',
-          'candidate': {
-            'candidate': candidate.candidate,
-            'sdpMid': candidate.sdpMid,
-            'sdpMLineIndex': candidate.sdpMLineIndex,
-          },
-        });
-      };
-
-      _sigSub = _httpSignalingService.onMessageWs.listen(
-        _handleSignalingMessage,
-      );
-
-      if (_remoteUriOrEmpty.isEmpty) {
-        // режим Server (ждём подключений)
-        await _httpSignalingService.startServer(port: 53317);
-        // не инициируем offer — будем ждать, пока другой клиент пришлёт offer
-      } else {
-        // режим Client: подключаемся и инициируем offer
-        await _httpSignalingService.connect(_remoteUriOrEmpty);
-
-        // create datachannel before createOffer so remote side will get onDataChannel
-        _createDataChannel(label: 'data');
-
-        // небольшой таймаут чтоб подписки успели встать
-        await Future.delayed(const Duration(milliseconds: 200));
-        await _createAndSendOffer();
-
-        // ждем ICE gathering и отправляем кандидатов по мере их появления
-      }
-
-      return WebrtcProviderState(connected: true);
+      await start();
+      return initialStatus.copyWithState(WebRTCConnectionState.connected);
     } catch (e, st) {
       logError(
         'Ошибка при установке WebRTC соединения',
@@ -147,7 +71,138 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
         stackTrace: st,
         tag: _logTag,
       );
-      return WebrtcProviderState(connected: false, error: e.toString());
+
+      final error = _createErrorFromException(e);
+      return initialStatus.copyWithState(
+        WebRTCConnectionState.failed,
+        error: error,
+      );
+    }
+  }
+
+  /// Создает ошибку из исключения
+  WebRTCError _createErrorFromException(dynamic exception) {
+    if (exception is SocketException) {
+      return WebRTCError.network(exception.message);
+    } else if (exception is TimeoutException) {
+      return WebRTCError.timeout(
+        'Превышено время ожидания: ${exception.message}',
+      );
+    } else {
+      return WebRTCError.unknown(exception.toString());
+    }
+  }
+
+  /// Обновляет состояние соединения на основе PeerConnection state
+  void _updateConnectionState(RTCPeerConnectionState connectionState) {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    WebRTCConnectionState newState;
+    WebRTCError? error;
+
+    switch (connectionState) {
+      case RTCPeerConnectionState.RTCPeerConnectionStateNew:
+        newState = WebRTCConnectionState.initializing;
+        break;
+      case RTCPeerConnectionState.RTCPeerConnectionStateConnecting:
+        newState = WebRTCConnectionState.connecting;
+        break;
+      case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
+        newState = WebRTCConnectionState.connected;
+        break;
+      case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
+        newState = WebRTCConnectionState.disconnected;
+        break;
+      case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
+        newState = WebRTCConnectionState.failed;
+        error = WebRTCError.iceConnection('PeerConnection failed');
+        break;
+      case RTCPeerConnectionState.RTCPeerConnectionStateClosed:
+        newState = WebRTCConnectionState.disconnected;
+        break;
+    }
+
+    state = AsyncData(currentState.copyWithState(newState, error: error));
+  }
+
+  /// Обновляет состояние соединения на основе ICE connection state
+  void _updateIceConnectionState(RTCIceConnectionState iceState) {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    if (iceState == RTCIceConnectionState.RTCIceConnectionStateFailed) {
+      final error = WebRTCError.iceConnection('ICE connection failed');
+      state = AsyncData(
+        currentState.copyWithState(WebRTCConnectionState.failed, error: error),
+      );
+    } else if (iceState ==
+        RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+      state = AsyncData(
+        currentState.copyWithState(WebRTCConnectionState.disconnected),
+      );
+    }
+  }
+
+  Future<void> start() async {
+    final config = <String, dynamic>{
+      'iceServers': [
+        {'urls': 'stun:stun.l.google.com:19302'},
+        {'urls': 'stun:stun1.l.google.com:19302'},
+        {'urls': 'stun:stun2.l.google.com:19302'},
+      ],
+    };
+
+    _pc = await createPeerConnection(config);
+
+    // Подписываемся на состояние подключения, чтобы обновлять провайдер и логировать
+    _pc!.onConnectionState = (connectionState) {
+      logInfo('PeerConnection state: $connectionState', tag: _logTag);
+      _updateConnectionState(connectionState);
+    };
+
+    _pc!.onIceConnectionState = (iceState) {
+      logInfo('ICE connection state: $iceState', tag: _logTag);
+      _updateIceConnectionState(iceState);
+    };
+
+    _pc!.onIceGatheringState = (gatheringState) {
+      logInfo('ICE gathering state: $gatheringState', tag: _logTag);
+    };
+
+    _pc!.onDataChannel = (RTCDataChannel dc) {
+      _setDataChannel(dc);
+    };
+
+    _pc!.onIceCandidate = (candidate) {
+      _httpSignalingService.send({
+        'type': 'candidate',
+        'candidate': {
+          'candidate': candidate.candidate,
+          'sdpMid': candidate.sdpMid,
+          'sdpMLineIndex': candidate.sdpMLineIndex,
+        },
+      });
+    };
+
+    _sigSub = _httpSignalingService.onMessageWs.listen(_handleSignalingMessage);
+
+    if (_remoteUriOrEmpty.isEmpty) {
+      // режим Server (ждём подключений)
+      await _httpSignalingService.startServer(port: 53317);
+      // не инициируем offer — будем ждать, пока другой клиент пришлёт offer
+    } else {
+      // режим Client: подключаемся и инициируем offer
+      await _httpSignalingService.connect(_remoteUriOrEmpty);
+
+      // create datachannel before createOffer so remote side will get onDataChannel
+      _createDataChannel(label: 'data');
+
+      // небольшой таймаут чтоб подписки успели встать
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _createAndSendOffer();
+
+      // ждем ICE gathering и отправляем кандидатов по мере их появления
     }
   }
 
@@ -333,8 +388,61 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebrtcProviderState> {
     }
   }
 
+  /// Принудительное переподключение
+  Future<void> reconnect() async {
+    final currentState = state.value;
+    if (currentState == null) return;
+
+    try {
+      // Обновляем состояние на переподключение
+      state = AsyncData(
+        currentState
+            .copyWithState(WebRTCConnectionState.reconnecting)
+            .incrementReconnectAttempts(),
+      );
+
+      // Очищаем текущие ресурсы
+      await _cleanup();
+
+      // Ждем немного перед переподключением
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Перезапускаем соединение
+      await start();
+
+      // Обновляем состояние на подключено
+      final updatedState = state.value;
+      if (updatedState != null) {
+        state = AsyncData(
+          updatedState
+              .copyWithState(WebRTCConnectionState.connected)
+              .resetReconnectAttempts(),
+        );
+      }
+    } catch (e, st) {
+      logError(
+        'Ошибка при переподключении',
+        error: e,
+        stackTrace: st,
+        tag: _logTag,
+      );
+
+      final error = _createErrorFromException(e);
+      final updatedState = state.value;
+      if (updatedState != null) {
+        state = AsyncData(
+          updatedState.copyWithState(
+            WebRTCConnectionState.failed,
+            error: error,
+          ),
+        );
+      }
+    }
+  }
+
   // очистка ресурсов
   Future<void> _cleanup() async {
+    if (!ref.mounted) return;
     await _sigSub?.cancel();
     _sigSub = null;
 

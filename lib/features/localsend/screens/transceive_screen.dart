@@ -9,6 +9,8 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/localsend/models/connection_mode.dart';
 import 'package:hoplixi/features/localsend/models/device_info.dart';
+import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
+import 'package:hoplixi/features/localsend/models/webrtc_error.dart';
 import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
 
 class TransceiveScreen extends ConsumerStatefulWidget {
@@ -452,7 +454,7 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
     );
   }
 
-  Widget _buildErrorState(String error) {
+  Widget _buildErrorState(WebRTCConnectionStatus status) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -464,7 +466,7 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Ошибка подключения',
+            status.error?.type.displayName ?? 'Ошибка подключения',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.error,
             ),
@@ -473,7 +475,7 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Text(
-              error,
+              status.error?.userMessage ?? status.description,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.outline,
               ),
@@ -481,14 +483,28 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          SmoothButton(
-            type: SmoothButtonType.outlined,
-            size: SmoothButtonSize.medium,
-            label: 'Попробовать снова',
-            onPressed: () {
-              // Принудительно перестроить провайдер
-              ref.invalidate(signalingNotifierProvider(_remoteUri));
-            },
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SmoothButton(
+                type: SmoothButtonType.outlined,
+                size: SmoothButtonSize.medium,
+                label: 'Назад',
+                onPressed: () => context.pop(),
+              ),
+              const SizedBox(width: 16),
+              SmoothButton(
+                type: SmoothButtonType.filled,
+                size: SmoothButtonSize.medium,
+                label: 'Переподключиться',
+                onPressed: () async {
+                  final notifier = ref.read(
+                    signalingNotifierProvider(_remoteUri).notifier,
+                  );
+                  await notifier.reconnect();
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -530,32 +546,45 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
           ),
         ],
       ),
-      body: webrtcState.when(
-        loading: () => _buildLoadingState(),
-        error: (error, _) => _buildErrorState(error.toString()),
-        data: (state) {
-          if (!state.connected) {
-            return _buildErrorState(
-              state.error ?? 'Не удалось установить соединение',
-            );
-          }
+      body: SafeArea(
+        child: webrtcState.when(
+          loading: () => _buildLoadingState(),
+          error: (error, _) => _buildErrorState(
+            WebRTCConnectionStatus(
+              state: WebRTCConnectionState.failed,
+              error: WebRTCError.unknown(error.toString()),
+              lastStateChange: DateTime.now(),
+            ),
+          ),
+          data: (status) {
+            // Проверяем состояние подключения
+            if (status.state == WebRTCConnectionState.failed) {
+              return _buildErrorState(status);
+            }
 
-          // Настраиваем потоки сообщений при успешном подключении
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final notifier = ref.read(
-              signalingNotifierProvider(_remoteUri).notifier,
-            );
-            _setupStreams(notifier);
-          });
+            if (!status.state.isActive) {
+              return _buildLoadingState();
+            }
 
-          return Column(
-            children: [
-              _buildConnectionHeader(),
-              _buildMessagesList(),
-              _buildMessageInput(),
-            ],
-          );
-        },
+            // Настраиваем потоки сообщений при успешном подключении
+            if (status.state == WebRTCConnectionState.connected) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final notifier = ref.read(
+                  signalingNotifierProvider(_remoteUri).notifier,
+                );
+                _setupStreams(notifier);
+              });
+            }
+
+            return Column(
+              children: [
+                _buildConnectionHeader(),
+                _buildMessagesList(),
+                _buildMessageInput(),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
