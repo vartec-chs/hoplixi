@@ -50,13 +50,30 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
   }
 
   Future<void> _initializeConnection() async {
-    if (_isConnecting || widget.deviceInfo == null) return;
+    logInfo('_initializeConnection вызван', tag: _logTag);
+
+    if (_isConnecting) {
+      logInfo('Уже идет подключение, пропускаем', tag: _logTag);
+      return;
+    }
+
+    if (widget.deviceInfo == null) {
+      logError(
+        'widget.deviceInfo == null, не можем подключиться',
+        tag: _logTag,
+      );
+      return;
+    }
 
     setState(() => _isConnecting = true);
+    logInfo('Состояние _isConnecting установлено в true', tag: _logTag);
 
     try {
       final selfDevice = ref.read(selfDeviceProvider);
+      logInfo('Получили selfDevice: ${selfDevice.name}', tag: _logTag);
+
       final webrtcNotifier = ref.read(webrtcConnectionProvider.notifier);
+      logInfo('Получили webrtcNotifier', tag: _logTag);
 
       logInfo(
         'Инициализация подключения к устройству',
@@ -73,11 +90,17 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
 
       // Сначала инициализируем WebRTC Service
       final webrtcService = ref.read(webrtcServiceProvider);
+      logInfo('Получили webrtcService', tag: _logTag);
       await webrtcService.initialize();
+      logInfo('WebRTCService инициализирован', tag: _logTag);
 
       final connectionId = await webrtcNotifier.connectToDevice(
         localDeviceId: selfDevice.id,
         targetDevice: widget.deviceInfo!,
+      );
+      logInfo(
+        'connectToDevice завершен, connectionId: $connectionId',
+        tag: _logTag,
       );
 
       if (connectionId != null) {
@@ -91,6 +114,7 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
           description: 'Ожидание установки соединения...',
         );
       } else {
+        logError('connectToDevice вернул null', tag: _logTag);
         ToastHelper.error(title: 'Не удалось инициировать соединение');
       }
     } catch (e) {
@@ -270,10 +294,28 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
 
     // Автоинициализация подключения при первой загрузке
     if (!_hasInitialized && widget.deviceInfo != null) {
+      logInfo(
+        'Автоинициализация подключения',
+        tag: _logTag,
+        data: {
+          'deviceInfo': widget.deviceInfo!.name,
+          'hasInitialized': _hasInitialized,
+        },
+      );
       _hasInitialized = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        logInfo('addPostFrameCallback выполняется', tag: _logTag);
         _initializeConnection();
       });
+    } else {
+      logDebug(
+        'Автоинициализация пропущена',
+        tag: _logTag,
+        data: {
+          'hasInitialized': _hasInitialized,
+          'hasDeviceInfo': widget.deviceInfo != null,
+        },
+      );
     }
 
     // Отслеживание изменений соединения

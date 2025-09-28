@@ -204,13 +204,17 @@ class WebRTCConnectionNotifier extends AsyncNotifier<List<WebRTCConnection>> {
           'targetDevice': targetDevice.name,
           'targetId': targetDevice.id,
           'targetIp': targetDevice.ipAddress,
+          'targetPort': targetDevice.port,
+          'localDeviceId': localDeviceId,
         },
       );
 
       // Запускаем сигналинг сервер если он еще не запущен
+      logInfo('Запуск сигналинг сервера...', tag: _logTag);
       final signalingPort = await _webrtcService.startSignalingServer();
       logInfo('Сигналинг сервер запущен на порту $signalingPort', tag: _logTag);
 
+      logInfo('Создание WebRTC соединения...', tag: _logTag);
       final connectionId = await _webrtcService.createConnection(
         localDeviceId: localDeviceId,
         remoteDeviceId: targetDevice.id,

@@ -293,11 +293,27 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
         attributes['id'] ??
         service.name; // Используем уникальный id из атрибутов
     final name = service.name;
-    final ipAddress = service.host ?? 'unknown';
+
+    // Пытаемся извлечь IP адрес из host
+    final host = service.host ?? 'unknown';
+    String ipAddress;
+
+    // Проверяем, является ли host уже IP адресом
+    if (RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(host)) {
+      ipAddress = host;
+    } else if (host.contains('.local')) {
+      // Для .local доменов пытаемся извлечь IP из дополнительной информации
+      // или используем резолвер DNS в будущем
+      ipAddress = host; // Пока оставляем как есть, будем резолвить позже
+      logDebug('Найден .local домен: $host', tag: _logTag);
+    } else {
+      ipAddress = host;
+    }
+
     final port = service.port;
     final deviceType = _getDeviceTypeFromAttributes(attributes);
 
-    return DeviceInfo(
+    final deviceInfo = DeviceInfo(
       id: id,
       name: name,
       type: deviceType,
@@ -307,6 +323,21 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
       lastSeen: DateTime.now(),
       status: DeviceConnectionStatus.discovered,
     );
+
+    logInfo(
+      'Обнаружено устройство',
+      tag: _logTag,
+      data: {
+        'name': name,
+        'id': id,
+        'host': host,
+        'ipAddress': ipAddress,
+        'port': port,
+        'type': deviceType.name,
+      },
+    );
+
+    return deviceInfo;
   }
 
   DeviceType _getDeviceTypeFromAttributes(Map<String, String> attributes) {

@@ -86,6 +86,9 @@ class WebRTCService {
     try {
       final connectionId = const Uuid().v4();
 
+      // Резолвим .local адрес в IP
+      final resolvedIp = await _resolveHostname(remoteIp);
+
       logInfo(
         'Создание WebRTC соединения',
         tag: _logTag,
@@ -94,6 +97,7 @@ class WebRTCService {
           'localDeviceId': localDeviceId,
           'remoteDeviceId': remoteDeviceId,
           'remoteIp': remoteIp,
+          'resolvedIp': resolvedIp,
           'remotePort': remotePort,
         },
       );
@@ -102,6 +106,8 @@ class WebRTCService {
         connectionId: connectionId,
         localDeviceId: localDeviceId,
         remoteDeviceId: remoteDeviceId,
+        remoteIp: resolvedIp,
+        remotePort: remotePort,
         role: WebRTCRole.caller,
         state: WebRTCConnectionState.initializing,
         createdAt: DateTime.now(),
@@ -119,8 +125,8 @@ class WebRTCService {
       _peerConnections[connectionId] = peerConnection;
       _dataChannels[connectionId] = dataChannel;
 
-      // Создаем и отправляем offer
-      await _createAndSetOffer(connectionId, remoteIp, remotePort);
+      // Создаем и отправляем offer на резолвленый IP
+      await _createAndSetOffer(connectionId, resolvedIp, remotePort);
 
       return connectionId;
     } catch (e) {
@@ -140,6 +146,9 @@ class WebRTCService {
     try {
       final connectionId = const Uuid().v4();
 
+      // Резолвим .local адрес в IP
+      final resolvedIp = await _resolveHostname(remoteIp);
+
       logInfo(
         'Принятие WebRTC соединения',
         tag: _logTag,
@@ -147,6 +156,8 @@ class WebRTCService {
           'connectionId': connectionId,
           'localDeviceId': localDeviceId,
           'remoteDeviceId': remoteDeviceId,
+          'remoteIp': remoteIp,
+          'resolvedIp': resolvedIp,
         },
       );
 
@@ -154,6 +165,8 @@ class WebRTCService {
         connectionId: connectionId,
         localDeviceId: localDeviceId,
         remoteDeviceId: remoteDeviceId,
+        remoteIp: resolvedIp,
+        remotePort: remotePort,
         role: WebRTCRole.callee,
         state: WebRTCConnectionState.initializing,
         createdAt: DateTime.now(),
@@ -172,7 +185,7 @@ class WebRTCService {
       final answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
 
-      // Отправляем answer
+      // Отправляем answer на резолвленый IP
       final answerMessage = _signalingService.createAnswerMessage(
         fromDeviceId: localDeviceId,
         toDeviceId: remoteDeviceId,
@@ -181,7 +194,7 @@ class WebRTCService {
 
       await _signalingService.sendMessage(
         remoteDeviceId,
-        remoteIp,
+        resolvedIp,
         remotePort,
         answerMessage,
       );
@@ -537,10 +550,36 @@ class WebRTCService {
     final peerConnection = _peerConnections[connectionId];
     final connection = _connections[connectionId];
 
-    if (peerConnection == null || connection == null) return;
+    if (peerConnection == null || connection == null) {
+      logError(
+        'PeerConnection или connection не найдены для offer',
+        tag: _logTag,
+      );
+      return;
+    }
+
+    logInfo(
+      'Создание WebRTC offer',
+      tag: _logTag,
+      data: {
+        'connectionId': connectionId,
+        'remoteIp': remoteIp,
+        'remotePort': remotePort,
+      },
+    );
 
     final offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
+
+    logDebug(
+      'Offer создан и установлен локально',
+      tag: _logTag,
+      data: {
+        'connectionId': connectionId,
+        'sdpType': offer.type,
+        'sdpLength': offer.sdp?.length ?? 0,
+      },
+    );
 
     final offerMessage = _signalingService.createOfferMessage(
       fromDeviceId: connection.localDeviceId,
@@ -553,6 +592,17 @@ class WebRTCService {
           'ip': await _getLocalIpAddress(),
           'port': _signalingPort ?? 53317,
         },
+      },
+    );
+
+    logInfo(
+      'Отправка offer через signaling',
+      tag: _logTag,
+      data: {
+        'connectionId': connectionId,
+        'to': connection.remoteDeviceId,
+        'targetIp': remoteIp,
+        'targetPort': remotePort,
       },
     );
 
@@ -1011,26 +1061,37 @@ class WebRTCService {
     String connectionId,
     RTCPeerConnectionState state,
   ) {
+    logInfo(
+      'Изменение состояния PeerConnection',
+      tag: _logTag,
+      data: {'connectionId': connectionId, 'rtcState': state.name},
+    );
+
     WebRTCConnectionState connectionState;
 
     switch (state) {
       case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
         connectionState = WebRTCConnectionState.connected;
+        logInfo('WebRTC соединение установлено!', tag: _logTag);
         break;
       case RTCPeerConnectionState.RTCPeerConnectionStateConnecting:
         connectionState = WebRTCConnectionState.connecting;
         break;
       case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
         connectionState = WebRTCConnectionState.disconnected;
+        logWarning('WebRTC соединение разорвано', tag: _logTag);
         break;
       case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
         connectionState = WebRTCConnectionState.failed;
+        logError('WebRTC соединение не удалось', tag: _logTag);
         break;
       case RTCPeerConnectionState.RTCPeerConnectionStateClosed:
         connectionState = WebRTCConnectionState.disconnected;
+        logInfo('WebRTC соединение закрыто', tag: _logTag);
         break;
       default:
         connectionState = WebRTCConnectionState.connecting;
+        logDebug('WebRTC состояние: ${state.name}', tag: _logTag);
     }
 
     _updateConnectionState(connectionId, connectionState);
@@ -1059,6 +1120,51 @@ class WebRTCService {
     );
 
     _iceCandidateController.add(event);
+
+    // Отправляем ICE candidate через signaling
+    _sendIceCandidate(connection, candidate);
+  }
+
+  /// Отправляет ICE candidate через signaling
+  Future<void> _sendIceCandidate(
+    WebRTCConnection connection,
+    RTCIceCandidate candidate,
+  ) async {
+    try {
+      final iceCandidateMessage = _signalingService.createIceCandidateMessage(
+        fromDeviceId: connection.localDeviceId,
+        toDeviceId: connection.remoteDeviceId,
+        iceCandidate: {
+          'candidate': candidate.candidate,
+          'sdpMid': candidate.sdpMid,
+          'sdpMLineIndex': candidate.sdpMLineIndex,
+        },
+      );
+
+      await _signalingService.sendMessage(
+        connection.remoteDeviceId,
+        connection.remoteIp,
+        connection.remotePort,
+        iceCandidateMessage,
+      );
+
+      logDebug(
+        'ICE candidate отправлен',
+        tag: _logTag,
+        data: {
+          'connectionId': connection.connectionId,
+          'remoteIp': connection.remoteIp,
+          'remotePort': connection.remotePort,
+        },
+      );
+    } catch (e) {
+      logError(
+        'Ошибка отправки ICE candidate',
+        error: e,
+        tag: _logTag,
+        data: {'connectionId': connection.connectionId},
+      );
+    }
   }
 
   /// Обновляет состояние соединения
@@ -1087,6 +1193,54 @@ class WebRTCService {
         'error': errorMessage,
       },
     );
+  }
+
+  /// Резолвит .local адреса в обычные IP адреса
+  Future<String> _resolveHostname(String hostname) async {
+    try {
+      logDebug('Резолюция адреса', tag: _logTag, data: {'hostname': hostname});
+
+      // Если это уже IP адрес, возвращаем как есть
+      if (RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$').hasMatch(hostname)) {
+        logDebug('Адрес уже является IP', tag: _logTag);
+        return hostname;
+      }
+
+      // Если это .local адрес, пытаемся резолвить
+      if (hostname.endsWith('.local')) {
+        logDebug('Резолюция .local адреса', tag: _logTag);
+        final addresses = await InternetAddress.lookup(hostname);
+
+        // Ищем первый IPv4 адрес
+        for (final address in addresses) {
+          if (address.type == InternetAddressType.IPv4) {
+            final resolvedIp = address.address;
+            logInfo(
+              'Успешно резолвлен .local адрес',
+              tag: _logTag,
+              data: {'hostname': hostname, 'resolvedIp': resolvedIp},
+            );
+            return resolvedIp;
+          }
+        }
+      }
+
+      // Если не удалось резолвить, возвращаем оригинал
+      logWarning(
+        'Не удалось резолвить адрес, используем оригинал',
+        tag: _logTag,
+        data: {'hostname': hostname},
+      );
+      return hostname;
+    } catch (e) {
+      logError(
+        'Ошибка резолюции адреса',
+        error: e,
+        tag: _logTag,
+        data: {'hostname': hostname},
+      );
+      return hostname; // Возвращаем оригинал при ошибке
+    }
   }
 
   /// Получает локальный IP адрес

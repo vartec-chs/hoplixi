@@ -251,6 +251,8 @@ class ConnectionStateController extends ConsumerWidget {
                             'demo-${DateTime.now().millisecondsSinceEpoch}',
                         localDeviceId: 'local-device',
                         remoteDeviceId: 'remote-device',
+                        remoteIp: '192.168.1.2',
+                        remotePort: 8080,
                         role: WebRTCRole.caller,
                         state: WebRTCConnectionState.connecting,
                         createdAt: DateTime.now(),

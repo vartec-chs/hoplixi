@@ -8,6 +8,8 @@ import 'package:hoplixi/router/routes_path.dart';
 import '../models/device_info.dart';
 import '../providers/discovery_provider.dart';
 
+const _logTag = 'DiscoveryScreen';
+
 class DiscoveryScreen extends ConsumerWidget {
   const DiscoveryScreen({super.key});
 
@@ -96,6 +98,17 @@ class DiscoveryScreen extends ConsumerWidget {
                           elevation: 4,
                           child: InkWell(
                             onTap: () {
+                              logInfo(
+                                'Пользователь нажал на устройство',
+                                tag: _logTag,
+                                data: {
+                                  'deviceName': device.name,
+                                  'deviceId': device.id,
+                                  'deviceIp': device.ipAddress,
+                                  'devicePort': device.port,
+                                  'deviceType': device.type.name,
+                                },
+                              );
                               context.push(
                                 AppRoutes.localSendTransfer,
                                 extra: device,

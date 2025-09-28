@@ -92,6 +92,12 @@ abstract class WebRTCConnection with _$WebRTCConnection {
     /// ID удаленного устройства
     required String remoteDeviceId,
 
+    /// IP адрес удаленного устройства
+    required String remoteIp,
+
+    /// Порт удаленного устройства
+    required int remotePort,
+
     /// Роль в соединении
     required WebRTCRole role,
 
