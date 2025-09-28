@@ -63,9 +63,17 @@ class _TransceiverScreenState extends ConsumerState<TransceiverScreen>
         tag: _logTag,
         data: {
           'targetDevice': widget.deviceInfo!.name,
+          'targetDeviceId': widget.deviceInfo!.id,
+          'targetIp': widget.deviceInfo!.ipAddress,
+          'targetPort': widget.deviceInfo!.port,
           'selfDevice': selfDevice.name,
+          'selfDeviceId': selfDevice.id,
         },
       );
+
+      // Сначала инициализируем WebRTC Service
+      final webrtcService = ref.read(webrtcServiceProvider);
+      await webrtcService.initialize();
 
       final connectionId = await webrtcNotifier.connectToDevice(
         localDeviceId: selfDevice.id,

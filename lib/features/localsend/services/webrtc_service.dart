@@ -37,6 +37,9 @@ class WebRTCService {
 
   final HttpSignalingService _signalingService = HttpSignalingService();
 
+  /// Порт сигналинг сервера
+  int? _signalingPort;
+
   /// Поток состояний соединений
   Stream<WebRTCConnection> get connectionStates =>
       _connectionStateController.stream;
@@ -64,7 +67,8 @@ class WebRTCService {
   /// Запускает HTTP сервер для сигналинга
   Future<int?> startSignalingServer({int? port}) async {
     await _signalingService.startServer(port: port);
-    return _signalingService.port;
+    _signalingPort = _signalingService.port;
+    return _signalingPort;
   }
 
   /// Останавливает HTTP сервер
@@ -541,7 +545,15 @@ class WebRTCService {
     final offerMessage = _signalingService.createOfferMessage(
       fromDeviceId: connection.localDeviceId,
       toDeviceId: connection.remoteDeviceId,
-      sdpOffer: {'sdp': offer.sdp, 'type': offer.type},
+      sdpOffer: {
+        'sdp': offer.sdp,
+        'type': offer.type,
+        // Добавляем информацию о соединении
+        'connectionInfo': {
+          'ip': await _getLocalIpAddress(),
+          'port': _signalingPort ?? 53317,
+        },
+      },
     );
 
     await _signalingService.sendMessage(
@@ -872,14 +884,45 @@ class WebRTCService {
   }
 
   /// Обрабатывает offer сообщение
-  void _handleOfferMessage(SignalingMessage message) {
-    // Здесь должна быть логика обработки входящего offer
-    // В реальном приложении это может потребовать подтверждения пользователя
-    logInfo(
-      'Получен WebRTC offer',
-      tag: _logTag,
-      data: {'from': message.fromDeviceId},
-    );
+  Future<void> _handleOfferMessage(SignalingMessage message) async {
+    try {
+      logInfo(
+        'Получен WebRTC offer - автоматически принимаем',
+        tag: _logTag,
+        data: {'from': message.fromDeviceId},
+      );
+
+      // Извлекаем информацию о соединении из offer
+      final connectionInfo =
+          message.data['connectionInfo'] as Map<String, dynamic>?;
+      final remoteIp = connectionInfo?['ip'] as String? ?? '127.0.0.1';
+      final remotePort = connectionInfo?['port'] as int? ?? 53317;
+
+      // Генерируем ID для локального устройства
+      final localDeviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
+
+      // Автоматически принимаем соединение с исправленной структурой данных
+      await acceptConnection(
+        localDeviceId: localDeviceId,
+        remoteDeviceId: message.fromDeviceId,
+        remoteIp: remoteIp,
+        remotePort: remotePort,
+        offerData: {'sdp': message.data['sdp'], 'type': message.data['type']},
+      );
+
+      logInfo(
+        'WebRTC offer автоматически принят',
+        tag: _logTag,
+        data: {
+          'from': message.fromDeviceId,
+          'localDeviceId': localDeviceId,
+          'remoteIp': remoteIp,
+          'remotePort': remotePort,
+        },
+      );
+    } catch (e) {
+      logError('Ошибка обработки offer сообщения', error: e, tag: _logTag);
+    }
   }
 
   /// Обрабатывает answer сообщение
@@ -1044,5 +1087,28 @@ class WebRTCService {
         'error': errorMessage,
       },
     );
+  }
+
+  /// Получает локальный IP адрес
+  Future<String> _getLocalIpAddress() async {
+    try {
+      // Пытаемся найти IP адрес сетевого интерфейса
+      for (final interface in await NetworkInterface.list(
+        includeLoopback: false,
+        type: InternetAddressType.IPv4,
+      )) {
+        for (final address in interface.addresses) {
+          if (address.type == InternetAddressType.IPv4 && !address.isLoopback) {
+            return address.address;
+          }
+        }
+      }
+
+      // Если не нашли, возвращаем localhost
+      return '127.0.0.1';
+    } catch (e) {
+      logError('Ошибка получения локального IP', error: e, tag: _logTag);
+      return '127.0.0.1';
+    }
   }
 }

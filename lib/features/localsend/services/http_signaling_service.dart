@@ -91,15 +91,18 @@ class HttpSignalingService {
   ) async {
     try {
       final httpClient = HttpClient();
+      httpClient.connectionTimeout = const Duration(seconds: 10);
       final uri = Uri.parse('http://$targetIp:$targetPort/signaling');
 
-      logDebug(
+      logInfo(
         'Отправка сигналинг сообщения',
         tag: _logTag,
         data: {
           'type': message.type.name,
+          'from': message.fromDeviceId,
           'to': targetDeviceId,
           'target': '$targetIp:$targetPort',
+          'uri': uri.toString(),
         },
       );
 
@@ -107,21 +110,30 @@ class HttpSignalingService {
       request.headers.set('Content-Type', 'application/json');
 
       final messageJson = json.encode(message.toJson());
+      logDebug('Отправляем JSON: $messageJson', tag: _logTag);
       request.write(messageJson);
 
       final response = await request.close();
+      final responseBody = await utf8.decoder.bind(response).join();
       final success = response.statusCode == 200;
 
-      if (success) {
-        logInfo(
-          'Сигналинг сообщение успешно отправлено',
-          tag: _logTag,
-          data: {'type': message.type.name, 'to': targetDeviceId},
-        );
-      } else {
+      logInfo(
+        'Результат отправки сигналинг сообщения',
+        tag: _logTag,
+        data: {
+          'success': success,
+          'statusCode': response.statusCode,
+          'responseBody': responseBody,
+          'type': message.type.name,
+          'to': targetDeviceId,
+        },
+      );
+
+      if (!success) {
         logError(
           'Ошибка отправки сигналинг сообщения: ${response.statusCode}',
           tag: _logTag,
+          data: {'responseBody': responseBody},
         );
       }
 
@@ -129,10 +141,14 @@ class HttpSignalingService {
       return success;
     } catch (e) {
       logError(
-        'Ошибка отправки сигналинг сообщения',
+        'Исключение при отправке сигналинг сообщения',
         error: e,
         tag: _logTag,
-        data: {'target': targetDeviceId},
+        data: {
+          'target': '$targetIp:$targetPort',
+          'targetDevice': targetDeviceId,
+          'messageType': message.type.name,
+        },
       );
       return false;
     }
@@ -219,6 +235,16 @@ class HttpSignalingService {
 
   /// Обрабатывает входящие HTTP запросы
   Future<void> _handleRequest(HttpRequest request) async {
+    logDebug(
+      'Получен HTTP запрос',
+      tag: _logTag,
+      data: {
+        'method': request.method,
+        'path': request.uri.path,
+        'remote': request.connectionInfo?.remoteAddress.address,
+      },
+    );
+
     try {
       // Устанавливаем CORS заголовки
       request.response.headers.set('Access-Control-Allow-Origin', '*');
@@ -244,6 +270,11 @@ class HttpSignalingService {
       } else if (request.method == 'GET' && request.uri.path == '/health') {
         await _handleHealthRequest(request);
       } else {
+        logWarning(
+          'Неизвестный HTTP запрос',
+          tag: _logTag,
+          data: {'method': request.method, 'path': request.uri.path},
+        );
         request.response.statusCode = 404;
         request.response.write('Not Found');
         await request.response.close();
