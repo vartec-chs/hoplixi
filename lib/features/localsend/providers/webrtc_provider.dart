@@ -11,6 +11,7 @@ import 'package:hoplixi/features/localsend/providers/signaling_service_provider.
 import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_error.dart';
 import 'package:riverpod/riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 class WebrtcProviderException implements Exception {
   final String message;
@@ -42,8 +43,6 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
   // DataChannel state stream for UI indicator
   final _dcStateCtr = StreamController<String>.broadcast();
   Stream<String> get dataChannelStateStream => _dcStateCtr.stream;
-
-  final _rand = Random();
 
   @override
   Future<WebRTCConnectionStatus> build() async {
@@ -361,8 +360,7 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
   }) async {
     if (_dataChannel != null &&
         _dataChannel!.state == RTCDataChannelState.RTCDataChannelOpen) {
-      final id =
-          '${DateTime.now().microsecondsSinceEpoch}-${_rand.nextInt(1000)}';
+      final id = Uuid().v4();
       final payload = {
         'id': id,
         'username': username,
