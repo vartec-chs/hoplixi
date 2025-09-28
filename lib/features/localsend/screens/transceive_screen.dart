@@ -277,7 +277,7 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
         title: 'Передача возобновлена',
         description: 'Передача файла возобновлена',
       );
-    } catch (e) {
+    } catch (e) {  
       logError('Ошибка возобновления передачи', error: e, tag: _logTag);
     }
   }
@@ -375,14 +375,12 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
   Widget _buildFileTransferSection() {
     return Consumer(
       builder: (context, ref, child) {
-        final webrtcState = ref.watch(
-          signalingNotifierProvider(deviceInfo?.fullAddress ?? ''),
-        );
+        final webrtcState = ref.watch(signalingNotifierProvider(_remoteUri));
 
         return webrtcState.when(
           data: (state) {
             if (state.state != WebRTCConnectionState.connected) {
-              return const Text('Нет подключения');
+              return const SizedBox.shrink();
             }
 
             return Card(
