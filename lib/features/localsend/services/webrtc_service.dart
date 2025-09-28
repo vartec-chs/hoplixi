@@ -86,7 +86,7 @@ class WebRTCService {
     try {
       final connectionId = const Uuid().v4();
 
-      // Резолвим .local адрес в IP
+      // IP уже должен быть резолвлен в DiscoveryProvider, но проверим на всякий случай
       final resolvedIp = await _resolveHostname(remoteIp);
 
       logInfo(

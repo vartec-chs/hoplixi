@@ -5,6 +5,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/localsend/models/device_info.dart';
 import 'package:hoplixi/features/localsend/providers/discovery_provider.dart';
 import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend/utils/dns_test.dart';
 
 const _logTag = 'LocalSendDebug';
 
@@ -167,6 +168,38 @@ class _LocalSendDebugScreenState extends ConsumerState<LocalSendDebugScreen> {
                 },
               ),
             ),
+
+            // Диагностические функции
+            const SizedBox(height: 16),
+            Text(
+              'Диагностика DNS',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: SmoothButton(
+                    type: SmoothButtonType.outlined,
+                    size: SmoothButtonSize.small,
+                    label: 'Показать сетевые интерфейсы',
+                    onPressed: () async {
+                      logInfo('Показ сетевых интерфейсов', tag: _logTag);
+                      await DNSTestUtil.showNetworkInterfaces();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SmoothButton(
+                    type: SmoothButtonType.outlined,
+                    size: SmoothButtonSize.small,
+                    label: 'Тест DNS резолюции',
+                    onPressed: () => _testDNSResolution(),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -253,6 +286,18 @@ class _LocalSendDebugScreenState extends ConsumerState<LocalSendDebugScreen> {
       );
     } finally {
       setState(() => _isConnecting = false);
+    }
+  }
+
+  Future<void> _testDNSResolution() async {
+    final devicesAsync = ref.read(discoveryProvider);
+    final devices = devicesAsync.asData?.value ?? [];
+
+    logInfo('Тестирование DNS резолюции для всех устройств', tag: _logTag);
+
+    for (final device in devices) {
+      await DNSTestUtil.testLocalResolution(device.ipAddress);
+      await DNSTestUtil.testHttpConnectivity(device.ipAddress, device.port);
     }
   }
 }

@@ -189,7 +189,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
   }
 
   // Обработчик событий обнаружения
-  void _handleEventDiscovery(BonsoirDiscoveryEvent event) {
+  void _handleEventDiscovery(BonsoirDiscoveryEvent event) async {
     switch (event) {
       case BonsoirDiscoveryServiceFoundEvent():
         // Разрешаем сервис для получения IP и других деталей
@@ -202,7 +202,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
           return;
         }
         // Добавляем или обновляем устройство
-        final device = _serviceToDeviceInfo(event.service);
+        final device = await _serviceToDeviceInfo(event.service);
         final existingIndex = _devices.indexWhere((d) => d.id == device.id);
         if (existingIndex >= 0) {
           _devices[existingIndex] = device;
@@ -221,7 +221,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
           return;
         }
         // Обновляем устройство
-        final device = _serviceToDeviceInfo(event.service);
+        final device = await _serviceToDeviceInfo(event.service);
         final existingIndex = _devices.indexWhere((d) => d.id == device.id);
         if (existingIndex >= 0) {
           _devices[existingIndex] = device;
@@ -287,7 +287,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
     }
   }
 
-  DeviceInfo _serviceToDeviceInfo(BonsoirService service) {
+  Future<DeviceInfo> _serviceToDeviceInfo(BonsoirService service) async {
     final attributes = service.attributes;
     final id =
         attributes['id'] ??
@@ -295,17 +295,21 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
     final name = service.name;
 
     // Пытаемся извлечь IP адрес из host
-    final host = service.host ?? 'unknown';
+    final host = service.host ?? '';
+    logDebug(
+      'Service host: $host, platform: ${attributes['platform']}',
+      tag: '_serviceToDeviceInfo',
+    );
     String ipAddress;
 
     // Проверяем, является ли host уже IP адресом
     if (RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(host)) {
       ipAddress = host;
     } else if (host.contains('.local')) {
-      // Для .local доменов пытаемся извлечь IP из дополнительной информации
-      // или используем резолвер DNS в будущем
-      ipAddress = host; // Пока оставляем как есть, будем резолвить позже
-      logDebug('Найден .local домен: $host', tag: _logTag);
+      // Для .local доменов резолвим DNS в реальный IP
+
+      ipAddress = await _resolveHostname(host);
+      logDebug('Резолвлен .local домен: $host -> $ipAddress', tag: _logTag);
     } else {
       ipAddress = host;
     }
@@ -338,6 +342,67 @@ class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
     );
 
     return deviceInfo;
+  }
+
+  /// Резолвит .local адреса в обычные IP адреса
+  Future<String> _resolveHostname(String hostname) async {
+    try {
+      logDebug(
+        'Резолюция адреса устройства',
+        tag: _logTag,
+        data: {'hostname': hostname},
+      );
+
+      // Если это уже IP адрес, возвращаем как есть
+      if (RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$').hasMatch(hostname)) {
+        logDebug('Адрес уже является IP', tag: _logTag);
+        return hostname;
+      }
+
+      // Если это .local адрес, пытаемся резолвить
+      if (hostname.endsWith('.local')) {
+        logDebug('Резолюция .local адреса', tag: _logTag);
+
+        final addresses = await InternetAddress.lookup(hostname).timeout(
+          const Duration(seconds: 3), // Таймаут для DNS запроса
+        );
+
+        // Ищем первый IPv4 адрес
+        for (final address in addresses) {
+          if (address.type == InternetAddressType.IPv4) {
+            final resolvedIp = address.address;
+            logInfo(
+              'Успешно резолвлен .local адрес',
+              tag: _logTag,
+              data: {'hostname': hostname, 'resolvedIp': resolvedIp},
+            );
+            return resolvedIp;
+          }
+        }
+
+        logWarning(
+          'Не найден IPv4 адрес для .local домена',
+          tag: _logTag,
+          data: {'hostname': hostname},
+        );
+      }
+
+      // Если не удалось резолвить, возвращаем оригинал
+      logWarning(
+        'Не удалось резолвить адрес, используем оригинал',
+        tag: _logTag,
+        data: {'hostname': hostname},
+      );
+      return hostname;
+    } catch (e) {
+      logError(
+        'Ошибка резолюции адреса',
+        error: e,
+        tag: _logTag,
+        data: {'hostname': hostname},
+      );
+      return hostname; // Возвращаем оригинал при ошибке
+    }
   }
 
   DeviceType _getDeviceTypeFromAttributes(Map<String, String> attributes) {
