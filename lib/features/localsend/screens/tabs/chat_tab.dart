@@ -8,7 +8,9 @@ import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/localsend/models/connection_mode.dart';
 import 'package:hoplixi/features/localsend/models/device_info.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
+import 'package:hoplixi/features/localsend/models/message.dart';
 import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend/providers/message_history_provider.dart';
 
 class ChatTab extends ConsumerStatefulWidget {
   final LocalSendDeviceInfo? deviceInfo;
@@ -34,7 +36,7 @@ class _ChatTabState extends ConsumerState<ChatTab> {
   final _usernameController = TextEditingController(text: 'User');
 
   StreamSubscription<Map<String, dynamic>>? _messageSubscription;
-  List<Map<String, dynamic>> _messages = [];
+  bool _isStreamSetup = false;
 
   @override
   void dispose() {
@@ -45,14 +47,36 @@ class _ChatTabState extends ConsumerState<ChatTab> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    // Отложенная инициализация потока сообщений
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndSetupMessageStream();
+    });
+  }
+
+  void _checkAndSetupMessageStream() {
+    if (!mounted || _isStreamSetup) return;
+
+    final webrtcState = ref.read(signalingNotifierProvider(widget.remoteUri));
+    webrtcState.whenData((status) {
+      if (status.state == WebRTCConnectionState.connected && !_isStreamSetup) {
+        final notifier = ref.read(
+          signalingNotifierProvider(widget.remoteUri).notifier,
+        );
+        setupMessageStream(notifier);
+        _isStreamSetup = true;
+      }
+    });
+  }
+
   void setupMessageStream(WebRTCConnectionNotifier notifier) {
     _messageSubscription?.cancel();
 
+    // Подписка на сообщения остается для уведомлений и скролла
     _messageSubscription = notifier.onDataMessage.listen((message) {
       if (mounted) {
-        setState(() {
-          _messages.add(message);
-        });
         _scrollToBottom();
       }
     });
@@ -97,56 +121,97 @@ class _ChatTabState extends ConsumerState<ChatTab> {
   }
 
   Widget _buildMessagesList() {
-    if (_messages.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.chat_bubble_outline,
-                size: 64,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Сообщений пока нет',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Начните разговор, отправив первое сообщение',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+    return Consumer(
+      builder: (context, ref, child) {
+        final messagesAsync = ref.watch(
+          messageHistoryProvider(widget.remoteUri),
+        );
 
-    return Expanded(
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        itemCount: _messages.length,
-        itemBuilder: (context, index) {
-          final message = _messages[index];
-          return _buildMessageBubble(message);
-        },
-      ),
+        return messagesAsync.when(
+          data: (messages) {
+            if (messages.isEmpty) {
+              return Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline,
+                        size: 64,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Сообщений пока нет',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Начните разговор, отправив первое сообщение',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  final message = messages[index];
+                  return _buildMessageBubble(message);
+                },
+              ),
+            );
+          },
+          loading: () =>
+              const Expanded(child: Center(child: CircularProgressIndicator())),
+          error: (error, _) => Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ошибка загрузки сообщений',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    error.toString(),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildMessageBubble(Map<String, dynamic> message) {
-    final isFromMe = message['from'] == 'me';
-    final isSystem = message['from'] == 'system';
-    final username = message['username'] ?? 'Unknown';
-    final text = message['text'] ?? '';
+  Widget _buildMessageBubble(LocalSendMessage message) {
+    final isFromMe = message.sender == MessageSender.me;
+    final isSystem = message.sender == MessageSender.system;
+    final username = message.username;
+    final text = message.text;
 
     if (isSystem) {
       return Padding(
@@ -323,20 +388,6 @@ class _ChatTabState extends ConsumerState<ChatTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Настраиваем потоки сообщений при подключении
-    final webrtcState = ref.watch(signalingNotifierProvider(widget.remoteUri));
-
-    webrtcState.whenData((status) {
-      if (status.state == WebRTCConnectionState.connected) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final notifier = ref.read(
-            signalingNotifierProvider(widget.remoteUri).notifier,
-          );
-          setupMessageStream(notifier);
-        });
-      }
-    });
-
     return Column(children: [_buildMessagesList(), _buildMessageInput()]);
   }
 }

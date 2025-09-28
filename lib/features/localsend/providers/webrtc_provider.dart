@@ -10,6 +10,7 @@ import 'package:hoplixi/features/localsend/providers/signaling_service_provider.
 import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_error.dart';
 import 'package:hoplixi/features/localsend/services/file_transfer_service.dart';
+import 'package:hoplixi/features/localsend/providers/message_history_provider.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -51,6 +52,22 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
 
   /// Получить сервис передачи файлов
   FileTransferService get fileTransferService => _fileTransferService;
+
+  /// Добавляет сообщение в историю
+  void _addMessageToHistory(Map<String, dynamic> messageData) {
+    try {
+      final messageHistoryNotifier = ref.read(
+        messageHistoryProvider(_remoteUriOrEmpty).notifier,
+      );
+      messageHistoryNotifier.addMessageFromMap(messageData);
+    } catch (e) {
+      logError(
+        'Ошибка при добавлении сообщения в историю',
+        error: e,
+        tag: _logTag,
+      );
+    }
+  }
 
   @override
   Future<WebRTCConnectionStatus> build() async {
@@ -279,24 +296,28 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
         final ts = parsed['ts']?.toString() ?? DateTime.now().toIso8601String();
 
         if (!_dcMessageCtr.isClosed) {
-          _dcMessageCtr.add({
+          final messageData = {
             'from': 'peer',
             'id': id,
             'username': username,
             'text': msgText,
             'ts': ts,
-          });
+          };
+          _dcMessageCtr.add(messageData);
+          _addMessageToHistory(messageData);
         }
       } catch (e) {
         // не JSON — просто текст
         if (!_dcMessageCtr.isClosed) {
-          _dcMessageCtr.add({
+          final messageData = {
             'from': 'peer',
             'id': DateTime.now().microsecondsSinceEpoch.toString(),
             'username': 'peer',
             'text': text,
             'ts': DateTime.now().toIso8601String(),
-          });
+          };
+          _dcMessageCtr.add(messageData);
+          _addMessageToHistory(messageData);
         }
       }
     };
@@ -396,13 +417,15 @@ class WebRTCConnectionNotifier extends AsyncNotifier<WebRTCConnectionStatus> {
       _dataChannel!.send(RTCDataChannelMessage(jsonText));
       // локально добавляем сообщение в поток, чтобы UI сразу показал
       if (!_dcMessageCtr.isClosed) {
-        _dcMessageCtr.add({
+        final messageData = {
           'from': 'me',
           'id': id,
           'username': username,
           'text': text,
           'ts': payload['ts'],
-        });
+        };
+        _dcMessageCtr.add(messageData);
+        _addMessageToHistory(messageData);
       }
     } else {
       logError('DataChannel is not open, cannot send message', tag: _logTag);
