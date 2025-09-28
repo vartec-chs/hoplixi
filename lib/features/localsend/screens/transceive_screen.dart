@@ -3,8 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/features/localsend/models/connection_mode.dart';
 import 'package:hoplixi/features/localsend/models/device_info.dart';
 
-/// Экран для передачи и приема данных
-///
 
 class TransceiveScreen extends StatefulWidget {
   const TransceiveScreen({super.key, this.deviceInfo, this.connectionMode});
@@ -19,6 +17,8 @@ class TransceiveScreen extends StatefulWidget {
 class _TransceiveScreenState extends State<TransceiveScreen> {
   LocalSendDeviceInfo? get deviceInfo => widget.deviceInfo;
   ConnectionMode? get connectionMode => widget.connectionMode;
+
+  late String fullIp = '${deviceInfo!.ipAddress}:${deviceInfo!.port}';
 
   @override
   Widget build(BuildContext context) {
