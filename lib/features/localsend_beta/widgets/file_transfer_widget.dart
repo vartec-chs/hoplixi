@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/features/localsend/models/file_transfer.dart';
+import 'package:hoplixi/features/localsend_beta/models/file_transfer.dart';
 
 /// Виджет для отображения передачи файла
 class FileTransferWidget extends StatelessWidget {

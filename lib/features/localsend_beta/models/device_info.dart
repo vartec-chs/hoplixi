@@ -6,12 +6,12 @@ part 'device_info.freezed.dart';
 part 'device_info.g.dart';
 
 /// Типы устройств для LocalSend
-enum LocalSendDeviceType { mobile, desktop, tablet, unknown }
+enum DeviceType { mobile, desktop, tablet, unknown }
 
 /// Информация об устройстве в сети LocalSend
 @freezed
-abstract class LocalSendDeviceInfo with _$LocalSendDeviceInfo {
-  const factory LocalSendDeviceInfo({
+abstract class DeviceInfo with _$DeviceInfo {
+  const factory DeviceInfo({
     /// Уникальный идентификатор устройства
     required String id,
 
@@ -19,7 +19,7 @@ abstract class LocalSendDeviceInfo with _$LocalSendDeviceInfo {
     required String name,
 
     /// Тип устройства
-    required LocalSendDeviceType type,
+    required DeviceType type,
 
     /// IP адрес устройства
     required String ipAddress,
@@ -35,21 +35,18 @@ abstract class LocalSendDeviceInfo with _$LocalSendDeviceInfo {
 
     /// Статус соединения с устройством
     @Default(DeviceConnectionStatus.discovered) DeviceConnectionStatus status,
-  }) = _LocalSendDeviceInfo;
+  }) = _DeviceInfo;
 
-  factory LocalSendDeviceInfo.fromJson(Map<String, dynamic> json) =>
-      _$LocalSendDeviceInfoFromJson(json);
+  factory DeviceInfo.fromJson(Map<String, dynamic> json) =>
+      _$DeviceInfoFromJson(json);
 
   /// Создает информацию о текущем устройстве
-  factory LocalSendDeviceInfo.currentDevice({
-    String? customName,
-    int? customPort,
-  }) {
+  factory DeviceInfo.currentDevice({String? customName, int? customPort}) {
     final uuid = const Uuid();
     final deviceName = customName ?? _getDeviceName();
     final deviceType = _getDeviceType();
 
-    return LocalSendDeviceInfo(
+    return DeviceInfo(
       id: uuid.v4(),
       name: deviceName,
       type: deviceType,
@@ -84,13 +81,13 @@ enum DeviceConnectionStatus {
 }
 
 /// Определяет тип устройства по платформе
-LocalSendDeviceType _getDeviceType() {
+DeviceType _getDeviceType() {
   if (Platform.isAndroid || Platform.isIOS) {
-    return LocalSendDeviceType.mobile;
+    return DeviceType.mobile;
   } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-    return LocalSendDeviceType.desktop;
+    return DeviceType.desktop;
   } else {
-    return LocalSendDeviceType.unknown;
+    return DeviceType.unknown;
   }
 }
 
@@ -102,8 +99,8 @@ String _getDeviceName() {
   return '$hostname ($platform)';
 }
 
-/// Расширения для удобства работы с LocalSendDeviceInfo
-extension LocalSendDeviceInfoExtension on LocalSendDeviceInfo {
+/// Расширения для удобства работы с DeviceInfo
+extension DeviceInfoExtension on DeviceInfo {
   /// Проверяет, является ли устройство доступным для подключения
   bool get isAvailable =>
       status == DeviceConnectionStatus.discovered ||
@@ -118,13 +115,13 @@ extension LocalSendDeviceInfoExtension on LocalSendDeviceInfo {
   /// Возвращает иконку для типа устройства
   String get deviceIcon {
     switch (type) {
-      case LocalSendDeviceType.mobile:
+      case DeviceType.mobile:
         return '📱';
-      case LocalSendDeviceType.desktop:
+      case DeviceType.desktop:
         return '💻';
-      case LocalSendDeviceType.tablet:
+      case DeviceType.tablet:
         return '📱'; // Используем тот же значок что и для мобильного
-      case LocalSendDeviceType.unknown:
+      case DeviceType.unknown:
         return '📡';
     }
   }

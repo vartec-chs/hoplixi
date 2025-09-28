@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/connection.dart';
-import 'package:hoplixi/features/localsend/models/device_info.dart';
-import 'package:hoplixi/features/localsend/models/file_transfer.dart';
-import 'package:hoplixi/features/localsend/models/message.dart';
-import 'package:hoplixi/features/localsend/services/webrtc_service.dart';
+import 'package:hoplixi/features/localsend_beta/models/connection.dart';
+import 'package:hoplixi/features/localsend_beta/models/device_info.dart';
+import 'package:hoplixi/features/localsend_beta/models/file_transfer.dart';
+import 'package:hoplixi/features/localsend_beta/models/message.dart';
+import 'package:hoplixi/features/localsend_beta/services/webrtc_service.dart';
 
 const _logTag = 'WebRTCProvider';
 

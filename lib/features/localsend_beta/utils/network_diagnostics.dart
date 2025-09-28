@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/utils/ip_utils.dart';
+import 'package:hoplixi/features/localsend_beta/utils/ip_utils.dart';
 
 /// Утилита для диагностики сетевых проблем LocalSend
 class NetworkDiagnostics {

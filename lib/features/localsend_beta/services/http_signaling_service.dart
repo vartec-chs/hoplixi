@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/connection.dart';
+import 'package:hoplixi/features/localsend_beta/models/connection.dart';
 import 'package:uuid/uuid.dart';
 
 /// Сервис для HTTP сигналинга между устройствами

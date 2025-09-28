@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/features/localsend/models/connection_mode.dart';
-import 'package:hoplixi/features/localsend/models/device_info.dart';
-import 'package:hoplixi/features/localsend/models/device_info.dart';
+import 'package:hoplixi/features/localsend_beta/models/connection_mode.dart';
+import 'package:hoplixi/features/localsend_beta/models/device_info.dart';
 
 /// Диалог для выбора режима подключения к устройству
 class ConnectionModeDialog extends StatelessWidget {
   const ConnectionModeDialog({super.key, required this.targetDevice});
 
-  final LocalSendDeviceInfo targetDevice;
+  final DeviceInfo targetDevice;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +91,7 @@ class ConnectionModeDialog extends StatelessWidget {
   /// Показывает диалог выбора режима подключения
   static Future<ConnectionMode?> show(
     BuildContext context,
-    LocalSendDeviceInfo targetDevice,
+    DeviceInfo targetDevice,
   ) {
     return showDialog<ConnectionMode>(
       context: context,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/button.dart';
-import 'package:hoplixi/features/localsend/utils/network_diagnostics.dart';
+import 'package:hoplixi/features/localsend_beta/utils/network_diagnostics.dart';
 
 class NetworkDiagnosticsScreen extends ConsumerStatefulWidget {
   const NetworkDiagnosticsScreen({super.key});

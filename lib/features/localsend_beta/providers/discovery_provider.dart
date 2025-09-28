@@ -10,28 +10,27 @@ import '../models/device_info.dart';
 const _serviceType = '_localsend._tcp';
 const _logTag = 'DiscoveryProvider';
 final discoveryProvider =
-    AsyncNotifierProvider.autoDispose<
-      DiscoveryNotifier,
-      List<LocalSendDeviceInfo>
-    >(DiscoveryNotifier.new);
+    AsyncNotifierProvider.autoDispose<DiscoveryNotifier, List<DeviceInfo>>(
+      DiscoveryNotifier.new,
+    );
 
-final selfDeviceProvider = Provider.autoDispose<LocalSendDeviceInfo>((ref) {
+final selfDeviceProvider = Provider.autoDispose<DeviceInfo>((ref) {
   final discoveryNotifier = ref.watch(discoveryProvider.notifier);
   return discoveryNotifier.selfDevice;
 });
 
-class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
+class DiscoveryNotifier extends AsyncNotifier<List<DeviceInfo>> {
   BonsoirDiscovery? _discovery;
   BonsoirBroadcast? _broadcast;
   StreamSubscription<BonsoirDiscoveryEvent>? _discoverySubscription;
   StreamSubscription<BonsoirBroadcastEvent>? _broadcastSubscription;
   late bool _isDiscovering = false;
   late bool _isBroadcasting = false;
-  late LocalSendDeviceInfo _selfDevice = LocalSendDeviceInfo.currentDevice();
-  final List<LocalSendDeviceInfo> _devices = [];
+  late DeviceInfo _selfDevice = DeviceInfo.currentDevice();
+  final List<DeviceInfo> _devices = [];
 
   @override
-  Future<List<LocalSendDeviceInfo>> build() async {
+  Future<List<DeviceInfo>> build() async {
     state = const AsyncValue.loading();
     await startDiscovery();
 
@@ -43,7 +42,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
     return List.unmodifiable(_devices);
   }
 
-  LocalSendDeviceInfo get selfDevice => _selfDevice;
+  DeviceInfo get selfDevice => _selfDevice;
 
   void setName(String name) {
     _selfDevice = _selfDevice.copyWith(name: name);
@@ -288,9 +287,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
     }
   }
 
-  Future<LocalSendDeviceInfo> _serviceToDeviceInfo(
-    BonsoirService service,
-  ) async {
+  Future<DeviceInfo> _serviceToDeviceInfo(BonsoirService service) async {
     final attributes = service.attributes;
     final id =
         attributes['id'] ??
@@ -303,12 +300,24 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
       'Service host: $host, platform: ${attributes['platform']}',
       tag: '_serviceToDeviceInfo',
     );
-    String ipAddress = host;
+    String ipAddress;
+
+    // Проверяем, является ли host уже IP адресом
+    if (RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(host)) {
+      ipAddress = host;
+    } else if (host.contains('.local')) {
+      // Для .local доменов резолвим DNS в реальный IP
+
+      ipAddress = await _resolveHostname(host);
+      logDebug('Резолвлен .local домен: $host -> $ipAddress', tag: _logTag);
+    } else {
+      ipAddress = host;
+    }
 
     final port = service.port;
     final deviceType = _getDeviceTypeFromAttributes(attributes);
 
-    final deviceInfo = LocalSendDeviceInfo(
+    final deviceInfo = DeviceInfo(
       id: id,
       name: name,
       type: deviceType,
@@ -335,18 +344,128 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
     return deviceInfo;
   }
 
-  LocalSendDeviceType _getDeviceTypeFromAttributes(
-    Map<String, String> attributes,
-  ) {
+  /// Резолвит .local адреса в обычные IP адреса
+  Future<String> _resolveHostname(String hostname) async {
+    try {
+      logDebug(
+        'Резолюция адреса устройства',
+        tag: _logTag,
+        data: {'hostname': hostname},
+      );
+
+      // Если это уже IP адрес, возвращаем как есть
+      if (RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$').hasMatch(hostname)) {
+        logDebug('Адрес уже является IP', tag: _logTag);
+        return hostname;
+      }
+
+      // Если это .local адрес, пытаемся резолвить
+      if (hostname.endsWith('.local')) {
+        logDebug('Резолюция .local адреса', tag: _logTag);
+
+        final addresses = await InternetAddress.lookup(hostname).timeout(
+          const Duration(seconds: 3), // Таймаут для DNS запроса
+        );
+
+        // Отображаем все найденные адреса для диагностики
+        logInfo(
+          'DNS резолюция найдены адреса для устройства',
+          tag: _logTag,
+          data: {
+            'hostname': hostname,
+            'foundAddresses': addresses
+                .map((a) => '${a.address} (${a.type})')
+                .toList(),
+            'addressCount': addresses.length,
+          },
+        );
+
+        // Сначала ищем приватные IP адреса (предпочтительно)
+        for (final address in addresses) {
+          if (address.type == InternetAddressType.IPv4) {
+            final ip = address.address;
+            if (_isPrivateIpRange(ip)) {
+              logInfo(
+                'Найден приватный IPv4 адрес',
+                tag: _logTag,
+                data: {
+                  'hostname': hostname,
+                  'resolvedIp': ip,
+                  'type': 'private',
+                },
+              );
+              return ip;
+            }
+          }
+        }
+
+        // Если не найдены приватные, ищем любые локальные IPv4
+        for (final address in addresses) {
+          if (address.type == InternetAddressType.IPv4) {
+            final ip = address.address;
+            if (_isLocalNetworkIp(ip)) {
+              logInfo(
+                'Найден локальный IPv4 адрес',
+                tag: _logTag,
+                data: {'hostname': hostname, 'resolvedIp': ip, 'type': 'local'},
+              );
+              return ip;
+            }
+          }
+        }
+
+        // В крайнем случае берем первый IPv4, но предупреждаем
+        for (final address in addresses) {
+          if (address.type == InternetAddressType.IPv4) {
+            final ip = address.address;
+            logWarning(
+              'Используем первый доступный IPv4 адрес (может быть внешним)',
+              tag: _logTag,
+              data: {
+                'hostname': hostname,
+                'resolvedIp': ip,
+                'type': 'fallback',
+              },
+            );
+            return ip;
+          }
+        }
+
+        logWarning(
+          'Не найден IPv4 адрес для .local домена',
+          tag: _logTag,
+          data: {'hostname': hostname},
+        );
+      }
+
+      // Если не удалось резолвить, возвращаем оригинал
+      logWarning(
+        'Не удалось резолвить адрес, используем оригинал',
+        tag: _logTag,
+        data: {'hostname': hostname},
+      );
+      return hostname;
+    } catch (e) {
+      logError(
+        'Ошибка резолюции адреса',
+        error: e,
+        tag: _logTag,
+        data: {'hostname': hostname},
+      );
+      return hostname; // Возвращаем оригинал при ошибке
+    }
+  }
+
+  DeviceType _getDeviceTypeFromAttributes(Map<String, String> attributes) {
     final platform = attributes['platform']?.toLowerCase();
     if (platform == 'android' || platform == 'ios') {
-      return LocalSendDeviceType.mobile;
+      return DeviceType.mobile;
     } else if (platform == 'windows' ||
         platform == 'macos' ||
         platform == 'linux') {
-      return LocalSendDeviceType.desktop;
+      return DeviceType.desktop;
     } else {
-      return LocalSendDeviceType.unknown;
+      return DeviceType.unknown;
     }
   }
 
@@ -372,6 +491,33 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
       logError('Ошибка получения локального IP', error: e, tag: _logTag);
       return '127.0.0.1';
     }
+  }
+
+  /// Проверяет, является ли IP адрес из локальной сети
+  bool _isLocalNetworkIp(String ip) {
+    return _isPrivateIpRange(ip) ||
+        ip.startsWith('127.') || // loopback
+        ip.startsWith('169.254.'); // link-local
+  }
+
+  /// Проверяет, находится ли IP в приватном диапазоне
+  bool _isPrivateIpRange(String ip) {
+    final parts = ip.split('.').map(int.tryParse).toList();
+    if (parts.length != 4 || parts.contains(null)) return false;
+
+    final a = parts[0]!;
+    final b = parts[1]!;
+
+    // 10.0.0.0/8
+    if (a == 10) return true;
+
+    // 172.16.0.0/12
+    if (a == 172 && b >= 16 && b <= 31) return true;
+
+    // 192.168.0.0/16
+    if (a == 192 && b == 168) return true;
+
+    return false;
   }
 
   void _updateState() {

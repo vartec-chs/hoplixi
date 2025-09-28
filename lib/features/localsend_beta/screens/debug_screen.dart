@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/device_info.dart';
-import 'package:hoplixi/features/localsend/providers/discovery_provider.dart';
-import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
-import 'package:hoplixi/features/localsend/screens/network_diagnostics_screen.dart';
-import 'package:hoplixi/features/localsend/utils/dns_test.dart';
+import 'package:hoplixi/features/localsend_beta/models/device_info.dart';
+import 'package:hoplixi/features/localsend_beta/providers/discovery_provider.dart';
+import 'package:hoplixi/features/localsend_beta/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend_beta/screens/network_diagnostics_screen.dart';
+import 'package:hoplixi/features/localsend_beta/utils/dns_test.dart';
 
 const _logTag = 'LocalSendDebug';
 

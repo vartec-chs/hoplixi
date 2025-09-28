@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/localsend/models/message.dart';
+import 'package:hoplixi/features/localsend_beta/models/message.dart';
 
 /// Виджет для отображения списка сообщений
 class MessageListWidget extends ConsumerWidget {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/localsend/models/device_info.dart'
+import 'package:hoplixi/features/localsend_beta/models/device_info.dart'
     as localsend;
-import 'package:hoplixi/features/localsend/models/connection.dart';
+import 'package:hoplixi/features/localsend_beta/models/connection.dart';
 
 /// Виджет отображения статуса соединения с устройством
 class ConnectionStatusWidget extends ConsumerWidget {

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/message.dart';
-import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend_beta/models/message.dart';
+import 'package:hoplixi/features/localsend_beta/providers/webrtc_provider.dart';
 
 const _logTag = 'MessageProvider';
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hoplixi/features/localsend/models/connection_mode.dart';
-import 'package:hoplixi/features/localsend/models/device_info.dart';
-import 'package:hoplixi/features/localsend/widgets/connection_mode_dialog.dart';
+import 'package:hoplixi/features/localsend_beta/models/connection_mode.dart';
+import 'package:hoplixi/features/localsend_beta/models/device_info.dart';
+import 'package:hoplixi/features/localsend_beta/widgets/connection_mode_dialog.dart';
 
 void main() {
   group('ConnectionMode', () {

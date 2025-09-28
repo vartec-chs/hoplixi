@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/connection.dart';
-import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend_beta/models/connection.dart';
+import 'package:hoplixi/features/localsend_beta/providers/webrtc_provider.dart';
 
 /// Демо виджет для демонстрации состояний соединения
 /// Показывает как правильно отслеживать изменения состояния WebRTC соединения
