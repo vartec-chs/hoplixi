@@ -131,7 +131,7 @@ class HttpSignalingService {
 
       if (!success) {
         logError(
-          'Ошибка отправки сигналинг сообщения: ${response.statusCode}',
+          'Ошибка отправки сигналинг сообщения: ${response.statusCode} ',
           tag: _logTag,
           data: {'responseBody': responseBody},
         );
@@ -139,10 +139,11 @@ class HttpSignalingService {
 
       httpClient.close();
       return success;
-    } catch (e) {
+    } catch (e, stackTrace) {
       logError(
         'Исключение при отправке сигналинг сообщения',
         error: e,
+        stackTrace: stackTrace,
         tag: _logTag,
         data: {
           'target': '$targetIp:$targetPort',
