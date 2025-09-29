@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/localsend/models/connection_mode.dart';
-import 'package:hoplixi/features/localsend/models/device_info.dart';
-import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
-import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend_rc/models/connection_mode.dart';
+import 'package:hoplixi/features/localsend_rc/models/device_info.dart';
+import 'package:hoplixi/features/localsend_rc/models/webrtc_state.dart';
+import 'package:hoplixi/features/localsend_rc/providers/webrtc_provider.dart';
 
 class SettingsTab extends ConsumerStatefulWidget {
   final LocalSendDeviceInfo? deviceInfo;

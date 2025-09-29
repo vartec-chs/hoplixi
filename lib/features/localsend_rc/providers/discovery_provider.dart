@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 
-import '../models/localsend_device_info.dart';
+import '../models/device_info.dart';
 
 const _serviceType = '_localsend._tcp';
 const _logTag = 'DiscoveryProvider';

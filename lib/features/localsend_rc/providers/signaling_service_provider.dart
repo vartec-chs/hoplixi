@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/services/http_signaling_service.dart';
+import 'package:hoplixi/features/localsend_rc/services/http_signaling_service.dart';
 
 final signalingServiceProvider = Provider.family<HttpSignalingService, String>((
   ref,

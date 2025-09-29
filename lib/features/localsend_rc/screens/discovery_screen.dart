@@ -5,7 +5,7 @@ import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/router/routes_path.dart';
-import '../models/localsend_device_info.dart';
+import '../models/device_info.dart';
 import '../providers/discovery_provider.dart';
 import '../widgets/connection_mode_dialog.dart';
 

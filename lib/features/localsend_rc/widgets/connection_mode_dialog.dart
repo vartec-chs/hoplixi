@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/features/localsend/models/connection_mode.dart';
-import 'package:hoplixi/features/localsend/models/localsend_device_info.dart';
+import 'package:hoplixi/features/localsend_rc/models/connection_mode.dart';
+import 'package:hoplixi/features/localsend_rc/models/device_info.dart';
+import 'package:hoplixi/features/localsend_rc/models/device_info.dart';
 
 /// Диалог для выбора режима подключения к устройству
 class ConnectionModeDialog extends StatelessWidget {

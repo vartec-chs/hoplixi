@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:hoplixi/features/localsend/models/webrtc_error.dart';
+import 'package:hoplixi/features/localsend_rc/models/webrtc_error.dart';
 
 part 'webrtc_state.freezed.dart';
 part 'webrtc_state.g.dart';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
-import 'package:hoplixi/features/localsend/models/webrtc_error.dart';
-import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
+import 'package:hoplixi/features/localsend_rc/models/webrtc_state.dart';
+import 'package:hoplixi/features/localsend_rc/models/webrtc_error.dart';
+import 'package:hoplixi/features/localsend_rc/providers/webrtc_provider.dart';
 
 /// Виджет для отображения детализированного статуса WebRTC подключения
 class ConnectionStatusWidget extends ConsumerWidget {

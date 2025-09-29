@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 
 import 'package:hoplixi/common/button.dart';
-import 'package:hoplixi/features/localsend/models/file_transfer.dart';
+import 'package:hoplixi/features/localsend_rc/models/file_transfer.dart';
 
 /// Виджет для отображения карточки передачи файла
 class FileTransferCard extends ConsumerWidget {

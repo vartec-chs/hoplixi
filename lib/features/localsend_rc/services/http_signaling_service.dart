@@ -45,10 +45,8 @@ class HttpSignalingService {
     });
   }
 
-  // Регистрация нового клиента (в режиме сервера)
   void _registerClient(WebSocket ws) {
     _clients.add(ws);
-    logInfo('Клиент подключен: ${ws.hashCode}', tag: _logTag);
     ws.listen(
       (data) {
         try {

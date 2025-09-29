@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/localsend/models/file_transfer.dart';
+import 'package:hoplixi/features/localsend_rc/models/file_transfer.dart';
 
 /// Сервис для управления передачей файлов через WebRTC DataChannel
 class FileTransferService {
