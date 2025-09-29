@@ -100,16 +100,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      body: Center(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Oops! Something went wrong.'),
-            SizedBox(width: 8),
-            Text(state.error.toString()),
-          ],
+      body: SafeArea(
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Упс! Произошла ошибка:'),
+              SizedBox(width: 8),
+              Text(state.error.toString()),
+            ],
+          ),
         ),
       ),
     ),
