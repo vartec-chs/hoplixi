@@ -7,8 +7,8 @@ import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'password_filter_provider.dart';
 import 'filter_tabs_provider.dart';
-import 'data_refresh_trigger_provider.dart';
-import '../models/filter_tab.dart';
+import '../data_refresh_trigger_provider.dart';
+import '../../models/filter_tab.dart';
 
 /// Размер страницы для пагинации
 const int kPasswordsPageSize = 20;

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
-import '../models/entety_type.dart';
+import '../../models/entety_type.dart';
 
 /// Состояние типа сущности
 class EntityTypeState {

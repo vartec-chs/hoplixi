@@ -4,7 +4,7 @@ import 'package:hoplixi/common/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
 import '../models/entety_type.dart';
-import '../providers/entety_type_provider.dart';
+import '../providers/filter_providers/entety_type_provider.dart';
 
 /// Выпадающий список для выбора типа сущности
 /// Интегрируется с entityTypeControllerProvider для управления состоянием

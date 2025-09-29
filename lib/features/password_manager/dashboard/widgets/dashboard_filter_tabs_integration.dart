@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/filter_tabs.dart';
-import 'package:hoplixi/features/password_manager/dashboard/providers/entety_type_provider.dart';
-import 'package:hoplixi/features/password_manager/dashboard/providers/filter_tabs_provider.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/filter_tabs_provider.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
 /// Пример интеграции FilterTabs в дашборд

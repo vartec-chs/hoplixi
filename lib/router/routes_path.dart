@@ -16,6 +16,7 @@ class AppRoutes {
   static const String tagsManager = '/tags-manager';
   static const String tagCreate = '/tags-manager/create';
   static const String passwordForm = '/password-form';
+  static const String passwordHistory = '/password-history';
   static const String universalFilterDemo = '/universal-filter-demo';
   static const String localSend = '/localsend';
   static const String localSendTransfer = '/localsend/transfer';

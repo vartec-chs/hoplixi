@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/router/routes_path.dart';
 
 class PasswordCard extends ConsumerStatefulWidget {
   final CardPasswordDto password;
@@ -364,6 +366,25 @@ class _PasswordCardState extends ConsumerState<PasswordCard>
                               onPressed: widget.onEdit,
                               icon: const Icon(Icons.edit, size: 18),
                               label: const Text('Редактировать'),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(
+                            width: double.infinity,
+                            child: TextButton.icon(
+                              onPressed: () => context.push(
+                                '${AppRoutes.passwordHistory}/${widget.password.id}',
+                              ),
+                              icon: const Icon(Icons.history, size: 18),
+                              label: const Text('История'),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,

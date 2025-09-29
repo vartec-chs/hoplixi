@@ -13,8 +13,8 @@ import 'package:hoplixi/hoplixi_store/services_providers.dart' as services;
 
 // Модели и провайдеры
 import '../models/entety_type.dart';
-import '../providers/entety_type_provider.dart';
-import '../providers/filter_providers.dart';
+import '../providers/filter_providers/entety_type_provider.dart';
+import '../providers/filter_providers/filter_providers.dart';
 
 // Секции фильтров
 import 'filter_sections/filter_sections.dart';

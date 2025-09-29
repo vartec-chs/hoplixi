@@ -43,6 +43,12 @@ final passwordsDaoProvider = Provider<PasswordsDao>((ref) {
   return PasswordsDao(db.currentDatabase);
 });
 
+final passwordsHistoryDaoProvider = Provider<PasswordHistoriesDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  return PasswordHistoriesDao(db.currentDatabase);
+});
+
 // PasswordTagsDao
 final passwordTagsDaoProvider = Provider<PasswordTagsDao>((ref) {
   final db = ref.watch(hoplixiStoreProvider.notifier);

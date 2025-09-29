@@ -11,6 +11,7 @@ import 'package:hoplixi/features/password_manager/before_opening/create_store/cr
 import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_manager_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/password_form/password_form_screen.dart';
+import 'package:hoplixi/features/password_manager/dashboard/screens/password_history_screen.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons_management_screen.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
@@ -77,6 +78,17 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.localSend,
     builder: (context, state) => const DiscoveryScreen(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.passwordHistory + '/:passwordId',
+    builder: (context, state) {
+      if (state.pathParameters['passwordId'] == null) {
+        return const SplashScreen(title: 'Ошибка: нет ID пароля');
+      }
+      final passwordId = state.pathParameters['passwordId'];
+      return PasswordHistoryScreen(passwordId: passwordId!);
+    },
   ),
 
   GoRoute(
