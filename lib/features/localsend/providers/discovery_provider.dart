@@ -40,6 +40,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
     await startDiscovery();
 
     ref.onDispose(() {
+      if (!ref.mounted) return;
       _dispose();
     });
 
@@ -60,9 +61,11 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
     try {
       logInfo('Перезагрузка обнаружения устройств', tag: _logTag);
       await stopDiscovery();
+      await Future.delayed(const Duration(seconds: 1));
       await stopBroadcast();
       _devices.clear();
       _updateState();
+      await Future.delayed(const Duration(seconds: 1));
       await startDiscovery();
       return true;
     } catch (e, stack) {
@@ -95,6 +98,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
       // Добавляем текущее устройство
       // _devices.add(_selfDevice);
       _updateState();
+      await Future.delayed(const Duration(seconds: 1));
       // Начинаем трансляцию текущего устройства
       await startBroadcasting();
     } catch (e, stack) {

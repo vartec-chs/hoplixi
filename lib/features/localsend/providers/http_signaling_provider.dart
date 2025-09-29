@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final httpSignalingProvider = Provider<HttpSignalingService>((ref) {
   final service = HttpSignalingService();
   ref.onDispose(() {
+    if (!ref.mounted) return;
     service.stop();
   });
   return service;
