@@ -2,8 +2,8 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'dart:io';
 import 'package:uuid/uuid.dart';
 
-part 'device_info.freezed.dart';
-part 'device_info.g.dart';
+part 'localsend_device_info.freezed.dart';
+part 'localsend_device_info.g.dart';
 
 /// Типы устройств для LocalSend
 enum LocalSendDeviceType { mobile, desktop, tablet, unknown }

@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
-import 'package:hoplixi/features/localsend_rc/models/connection_mode.dart';
-import 'package:hoplixi/features/localsend_rc/models/device_info.dart' as di;
-import 'package:hoplixi/features/localsend_rc/screens/discovery_screen.dart';
-import 'package:hoplixi/features/localsend_rc/screens/transceive_screen_with_tabs.dart';
+import 'package:hoplixi/features/localsend/screens/discovery_screen.dart';
+
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
 import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart';
 
@@ -86,21 +84,21 @@ final List<GoRoute> appRoutes = [
     builder: (context, state) => const DiscoveryScreen(),
   ),
 
-  GoRoute(
-    path: AppRoutes.localSendTransfer,
-    builder: (context, state) {
-      if (state.extra is Map<String, dynamic>) {
-        final data = state.extra as Map<String, dynamic>;
-        final deviceInfo = data['device'] as di.LocalSendDeviceInfo?;
-        final connectionMode = data['mode'] as ConnectionMode?;
-        return TransceiveScreenWithTabs(
-          deviceInfo: deviceInfo,
-          connectionMode: connectionMode,
-        );
-      }
-      return const SplashScreen(title: 'Ошибка: нет данных');
-    },
-  ),
+  // GoRoute(
+  //   path: AppRoutes.localSendTransfer,
+  //   builder: (context, state) {
+  //     if (state.extra is Map<String, dynamic>) {
+  //       final data = state.extra as Map<String, dynamic>;
+  //       final deviceInfo = data['device'] as di.LocalSendDeviceInfo?;
+  //       final connectionMode = data['mode'] as ConnectionMode?;
+  //       return TransceiveScreenWithTabs(
+  //         deviceInfo: deviceInfo,
+  //         connectionMode: connectionMode,
+  //       );
+  //     }
+  //     return const SplashScreen(title: 'Ошибка: нет данных');
+  //   },
+  // ),
 ];
 
 class SplashScreen extends StatelessWidget {
