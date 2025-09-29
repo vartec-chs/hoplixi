@@ -31,7 +31,7 @@ class WebrtcNotifier extends AsyncNotifier<WebrtcState> {
 
   WebrtcNotifier(this.params);
 
-  late final HttpSignalingService _signalingService;
+  late HttpSignalingService? _signalingService;
 
   /// Параметры соединения: режим подключения и удаленный URL (если необходим)
 
@@ -49,6 +49,7 @@ class WebrtcNotifier extends AsyncNotifier<WebrtcState> {
 
   @override
   Future<WebrtcState> build() async {
+    if (!ref.mounted) return WebrtcState.initial();
     _signalingService = ref.read(httpSignalingProvider);
     logInfo(
       'Инициализация WebRTC провайдера',
@@ -80,7 +81,7 @@ class WebrtcNotifier extends AsyncNotifier<WebrtcState> {
       logInfo('Запуск WebRTC соединения', tag: _logTag);
 
       _webrtcService = WebRTCService(
-        _signalingService,
+        _signalingService!,
         connectionMode,
         remoteUrl: remoteUrl.isEmpty ? null : remoteUrl,
       );
@@ -177,11 +178,13 @@ class WebrtcNotifier extends AsyncNotifier<WebrtcState> {
     RTCPeerConnectionState pcState,
     RTCIceConnectionState iceState,
   ) {
+    if (!ref.mounted) return false;
     return pcState.isSuccess && iceState.isSuccess;
   }
 
   /// Обработка входящих сообщений
   void _handleIncomingMessage(Map<String, dynamic> message) {
+    if (!ref.mounted) return;
     final currentState = state.value;
     if (currentState == null) return;
 
@@ -256,6 +259,8 @@ class WebrtcNotifier extends AsyncNotifier<WebrtcState> {
   /// Очистка ресурсов и подписок
   void _cleanupResources() {
     if (!ref.mounted) return;
+    _webrtcService?.dispose();
+    _signalingService!.stop();
     _pcStateSubscription?.cancel();
     _iceStateSubscription?.cancel();
     _dcStateSubscription?.cancel();
@@ -267,6 +272,7 @@ class WebrtcNotifier extends AsyncNotifier<WebrtcState> {
     _messageSubscription = null;
     if (!ref.mounted) return;
     _webrtcService = null;
+    _signalingService = null;
   }
 
   /// Получение текущего состояния соединения (геттер для UI)

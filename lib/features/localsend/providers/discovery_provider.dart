@@ -36,6 +36,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
 
   @override
   Future<List<LocalSendDeviceInfo>> build() async {
+    if (!ref.mounted) return [];
     state = const AsyncValue.loading();
     await startDiscovery();
 
@@ -58,6 +59,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
 
   /// Перезагрузка обнаружения устройств
   Future<bool> reloadDiscovery() async {
+    if (!ref.mounted) return false;
     try {
       logInfo('Перезагрузка обнаружения устройств', tag: _logTag);
       await stopDiscovery();
@@ -81,6 +83,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
 
   // Начать поиск устройств
   Future<void> startDiscovery() async {
+    if (!ref.mounted) return;
     if (_isDisposed) {
       logWarning('Попытка запуска discovery после dispose', tag: _logTag);
       return;
@@ -115,6 +118,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
 
   // Остановить поиск устройств
   Future<void> stopDiscovery() async {
+    if (!ref.mounted) return;
     try {
       if (!_isDiscovering) return;
       await _discoverySubscription?.cancel();
@@ -140,6 +144,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
 
   /// Начинает трансляцию текущего устройства
   Future<void> startBroadcasting() async {
+    if (!ref.mounted) return;
     if (_isDisposed) {
       logWarning('Попытка запуска broadcasting после dispose', tag: _logTag);
       return;
@@ -209,6 +214,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
 
   // Обработчик событий обнаружения
   void _handleEventDiscovery(BonsoirDiscoveryEvent event) async {
+    if (!ref.mounted) return;
     switch (event) {
       case BonsoirDiscoveryServiceFoundEvent():
         // Разрешаем сервис для получения IP и других деталей
@@ -263,6 +269,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
   }
 
   void _handleBroadcastEvent(BonsoirBroadcastEvent event) {
+    if (!ref.mounted) return;
     try {
       switch (event.runtimeType) {
         case BonsoirBroadcastStartedEvent _:
@@ -289,6 +296,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
   }
 
   Future<void> stopBroadcast() async {
+    if (!ref.mounted) return;
     try {
       await _broadcastSubscription?.cancel();
       _broadcastSubscription = null;
@@ -393,6 +401,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
   }
 
   void _updateState() {
+    if (!ref.mounted) return;
     if (_isDisposed) {
       logDebug('Попытка обновления состояния после dispose', tag: _logTag);
       return;
@@ -401,6 +410,7 @@ class DiscoveryNotifier extends AsyncNotifier<List<LocalSendDeviceInfo>> {
   }
 
   Future<void> _dispose() async {
+    if (!ref.mounted) return;
     // Предотвращаем повторный dispose
     if (_isDisposed || _isCleaningUp) {
       logDebug('Dispose уже выполняется или завершен', tag: _logTag);

@@ -37,7 +37,9 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
     _remoteUrl = widget.deviceInfo?.fullAddress ?? _getDefaultRemoteUrl();
 
     _messageController = TextEditingController();
-    _usernameController = TextEditingController(text: 'TestUser');
+    _usernameController = TextEditingController(
+      text: widget.deviceInfo?.name ?? '',
+    );
 
     logInfo(
       'Инициализация TransceiveScreen',
@@ -77,11 +79,10 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('WebRTC Transceive Test'),
-        // leading: BackButton(
-        //   onPressed: () {
-        //     // context.pop();
-        //   },
-        // ),
+        automaticallyImplyLeading: false,
+        leading: BackButton(
+          onPressed: () => {_handleDisconnect(), context.pop()},
+        ),
         actions: [
           // Информация о параметрах
           IconButton(
@@ -91,35 +92,37 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Карточка с информацией о параметрах
-                  _buildParametersCard(),
-                  const SizedBox(height: 16),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Карточка с информацией о параметрах
+                    _buildParametersCard(),
+                    const SizedBox(height: 16),
 
-                  // Статус соединения
-                  _buildConnectionStatus(webrtcAsyncValue),
-                  const SizedBox(height: 16),
+                    // Статус соединения
+                    _buildConnectionStatus(webrtcAsyncValue),
+                    const SizedBox(height: 16),
 
-                  // Кнопки управления соединением
-                  _buildConnectionControls(webrtcAsyncValue),
-                  const SizedBox(height: 16),
+                    // Кнопки управления соединением
+                    _buildConnectionControls(webrtcAsyncValue),
+                    const SizedBox(height: 16),
 
-                  // Поле для ввода сообщения
-                  _buildMessageInput(webrtcAsyncValue),
-                  const SizedBox(height: 16),
+                    // Поле для ввода сообщения
+                    _buildMessageInput(webrtcAsyncValue),
+                    const SizedBox(height: 16),
 
-                  // История сообщений
-                  _buildMessagesHistory(webrtcAsyncValue),
-                ],
+                    // История сообщений (фиксированная высота)
+                    _buildMessagesHistory(webrtcAsyncValue),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -304,13 +307,17 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            SmoothButton(
-              type: SmoothButtonType.tonal,
-              size: SmoothButtonSize.small,
-              label: 'Отправить',
-              onPressed: canSend && _messageController.text.isNotEmpty
-                  ? _handleSendMessage
-                  : null,
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _messageController,
+              builder: (context, value, child) {
+                final enabled = canSend && value.text.isNotEmpty;
+                return SmoothButton(
+                  type: SmoothButtonType.tonal,
+                  size: SmoothButtonSize.small,
+                  label: 'Отправить',
+                  onPressed: enabled ? _handleSendMessage : null,
+                );
+              },
             ),
           ],
         ),
@@ -320,37 +327,40 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
 
   /// История сообщений
   Widget _buildMessagesHistory(AsyncValue<WebrtcState> webrtcAsyncValue) {
-    return Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'История сообщений',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+    return SizedBox(
+      height: 300, // Фиксированная высота для списка сообщений
+      child: Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'История сообщений',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          Expanded(
-            child: webrtcAsyncValue.when(
-              data: (state) => state.hasMessages
-                  ? ListView.builder(
-                      itemCount: state.messages.length,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemBuilder: (context, index) {
-                        final message = state.messages[index];
-                        return _buildMessageTile(message);
-                      },
-                    )
-                  : const Center(child: Text('Сообщений пока нет')),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) =>
-                  const Center(child: Text('Ошибка загрузки сообщений')),
+            Expanded(
+              child: webrtcAsyncValue.when(
+                data: (state) => state.hasMessages
+                    ? ListView.builder(
+                        itemCount: state.messages.length,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemBuilder: (context, index) {
+                          final message = state.messages[index];
+                          return _buildMessageTile(message);
+                        },
+                      )
+                    : const Center(child: Text('Сообщений пока нет')),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) =>
+                    const Center(child: Text('Ошибка загрузки сообщений')),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

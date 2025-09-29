@@ -49,3 +49,4 @@ app.*.map.json
 **/lib/**/ *.freezed.dart
 *.g.dart
 *.freezed.dart
+log.txt
