@@ -936,11 +936,12 @@ class SimpleBox<T> {
         }
       }
 
-      // Получаем текущий размер файла (это будет offset новой записи)
-      final fileSize = await _dataFile.exists() ? await _dataFile.length() : 0;
-
       // Записываем с использованием RandomAccessFile для большей надежности
+      int fileSize = 0;
+      int length = 0;
       await _fileLock.synchronized(() async {
+        fileSize = await _dataFile.exists() ? await _dataFile.length() : 0;
+
         final file = await _dataFile.open(mode: FileMode.writeOnlyAppend);
         try {
           await file.setPosition(fileSize);
@@ -948,14 +949,13 @@ class SimpleBox<T> {
           final bytes = utf8.encode(lineWithNewline);
           await file.writeFrom(bytes);
           await file.flush(); // Принудительная синхронизация с диском
+
+          // length — количество только что записанных байт
+          length = bytes.length;
         } finally {
           await file.close();
         }
       });
-
-      // Получаем новый размер файла
-      final newSize = await _dataFile.length();
-      final length = newSize - fileSize;
 
       // Вычисляем контрольную сумму для записанной строки (консистентно)
       final checksum = _calculateChecksum(jsonLine);
