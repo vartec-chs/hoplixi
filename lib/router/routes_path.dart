@@ -24,3 +24,17 @@ class AppRoutes {
   static const String qrTest = '/qr-test';
   static const String otpForm = '/otp-form';
 }
+
+class ProtectedRoutes {
+  static const List<String> routes = [
+    AppRoutes.dashboard,
+    AppRoutes.categoryManager,
+    AppRoutes.tagsManager,
+    AppRoutes.passwordForm,
+    AppRoutes.passwordHistory,
+    AppRoutes.universalFilterDemo,
+
+    AppRoutes.otpForm,
+    // Добавьте другие защищённые маршруты сюда
+  ];
+}

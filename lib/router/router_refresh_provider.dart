@@ -17,10 +17,8 @@ class RouterRefreshNotifier extends Notifier<int> with ChangeNotifier {
         // Уведомляем router об изменении состояния
         notifyListeners();
 
-        // Сбрасываем флаг после уведомления
-        Future.microtask(() {
-          ref.read(appLifecycleProvider.notifier).resetDataClearedFlag();
-        });
+        // Флаг dataCleared теперь сбрасывается только при ручном нажатии пользователя на оверлей
+        // Убираем автоматический сброс, чтобы оповещение висело до нажатия пользователя
       }
     });
 

@@ -259,16 +259,21 @@ class PaginatedOtpsNotifier extends AsyncNotifier<PaginatedOtpsState> {
 
   /// Обновляет данные (pull-to-refresh)
   Future<void> refresh() async {
-    if (!ref.read(isDatabaseOpenProvider)) {
-      logDebug(
-        'PaginatedOtpsNotifier: База данных не открыта, пропускаем обновление',
-      );
-      return;
+    final currentState = state.value;
+    if (currentState != null) {
+      state = AsyncValue.data(currentState.copyWith(isLoading: true));
+      try {
+        final newState = await _loadInitialData();
+        state = AsyncValue.data(newState);
+      } catch (e) {
+        state = AsyncValue.data(
+          currentState.copyWith(isLoading: false, error: e.toString()),
+        );
+      }
+    } else {
+      state = const AsyncValue.loading();
+      state = await AsyncValue.guard(_loadInitialData);
     }
-
-    logDebug('PaginatedOtpsNotifier: Обновление данных');
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(_loadInitialData);
   }
 
   /// Переключение избранного состояния OTP с оптимистичным обновлением UI

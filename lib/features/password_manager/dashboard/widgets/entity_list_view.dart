@@ -13,6 +13,7 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/passwo
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/otps_list.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
+import 'package:sliver_tools/sliver_tools.dart';
 
 /// Виджет для отображения списков различных сущностей с пагинацией
 class EntityListView extends ConsumerStatefulWidget {
@@ -82,21 +83,55 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
     final passwordsAsync = ref.watch(paginatedPasswordsProvider);
 
     return passwordsAsync.when(
-      loading: () => const _LoadingSliverView(),
+      loading: () => const SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Загрузка данных...'),
+            ],
+          ),
+        ),
+      ),
       error: (error, _) => _ErrorSliverView(
         error: error.toString(),
         onRetry: () {
           ref.read(paginatedPasswordsProvider.notifier).refresh();
         },
       ),
-      data: (state) => PasswordsSliverList(
-        state: state,
-        scrollController: _scrollController,
-        onPasswordFavoriteToggle: _onPasswordFavoriteToggle,
-        onPasswordEdit: _onPasswordEdit,
-        onPasswordDelete: _onPasswordDelete,
-        onPasswordLongPress: _onPasswordLongPress,
-      ),
+      data: (state) {
+        if (state.passwords.isEmpty && !state.isLoading) {
+          return SliverFillRemaining(
+            child: EmptyView(
+              title: 'Нет паролей',
+              subtitle: 'Создайте первый пароль, чтобы начать работу',
+              icon: Icons.password,
+            ),
+          );
+        }
+
+        return SliverStack(
+          children: [
+            PasswordsSliverList(
+              state: state,
+              scrollController: _scrollController,
+              onPasswordFavoriteToggle: _onPasswordFavoriteToggle,
+              onPasswordEdit: _onPasswordEdit,
+              onPasswordDelete: _onPasswordDelete,
+              onPasswordLongPress: _onPasswordLongPress,
+            ),
+            if (state.isLoading)
+              SliverFillRemaining(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -104,21 +139,55 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
     final otpsAsync = ref.watch(paginatedOtpsProvider);
 
     return otpsAsync.when(
-      loading: () => const _LoadingSliverView(),
+      loading: () => const SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Загрузка данных...'),
+            ],
+          ),
+        ),
+      ),
       error: (error, _) => _ErrorSliverView(
         error: error.toString(),
         onRetry: () {
           ref.read(paginatedOtpsProvider.notifier).refresh();
         },
       ),
-      data: (state) => OtpsSliverList(
-        state: state,
-        scrollController: _scrollController,
-        onOtpFavoriteToggle: _onOtpFavoriteToggle,
-        onOtpEdit: _onOtpEdit,
-        onOtpDelete: _onOtpDelete,
-        onOtpLongPress: _onOtpLongPress,
-      ),
+      data: (state) {
+        if (state.otps.isEmpty && !state.isLoading) {
+          return SliverFillRemaining(
+            child: EmptyView(
+              title: 'Нет OTP',
+              subtitle: 'Создайте первый OTP, чтобы начать работу',
+              icon: Icons.security,
+            ),
+          );
+        }
+
+        return SliverStack(
+          children: [
+            OtpsSliverList(
+              state: state,
+              scrollController: _scrollController,
+              onOtpFavoriteToggle: _onOtpFavoriteToggle,
+              onOtpEdit: _onOtpEdit,
+              onOtpDelete: _onOtpDelete,
+              onOtpLongPress: _onOtpLongPress,
+            ),
+            if (state.isLoading)
+              SliverFillRemaining(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -193,27 +262,6 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
       accountName: otp.accountName ?? 'Нет данных',
       onEdit: () => _onOtpEdit(otp),
       onDelete: () => _onOtpDelete(otp),
-    );
-  }
-}
-
-/// Виджет загрузки как Sliver
-class _LoadingSliverView extends StatelessWidget {
-  const _LoadingSliverView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SliverFillRemaining(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Загрузка данных...'),
-          ],
-        ),
-      ),
     );
   }
 }

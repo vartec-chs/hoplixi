@@ -11,6 +11,7 @@ import 'package:hoplixi/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 import 'package:hoplixi/core/theme/index.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:hoplixi/common/database_closed_overlay.dart';
 
 class App extends ConsumerStatefulWidget {
   const App({super.key});
@@ -34,8 +35,9 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
     // Удаляем наблюдатель жизненного цикла
     WidgetsBinding.instance.removeObserver(this);
 
-    // Очищаем ресурсы провайдера
-    ref.read(appLifecycleProvider.notifier).cleanup();
+    // Убираем вызов cleanup() из dispose, так как это может вызвать ошибку
+    // обращения к деактивированному виджету
+    // ref.read(appLifecycleProvider.notifier).cleanup();
 
     super.dispose();
   }
@@ -94,7 +96,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ToastManager().initialize();
         });
-        return ResponsiveBreakpoints.builder(
+
+        final responsiveChild = ResponsiveBreakpoints.builder(
           child: ClampingScrollWrapper.builder(context, child!),
           breakpoints: const [
             Breakpoint(
@@ -114,6 +117,12 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
             ),
           ],
         );
+
+        return responsiveChild;
+
+        // return Stack(
+        //   children: [responsiveChild, const DatabaseClosedOverlay()],
+        // );
       },
     );
   }

@@ -17,6 +17,20 @@ import 'package:universal_platform/universal_platform.dart';
 import 'routes_path.dart';
 import 'routes.dart';
 
+// current path
+final goRouterPathProvider = Provider<String>((ref) {
+  final router = ref.watch(goRouterProvider);
+  // Подписываемся на изменения через refreshListenable
+  ref.watch(routerRefreshProvider);
+  return router.state.fullPath ?? '';
+});
+
+// проверка защищённого маршрута
+final isInProtectedRouteProvider = Provider<bool>((ref) {
+  final currentPath = ref.watch(goRouterPathProvider);
+  return ProtectedRoutes.routes.contains(currentPath);
+});
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.home,
@@ -30,7 +44,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final dataCleared = ref.watch(dataClearedProvider);
 
       // Если данные были очищены, перенаправляем на home
-      if (dataCleared) {
+      if (dataCleared == true &&
+          ProtectedRoutes.routes.contains(state.fullPath)) {
         logInfo(
           'Данные очищены, перенаправляем на home',
           tag: 'GoRouter',

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_otps_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/cards/otp_card.dart';
-import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/empty_list.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 
 /// Виджет списка OTP как Sliver
@@ -24,16 +23,6 @@ class OtpsSliverList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.otps.isEmpty) {
-      return const SliverFillRemaining(
-        child: EmptyView(
-          title: 'Нет OTP',
-          subtitle: 'Создайте первый OTP токен, чтобы начать работу',
-          icon: Icons.security,
-        ),
-      );
-    }
-
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {

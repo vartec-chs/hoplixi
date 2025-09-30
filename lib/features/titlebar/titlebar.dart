@@ -5,6 +5,7 @@ import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/theme/index.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
 import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/providers/app_lifecycle_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 class TitleBar extends ConsumerStatefulWidget {
@@ -24,6 +25,7 @@ class _TitleBarState extends ConsumerState<TitleBar> {
   Widget build(BuildContext context) {
     final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
     final dbNotifier = ref.read(hoplixiStoreProvider.notifier);
+    final closeDbTimer = ref.watch(appInactivityTimeoutProvider);
     return DragToMoveArea(
       child: Container(
         height: 40,
@@ -58,6 +60,28 @@ class _TitleBarState extends ConsumerState<TitleBar> {
                 spacing: 4,
 
                 children: [
+                  if (isDatabaseOpen && closeDbTimer > 0 && closeDbTimer <= 60)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Авто-закрытие через $closeDbTimer с',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          fontWeight: FontWeight.normal,
+                          fontStyle: FontStyle.normal,
+                          letterSpacing: 0.0,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
                   CloseDatabaseButton(),
                   ThemeSwitcher(size: 26),
 

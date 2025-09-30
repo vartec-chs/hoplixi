@@ -133,7 +133,10 @@ class PaginatedPasswordsNotifier
   /// Загружает начальные данные
   Future<PaginatedPasswordsState> _loadInitialData() async {
     try {
-      logDebug('PaginatedPasswordsNotifier: Загрузка начальных данных', tag: 'PaginatedPasswordsNotifier');
+      logDebug(
+        'PaginatedPasswordsNotifier: Загрузка начальных данных',
+        tag: 'PaginatedPasswordsNotifier',
+      );
 
       // Проверяем, что база данных открыта
       final isDatabaseOpen = ref.read(isDatabaseOpenProvider);
@@ -259,16 +262,21 @@ class PaginatedPasswordsNotifier
 
   /// Обновляет данные (pull-to-refresh)
   Future<void> refresh() async {
-    if (!ref.read(isDatabaseOpenProvider)) {
-      logDebug(
-        'PaginatedPasswordsNotifier: База данных не открыта, пропускаем обновление',
-      );
-      return;
+    final currentState = state.value;
+    if (currentState != null) {
+      state = AsyncValue.data(currentState.copyWith(isLoading: true));
+      try {
+        final newState = await _loadInitialData();
+        state = AsyncValue.data(newState);
+      } catch (e) {
+        state = AsyncValue.data(
+          currentState.copyWith(isLoading: false, error: e.toString()),
+        );
+      }
+    } else {
+      state = const AsyncValue.loading();
+      state = await AsyncValue.guard(_loadInitialData);
     }
-
-    logDebug('PaginatedPasswordsNotifier: Обновление данных');
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(_loadInitialData);
   }
 
   /// Переключение избранного состояния пароля с оптимистичным обновлением UI

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_passwords_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/cards/password_card.dart';
-import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/empty_list.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 
 /// Виджет списка паролей как Sliver
@@ -24,16 +23,6 @@ class PasswordsSliverList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.passwords.isEmpty) {
-      return const SliverFillRemaining(
-        child: EmptyView(
-          title: 'Нет паролей',
-          subtitle: 'Создайте первый пароль, чтобы начать работу',
-          icon: Icons.password,
-        ),
-      );
-    }
-
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {

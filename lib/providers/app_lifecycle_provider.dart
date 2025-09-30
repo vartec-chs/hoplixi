@@ -3,12 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/router/router_provider.dart';
 
 /// Провайдер для управления жизненным циклом приложения
 final appLifecycleProvider =
     NotifierProvider<AppLifecycleNotifier, AppLifecycleStateData>(
       AppLifecycleNotifier.new,
     );
+
+// time
+final appInactivityTimeoutProvider = Provider<int>((ref) {
+  final state = ref.watch(appLifecycleProvider);
+  return state.remainingTime;
+});
 
 /// Состояние жизненного цикла приложения (переименовываем чтобы не конфликтовать с Flutter AppLifecycleState)
 class AppLifecycleStateData {
@@ -48,6 +55,15 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
 
   @override
   AppLifecycleStateData build() {
+    // Автоматическая очистка ресурсов при уничтожении провайдера
+    ref.onDispose(() {
+      logInfo(
+        'Автоматическая очистка ресурсов AppLifecycleNotifier',
+        tag: 'AppLifecycleNotifier',
+      );
+      _stopInactivityTimer();
+    });
+
     return const AppLifecycleStateData();
   }
 
@@ -87,21 +103,45 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   /// Приложение приостановлено
   Future<void> _onPaused() async {
     logInfo('Приложение приостановлено', tag: 'AppLifecycleNotifier');
-    _startInactivityTimer();
+    final isInProtectedRoute = ref.read(isInProtectedRouteProvider);
+    if (isInProtectedRoute) {
+      _startInactivityTimer();
+    } else {
+      logInfo(
+        'Не в защищённом маршруте, таймер не запускается',
+        tag: 'AppLifecycleNotifier',
+      );
+    }
     state = state.copyWith(isActive: false);
   }
 
   /// Приложение неактивно
   Future<void> _onInactive() async {
     logInfo('Приложение неактивно', tag: 'AppLifecycleNotifier');
-    _startInactivityTimer();
+    final isInProtectedRoute = ref.read(isInProtectedRouteProvider);
+    if (isInProtectedRoute) {
+      _startInactivityTimer();
+    } else {
+      logInfo(
+        'Не в защищённом маршруте, таймер не запускается',
+        tag: 'AppLifecycleNotifier',
+      );
+    }
     state = state.copyWith(isActive: false);
   }
 
   /// Приложение скрыто
   Future<void> _onHidden() async {
     logInfo('Приложение скрыто', tag: 'AppLifecycleNotifier');
-    _startInactivityTimer();
+    final isInProtectedRoute = ref.read(isInProtectedRouteProvider);
+    if (isInProtectedRoute) {
+      _startInactivityTimer();
+    } else {
+      logInfo(
+        'Не в защищённом маршруте, таймер не запускается',
+        tag: 'AppLifecycleNotifier',
+      );
+    }
     state = state.copyWith(isActive: false);
   }
 
@@ -115,9 +155,11 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   void _startInactivityTimer() {
     _stopInactivityTimer(); // Останавливаем предыдущий таймер, если он был
 
+    final currentPath = ref.read(goRouterPathProvider);
     logInfo(
       'Запуск таймера неактивности на $_inactivityTimeoutSeconds секунд',
       tag: 'AppLifecycleNotifier',
+      data: {'currentPath': currentPath},
     );
 
     // Обновляем состояние - таймер активен
@@ -185,21 +227,37 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
       // Останавливаем таймер
       _stopInactivityTimer();
 
-      // Очищаем провайдеры
-      await ref.read(clearAllProvider.notifier).clearAll();
+      try {
+        // Очищаем провайдеры
+        await ref.read(clearAllProvider.notifier).clearAll();
 
-      // Закрываем базу данных
-      await ref.read(hoplixiStoreProvider.notifier).closeDatabase();
+        // Закрываем базу данных
+        await ref.read(hoplixiStoreProvider.notifier).closeDatabase();
 
-      logInfo('Все данные очищены успешно', tag: 'AppLifecycleNotifier');
+        logInfo('Все данные очищены успешно', tag: 'AppLifecycleNotifier');
 
-      // Обновляем состояние - помечаем что данные очищены
-      state = state.copyWith(
-        isActive: false,
-        timerActive: false,
-        remainingTime: 0,
-        dataCleared: true, // Устанавливаем флаг очистки данных
-      );
+        // Обновляем состояние - помечаем что данные очищены
+        state = state.copyWith(
+          isActive: false,
+          timerActive: false,
+          remainingTime: 0,
+          dataCleared: true, // Устанавливаем флаг очистки данных
+        );
+      } catch (e, st) {
+        logError(
+          'Ошибка при обращении к провайдерам во время очистки',
+          error: e,
+          stackTrace: st,
+          tag: 'AppLifecycleNotifier',
+        );
+        // Все равно устанавливаем флаг очистки данных
+        state = state.copyWith(
+          isActive: false,
+          timerActive: false,
+          remainingTime: 0,
+          dataCleared: true,
+        );
+      }
     } catch (e, st) {
       logError(
         'Ошибка при очистке данных',
@@ -260,4 +318,11 @@ final isAppActiveProvider = Provider<bool>((ref) {
 /// Провайдер для отслеживания состояния очистки данных (для router'а)
 final dataClearedProvider = Provider<bool>((ref) {
   return ref.watch(appLifecycleProvider.select((state) => state.dataCleared));
+});
+
+/// Провайдер для проверки нахождения в защищённом маршруте
+final isInProtectedRouteTimerProvider = Provider<bool>((ref) {
+  final isInProtectedRoute = ref.watch(isInProtectedRouteProvider);
+  final isTimerActive = ref.watch(isTimerActiveProvider);
+  return isInProtectedRoute && isTimerActive;
 });
