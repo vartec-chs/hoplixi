@@ -1,75 +1,85 @@
-dart run build_runner build --delete-conflicting-outputs
-## Hoplixi – Сжатые инструкции для AI агентов
-Flutter пароль-менеджер: локальная зашифрованная SQLite (SQLCipher + Drift), сервисно-ориентированная архитектура, Riverpod v3 (Notifier API only), UI через кастомные компоненты.
+## Hoplixi – Инструкции для AI агентов (актуализировано)
+Flutter пароль-менеджер: локальная зашифрованная SQLite (SQLCipher + Drift), сервисно-ориентированная архитектура, Riverpod v3 (Notifier API only), строгий слой сервисов и кастомные UI-компоненты.
 
-### Структура (опорные директории)
-- `lib/hoplixi_store/` таблицы, DAO, сервисы, триггеры, результаты (`service_results.dart`).
-- `lib/features/*` доменные модули (пример: `password_manager`, `setup`, `home`).
-- `lib/common/` UI компоненты: `button.dart`, `password_field.dart`, `text_field.dart`, `slider_button.dart` (использовать вместо стандартных кнопок/полей).
-- `lib/core/` логгер (`app_logger.dart`), preferences, тема, secure storage, утилиты (`toastification.dart`).
-- `lib/router/` маршруты (GoRouter + анимации).
-- `lib/box_db/` низкоуровневое шифрование/контейнеры (`simple_box.dart`, `crypto_box.dart`, `utils.dart`).
+### 1. Архитектурное ядро
+- `lib/hoplixi_store/`: Drift таблицы, DAO, сервисы, результаты (`service_results.dart`), SQL-триггеры истории.
+- `lib/box_db/`: низкоуровневое шифрование (`crypto_box.dart`, `simple_box.dart`, `utils.dart`).
+- `lib/features/*`: доменные модули (пример: `password_manager`, `totp`, `setup`, `home`).
+- `lib/common/`: обязательные UI-компоненты (`button.dart`, `password_field.dart`, `text_field.dart`, `slider_button.dart`).
+- `lib/core/`: логгер (`app_logger.dart`), тема, preferences, secure storage, toast (`toastification.dart`).
+- `lib/router/`: GoRouter + анимации. Новые экраны регистрировать здесь.
 
-### Ключевые правила
-1. UI НЕ обращается к DAO – только через сервисы в `hoplixi_store/services/*` (см. `totp_service.dart`).
-2. Возврат из сервисов через `ServiceResult` / производные (не бросать исключения наружу):
+### 2. Ключевой поток данных
+UI -> (Providers Riverpod) -> Service -> DAO -> Drift/SQLCipher.
+UI никогда напрямую к DAO. Ошибки и статусы наружу только через `ServiceResult<T>`.
+
+Пример использования:
 ```dart
-final r = await totpService.getTotpById(id);
+final r = await ref.read(totpServiceProvider).getTotpById(id);
 if (!r.success) ToastHelper.error(r.message); else use(r.data);
 ```
-3. Никаких логов чувствительных данных (пароли, секреты, расшифрованный текст). Использовать `logInfo/logError` с минимальным контекстом.
-4. После изменения таблиц / Freezed / JSON: выполнить `build_runner.bat` (иначе генерация упадёт при сборке).
-5. Riverpod: только Notifier API (не добавлять ConsumerWidget). Провайдеры – в фиче либо общей папке, соблюдая существующий стиль.
-6. UUID v4 для всех PK. История изменений поддерживается SQL-триггерами – при расширении схемы обновить `sql/triggers.dart`.
-7. Web отключён умышленно (не пытаться включать). Поддерживаем: Windows, Android (остальное экспериментально).
 
-### Шифрование / хранение
-- Высокоуровневые сущности: данные шифруются до записи (см. использование в сервисах + box_db). 
-- Низкоуровневые операции: `crypto_box.dart` (`encryptUtf8WithAutoNonce`) возвращает map со шифртекстом и метаданными (`nonce`, `cipher`, `tag` – см. проверки в `simple_box.dart`).
-- При добавлении новых полей с секретами – повторить паттерн nonce + auth tag, не логировать промежуточные значения.
+### 3. ServiceResult контракт
+`class ServiceResult<T>{ final bool success; final String? message; final T? data; }`
+- Не выбрасывать исключения наружу; логировать и возвращать `success:false`.
+- Сообщения – пользовательски безопасные, без чувствительных деталей.
 
-### Добавление новой сущности
-1. Таблица: `hoplixi_store/tables/*.dart`.
-2. DAO: `hoplixi_store/dao/*_dao.dart`.
-3. Включить в `hoplixi_store.dart` (@DriftDatabase).
-4. Генерация: `build_runner.bat`.
-5. Сервис по образцу (`password_service.dart` / `totp_service.dart`), возвращая `ServiceResult`.
-6. Обновить триггеры истории при необходимости.
+### 4. Шифрование и безопасность
+- Перед записью шифруем: см. сервисы и `crypto_box.dart` (`encryptUtf8WithAutoNonce`) → { nonce, cipher, tag }.
+- Валидация/дешифровка: `simple_box.dart`.
+- Для новых секретных полей повторить паттерн (nonce + auth tag). НИКОГДА не логировать plaintext.
+- UUID v4 для всех первичных ключей.
 
-### UI паттерны
-- Кнопки: `SmoothButton` (тип + размер), подтверждение удаления: `SliderButton`.
+### 5. Генерация / кодоген
+- Изменили Drift таблицу / Freezed / JSON → запуск `build_runner.bat` (или `dart run build_runner build --delete-conflicting-outputs`).
+- Не коммитить, если генерация не актуальна.
+
+### 6. Riverpod правила
+- Только Notifier / AsyncNotifier / StreamNotifier. Не добавлять ConsumerWidget / legacy API.
+- Провайдеры живут внутри своей фичи или в общей папке, следуя существующим именованиям (`*_provider.dart`).
+
+### 7. UI / дизайн
+- Кнопки: `SmoothButton`; подтверждение действия (удаление/опасное) → `SliderButton`.
 - Поля ввода: `TextField` / `PasswordField` из `common/`.
-- Темы: через `themeProvider`; цвета – `core/theme/colors.dart`.
-- Респонсив: брейкпоинты MOBILE ≤450, TABLET 451–1000, DESKTOP ≥1001.
+- Цвета/темы: `core/theme/colors.dart`, состояние темы через `themeProvider`.
+- Responsive брейкпоинты: MOBILE ≤450, TABLET 451–1000, DESKTOP ≥1001.
 
-### Локальная сборка / релиз
-- Генерация кода (обязательно перед коммитом): `build_runner.bat`.
-- Windows: `flutter build windows`; Android: `flutter build apk`; прод-скрипт: `release.bat`.
+### 8. Добавление новой сущности (данные)
+1. Таблица: `hoplixi_store/tables/<entity>.dart`.
+2. DAO: `hoplixi_store/dao/<entity>_dao.dart`.
+3. Подключить в `hoplixi_store.dart` (@DriftDatabase).
+4. Кодоген.
+5. Сервис: `hoplixi_store/services/<entity>_service.dart` по шаблону (`password_service.dart`, `totp_service.dart`).
+6. При необходимости обновить SQL-триггеры истории.
 
-### Пример ServiceResult (из `service_results.dart`)
-```dart
-class ServiceResult<T>{ final bool success; final String? message; final T? data; }
-```
+### 9. Создание фичи
+Структура: `features/<name>/` (widgets, screens, providers, services usage). Роут добавить в `router/`. Использовать существующие названия для единообразия.
 
-### MCP Servers
+### 10. Логирование и ошибки
+- Использовать `logInfo/logError/logDebug` из `app_logger.dart`; не писать секреты/пароли/TOTP.
+- Пользовательские уведомления: `ToastHelper` (`toastification.dart`).
+- В сервисе перехватить исключение, залогировать минимум контекста, вернуть `ServiceResult`.
 
-- To obtain accurate data about libraries, use mcp server context7;
-- Use an MCP server for the SequentialThinking model when you need reliable, ordered orchestration of multi-step reasoning — e.g., to manage long-running, stateful chains of inference, coordinate parallel subtasks, or persist and resume multi-turn workflows.
-Also use it when you need centralized routing, authentication, load-balancing and observability (logging/metrics) for many clients or models so ordering, fault tolerance and scalable performance are maintained.
-- Use dart mcp server for finding libraries flutter and dart.
+### 11. Сборка и релиз
+- Локально: сначала кодоген.
+- Windows: `flutter build windows`; Android: `flutter build apk`.
+- Скрипт релиза: `release.bat` (обёртка прод-сборки).
+- Web намеренно отключён (не пытаться включать).
 
-### Riverpod Providers
+### 12. Что НЕ делать
+- Не обращаться к DAO из UI / провайдера напрямую.
+- Не писать сырые SQL вне Drift (кроме триггеров/редких сложных кейсов).
+- Не логировать расшифрованный секрет / пароль / seed.
+- Не добавлять legacy Riverpod API / Consumer*.
+- Не обходить шифрование / не хранить plaintext.
 
-Unmodifiable:	Provider	FutureProvider	StreamProvider
-Modifiable:	  NotifierProvider	AsyncNotifierProvider	StreamNotifierProvider
+### 13. MCP Servers (для агентов)
+- Для поиска библиотек Dart/Flutter использовать dart mcp server.
+- Для оркестрации сложных многошаговых reasoning – SequentialThinking через MCP (context7).
 
-### Что НЕ делать
-- Не писать прямые SQL вне Drift кроме случаев, когда это действительно необходимо например триггеров и подобных а также сложных запросов.
-- Не обходить сервисы ради «быстрых» DAO вызовов.
-- Не логировать расшифрованный секрет / пароль.
-- Не добавлять Consumer*/legacy Riverpod API.
+### 14. Быстрый чеклист перед коммитом
+- [ ] Запущен build_runner без ошибок
+- [ ] Все новые данные идут через сервис и `ServiceResult`
+- [ ] Провайдеры используют Notifier API
 
-Если правило неочевидно – ищите аналог в существующих сервисах и повторяйте стиль.
-
----
-Сообщите, если нужны примеры для конкретной новой сущности, миграции или провайдера – расширю раздел.
+Если нужен пример (новый сервис / провайдер / триггер) – запросите явно, укажите цель и сущность.
