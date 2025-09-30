@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,10 +7,12 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/utils.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
+import 'package:otp/otp.dart';
 
 class OtpForm extends ConsumerStatefulWidget {
   const OtpForm({super.key});
@@ -19,12 +23,13 @@ class OtpForm extends ConsumerStatefulWidget {
 
 class _OtpFormState extends ConsumerState<OtpForm>
     with TickerProviderStateMixin {
-  
   late TabController _tabController;
   late List<Tab> tabWidgets;
   late List<bool> tabDisabled;
 
   final _formKey = GlobalKey<FormState>();
+
+  String? _resultScanned = null;
 
   // TextEditingControllers для формы TOTP
   final issuerController = TextEditingController();
@@ -88,59 +93,64 @@ class _OtpFormState extends ConsumerState<OtpForm>
             context.pop();
           },
         ),
+        surfaceTintColor: Colors.transparent,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50.0),
-          child: SizedBox(
-            height: 52,
-            child: TabBar(
-              tabs: List<Widget>.generate(
-                tabWidgets.length,
-                (index) => Opacity(
-                  opacity: tabDisabled[index] ? 0.5 : 1.0,
-                  child: tabWidgets[index],
+          preferredSize: const Size.fromHeight(58.0),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: SizedBox(
+              height: 52,
+
+              child: TabBar(
+                tabs: List<Widget>.generate(
+                  tabWidgets.length,
+                  (index) => Opacity(
+                    opacity: tabDisabled[index] ? 0.5 : 1.0,
+                    child: tabWidgets[index],
+                  ),
                 ),
+                controller: _tabController,
+                indicatorColor: Theme.of(context).colorScheme.secondary,
+                indicatorWeight: 3,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                indicatorSize: TabBarIndicatorSize.tab,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                indicator: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                splashBorderRadius: BorderRadius.circular(16),
+                labelColor: Theme.of(context).colorScheme.onSecondaryContainer,
+                unselectedLabelColor: Theme.of(context).colorScheme.onSurface,
+                labelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+                overlayColor: MaterialStateProperty.resolveWith<Color?>((
+                  Set<MaterialState> states,
+                ) {
+                  if (states.contains(MaterialState.pressed)) {
+                    return Theme.of(
+                      context,
+                    ).colorScheme.onPrimaryContainer.withOpacity(0.12);
+                  }
+                  return null; // Defer to the widget's default.
+                }),
+                onTap: (value) {
+                  if (tabDisabled[value]) {
+                    // Если вкладка отключена, вернуться к предыдущей
+                    _tabController.index = _tabController.previousIndex;
+                    ToastHelper.info(
+                      title: 'Вкладка отключена',
+                      description: 'Эта функция возможно появится позже.',
+                    );
+                  }
+                },
               ),
-              controller: _tabController,
-              indicatorColor: Theme.of(context).colorScheme.secondary,
-              indicatorWeight: 3,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-              indicatorSize: TabBarIndicatorSize.tab,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              indicator: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              splashBorderRadius: BorderRadius.circular(16),
-              labelColor: Theme.of(context).colorScheme.onSecondaryContainer,
-              unselectedLabelColor: Theme.of(context).colorScheme.onSurface,
-              labelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
-              overlayColor: MaterialStateProperty.resolveWith<Color?>((
-                Set<MaterialState> states,
-              ) {
-                if (states.contains(MaterialState.pressed)) {
-                  return Theme.of(
-                    context,
-                  ).colorScheme.onPrimaryContainer.withOpacity(0.12);
-                }
-                return null; // Defer to the widget's default.
-              }),
-              onTap: (value) {
-                if (tabDisabled[value]) {
-                  // Если вкладка отключена, вернуться к предыдущей
-                  _tabController.index = _tabController.previousIndex;
-                  ToastHelper.info(
-                    title: 'Вкладка отключена',
-                    description: 'Эта функция возможно появится позже.',
-                  );
-                }
-              },
             ),
           ),
         ),
@@ -214,7 +224,7 @@ class _OtpFormState extends ConsumerState<OtpForm>
                       labelText: 'Secret',
                       hintText: 'Base32 encoded secret',
                     ),
-                    obscureText: true,
+                    // obscureText: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Secret обязателен';
@@ -303,11 +313,23 @@ class _OtpFormState extends ConsumerState<OtpForm>
                     isFullWidth: true,
                     type: SmoothButtonType.outlined,
                     label: 'Заполнить через QR-код',
-                    onPressed: () {
-                      late final result = context.push<String?>(
+                    onPressed: () async {
+                      String? result = await context.push<String?>(
                         AppRoutes.qrScanner,
                       );
-                      if (result != null) {}
+                      if (result != null) {
+                        final uri = Uri.tryParse(result);
+                        if (uri != null) {
+                          final otpUri = parseOtpUri(uri.toString());
+                          issuerController.text = otpUri.issuer;
+                          accountNameController.text = otpUri.account;
+                          secretController.text = otpUri.secret;
+                          digitsController.text = '6';
+                          periodController.text = '30';
+
+                          setState(() {});
+                        }
+                      }
                     },
                   ),
 
@@ -329,6 +351,17 @@ class _OtpFormState extends ConsumerState<OtpForm>
                       });
                     },
                   ),
+                  _resultScanned != null
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'Scanned Result: $_resultScanned',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -353,6 +386,27 @@ class _OtpFormState extends ConsumerState<OtpForm>
       ToastHelper.error(title: 'Ошибка', description: 'Secret обязателен');
       return;
     }
+
+    // Показать модалку для подтверждения
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => OtpVerificationDialog(
+        secret: secretController.text,
+        period: int.tryParse(periodController.text) ?? 30,
+        digits: int.tryParse(digitsController.text) ?? 6,
+        algorithm: selectedAlgorithm == AlgorithmOtp.SHA1
+            ? Algorithm.SHA1
+            : selectedAlgorithm == AlgorithmOtp.SHA256
+            ? Algorithm.SHA256
+            : Algorithm.SHA512,
+        isGoogle: issuerController.text.toLowerCase().contains('google'),
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+    return;
 
     final dto = CreateTotpDto(
       issuer: issuerController.text.isNotEmpty ? issuerController.text : null,
@@ -392,5 +446,140 @@ class _OtpFormState extends ConsumerState<OtpForm>
         description: result.message ?? 'Не удалось создать TOTP',
       );
     }
+  }
+}
+
+class OtpVerificationDialog extends StatefulWidget {
+  final String secret;
+  final int period;
+  final int digits;
+  final Algorithm algorithm;
+  final bool isGoogle;
+
+  const OtpVerificationDialog({
+    super.key,
+
+    required this.secret,
+    required this.period,
+    this.digits = 6,
+    this.algorithm = Algorithm.SHA1,
+    this.isGoogle = true,
+  });
+
+  @override
+  State<OtpVerificationDialog> createState() => _OtpVerificationDialogState();
+}
+
+class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
+  late Timer _timer;
+  late String _currentCode;
+  late int _remainingSeconds;
+
+  final TextEditingController _codeController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _updateCode();
+    _updateRemaining();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _updateCode();
+      _updateRemaining();
+    });
+  }
+
+  void _updateCode() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    setState(() {
+      _currentCode = OTP.generateTOTPCodeString(
+        widget.secret,
+        timestamp,
+        interval: widget.period,
+        length: widget.digits,
+        algorithm: widget.algorithm,
+        isGoogle: true,
+      );
+    });
+  }
+
+  void _updateRemaining() {
+    final now = DateTime.now();
+    final currentSecond = now.second;
+    setState(() {
+      _remainingSeconds = widget.period - (currentSecond % widget.period);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Подтверждение TOTP'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Текущий код: $_currentCode'),
+          const SizedBox(height: 8),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            verticalDirection: VerticalDirection.down,
+            spacing: 8,
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _codeController,
+                  decoration: primaryInputDecoration(
+                    context,
+                    labelText: 'Введите код',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  value: _remainingSeconds / widget.period,
+                  strokeWidth: 4,
+                ),
+              ),
+
+              Text('$_remainingSeconds сек'),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+          Text('Секрет: ${widget.secret}'),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Отмена'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (_codeController.text == _currentCode) {
+              Navigator.of(context).pop(true);
+            } else {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Неверный код')));
+            }
+          },
+          child: const Text('Подтвердить'),
+        ),
+      ],
+    );
   }
 }

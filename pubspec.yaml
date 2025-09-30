@@ -92,6 +92,8 @@ dependencies:
   flutter_webrtc: ^1.2.0
 
   qr_code_scanner_plus: ^2.0.12
+  otp: ^3.2.0
+
   
 
 
