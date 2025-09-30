@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:hoplixi/core/errors/index.dart';
 
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/hoplixi_store/dao/filters_dao/otp_filter_dao.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/tables/hoplixi_meta.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
@@ -56,6 +57,7 @@ part 'hoplixi_store.g.dart';
     PasswordHistoriesDao,
     NoteHistoriesDao,
     OtpHistoriesDao,
+    OtpFilterDao,
   ],
 )
 class HoplixiStore extends _$HoplixiStore {

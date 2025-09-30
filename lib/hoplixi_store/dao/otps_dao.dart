@@ -128,6 +128,14 @@ class OtpsDao extends DatabaseAccessor<HoplixiStore> with _$OtpsDaoMixin {
     return await query.get();
   }
 
+  Future<String> findSecretById(String id) async {
+    final query = select(attachedDatabase.otps)
+      ..where((tbl) => tbl.id.equals(id))
+      ..addColumns([attachedDatabase.otps.secret]);
+    final result = await query.getSingleOrNull();
+    return result?.secret ?? '';
+  }
+
   /// Поиск OTP по имени, эмитенту или аккаунту
   Future<List<Otp>> searchOtps(String searchTerm) async {
     final query = select(attachedDatabase.otps)

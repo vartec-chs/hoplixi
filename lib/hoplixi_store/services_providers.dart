@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/hoplixi_store/dao/filters_dao/otp_filter_dao.dart';
 import 'package:hoplixi/hoplixi_store/dao/index.dart';
 import 'package:hoplixi/hoplixi_store/services/categories_service.dart';
 import 'package:hoplixi/hoplixi_store/services/icons_service.dart';
@@ -76,6 +77,12 @@ final otpsDaoProvider = Provider.autoDispose<OtpsDao>((ref) {
   final db = ref.watch(hoplixiStoreProvider.notifier);
 
   return OtpsDao(db.currentDatabase);
+});
+
+final otpFilterDaoProvider = Provider.autoDispose<OtpFilterDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  return OtpFilterDao(db.currentDatabase);
 });
 // =============================================================================
 // СЕРВИС ПРОВАЙДЕРЫ

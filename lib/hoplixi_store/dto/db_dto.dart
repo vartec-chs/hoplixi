@@ -268,3 +268,36 @@ abstract class UpdateAttachmentDto with _$UpdateAttachmentDto {
     String? noteId,
   }) = _UpdateAttachmentDto;
 }
+
+// OTP Card DTOs
+@freezed
+abstract class CardOtpDto with _$CardOtpDto {
+  const factory CardOtpDto({
+    required String id,
+    String? issuer,
+    String? accountName,
+    required OtpType type,
+    required AlgorithmOtp algorithm,
+    required int digits,
+    required int period,
+    int? counter,
+    List<CardOtpCategoryDto>? categories,
+    List<CardOtpTagDto>? tags,
+    @Default(false) bool isFavorite,
+    bool? hasPasswordLink,
+  }) = _CardOtpDto;
+}
+
+@freezed
+abstract class CardOtpCategoryDto with _$CardOtpCategoryDto {
+  const factory CardOtpCategoryDto({
+    required String name,
+    @Default('FFFFFF') String color,
+  }) = _CardOtpCategoryDto;
+}
+
+@freezed
+abstract class CardOtpTagDto with _$CardOtpTagDto {
+  const factory CardOtpTagDto({required String name, String? color}) =
+      _CardOtpTagDto;
+}
