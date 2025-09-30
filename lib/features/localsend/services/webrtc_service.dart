@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/localsend/models/connection_mode.dart';

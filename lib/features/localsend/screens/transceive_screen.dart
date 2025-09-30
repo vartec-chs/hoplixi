@@ -378,7 +378,7 @@ class _TransceiveScreenState extends ConsumerState<TransceiveScreen> {
       decoration: BoxDecoration(
         color: isFromMe
             ? Theme.of(context).colorScheme.primaryContainer
-            : Theme.of(context).colorScheme.surfaceVariant,
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(

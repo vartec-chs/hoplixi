@@ -153,7 +153,7 @@ class SmoothButton extends StatelessWidget {
           autofocus: autofocus,
           clipBehavior: clipBehavior,
           style: effectiveStyle.copyWith(
-            side: MaterialStateProperty.all(
+            side: WidgetStateProperty.all(
               BorderSide(
                 color: Theme.of(
                   context,

@@ -29,7 +29,7 @@ class _OtpFormState extends ConsumerState<OtpForm>
 
   final _formKey = GlobalKey<FormState>();
 
-  String? _resultScanned = null;
+  String? _resultScanned;
 
   // TextEditingControllers для формы TOTP
   final issuerController = TextEditingController();
@@ -130,10 +130,10 @@ class _OtpFormState extends ConsumerState<OtpForm>
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                 ),
-                overlayColor: MaterialStateProperty.resolveWith<Color?>((
-                  Set<MaterialState> states,
+                overlayColor: WidgetStateProperty.resolveWith<Color?>((
+                  Set<WidgetState> states,
                 ) {
-                  if (states.contains(MaterialState.pressed)) {
+                  if (states.contains(WidgetState.pressed)) {
                     return Theme.of(
                       context,
                     ).colorScheme.onPrimaryContainer.withOpacity(0.12);
@@ -234,7 +234,7 @@ class _OtpFormState extends ConsumerState<OtpForm>
                   ),
 
                   DropdownButtonFormField<AlgorithmOtp>(
-                    value: selectedAlgorithm,
+                    initialValue: selectedAlgorithm,
                     decoration: primaryInputDecoration(
                       context,
                       labelText: 'Algorithm',

@@ -1,10 +1,7 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/localsend/models/connection_mode.dart';
 import 'package:hoplixi/features/localsend/models/localsend_device_info.dart';
@@ -88,7 +85,7 @@ final List<GoRoute> appRoutes = [
   ),
 
   GoRoute(
-    path: AppRoutes.passwordHistory + '/:passwordId',
+    path: '${AppRoutes.passwordHistory}/:passwordId',
     builder: (context, state) {
       if (state.pathParameters['passwordId'] == null) {
         return const SplashScreen(title: 'Ошибка: нет ID пароля');

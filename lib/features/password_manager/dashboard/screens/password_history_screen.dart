@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/features/password_manager/dashboard/controllers/password_history/password_history_list_provider.dart';
-import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:intl/intl.dart';
 
 class PasswordHistoryScreen extends ConsumerStatefulWidget {
