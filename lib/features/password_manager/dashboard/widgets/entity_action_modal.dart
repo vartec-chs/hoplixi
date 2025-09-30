@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/slider_button.dart';
 
 /// Типы действий над сущностями
@@ -258,20 +259,11 @@ class _EntityActionModalState extends State<EntityActionModal>
           // Кнопка отмены
           SizedBox(
             width: double.infinity,
-            child: TextButton(
+            child: SmoothButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Отмена',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              type: SmoothButtonType.text,
+
+              label: 'Закрыть',
             ),
           ),
         ],
@@ -581,8 +573,8 @@ class EntityActionModalHelper {
   /// Показывает модалку с действиями для OTP
   static Future<void> showOtpActions(
     BuildContext context, {
-    required String otpName,
     required String issuer,
+    required String accountName,
     required VoidCallback onEdit,
     required VoidCallback onDelete,
   }) {
@@ -595,8 +587,8 @@ class EntityActionModalHelper {
         useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (context) => EntityActionModal(
-          entityTitle: otpName,
-          entitySubtitle: issuer,
+          entityTitle: issuer,
+          entitySubtitle: accountName,
           entityIcon: Icons.security,
           isMobile: true,
           actions: [
@@ -623,8 +615,8 @@ class EntityActionModalHelper {
         context: context,
         barrierDismissible: true,
         builder: (context) => EntityActionModal(
-          entityTitle: otpName,
-          entitySubtitle: issuer,
+          entityTitle: issuer,
+          entitySubtitle: accountName,
           entityIcon: Icons.security,
           isMobile: false,
           actions: [

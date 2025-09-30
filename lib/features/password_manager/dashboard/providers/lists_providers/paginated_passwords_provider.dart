@@ -5,8 +5,8 @@ import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
-import 'password_filter_provider.dart';
-import 'filter_tabs_provider.dart';
+import '../filter_providers/password_filter_provider.dart';
+import '../filter_providers/filter_tabs_provider.dart';
 import '../data_refresh_trigger_provider.dart';
 import '../../models/filter_tab.dart';
 

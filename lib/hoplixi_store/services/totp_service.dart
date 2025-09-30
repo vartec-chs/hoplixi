@@ -356,6 +356,30 @@ class TOTPService {
     }
   }
 
+  /// Получение расшифрованного секрета TOTP токена
+  Future<ServiceResult<String>> getDecryptedSecret(String id) async {
+    try {
+      final otp = await _otpsDao.getTotpById(id);
+      if (otp == null) {
+        return ServiceResult.error('TOTP токен не найден');
+      }
+
+      // Секрет уже расшифрован в DAO при получении
+      return ServiceResult.success(
+        data: otp.secret,
+        message: 'Секрет получен успешно',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения секрета TOTP токена',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'TOTPService',
+      );
+      return ServiceResult.error('Ошибка получения секрета: ${e.toString()}');
+    }
+  }
+
   // ==================== СТАТИСТИКА ====================
 
   /// Получение количества TOTP токенов

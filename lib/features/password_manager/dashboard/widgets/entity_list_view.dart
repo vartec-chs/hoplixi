@@ -4,9 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
-import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/paginated_passwords_provider.dart';
-import 'package:hoplixi/features/password_manager/dashboard/widgets/password_card.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_passwords_provider.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_otps_provider.dart';
+import 'package:hoplixi/features/password_manager/dashboard/widgets/cards/skeleton_card.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_action_modal.dart';
+import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/empty_list.dart';
+import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/passwords_list.dart';
+import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/otps_list.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
 
@@ -41,13 +45,20 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
   void _onScroll() {
     final entityType = ref.read(currentEntityTypeProvider);
 
-    // Пагинация только для паролей пока что
-    if (entityType != EntityType.password) return;
-
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       // Загружаем больше данных когда до конца остается 200 пикселей
-      ref.read(paginatedPasswordsProvider.notifier).loadMore();
+      switch (entityType) {
+        case EntityType.password:
+          ref.read(paginatedPasswordsProvider.notifier).loadMore();
+          break;
+        case EntityType.otp:
+          ref.read(paginatedOtpsProvider.notifier).loadMore();
+          break;
+        case EntityType.note:
+          // Пагинация для заметок не реализована
+          break;
+      }
     }
   }
 
@@ -60,10 +71,10 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
     switch (entityType) {
       case EntityType.password:
         return _buildPasswordsList();
+      case EntityType.otp:
+        return _buildOtpsList();
       case EntityType.note:
         return _buildNotImplementedView('Заметки', Icons.note);
-      case EntityType.otp:
-        return _buildNotImplementedView('OTP', Icons.security);
     }
   }
 
@@ -78,7 +89,7 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
           ref.read(paginatedPasswordsProvider.notifier).refresh();
         },
       ),
-      data: (state) => _PasswordsSliverList(
+      data: (state) => PasswordsSliverList(
         state: state,
         scrollController: _scrollController,
         onPasswordFavoriteToggle: _onPasswordFavoriteToggle,
@@ -89,9 +100,31 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
     );
   }
 
+  Widget _buildOtpsList() {
+    final otpsAsync = ref.watch(paginatedOtpsProvider);
+
+    return otpsAsync.when(
+      loading: () => const _LoadingSliverView(),
+      error: (error, _) => _ErrorSliverView(
+        error: error.toString(),
+        onRetry: () {
+          ref.read(paginatedOtpsProvider.notifier).refresh();
+        },
+      ),
+      data: (state) => OtpsSliverList(
+        state: state,
+        scrollController: _scrollController,
+        onOtpFavoriteToggle: _onOtpFavoriteToggle,
+        onOtpEdit: _onOtpEdit,
+        onOtpDelete: _onOtpDelete,
+        onOtpLongPress: _onOtpLongPress,
+      ),
+    );
+  }
+
   Widget _buildNotImplementedView(String title, IconData icon) {
     return SliverFillRemaining(
-      child: _EmptyView(
+      child: EmptyView(
         title: title,
         subtitle: 'Функционал находится в разработке',
         icon: icon,
@@ -131,87 +164,35 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
       onDelete: () => _onPasswordDelete(password),
     );
   }
-}
 
-/// Виджет списка паролей как Sliver
-class _PasswordsSliverList extends StatelessWidget {
-  final PaginatedPasswordsState state;
-  final ScrollController? scrollController;
-  final Function(CardPasswordDto) onPasswordFavoriteToggle;
-  final Function(CardPasswordDto) onPasswordEdit;
-  final Function(CardPasswordDto) onPasswordDelete;
-  final Function(CardPasswordDto) onPasswordLongPress;
-
-  const _PasswordsSliverList({
-    required this.state,
-    this.scrollController,
-    required this.onPasswordFavoriteToggle,
-    required this.onPasswordEdit,
-    required this.onPasswordDelete,
-    required this.onPasswordLongPress,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (state.passwords.isEmpty) {
-      return const SliverFillRemaining(
-        child: _EmptyView(
-          title: 'Нет паролей',
-          subtitle: 'Создайте первый пароль, чтобы начать работу',
-          icon: Icons.password,
-        ),
-      );
+  void _onOtpFavoriteToggle(CardOtpDto otp) {
+    logInfo('EntityListView: Переключение избранного для OTP ${otp.id}');
+    if (mounted) {
+      ref.read(paginatedOtpsProvider.notifier).toggleFavorite(otp.id);
     }
+  }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          // Обработка индикатора загрузки
-          if (index == state.passwords.length) {
-            if (state.isLoadingMore) {
-              return const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            } else if (!state.hasMore) {
-              return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Center(
-                  child: Text(
-                    'Все пароли загружены (${state.totalCount})',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ),
-              );
-            }
-            return const SizedBox.shrink();
-          }
+  void _onOtpEdit(CardOtpDto otp) {
+    logInfo('EntityListView: Редактирование OTP ${otp.id}');
+    // TODO: Добавить маршрут для редактирования OTP
+    // context.push('${AppRoutes.otpForm}/${otp.id}');
+  }
 
-          final password = state.passwords[index];
-          return Padding(
-            padding: EdgeInsets.fromLTRB(
-              8,
-              index == 0 ? 16 : 8,
-              8,
-              index == state.passwords.length - 1 && !state.hasMore ? 16 : 8,
-            ),
-            child: PasswordCard(
-              password: password,
-              onFavoriteToggle: () => onPasswordFavoriteToggle(password),
-              onEdit: () => onPasswordEdit(password),
-              onDelete: () => onPasswordDelete(password),
-              onLongPress: () => onPasswordLongPress(password),
-            ),
-          );
-        },
-        childCount:
-            state.passwords.length +
-            (state.isLoadingMore || !state.hasMore ? 1 : 0),
-      ),
+  void _onOtpDelete(CardOtpDto otp) {
+    logInfo('EntityListView: Удаление OTP ${otp.id}');
+    if (mounted) {
+      ref.read(paginatedOtpsProvider.notifier).deleteOtp(otp.id);
+    }
+  }
+
+  void _onOtpLongPress(CardOtpDto otp) {
+    logInfo('EntityListView: Долгое нажатие на OTP ${otp.id}');
+    EntityActionModalHelper.showOtpActions(
+      context,
+      issuer: otp.issuer ?? 'Unknown',
+      accountName: otp.accountName ?? 'Нет данных',
+      onEdit: () => _onOtpEdit(otp),
+      onDelete: () => _onOtpDelete(otp),
     );
   }
 }
@@ -284,81 +265,6 @@ class _ErrorSliverView extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Виджет пустого состояния
-class _EmptyView extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool isNotImplemented;
-
-  const _EmptyView({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    this.isNotImplemented = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: isNotImplemented
-                ? Theme.of(context).colorScheme.outline
-                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
-          ),
-          const SizedBox(height: 16),
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-          ),
-          if (isNotImplemented) ...[
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.construction,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'В разработке',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

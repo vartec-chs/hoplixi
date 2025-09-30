@@ -7,7 +7,7 @@ import 'package:hoplixi/core/theme/theme_switcher.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
-import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/paginated_passwords_provider.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_passwords_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/dashboard_app_bar.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_list_view.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_fab.dart';

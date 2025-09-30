@@ -56,6 +56,7 @@ class ServiceResult<T>{ final bool success; final String? message; final T? data
 - To obtain accurate data about libraries, use mcp server context7;
 - Use an MCP server for the SequentialThinking model when you need reliable, ordered orchestration of multi-step reasoning — e.g., to manage long-running, stateful chains of inference, coordinate parallel subtasks, or persist and resume multi-turn workflows.
 Also use it when you need centralized routing, authentication, load-balancing and observability (logging/metrics) for many clients or models so ordering, fault tolerance and scalable performance are maintained.
+- Use dart mcp server for finding libraries flutter and dart.
 
 ### Riverpod Providers
 
