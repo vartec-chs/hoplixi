@@ -503,12 +503,24 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: () {
-                context.push(AppRoutes.qrTest);
-              },
-              child: const Text('QR Scan'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              spacing: 8,
+              children: [
+                FilledButton(
+                  onPressed: () {
+                    context.push(AppRoutes.qrTest);
+                  },
+                  child: const Text('QR Scan'),
+                ),
+
+                FilledButton(
+                  onPressed: () {
+                    context.push(AppRoutes.demoNotification);
+                  },
+                  child: const Text('Тест уведомлений'),
+                ),
+              ],
             ),
           ],
         ),

@@ -11,6 +11,8 @@ import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/preferences/app_preferences.dart';
 import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:hoplixi/core/services/notification_helpers.dart';
+import 'package:hoplixi/core/services/notification_helpers.dart';
 import 'package:toastification/toastification.dart';
 import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
@@ -66,6 +68,14 @@ Future<void> main() async {
 
       // Инициализируем хранилище
       await StorageServiceLocator.initializeStorage();
+
+      // Инициализируем систему уведомлений
+      try {
+        await NotificationHelpers.initializeWithPermissions();
+        logInfo('Система уведомлений инициализирована');
+      } catch (e) {
+        logWarning('Не удалось инициализировать систему уведомлений: $e');
+      }
 
       // Handle Flutter errors
       FlutterError.onError = (FlutterErrorDetails details) {

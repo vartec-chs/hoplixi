@@ -23,6 +23,7 @@ class AppRoutes {
   static const String qrScanner = '/qr-scanner';
   static const String qrTest = '/qr-test';
   static const String otpForm = '/otp-form';
+  static const String demoNotification = '/demo-notification';
 }
 
 class ProtectedRoutes {
