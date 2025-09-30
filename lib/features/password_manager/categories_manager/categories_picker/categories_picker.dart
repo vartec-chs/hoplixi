@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as db;
@@ -57,14 +58,14 @@ class CategoriesPicker extends ConsumerStatefulWidget {
 }
 
 class _CategoriesPickerState extends ConsumerState<CategoriesPicker> {
-  late TextEditingController _controller;
   late List<String> _selectedIds;
+
+  final TextEditingController controller = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _selectedIds = List.from(widget.selectedCategoryIds);
-    _controller = TextEditingController();
     _updateControllerText();
   }
 
@@ -79,14 +80,14 @@ class _CategoriesPickerState extends ConsumerState<CategoriesPicker> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    controller.dispose();
     super.dispose();
   }
 
   /// Обновляет текст в контроллере на основе выбранных категорий
   Future<void> _updateControllerText() async {
     if (_selectedIds.isEmpty) {
-      _controller.text = '';
+      controller.text = '';
       return;
     }
 
@@ -103,15 +104,15 @@ class _CategoriesPickerState extends ConsumerState<CategoriesPicker> {
 
       if (categories.isNotEmpty) {
         if (categories.length == 1) {
-          _controller.text = categories.first.name;
+          controller.text = categories.first.name;
         } else {
-          _controller.text = '${categories.length} категорий выбрано';
+          controller.text = '${categories.length} категорий выбрано';
         }
       } else {
-        _controller.text = '';
+        controller.text = '';
       }
     } catch (e) {
-      _controller.text = _selectedIds.isNotEmpty ? 'Ошибка загрузки' : '';
+      controller.text = _selectedIds.isNotEmpty ? 'Ошибка загрузки' : '';
     }
   }
 
@@ -173,7 +174,7 @@ class _CategoriesPickerState extends ConsumerState<CategoriesPicker> {
   @override
   Widget build(BuildContext context) {
     return PrimaryTextField(
-      controller: _controller,
+      controller: controller,
       label: widget.labelText ?? 'Категория',
       hintText: widget.hintText ?? 'Выберите категорию',
       readOnly: true,
@@ -204,10 +205,10 @@ class _CategorySelectorDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      insetPadding: const EdgeInsets.all(8),
       child: Container(
-        width: 500,
-        height: 600,
-        padding: const EdgeInsets.all(16),
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+        padding: const EdgeInsets.all(8),
         child: _CategorySelectorContent(
           categoryType: categoryType,
           maxSelection: maxSelection,
@@ -538,20 +539,23 @@ class _CategorySelectorContentState
 
         // Кнопки действий
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(8),
           child: Row(
+            spacing: 8,
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: SmoothButton(
                   onPressed: _cancelSelection,
-                  child: const Text('Отмена'),
+                  label: 'Отмена',
+                  type: SmoothButtonType.outlined,
                 ),
               ),
-              const SizedBox(width: 16),
+
               Expanded(
-                child: ElevatedButton(
+                child: SmoothButton(
                   onPressed: _confirmSelection,
-                  child: const Text('Подтвердить'),
+                  label: 'Подтвердить',
+                  type: SmoothButtonType.filled,
                 ),
               ),
             ],

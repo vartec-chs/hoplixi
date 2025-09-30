@@ -8,8 +8,6 @@ class TotpHistories extends Table {
   TextColumn get originalTotpId => text()(); // ID of original TOTP
   TextColumn get action =>
       text().withLength(min: 1, max: 50)(); // 'deleted', 'modified'
-  TextColumn get name => text().withLength(min: 1, max: 255)();
-  TextColumn get description => text().nullable()();
 
   // OTP authentication fields
   TextColumn get type => text().nullable()(); // TOTP or HOTP
@@ -17,9 +15,8 @@ class TotpHistories extends Table {
   TextColumn get accountName => text().nullable()(); // Account identifier
 
   // Secret encryption fields (nullable for privacy)
-  TextColumn get secretNonce => text().nullable()();
-  TextColumn get secretCipher => text().nullable()(); // Encrypted secret
-  TextColumn get secretTag => text().nullable()();
+  TextColumn get secret => text()();
+  TextColumn get notes => text().nullable()();
 
   // OTP configuration
   TextColumn get algorithm => text().nullable()();

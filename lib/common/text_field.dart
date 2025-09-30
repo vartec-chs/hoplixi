@@ -17,6 +17,7 @@ InputDecoration primaryInputDecoration(
   String? helperText,
   bool enabled = true,
   bool filled = true,
+  Widget? icon,
 }) {
   final theme = Theme.of(context);
   return InputDecoration(
@@ -27,6 +28,7 @@ InputDecoration primaryInputDecoration(
     enabled: enabled,
     helper: helper,
     helperText: helperText,
+    icon: icon,
 
     labelStyle: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16),
 

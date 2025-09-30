@@ -6,7 +6,11 @@ class ExpandableFAB extends StatefulWidget {
     super.key,
     this.initialOpen,
     this.distance = 112,
-    required this.onCreatePassword,
+    this.iconData,
+
+    required this.onCreateEntity,
+    required this.entityName,
+
     required this.onCreateCategory,
     required this.onCreateTag,
     required this.onIconCreate,
@@ -14,7 +18,9 @@ class ExpandableFAB extends StatefulWidget {
 
   final bool? initialOpen;
   final double distance;
-  final VoidCallback onCreatePassword;
+  final String entityName;
+  final IconData? iconData;
+  final VoidCallback onCreateEntity;
   final VoidCallback onCreateCategory;
   final VoidCallback onCreateTag;
   final VoidCallback onIconCreate;
@@ -131,9 +137,11 @@ class _ExpandableFABState extends State<ExpandableFAB>
         foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
       ),
       ActionButton(
-        onPressed: () => _executeAction(widget.onCreatePassword),
-        icon: const Icon(Icons.key),
-        label: 'Создать пароль',
+        onPressed: () => _executeAction(widget.onCreateEntity),
+        icon: widget.iconData != null
+            ? Icon(widget.iconData)
+            : const Icon(Icons.key),
+        label: 'Создать ${widget.entityName}',
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
       ),

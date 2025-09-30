@@ -19,7 +19,7 @@ import 'routes.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: AppRoutes.otpForm,
+    initialLocation: AppRoutes.home,
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
 
     observers: [GoTransition.observer, LoggingRouteObserver()],

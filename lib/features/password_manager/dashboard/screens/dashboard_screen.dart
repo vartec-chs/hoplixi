@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/common/close_database_button.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/theme/theme_switcher.dart';
+import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/paginated_passwords_provider.dart';
@@ -125,11 +126,45 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         drawer: _buildDrawer(context),
 
         // Expandable FAB для создания новых сущностей
-        floatingActionButton: ExpandableFAB(
-          onCreatePassword: _onCreatePassword,
-          onCreateCategory: _onCreateCategory,
-          onCreateTag: _onCreateTag,
-          onIconCreate: _onCreateIcon,
+        floatingActionButton: Consumer(
+          builder: (context, ref, child) {
+            final currentEntityType = ref.watch(currentEntityTypeProvider);
+            return ExpandableFAB(
+              iconData: currentEntityType == EntityType.password
+                  ? Icons.key
+                  : currentEntityType == EntityType.note
+                  ? Icons.note
+                  : currentEntityType == EntityType.otp
+                  ? Icons.security
+                  : Icons.add,
+              entityName: currentEntityType == EntityType.password
+                  ? 'пароль'
+                  : currentEntityType == EntityType.note
+                  ? 'заметку'
+                  : currentEntityType == EntityType.otp
+                  ? 'OTP'
+                  : 'сущность',
+              onCreateEntity: () {
+                if (currentEntityType == EntityType.password) {
+                  _onCreatePassword();
+                } else if (currentEntityType == EntityType.note) {
+                  logInfo('DashboardScreen: Создание новой заметки');
+                  ToastHelper.info(title: 'Функция в разработке');
+                  // context.push(AppRoutes.noteForm);
+                } else if (currentEntityType == EntityType.otp) {
+                  logInfo('DashboardScreen: Создание нового OTP');
+                  context.push(AppRoutes.otpForm);
+                } else {
+                  logInfo(
+                    'DashboardScreen: Неизвестный тип сущности для создания',
+                  );
+                }
+              },
+              onCreateCategory: _onCreateCategory,
+              onCreateTag: _onCreateTag,
+              onIconCreate: _onCreateIcon,
+            );
+          },
         ),
       ),
     );

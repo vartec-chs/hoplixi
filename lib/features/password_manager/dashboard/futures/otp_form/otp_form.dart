@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +11,7 @@ import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/features/password_manager/categories_manager/categories_picker/categories_picker.dart';
 import 'package:otp/otp.dart';
 
 class OtpForm extends ConsumerStatefulWidget {
@@ -333,15 +333,6 @@ class _OtpFormState extends ConsumerState<OtpForm>
                     },
                   ),
 
-                  // CheckboxListTile(
-                  //   title: const Text('Как избранное'),
-                  //   value: isFavorite,
-                  //   onChanged: (value) {
-                  //     setState(() {
-                  //       isFavorite = value ?? false;
-                  //     });
-                  //   },
-                  // ),
                   SwitchListTile(
                     title: const Text('Как избранное'),
                     value: isFavorite,
@@ -351,6 +342,23 @@ class _OtpFormState extends ConsumerState<OtpForm>
                       });
                     },
                   ),
+
+                  CategoriesPicker(
+                    categoryType: CategoryType.totp,
+                    selectedCategoryIds: selectedCategoryId != null
+                        ? [selectedCategoryId!]
+                        : [],
+                    onSelect: (selectedIds) {
+                      setState(() {
+                        selectedCategoryId = selectedIds.isNotEmpty
+                            ? selectedIds.first
+                            : null;
+                      });
+                    },
+                    hintText: 'Выберите категорию для TOTP',
+                    labelText: 'Категория',
+                  ),
+
                   _resultScanned != null
                       ? Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -406,7 +414,6 @@ class _OtpFormState extends ConsumerState<OtpForm>
     if (confirmed != true) {
       return;
     }
-    return;
 
     final dto = CreateTotpDto(
       issuer: issuerController.text.isNotEmpty ? issuerController.text : null,
@@ -458,7 +465,6 @@ class OtpVerificationDialog extends StatefulWidget {
 
   const OtpVerificationDialog({
     super.key,
-
     required this.secret,
     required this.period,
     this.digits = 6,
@@ -497,7 +503,7 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
         interval: widget.period,
         length: widget.digits,
         algorithm: widget.algorithm,
-        isGoogle: true,
+        isGoogle: widget.isGoogle,
       );
     });
   }
@@ -520,6 +526,8 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      insetPadding: const EdgeInsets.all(8.0),
+      constraints: BoxConstraints(maxWidth: 400),
       title: const Text('Подтверждение TOTP'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -537,24 +545,37 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
               Expanded(
                 child: TextFormField(
                   controller: _codeController,
-                  decoration: primaryInputDecoration(
-                    context,
-                    labelText: 'Введите код',
-                  ),
+                  decoration:
+                      primaryInputDecoration(
+                        context,
+                        labelText: 'Введите код',
+                      ).copyWith(
+                        suffixIcon: Container(
+                          padding: const EdgeInsets.all(8.0),
+                          child: CircularProgressIndicator(
+                            constraints: BoxConstraints(
+                              maxWidth: 40,
+                              maxHeight: 40,
+                            ),
+                            value: _remainingSeconds / widget.period,
+                            strokeWidth: 4,
+                          ),
+                        ),
+                      ),
                   keyboardType: TextInputType.number,
                 ),
               ),
 
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: CircularProgressIndicator(
-                  value: _remainingSeconds / widget.period,
-                  strokeWidth: 4,
-                ),
-              ),
+              // SizedBox(
+              //   width: 40,
+              //   height: 40,
+              //   child: CircularProgressIndicator(
+              //     value: _remainingSeconds / widget.period,
+              //     strokeWidth: 4,
+              //   ),
+              // ),
 
-              Text('$_remainingSeconds сек'),
+              // Text('$_remainingSeconds сек'),
             ],
           ),
 

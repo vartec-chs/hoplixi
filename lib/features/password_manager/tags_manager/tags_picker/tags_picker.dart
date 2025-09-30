@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/common/button.dart';
 import 'package:hoplixi/common/text_field.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
@@ -211,10 +212,10 @@ class _TagSelectorDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      insetPadding: const EdgeInsets.all(8),
       child: Container(
-        width: 500,
-        height: 600,
-        padding: const EdgeInsets.all(16),
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+        padding: const EdgeInsets.all(8),
         child: _TagSelectorContent(
           tagType: tagType,
           maxSelection: maxSelection,
@@ -565,20 +566,23 @@ class _TagSelectorContentState extends ConsumerState<_TagSelectorContent> {
 
         // Кнопки действий
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(8),
           child: Row(
+            spacing: 8,
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: SmoothButton(
                   onPressed: _cancelSelection,
-                  child: const Text('Отмена'),
+                  type: SmoothButtonType.outlined,
+                  label: 'Отмена',
                 ),
               ),
-              const SizedBox(width: 16),
+
               Expanded(
-                child: ElevatedButton(
+                child: SmoothButton(
                   onPressed: _confirmSelection,
-                  child: const Text('Подтвердить'),
+                  type: SmoothButtonType.filled,
+                  label: 'Подтвердить',
                 ),
               ),
             ],
