@@ -6,10 +6,11 @@ import 'package:go_transitions/go_transitions.dart';
 import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
+import 'package:hoplixi/core/providers/notification_providers.dart';
 import 'package:hoplixi/core/secure_storage/index.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';
-import 'package:hoplixi/providers/app_lifecycle_provider.dart';
+import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
 import 'package:hoplixi/router/router_refresh_provider.dart';
 
 import 'package:universal_platform/universal_platform.dart';
@@ -18,18 +19,23 @@ import 'routes_path.dart';
 import 'routes.dart';
 
 // current path
-final goRouterPathProvider = Provider<String>((ref) {
-  final router = ref.watch(goRouterProvider);
-  // Подписываемся на изменения через refreshListenable
-  ref.watch(routerRefreshProvider);
-  return router.state.fullPath ?? '';
-});
+// final goRouterPathProvider = Provider<String>((ref) {
+//   final router = ref.watch(goRouterProvider);
+//   // Подписываемся на изменения через refreshListenable
+//   // ref.watch(routerRefreshProvider);
+//   return router.state.fullPath ?? '';
+// });
 
-// проверка защищённого маршрута
-final isInProtectedRouteProvider = Provider<bool>((ref) {
-  final currentPath = ref.watch(goRouterPathProvider);
-  return ProtectedRoutes.routes.contains(currentPath);
-});
+// // проверка защищённого маршрута
+// final isInProtectedRouteProvider = Provider<bool>((ref) {
+//   final currentPath = ref.watch(goRouterPathProvider);
+//   final isInProtectedRoute = ProtectedRoutes.routes.contains(currentPath);
+//   logDebug(
+//     'Проверка защищённого маршрута: $currentPath -> $isInProtectedRoute',
+//     tag: 'RouterProvider',
+//   );
+//   return isInProtectedRoute;
+// });
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -51,6 +57,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           tag: 'GoRouter',
           data: {'currentPath': state.fullPath},
         );
+
+        try {
+          await ref
+              .read(notificationProvider.notifier)
+              .showSecurityAlert(
+                'Безопасность',
+                'Бд была автоматический закрыта из-за неактивности',
+              );
+        } catch (e) {
+          logWarning('Не удалось отправить уведомление безопасности: $e');
+        }
+
+        ref.read(appLifecycleProvider.notifier).cleanup();
+
         return AppRoutes.home;
       }
 

@@ -123,19 +123,21 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         });
 
         return Scaffold(
-          body: PageView(
-            controller: _pageController,
-            onPageChanged: (index) {
-              ref
-                  .read(homeControllerProvider.notifier)
-                  .setBottomNavIndex(index);
-            },
-            children: [
-              _buildHomeView(),
-              _buildSearchView(),
-              _buildFavoritesView(),
-              _buildSettingsView(),
-            ],
+          body: SafeArea(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                ref
+                    .read(homeControllerProvider.notifier)
+                    .setBottomNavIndex(index);
+              },
+              children: [
+                _buildHomeView(),
+                _buildSearchView(),
+                _buildFavoritesView(),
+                _buildSettingsView(),
+              ],
+            ),
           ),
           // bottomNavigationBar: _buildModernBottomNav(selectedIndex),
           // floatingActionButton: _buildFloatingActionButton(),
@@ -156,6 +158,45 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
             _buildQuickActions(),
             ...widgets.map(_buildHomeWidget),
             _buildErrorMessage(),
+            !MainConstants.isProduction
+                ? SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        spacing: 8,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Для тестирования:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            spacing: 8,
+                            children: [
+                              FilledButton(
+                                onPressed: () {
+                                  context.push(AppRoutes.qrTest);
+                                },
+                                child: const Text('QR Scan'),
+                              ),
+
+                              FilledButton(
+                                onPressed: () {
+                                  context.push(AppRoutes.demoNotification);
+                                },
+                                child: const Text('Тест уведомлений'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : const SliverToBoxAdapter(child: SizedBox.shrink()),
             // Добавляем отступ снизу для FAB
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
@@ -500,25 +541,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                     onTap: () => context.push(AppRoutes.localSend),
                     isPrimary: false,
                   ),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              spacing: 8,
-              children: [
-                FilledButton(
-                  onPressed: () {
-                    context.push(AppRoutes.qrTest);
-                  },
-                  child: const Text('QR Scan'),
-                ),
-
-                FilledButton(
-                  onPressed: () {
-                    context.push(AppRoutes.demoNotification);
-                  },
-                  child: const Text('Тест уведомлений'),
                 ),
               ],
             ),

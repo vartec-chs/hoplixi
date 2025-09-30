@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/providers/app_lifecycle_provider.dart';
+import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
 
 /// Виджет-индикатор состояния жизненного цикла приложения
 /// Показывает оставшееся время до автоматического выхода

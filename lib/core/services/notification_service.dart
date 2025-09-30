@@ -70,12 +70,13 @@ class NotificationService {
           );
 
       // Настройки для Windows
-      const WindowsInitializationSettings windowsSettings =
-          WindowsInitializationSettings(
-            appName: 'Hoplixi',
-            appUserModelId: 'com.hoplixi.PasswordManager',
-            guid: 'hoplixi-password-manager',
-          );
+      const WindowsInitializationSettings
+      windowsSettings = WindowsInitializationSettings(
+        appName: 'Hoplixi',
+        appUserModelId: 'com.hoplixi.PasswordManager',
+        guid:
+            'a1b2c3d4-e5f6-7890-abcd-ef1234567890', // Правильный UUID формат для Windows
+      );
 
       final InitializationSettings initializationSettings =
           InitializationSettings(

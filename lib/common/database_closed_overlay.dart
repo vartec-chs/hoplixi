@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/providers/app_lifecycle_provider.dart';
+import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
 
 /// Глобальный оверлей, отображающийся при закрытии базы данных
 class DatabaseClosedOverlay extends ConsumerStatefulWidget {
