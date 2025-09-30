@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/common/button.dart';
-import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/filters/category_filter/category_filter_widget.dart';

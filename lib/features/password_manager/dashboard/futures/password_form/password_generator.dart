@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 import 'dart:math';
 
 /// Виджет для генерации случайных паролей

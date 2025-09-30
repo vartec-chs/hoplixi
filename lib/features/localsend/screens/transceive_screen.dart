@@ -7,8 +7,8 @@ import 'package:hoplixi/features/localsend/models/connection_mode.dart';
 import 'package:hoplixi/features/localsend/models/localsend_device_info.dart';
 import 'package:hoplixi/features/localsend/models/webrtc_state.dart';
 import 'package:hoplixi/features/localsend/providers/webrtc_provider.dart';
-import 'package:hoplixi/common/text_field.dart';
-import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/features/global/widgets/text_field.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 
 class TransceiveScreen extends ConsumerStatefulWidget {
   const TransceiveScreen({super.key, this.mode, this.deviceInfo});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/common/index.dart';
+import 'package:hoplixi/features/global/widgets/index.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import '../models/localsend_device_info.dart';

@@ -11,7 +11,6 @@ import 'package:hoplixi/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 import 'package:hoplixi/core/theme/index.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-import 'package:hoplixi/common/database_closed_overlay.dart';
 
 class App extends ConsumerStatefulWidget {
   const App({super.key});

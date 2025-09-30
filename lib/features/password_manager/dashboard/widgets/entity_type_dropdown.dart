@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/common/index.dart';
+import 'package:hoplixi/features/global/widgets/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
 import '../models/entety_type.dart';

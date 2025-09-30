@@ -12,7 +12,7 @@ class PasswordsSliverList extends StatelessWidget {
   final Function(CardPasswordDto) onPasswordDelete;
   final Function(CardPasswordDto) onPasswordLongPress;
 
-  const PasswordsSliverList({
+  const PasswordsSliverList({super.key, 
     required this.state,
     this.scrollController,
     required this.onPasswordFavoriteToggle,

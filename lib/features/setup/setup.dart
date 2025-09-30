@@ -6,7 +6,7 @@ import 'package:hoplixi/router/routes_path.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/theme/colors.dart';
-import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/setup/providers/setup_provider.dart';
 import 'package:hoplixi/features/setup/widgets/welcome_screen.dart';
 import 'package:hoplixi/features/setup/widgets/theme_selection_screen.dart';

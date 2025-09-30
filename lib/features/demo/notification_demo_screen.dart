@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../common/button.dart';
+import '../global/widgets/button.dart';
 import '../../core/providers/notification_providers.dart';
 
 /// Простой пример использования системы уведомлений Hoplixi

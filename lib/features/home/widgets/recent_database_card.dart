@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
-import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 
 /// Виджет для отображения недавно открытой базы данных
 class RecentDatabaseCard extends StatelessWidget {

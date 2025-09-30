@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/common/button.dart';
-import 'package:hoplixi/common/text_field.dart';
-import 'package:hoplixi/common/password_field.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/features/global/widgets/text_field.dart';
+import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';

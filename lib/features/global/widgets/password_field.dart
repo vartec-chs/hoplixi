@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/features/global/widgets/text_field.dart';
 
 /// Кастомное поле для пароля с поддержкой показа/скрытия пароля
 class CustomPasswordField extends StatefulWidget {

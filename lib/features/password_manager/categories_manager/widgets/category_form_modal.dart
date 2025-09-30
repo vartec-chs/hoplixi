@@ -5,7 +5,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons.dart';
 import 'package:responsive_framework/responsive_framework.dart';
-import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services_providers.dart';

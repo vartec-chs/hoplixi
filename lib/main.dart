@@ -12,7 +12,6 @@ import 'package:hoplixi/core/preferences/app_preferences.dart';
 import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/core/services/notification_helpers.dart';
-import 'package:hoplixi/core/services/notification_helpers.dart';
 import 'package:toastification/toastification.dart';
 import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';

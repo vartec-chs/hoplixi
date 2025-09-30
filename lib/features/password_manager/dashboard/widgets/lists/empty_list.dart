@@ -7,7 +7,7 @@ class EmptyView extends StatelessWidget {
   final IconData icon;
   final bool isNotImplemented;
 
-  const EmptyView({
+  const EmptyView({super.key, 
     required this.title,
     required this.subtitle,
     required this.icon,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/common/close_database_button.dart';
+import 'package:hoplixi/features/global/widgets/close_database_button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/theme/index.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';

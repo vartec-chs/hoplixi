@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/common/index.dart';
+import 'package:hoplixi/features/global/widgets/index.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 
 /// Результат модального окна ввода пароля

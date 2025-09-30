@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hoplixi/hoplixi_store/models/filter/otp_filter.dart';
-import 'package:hoplixi/common/text_field.dart';
+import 'package:hoplixi/features/global/widgets/text_field.dart';
 
 /// Секция для настройки специфических фильтров OTP
 class OtpFilterSection extends StatefulWidget {

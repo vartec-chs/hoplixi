@@ -7,7 +7,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/theme/index.dart';
 
 import 'package:universal_platform/universal_platform.dart';
-import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'home_controller.dart';
 import 'widgets/index.dart';
@@ -198,7 +198,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                   )
                 : const SliverToBoxAdapter(child: SizedBox.shrink()),
             // Добавляем отступ снизу для FAB
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            const SliverToBoxAdapter(child: SizedBox(height: 8)),
           ],
         );
       },

@@ -6,7 +6,6 @@ import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.d
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_passwords_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_otps_provider.dart';
-import 'package:hoplixi/features/password_manager/dashboard/widgets/cards/skeleton_card.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_action_modal.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/empty_list.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/passwords_list.dart';

@@ -4,7 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/theme/colors.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/common/button.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 
 /// Модель разрешения
 class PermissionItem {
