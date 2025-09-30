@@ -22,4 +22,5 @@ class AppRoutes {
   static const String localSendTransfer = '/localsend/transfer';
   static const String qrScanner = '/qr-scanner';
   static const String qrTest = '/qr-test';
+  static const String otpForm = '/otp-form';
 }

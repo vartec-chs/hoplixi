@@ -19,59 +19,59 @@ import 'routes.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: AppRoutes.setup,
+    initialLocation: AppRoutes.otpForm,
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
 
     observers: [GoTransition.observer, LoggingRouteObserver()],
-    refreshListenable: ref.watch(routerRefreshProvider.notifier),
-    redirect: (context, state) async {
-      final initializationAsync = ref.watch(storageInitProvider);
-      // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
-      final dataCleared = ref.watch(dataClearedProvider);
+    // refreshListenable: ref.watch(routerRefreshProvider.notifier),
+    // redirect: (context, state) async {
+    //   final initializationAsync = ref.watch(storageInitProvider);
+    //   // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
+    //   final dataCleared = ref.watch(dataClearedProvider);
 
-      // Если данные были очищены, перенаправляем на home
-      if (dataCleared) {
-        logInfo(
-          'Данные очищены, перенаправляем на home',
-          tag: 'GoRouter',
-          data: {'currentPath': state.fullPath},
-        );
-        return AppRoutes.home;
-      }
+    //   // Если данные были очищены, перенаправляем на home
+    //   if (dataCleared) {
+    //     logInfo(
+    //       'Данные очищены, перенаправляем на home',
+    //       tag: 'GoRouter',
+    //       data: {'currentPath': state.fullPath},
+    //     );
+    //     return AppRoutes.home;
+    //   }
 
-      bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
-      if (isFirstRun == false && state.fullPath == AppRoutes.setup) {
-        return AppRoutes
-            .home; // Если настройка завершена, перенаправляем на домашний экран
-      }
+    //   bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
+    //   if (isFirstRun == false && state.fullPath == AppRoutes.setup) {
+    //     return AppRoutes
+    //         .home; // Если настройка завершена, перенаправляем на домашний экран
+    //   }
 
-      // if (!isDatabaseOpen) {
-      //   logInfo('No database is open');
-      //   if (afterOpenDBPath.contains(state.path)) {
-      //     return AppRoutes.home;
-      //   }
-      //   return null; // Нет перенаправления, если база данных не открыта
-      // }
+    //   // if (!isDatabaseOpen) {
+    //   //   logInfo('No database is open');
+    //   //   if (afterOpenDBPath.contains(state.path)) {
+    //   //     return AppRoutes.home;
+    //   //   }
+    //   //   return null; // Нет перенаправления, если база данных не открыта
+    //   // }
 
-      initializationAsync.when(
-        data: (data) {
-          return null; // Нет перенаправления, если инициализация успешна
-        },
-        error: (error, stack) {
-          // Если произошла ошибка, перенаправляем на экран ошибки
-          if (state.fullPath != '/error') {
-            return '/error';
-          }
-          logError('Initialization error', error: error, stackTrace: stack);
-          return null; // Уже на экране ошибки, не перенаправляем
-        },
-        loading: () {
-          return '/loading'; // Перенаправление на страницу загрузки
-        },
-      );
+    //   initializationAsync.when(
+    //     data: (data) {
+    //       return null; // Нет перенаправления, если инициализация успешна
+    //     },
+    //     error: (error, stack) {
+    //       // Если произошла ошибка, перенаправляем на экран ошибки
+    //       if (state.fullPath != '/error') {
+    //         return '/error';
+    //       }
+    //       logError('Initialization error', error: error, stackTrace: stack);
+    //       return null; // Уже на экране ошибки, не перенаправляем
+    //     },
+    //     loading: () {
+    //       return '/loading'; // Перенаправление на страницу загрузки
+    //     },
+    //   );
 
-      return null;
-    },
+    //   return null;
+    // },
     routes: UniversalPlatform.isDesktop
         ? [
             ShellRoute(

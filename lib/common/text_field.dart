@@ -209,7 +209,6 @@ class PrimaryTextField extends StatelessWidget {
       scrollPhysics: scrollPhysics,
       scrollPadding: scrollPadding,
       expands: expands,
-      
     );
   }
 }
@@ -310,13 +309,11 @@ class PrimaryTextFormField extends StatelessWidget {
 
     final effectiveDecoration = (decoration ?? const InputDecoration())
         .copyWith(
-          
           prefixIcon: prefixIcon ?? (decoration?.prefixIcon),
           suffixIcon: suffixIcon ?? (decoration?.suffixIcon),
           prefix: prefix ?? decoration?.prefix,
           suffix: suffix ?? decoration?.suffix,
           helperText: helperText ?? decoration?.helperText,
-          
         )
         .copyWith(
           labelText: decoration?.labelText ?? baseDecoration.labelText,
@@ -349,6 +346,7 @@ class PrimaryTextFormField extends StatelessWidget {
       readOnly: readOnly,
       onTap: onTap,
       maxLines: maxLines,
+
       minLines: minLines,
       maxLength: maxLength,
       enabled: enabled,
@@ -367,7 +365,6 @@ class PrimaryTextFormField extends StatelessWidget {
       scrollPadding: scrollPadding,
       expands: expands,
       autovalidateMode: autovalidateMode,
-      
     );
   }
 }

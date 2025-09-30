@@ -104,7 +104,7 @@ class SmoothButton extends StatelessWidget {
     return textWidget;
   }
 
-  Widget _buildButton() {
+  Widget _buildButton(BuildContext context) {
     final buttonChild = _buildChild();
 
     final effectiveStyle = (style ?? ButtonStyle()).copyWith(
@@ -152,7 +152,16 @@ class SmoothButton extends StatelessWidget {
           focusNode: focusNode,
           autofocus: autofocus,
           clipBehavior: clipBehavior,
-          style: effectiveStyle,
+          style: effectiveStyle.copyWith(
+            side: MaterialStateProperty.all(
+              BorderSide(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.12),
+                width: 1.5,
+              ),
+            ),
+          ),
           child: buttonChild,
         );
     }
@@ -161,7 +170,7 @@ class SmoothButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return isFullWidth
-        ? SizedBox(width: double.infinity, child: _buildButton())
-        : _buildButton();
+        ? SizedBox(width: double.infinity, child: _buildButton(context))
+        : _buildButton(context);
   }
 }

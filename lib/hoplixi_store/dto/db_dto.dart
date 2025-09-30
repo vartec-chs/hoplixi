@@ -126,7 +126,6 @@ abstract class UpdateNoteDto with _$UpdateNoteDto {
 abstract class CreateTotpDto with _$CreateTotpDto {
   const factory CreateTotpDto({
     String? passwordId,
-
     @Default(OtpType.totp) OtpType type,
     String? issuer,
     String? accountName,

@@ -11,6 +11,7 @@ import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/services/password_service.dart';
 import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
+import 'package:hoplixi/hoplixi_store/services/totp_service.dart';
 import 'hoplixi_store_providers.dart';
 
 // =============================================================================
@@ -70,6 +71,12 @@ final passwordFilterDaoProvider = Provider<PasswordFilterDao>((ref) {
 
   return PasswordFilterDao(db.currentDatabase);
 });
+
+final otpsDaoProvider = Provider.autoDispose<OtpsDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  return OtpsDao(db.currentDatabase);
+});
 // =============================================================================
 // СЕРВИС ПРОВАЙДЕРЫ
 // =============================================================================
@@ -119,6 +126,19 @@ final passwordsServiceProvider = Provider<PasswordService>((ref) {
   });
 
   return PasswordService(db.currentDatabase);
+});
+
+/// Провайдер для TOTPService
+
+final totpServiceProvider = Provider.autoDispose<TOTPService>((ref) {
+  final otpsDao = ref.watch(otpsDaoProvider);
+  final categoriesDao = ref.watch(categoriesDaoProvider);
+
+  ref.onDispose(() {
+    logInfo('Освобождение ресурсов TOTPService', tag: 'ServicesProviders');
+  });
+
+  return TOTPService(otpsDao, categoriesDao);
 });
 
 // =============================================================================
