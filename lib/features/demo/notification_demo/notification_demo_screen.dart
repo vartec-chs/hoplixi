@@ -5,7 +5,7 @@ import '../../global/widgets/button.dart';
 import '../../../core/logger/app_logger.dart';
 import '../../../core/services/notification_helpers.dart';
 import '../../../core/services/notification_service.dart';
-import '../../../core/providers/notification_providers.dart';
+import '../../global/providers/notification_providers.dart';
 
 /// Демо-экран для тестирования системы уведомлений
 class NotificationDemoScreen extends ConsumerWidget {

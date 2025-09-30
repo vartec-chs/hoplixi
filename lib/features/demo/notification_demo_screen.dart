@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../global/widgets/button.dart';
-import '../../core/providers/notification_providers.dart';
+import '../global/providers/notification_providers.dart';
 
 /// Простой пример использования системы уведомлений Hoplixi
 class NotificationDemoScreen extends ConsumerWidget {

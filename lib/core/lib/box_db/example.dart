@@ -1,5 +1,5 @@
 import 'dart:io';
-import '../box_db/simple_box_utils.dart';
+import 'simple_box_utils.dart';
 
 /// Пример пользователя для демонстрации
 class User {

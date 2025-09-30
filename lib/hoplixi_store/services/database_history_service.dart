@@ -3,8 +3,8 @@ import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
-import '../../box_db/simple_box_manager.dart';
-import '../../box_db/simple_box.dart';
+import '../../core/lib/box_db/simple_box_manager.dart';
+import '../../core/lib/box_db/simple_box.dart';
 import '../../core/logger/app_logger.dart';
 import '../models/database_entry.dart';
 

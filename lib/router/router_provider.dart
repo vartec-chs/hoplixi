@@ -6,7 +6,7 @@ import 'package:go_transitions/go_transitions.dart';
 import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
-import 'package:hoplixi/core/providers/notification_providers.dart';
+import 'package:hoplixi/features/global/providers/notification_providers.dart';
 import 'package:hoplixi/core/secure_storage/index.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';

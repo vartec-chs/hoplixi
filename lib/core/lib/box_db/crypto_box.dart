@@ -1,7 +1,7 @@
 import 'package:cryptography/cryptography.dart';
 import 'dart:convert';
-import '../box_db/utils.dart';
-import '../box_db/errors.dart';
+import 'utils.dart';
+import 'errors.dart';
 
 /// Encryption wrapper for AEAD encryption/decryption using AES-GCM.
 class CryptoBox {
