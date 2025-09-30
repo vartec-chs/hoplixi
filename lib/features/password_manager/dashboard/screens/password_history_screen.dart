@@ -55,6 +55,7 @@ class _PasswordHistoryScreenState extends ConsumerState<PasswordHistoryScreen> {
                     final dateFormat = DateFormat('dd.MM.yyyy HH:mm');
 
                     return Card(
+                      elevation: 0,
                       margin: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 8,
@@ -62,7 +63,7 @@ class _PasswordHistoryScreenState extends ConsumerState<PasswordHistoryScreen> {
                       child: ExpansionTile(
                         title: Text(history.name),
                         subtitle: Text(
-                          '${history.action.name} • ${history.actionAt.toString()}',
+                          '${history.action.name} • ${dateFormat.format(history.actionAt)}',
                         ),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
@@ -87,6 +88,8 @@ class _PasswordHistoryScreenState extends ConsumerState<PasswordHistoryScreen> {
                                   _buildInfoRow('Email', history.email!),
                                 if (history.notes?.isNotEmpty ?? false)
                                   _buildInfoRow('Заметки', history.notes!),
+                                if (history.password?.isNotEmpty ?? false)
+                                  _buildInfoRow('Пароль', history.password!),
                                 if (history.categoryName?.isNotEmpty ?? false)
                                   _buildInfoRow(
                                     'Категория',
@@ -98,13 +101,17 @@ class _PasswordHistoryScreenState extends ConsumerState<PasswordHistoryScreen> {
                                   _buildInfoRow(
                                     'Оригинальная дата создания',
 
-                                    history.originalCreatedAt!.toString(),
+                                    dateFormat.format(
+                                      history.originalCreatedAt!,
+                                    ),
                                   ),
                                 if (history.originalModifiedAt != null)
                                   _buildInfoRow(
                                     'Оригинальная дата изменения',
 
-                                    history.originalModifiedAt!.toString(),
+                                    dateFormat.format(
+                                      history.originalModifiedAt!,
+                                    ),
                                   ),
                               ],
                             ),

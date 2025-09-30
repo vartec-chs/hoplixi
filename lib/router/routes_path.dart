@@ -20,4 +20,6 @@ class AppRoutes {
   static const String universalFilterDemo = '/universal-filter-demo';
   static const String localSend = '/localsend';
   static const String localSendTransfer = '/localsend/transfer';
+  static const String qrScanner = '/qr-scanner';
+  static const String qrTest = '/qr-test';
 }

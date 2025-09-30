@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/preferences/dynamic_settings_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
@@ -13,10 +16,14 @@ import 'package:hoplixi/features/password_manager/categories_manager/categories_
 import 'package:hoplixi/features/password_manager/dashboard/futures/password_form/password_form_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard/screens/password_history_screen.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons_management_screen.dart';
+import 'package:hoplixi/features/password_manager/qr_scaner/qr_scaner_screen.dart';
+import 'package:hoplixi/features/password_manager/qr_scaner/qr_test_screen.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/router/router_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:universal_platform/universal_platform.dart';
 import 'routes_path.dart';
 
 final List<GoRoute> appRoutes = [
@@ -92,6 +99,26 @@ final List<GoRoute> appRoutes = [
   ),
 
   GoRoute(
+    path: AppRoutes.qrScanner,
+    builder: (context, state) {
+      if (UniversalPlatform.isDesktop) {
+        return const InfoScreen(
+          title: 'Ошибка: недоступно на этой платформе',
+          info: 'Сканирование QR-кодов не поддерживается на этой платформе.',
+          type: InfoType.error,
+        );
+      }
+
+      return const QrScannerScreen();
+    },
+  ),
+
+  GoRoute(
+    path: AppRoutes.qrTest,
+    builder: (context, state) => const QrTestScreen(),
+  ),
+
+  GoRoute(
     path: AppRoutes.localSendTransfer,
     builder: (context, state) {
       if (state.extra is Map<String, dynamic>) {
@@ -101,7 +128,11 @@ final List<GoRoute> appRoutes = [
         final connectionMode = data['mode'] as ConnectionMode?;
         return TransceiveScreen(mode: connectionMode, deviceInfo: deviceInfo);
       }
-      return const SplashScreen(title: 'Ошибка: нет данных');
+      return const InfoScreen(
+        title: 'Ошибка: нет данных',
+        info: 'Попробуйте снова отправить файл из LocalSend.',
+        type: InfoType.error,
+      );
     },
   ),
 ];
@@ -114,7 +145,7 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Splash Screen'),
+        title: Text('Hoplixi '),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -122,7 +153,81 @@ class SplashScreen extends StatelessWidget {
           },
         ),
       ),
-      body: Center(child: Text(title ?? '')),
+      body: SafeArea(
+        child: Center(
+          child: Text(title ?? '', style: const TextStyle(fontSize: 16)),
+        ),
+      ),
+    );
+  }
+}
+
+enum InfoType { info, warning, error }
+
+class InfoScreen extends StatelessWidget {
+  final String? title;
+  final String? info;
+  final InfoType type;
+
+  const InfoScreen({
+    super.key,
+    this.title,
+    this.info,
+    this.type = InfoType.info,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Hoplixi Info'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            navigateBack(context);
+          },
+        ),
+      ),
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                type == InfoType.info
+                    ? Icons.info
+                    : type == InfoType.warning
+                    ? Icons.warning
+                    : Icons.error,
+                size: 64,
+                color: type == InfoType.info
+                    ? Colors.blue
+                    : type == InfoType.warning
+                    ? Colors.orange
+                    : Colors.red,
+              ),
+              const SizedBox(height: 16),
+              if (title != null)
+                Text(
+                  title!,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              if (info != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  info!,
+                  style: const TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

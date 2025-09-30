@@ -73,9 +73,7 @@ class PasswordHistoryListController
   }
 }
 
-final passwordHistoryListProvider =
-    AsyncNotifierProvider.family<
-      PasswordHistoryListController,
-      List<PasswordHistory>,
-      String
-    >((arg) => PasswordHistoryListController(arg));
+final passwordHistoryListProvider = AsyncNotifierProvider.family
+    .autoDispose<PasswordHistoryListController, List<PasswordHistory>, String>(
+      (arg) => PasswordHistoryListController(arg),
+    );

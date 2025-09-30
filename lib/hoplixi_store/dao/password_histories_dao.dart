@@ -15,11 +15,10 @@ class PasswordHistoriesDao extends DatabaseAccessor<HoplixiStore>
   Future<List<PasswordHistory>> getPasswordHistory(String passwordId) {
     return (select(attachedDatabase.passwordHistories)
           ..where((tbl) => tbl.originalPasswordId.equals(passwordId))
-        // ..orderBy([
-        //   (tbl) =>
-        //       OrderingTerm(expression: tbl.actionAt, mode: OrderingMode.desc),
-        // ]))
-        )
+          ..orderBy([
+            (tbl) =>
+                OrderingTerm(expression: tbl.actionAt, mode: OrderingMode.desc),
+          ]))
         .get();
   }
 

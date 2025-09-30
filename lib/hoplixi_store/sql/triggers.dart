@@ -82,7 +82,7 @@ class DatabaseTriggers {
     WHEN NEW.modified_at = OLD.modified_at
     BEGIN
       UPDATE categories 
-      SET modified_at = datetime('now') 
+      SET modified_at = strftime('%s','now') 
       WHERE id = NEW.id;
     END;
   ''';
@@ -94,7 +94,7 @@ class DatabaseTriggers {
     WHEN NEW.modified_at = OLD.modified_at
     BEGIN
       UPDATE icons 
-      SET modified_at = datetime('now') 
+      SET modified_at = strftime('%s','now') 
       WHERE id = NEW.id;
     END;
   ''';
@@ -106,7 +106,7 @@ class DatabaseTriggers {
     WHEN NEW.modified_at = OLD.modified_at
     BEGIN
       UPDATE tags 
-      SET modified_at = datetime('now') 
+      SET modified_at = strftime('%s','now') 
       WHERE id = NEW.id;
     END;
   ''';
@@ -118,7 +118,7 @@ class DatabaseTriggers {
     WHEN NEW.modified_at = OLD.modified_at
     BEGIN
       UPDATE passwords 
-      SET modified_at = datetime('now') 
+      SET modified_at = strftime('%s','now') 
       WHERE id = NEW.id;
     END;
   ''';
@@ -130,7 +130,7 @@ class DatabaseTriggers {
     WHEN NEW.modified_at = OLD.modified_at
     BEGIN
       UPDATE totps 
-      SET modified_at = datetime('now') 
+      SET modified_at = strftime('%s','now') 
       WHERE id = NEW.id;
     END;
   ''';
@@ -142,7 +142,7 @@ class DatabaseTriggers {
     WHEN NEW.modified_at = OLD.modified_at
     BEGIN
       UPDATE notes 
-      SET modified_at = datetime('now') 
+      SET modified_at = strftime('%s','now') 
       WHERE id = NEW.id;
     END;
   ''';
@@ -154,7 +154,7 @@ class DatabaseTriggers {
     WHEN NEW.modified_at = OLD.modified_at
     BEGIN
       UPDATE attachments 
-      SET modified_at = datetime('now') 
+      SET modified_at = strftime('%s','now') 
       WHERE id = NEW.id;
     END;
   ''';
@@ -169,8 +169,8 @@ class DatabaseTriggers {
     BEGIN
       UPDATE hoplixi_meta 
       SET 
-        created_at = COALESCE(NEW.created_at, datetime('now')),
-        modified_at = COALESCE(NEW.modified_at, datetime('now'))
+        created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+        modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
     END;
   ''';
@@ -183,8 +183,8 @@ class DatabaseTriggers {
     BEGIN
       UPDATE categories 
       SET 
-        created_at = COALESCE(NEW.created_at, datetime('now')),
-        modified_at = COALESCE(NEW.modified_at, datetime('now'))
+        created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+        modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
     END;
   ''';
@@ -197,8 +197,8 @@ class DatabaseTriggers {
     BEGIN
       UPDATE icons 
       SET 
-        created_at = COALESCE(NEW.created_at, datetime('now')),
-        modified_at = COALESCE(NEW.modified_at, datetime('now'))
+        created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+        modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
     END;
   ''';
@@ -211,8 +211,8 @@ class DatabaseTriggers {
     BEGIN
       UPDATE tags 
       SET 
-        created_at = COALESCE(NEW.created_at, datetime('now')),
-        modified_at = COALESCE(NEW.modified_at, datetime('now'))
+        created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+        modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
     END;
   ''';
@@ -225,8 +225,8 @@ class DatabaseTriggers {
     BEGIN
       UPDATE passwords 
       SET 
-        created_at = COALESCE(NEW.created_at, datetime('now')),
-        modified_at = COALESCE(NEW.modified_at, datetime('now'))
+        created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+        modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
     END;
   ''';
@@ -239,8 +239,8 @@ class DatabaseTriggers {
     BEGIN
       UPDATE totps 
       SET 
-        created_at = COALESCE(NEW.created_at, datetime('now')),
-        modified_at = COALESCE(NEW.modified_at, datetime('now'))
+        created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+        modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
     END;
   ''';
@@ -253,8 +253,8 @@ class DatabaseTriggers {
     BEGIN
       UPDATE notes 
       SET 
-        created_at = COALESCE(NEW.created_at, datetime('now')),
-        modified_at = COALESCE(NEW.modified_at, datetime('now'))
+        created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+        modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
     END;
   ''';
@@ -267,8 +267,8 @@ class DatabaseTriggers {
     BEGIN
       UPDATE attachments 
       SET 
-        created_at = COALESCE(NEW.created_at, datetime('now')),
-        modified_at = COALESCE(NEW.modified_at, datetime('now'))
+        created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+        modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
     END;
   ''';
@@ -326,7 +326,7 @@ class DatabaseTriggers {
          WHERE pt.password_id = OLD.id),
         OLD.created_at,
         OLD.modified_at,
-        datetime('now')
+        strftime('%s','now')
       );
     END;
   ''';
@@ -389,7 +389,7 @@ class DatabaseTriggers {
          WHERE tt.totp_id = OLD.id),
         OLD.created_at,
         OLD.modified_at,
-        datetime('now')
+        strftime('%s','now')
       );
     END;
   ''';
@@ -435,7 +435,7 @@ class DatabaseTriggers {
         OLD.is_pinned,
         OLD.created_at,
         OLD.modified_at,
-        datetime('now')
+        strftime('%s','now')
       );
     END;
   ''';
@@ -482,7 +482,7 @@ class DatabaseTriggers {
          WHERE pt.password_id = OLD.id),
         OLD.created_at,
         OLD.modified_at,
-        datetime('now')
+        strftime('%s','now')
       );
     END;
   ''';
@@ -531,7 +531,7 @@ class DatabaseTriggers {
          WHERE tt.totp_id = OLD.id),
         OLD.created_at,
         OLD.modified_at,
-        datetime('now')
+        strftime('%s','now')
       );
     END;
   ''';
@@ -570,7 +570,7 @@ class DatabaseTriggers {
         OLD.is_pinned,
         OLD.created_at,
         OLD.modified_at,
-        datetime('now')
+        strftime('%s','now')
       );
     END;
   ''';

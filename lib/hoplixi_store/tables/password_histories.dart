@@ -1,6 +1,27 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import '../utils/uuid_generator.dart';
+
+class DateTimeConverter extends TypeConverter<DateTime, String> {
+  @override
+  DateTime fromSql(String fromDb) {
+    try {
+      return DateTime.parse(fromDb);
+    } catch (e) {
+      // Логируем ошибку и возвращаем fallback (например, текущую дату)
+      logError(
+        'Failed to parse actionAt date',
+        error: e,
+        tag: 'PasswordHistoryTable',
+      );
+      return DateTime.now();
+    }
+  }
+
+  @override
+  String toSql(DateTime value) => value.toIso8601String();
+}
 
 @DataClassName('PasswordHistory')
 class PasswordHistories extends Table {
