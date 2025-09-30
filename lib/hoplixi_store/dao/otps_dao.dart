@@ -70,9 +70,7 @@ class OtpsDao extends DatabaseAccessor<HoplixiStore> with _$OtpsDaoMixin {
       modifiedAt: Value(DateTime.now()),
     );
 
-    final rowsAffected = await update(
-      attachedDatabase.otps,
-    ).replace(companion);
+    final rowsAffected = await update(attachedDatabase.otps).replace(companion);
     return rowsAffected;
   }
 

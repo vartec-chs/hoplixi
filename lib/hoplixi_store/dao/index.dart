@@ -20,7 +20,7 @@ export 'filters_dao/password_filter_dao.dart';
 // DAO для истории
 export 'password_histories_dao.dart';
 export 'note_histories_dao.dart';
-export 'totp_histories_dao.dart';
+export 'otp_histories_dao.dart';
 
 
 //TODO: Создать единый PaginationInfo для всех DAO и экспортировать его здесь

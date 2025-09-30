@@ -26,7 +26,7 @@ class Attachments extends Table {
     #id,
     onDelete: KeyAction.cascade,
   )();
-  TextColumn get totpId =>
+  TextColumn get otpId =>
       text().nullable().references(Otps, #id, onDelete: KeyAction.cascade)();
   TextColumn get noteId =>
       text().nullable().references(Notes, #id, onDelete: KeyAction.cascade)();
@@ -47,9 +47,9 @@ class Attachments extends Table {
   List<String> get customConstraints => [
     // Constraint: attachment must belong to exactly one entity (password, totp, or note)
     'CHECK (('
-        '(password_id IS NOT NULL AND totp_id IS NULL AND note_id IS NULL) OR '
-        '(password_id IS NULL AND totp_id IS NOT NULL AND note_id IS NULL) OR '
-        '(password_id IS NULL AND totp_id IS NULL AND note_id IS NOT NULL)'
+        '(password_id IS NOT NULL AND otp_id IS NULL AND note_id IS NULL) OR '
+        '(password_id IS NULL AND otp_id IS NOT NULL AND note_id IS NULL) OR '
+        '(password_id IS NULL AND otp_id IS NULL AND note_id IS NOT NULL)'
         '))',
   ];
 }

@@ -1,155 +1,74 @@
-# Hoplixi Development Guide for AI Agents
-
-Hoplixi is a cross-platform Flutter password manager with local encrypted SQLite storage using SQLCipher and Drift ORM. The architecture follows a service-oriented pattern with **Riverpod v3 (Notifier API only)**.
-
-## Project Architecture
-
-### Core Structure
-- `lib/hoplixi_store/` - Data layer: 14 tables with Drift ORM, DAOs, services, triggers, and schema migrations
-- `lib/features/` - Feature modules organized by domain (password_manager, setup, home, titlebar)
-- `lib/common/` - Reusable UI components (SmoothButton, password_field, slider_button, text_field)
-- `lib/core/` - Infrastructure: themes, logging, preferences, secure storage, error handling
-- `lib/router/` - GoRouter navigation with go_transitions for smooth transitions
-
-### Critical Dependencies & Imports
-**Always use project-specific components:**
-```dart
-// Logging (mandatory for all operations)
-import 'package:hoplixi/core/logger/app_logger.dart';
-
-// UI Components (use instead of generic Flutter widgets)
-import 'package:hoplixi/common/text_field.dart';      // Custom styled text fields
-import 'package:hoplixi/common/password_field.dart';  // Secure password input
-import 'package:hoplixi/common/button.dart';          // SmoothButton with types/sizes
-import 'package:hoplixi/common/slider_button.dart';   // Confirmation slider
-
-// Utilities
-import 'package:hoplixi/core/utils/toastification.dart'; // Toast notifications
-import 'package:hoplixi/core/app_preferences/index.dart'; // SharedPreferences wrapper
-import 'package:hoplixi/core/theme/colors.dart';          // FlexColorScheme colors
-```
-
-### Database & Encryption Architecture
-
-**Service Layer Pattern** - All data operations through services returning `ServiceResult<T>`:
-```dart
-// Example from PasswordService
-final result = await passwordService.createPassword(createDto, tagIds: ['uuid1', 'uuid2']);
-if (result.success) {
-  // result.data contains the password ID
-} else {
-  ToastHelper.error(result.message);
-}
-```
-
-**Encryption Pattern** - Sensitive data stored with nonce/cipher/tag triad:
-- Passwords: `password` field contains encrypted data
-- TOTP secrets: `secret` field encrypted, stored with `secret_nonce`, `secret_cipher`, `secret_tag`
-- All primary keys are UUID v4 for security
-
-**Database Schema** - See `lib/hoplixi_store/DATABASE_SCHEMA.md`:
-- 14 tables with comprehensive history tracking
-- SQL triggers automatically maintain history tables on UPDATE/DELETE
-- Foreign key constraints with CASCADE deletes
-
-## Development Workflow
-
-### Code Generation (Critical)
-```bash
-# Use the provided batch file (Windows)
-build_runner.bat
-
-# Or run manually
 dart run build_runner build --delete-conflicting-outputs
-```
-**Required after:**
-- Modifying any Drift table in `lib/hoplixi_store/tables/`
-- Adding/changing Freezed classes
-- Updating JSON serialization
+## Hoplixi – Сжатые инструкции для AI агентов
+Flutter пароль-менеджер: локальная зашифрованная SQLite (SQLCipher + Drift), сервисно-ориентированная архитектура, Riverpod v3 (Notifier API only), UI через кастомные компоненты.
 
-### Service Architecture Pattern
-When adding new database entities:
+### Структура (опорные директории)
+- `lib/hoplixi_store/` таблицы, DAO, сервисы, триггеры, результаты (`service_results.dart`).
+- `lib/features/*` доменные модули (пример: `password_manager`, `setup`, `home`).
+- `lib/common/` UI компоненты: `button.dart`, `password_field.dart`, `text_field.dart`, `slider_button.dart` (использовать вместо стандартных кнопок/полей).
+- `lib/core/` логгер (`app_logger.dart`), preferences, тема, secure storage, утилиты (`toastification.dart`).
+- `lib/router/` маршруты (GoRouter + анимации).
+- `lib/box_db/` низкоуровневое шифрование/контейнеры (`simple_box.dart`, `crypto_box.dart`, `utils.dart`).
 
-1. **Create table**: `lib/hoplixi_store/tables/your_table.dart`
-2. **Create DAO**: `lib/hoplixi_store/dao/your_dao.dart` 
-3. **Update store**: Add to `@DriftDatabase` in `hoplixi_store.dart`
-4. **Run build_runner** to generate `.g.dart` files
-5. **Create service**: `lib/hoplixi_store/services/your_service.dart` following `PasswordService` pattern
-6. **Add triggers**: Update `lib/hoplixi_store/sql/triggers.dart` for history tracking
-
-### Security & Logging Requirements
-
-**Never log sensitive data** - Use structured logging:
+### Ключевые правила
+1. UI НЕ обращается к DAO – только через сервисы в `hoplixi_store/services/*` (см. `totp_service.dart`).
+2. Возврат из сервисов через `ServiceResult` / производные (не бросать исключения наружу):
 ```dart
-logInfo('Creating password entry', tag: 'PasswordService', data: {'name': dto.name}); // Good
-logError('Password creation failed', error: e, tag: 'PasswordService'); // Good
-logDebug('Password: ${password}', tag: 'Debug'); // NEVER - exposes sensitive data
+final r = await totpService.getTotpById(id);
+if (!r.success) ToastHelper.error(r.message); else use(r.data);
 ```
+3. Никаких логов чувствительных данных (пароли, секреты, расшифрованный текст). Использовать `logInfo/logError` с минимальным контекстом.
+4. После изменения таблиц / Freezed / JSON: выполнить `build_runner.bat` (иначе генерация упадёт при сборке).
+5. Riverpod: только Notifier API (не добавлять ConsumerWidget). Провайдеры – в фиче либо общей папке, соблюдая существующий стиль.
+6. UUID v4 для всех PK. История изменений поддерживается SQL-триггерами – при расширении схемы обновить `sql/triggers.dart`.
+7. Web отключён умышленно (не пытаться включать). Поддерживаем: Windows, Android (остальное экспериментально).
 
-**Error Handling** - Services never throw, always return `ServiceResult`:
+### Шифрование / хранение
+- Высокоуровневые сущности: данные шифруются до записи (см. использование в сервисах + box_db). 
+- Низкоуровневые операции: `crypto_box.dart` (`encryptUtf8WithAutoNonce`) возвращает map со шифртекстом и метаданными (`nonce`, `cipher`, `tag` – см. проверки в `simple_box.dart`).
+- При добавлении новых полей с секретами – повторить паттерн nonce + auth tag, не логировать промежуточные значения.
+
+### Добавление новой сущности
+1. Таблица: `hoplixi_store/tables/*.dart`.
+2. DAO: `hoplixi_store/dao/*_dao.dart`.
+3. Включить в `hoplixi_store.dart` (@DriftDatabase).
+4. Генерация: `build_runner.bat`.
+5. Сервис по образцу (`password_service.dart` / `totp_service.dart`), возвращая `ServiceResult`.
+6. Обновить триггеры истории при необходимости.
+
+### UI паттерны
+- Кнопки: `SmoothButton` (тип + размер), подтверждение удаления: `SliderButton`.
+- Поля ввода: `TextField` / `PasswordField` из `common/`.
+- Темы: через `themeProvider`; цвета – `core/theme/colors.dart`.
+- Респонсив: брейкпоинты MOBILE ≤450, TABLET 451–1000, DESKTOP ≥1001.
+
+### Локальная сборка / релиз
+- Генерация кода (обязательно перед коммитом): `build_runner.bat`.
+- Windows: `flutter build windows`; Android: `flutter build apk`; прод-скрипт: `release.bat`.
+
+### Пример ServiceResult (из `service_results.dart`)
 ```dart
-try {
-  // Database operation
-  return ServiceResult.success(data: result);
-} catch (e) {
-  logError('Operation failed', error: e, tag: 'ServiceTag');
-  return ServiceResult.error('User-friendly error message');
-}
+class ServiceResult<T>{ final bool success; final String? message; final T? data; }
 ```
 
-### UI & Theming Conventions
-
-**Responsive Design** - Use breakpoints from `ResponsiveFramework`:
-- MOBILE: 450px and below
-- TABLET: 451px to 1000px  
-- DESKTOP: 1001px and above
-
-**Theme System** - Material Design 3 with FlexColorScheme:
-```dart
-// Access theme colors
-final colors = ref.watch(themeProvider).colorScheme;
-// Custom app colors
-import 'package:hoplixi/core/theme/colors.dart'; // AppColors.lightColors/darkColors
-```
-
-**Component Patterns**:
-```dart
-// Use SmoothButton instead of ElevatedButton/TextButton
-SmoothButton(
-  type: SmoothButtonType.filled,    // filled, outlined, tonal, text
-  size: SmoothButtonSize.medium,    // small, medium, large
-  label: 'Create Password',
-  onPressed: () => handleAction(),
-)
-
-// Use slider for destructive confirmations
-SliderButton(onConfirm: () => deletePassword())
-```
-
-## Platform & Deployment
-
-**Supported Platforms**: Windows ✅, Android ✅, macOS/Linux/iOS (untested)
-**Web explicitly disabled** - throws `UnsupportedError` in main.dart
-
-**Window Management**: Uses `window_manager` for desktop window control, initialized in `main.dart`
-
-**Build Commands**:
-- `flutter build windows` for Windows deployment
-- `flutter build apk` for Android APK
-- Use `release.bat` for automated release builds
-
-## Key Architecture Decisions
-
-1. **Riverpod v3 Notifier API only** - No legacy Consumer/ConsumerWidget patterns
-2. **Service-First Architecture** - UI never directly accesses DAOs, always through services
-3. **Comprehensive History Tracking** - All CRUD operations automatically logged via SQL triggers
-4. **Security by Design** - UUID keys, encrypted storage, no sensitive logging, platform restrictions
-5. **Responsive Mobile-First** - Desktop features are enhancements, not requirements
-
-This architecture prioritizes security, maintainability, and cross-platform consistency while maintaining Flutter/Dart best practices.
-
-## MCP Servers
+### MCP Servers
 
 - To obtain accurate data about libraries, use mcp server context7;
 - Use an MCP server for the SequentialThinking model when you need reliable, ordered orchestration of multi-step reasoning — e.g., to manage long-running, stateful chains of inference, coordinate parallel subtasks, or persist and resume multi-turn workflows.
 Also use it when you need centralized routing, authentication, load-balancing and observability (logging/metrics) for many clients or models so ordering, fault tolerance and scalable performance are maintained.
+
+### Riverpod Providers
+
+Unmodifiable:	Provider	FutureProvider	StreamProvider
+Modifiable:	  NotifierProvider	AsyncNotifierProvider	StreamNotifierProvider
+
+### Что НЕ делать
+- Не писать прямые SQL вне Drift кроме случаев, когда это действительно необходимо например триггеров и подобных а также сложных запросов.
+- Не обходить сервисы ради «быстрых» DAO вызовов.
+- Не логировать расшифрованный секрет / пароль.
+- Не добавлять Consumer*/legacy Riverpod API.
+
+Если правило неочевидно – ищите аналог в существующих сервисах и повторяйте стиль.
+
+---
+Сообщите, если нужны примеры для конкретной новой сущности, миграции или провайдера – расширю раздел.

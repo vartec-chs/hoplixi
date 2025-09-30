@@ -1,11 +1,11 @@
 import 'package:drift/drift.dart';
 import '../utils/uuid_generator.dart';
 
-@DataClassName('TotpHistory')
-class TotpHistories extends Table {
+@DataClassName('OtpHistory')
+class OtpHistories extends Table {
   TextColumn get id =>
       text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
-  TextColumn get originalTotpId => text()(); // ID of original TOTP
+  TextColumn get originalOtpId => text()(); // ID of original OTP
   TextColumn get action =>
       text().withLength(min: 1, max: 50)(); // 'deleted', 'modified'
 
@@ -38,5 +38,5 @@ class TotpHistories extends Table {
   Set<Column> get primaryKey => {id};
 
   @override
-  String get tableName => 'totp_histories';
+  String get tableName => 'otp_histories';
 }

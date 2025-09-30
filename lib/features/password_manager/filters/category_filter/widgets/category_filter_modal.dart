@@ -12,14 +12,9 @@ import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services/categories_service.dart';
 import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
+import 'package:hoplixi/hoplixi_store/services_providers.dart';
 
 /// Провайдер для сервиса категорий
-final categoriesServiceProvider = Provider<CategoriesService>((ref) {
-  final dbNotifier = ref.watch(hoplixiStoreProvider.notifier);
-  final storeInstance = dbNotifier.currentDatabase;
-  return CategoriesService(storeInstance.categoriesDao);
-});
-
 /// Модальное окно для фильтрации категорий
 class CategoryFilterModal extends ConsumerStatefulWidget {
   /// Тип категорий для отображения

@@ -20,7 +20,7 @@ class AttachmentsDao extends DatabaseAccessor<HoplixiStore>
       fileSize: Value(dto.fileSize),
       checksum: Value(dto.checksum),
       passwordId: Value(dto.passwordId),
-      totpId: Value(dto.totpId),
+      otpId: Value(dto.totpId),
       noteId: Value(dto.noteId),
     );
 
@@ -55,7 +55,7 @@ class AttachmentsDao extends DatabaseAccessor<HoplixiStore>
       passwordId: dto.passwordId != null
           ? Value(dto.passwordId)
           : const Value.absent(),
-      totpId: dto.totpId != null ? Value(dto.totpId) : const Value.absent(),
+      otpId: dto.totpId != null ? Value(dto.totpId) : const Value.absent(),
       noteId: dto.noteId != null ? Value(dto.noteId) : const Value.absent(),
       modifiedAt: Value(DateTime.now()),
     );
@@ -99,7 +99,7 @@ class AttachmentsDao extends DatabaseAccessor<HoplixiStore>
   /// Получение вложений для TOTP
   Future<List<Attachment>> getAttachmentsForTotp(String totpId) async {
     final query = select(attachedDatabase.attachments)
-      ..where((tbl) => tbl.totpId.equals(totpId))
+      ..where((tbl) => tbl.otpId.equals(totpId))
       ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
     return await query.get();
   }
@@ -168,7 +168,7 @@ class AttachmentsDao extends DatabaseAccessor<HoplixiStore>
     final totpCount =
         await (selectOnly(attachedDatabase.attachments)
               ..addColumns([attachedDatabase.attachments.id.count()])
-              ..where(attachedDatabase.attachments.totpId.isNotNull()))
+              ..where(attachedDatabase.attachments.otpId.isNotNull()))
             .getSingle();
 
     final noteCount =
@@ -220,7 +220,7 @@ class AttachmentsDao extends DatabaseAccessor<HoplixiStore>
   /// Stream для наблюдения за вложениями TOTP
   Stream<List<Attachment>> watchAttachmentsForTotp(String totpId) {
     final query = select(attachedDatabase.attachments)
-      ..where((tbl) => tbl.totpId.equals(totpId))
+      ..where((tbl) => tbl.otpId.equals(totpId))
       ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
     return query.watch();
   }
@@ -245,7 +245,7 @@ class AttachmentsDao extends DatabaseAccessor<HoplixiStore>
           fileSize: Value(dto.fileSize),
           checksum: Value(dto.checksum),
           passwordId: Value(dto.passwordId),
-          totpId: Value(dto.totpId),
+          otpId: Value(dto.totpId),
           noteId: Value(dto.noteId),
         );
         batch.insert(attachedDatabase.attachments, companion);

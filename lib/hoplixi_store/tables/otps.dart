@@ -56,7 +56,7 @@ class Otps extends Table {
   Set<Column> get primaryKey => {id};
 
   @override
-  String get tableName => 'totps';
+  String get tableName => 'otps';
 
   @override
   List<String> get customConstraints => [

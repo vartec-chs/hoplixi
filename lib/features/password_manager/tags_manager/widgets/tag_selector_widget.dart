@@ -5,6 +5,7 @@ import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
+import 'package:hoplixi/hoplixi_store/services_providers.dart';
 
 /// Универсальный виджет для выбора тегов
 class TagSelectorWidget extends ConsumerStatefulWidget {
@@ -58,9 +59,7 @@ class _TagSelectorWidgetState extends ConsumerState<TagSelectorWidget> {
 
   void _initializeService() {
     try {
-      final storeNotifier = ref.read(hoplixiStoreProvider.notifier);
-      final store = storeNotifier.currentDatabase;
-      _tagsService = TagsService(store.tagsDao);
+      _tagsService = ref.read(tagsServiceProvider);
       _loadTags();
     } catch (e) {
       setState(() {

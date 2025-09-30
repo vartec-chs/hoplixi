@@ -85,10 +85,10 @@ class OtpTagsDao extends DatabaseAccessor<HoplixiStore>
       '''
       SELECT t.* FROM totps t
       WHERE t.id IN (
-        SELECT tt.totp_id
+        SELECT tt.otp_id
         FROM totp_tags tt
         WHERE tt.tag_id IN ($placeholders)
-        GROUP BY tt.totp_id
+        GROUP BY tt.otp_id
         HAVING COUNT(DISTINCT tt.tag_id) = ?
       )
       ORDER BY t.modified_at DESC
@@ -235,7 +235,7 @@ class OtpTagsDao extends DatabaseAccessor<HoplixiStore>
   Future<int> cleanupOrphanedRelations() async {
     final deletedCount = await customUpdate('''
       DELETE FROM totp_tags
-      WHERE totp_id NOT IN (SELECT id FROM totps)
+      WHERE otp_id NOT IN (SELECT id FROM totps)
          OR tag_id NOT IN (SELECT id FROM tags)
     ''');
 

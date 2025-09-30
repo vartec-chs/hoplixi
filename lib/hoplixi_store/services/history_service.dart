@@ -2,19 +2,19 @@ import '../../core/logger/app_logger.dart';
 import '../hoplixi_store.dart';
 import '../dao/password_histories_dao.dart';
 import '../dao/note_histories_dao.dart';
-import '../dao/totp_histories_dao.dart';
+import '../dao/otp_histories_dao.dart';
 
 /// Унифицированный сервис для работы с историей паролей, заметок и TOTP
 class HistoryService {
   final HoplixiStore _database;
   late final PasswordHistoriesDao _passwordHistoriesDao;
   late final NoteHistoriesDao _noteHistoriesDao;
-  late final TotpHistoriesDao _totpHistoriesDao;
+  late final OtpHistoriesDao _totpHistoriesDao;
 
   HistoryService(this._database) {
     _passwordHistoriesDao = PasswordHistoriesDao(_database);
     _noteHistoriesDao = NoteHistoriesDao(_database);
-    _totpHistoriesDao = TotpHistoriesDao(_database);
+    _totpHistoriesDao = OtpHistoriesDao(_database);
   }
 
   // ==================== ОБЩИЕ МЕТОДЫ ====================
@@ -222,9 +222,9 @@ class HistoryService {
         allActivity.add({
           'type': 'totp',
           'id': totp.id,
-          'originalId': totp.originalTotpId,
+          'originalId': totp.originalOtpId,
           'action': totp.action,
-          'name': totp.name,
+          'name': totp.accountName,
           'actionAt': totp.actionAt,
           'data': totp,
         });
@@ -326,7 +326,7 @@ class HistoryService {
   // ==================== МЕТОДЫ ДЛЯ TOTP ====================
 
   /// Получить историю конкретного TOTP
-  Future<List<TotpHistory>> getTotpHistory(
+  Future<List<OtpHistory>> getTotpHistory(
     String totpId, {
     int? limit,
     int offset = 0,
@@ -343,7 +343,7 @@ class HistoryService {
   }
 
   /// Получить последнюю версию TOTP из истории
-  Future<TotpHistory?> getLastTotpVersion(String totpId) async {
+  Future<OtpHistory?> getLastTotpVersion(String totpId) async {
     logDebug('Получение последней версии TOTP: $totpId', tag: 'HistoryService');
     return await _totpHistoriesDao.getLastTotpHistory(totpId);
   }
@@ -496,17 +496,17 @@ class HistoryService {
         export['notes'] = notes.map((n) => _noteHistoryToMap(n)).toList();
       }
 
-      if (entityTypes == null || entityTypes.contains('totps')) {
-        List<TotpHistory> totps;
+      if (entityTypes == null || entityTypes.contains('otps')) {
+        List<OtpHistory> otps;
         if (startDate != null && endDate != null) {
-          totps = await _totpHistoriesDao.getTotpHistoryByDateRange(
+          otps = await _totpHistoriesDao.getTotpHistoryByDateRange(
             startDate,
             endDate,
           );
         } else {
-          totps = await _totpHistoriesDao.getAllTotpHistory();
+          otps = await _totpHistoriesDao.getAllTotpHistory();
         }
-        export['totps'] = totps.map((t) => _totpHistoryToMap(t)).toList();
+        export['totps'] = otps.map((t) => _otpHistoryToMap(t)).toList();
       }
 
       export['exportedAt'] = DateTime.now().toIso8601String();
@@ -565,13 +565,11 @@ class HistoryService {
     };
   }
 
-  Map<String, dynamic> _totpHistoryToMap(TotpHistory history) {
+  Map<String, dynamic> _otpHistoryToMap(OtpHistory history) {
     return {
       'id': history.id,
-      'originalTotpId': history.originalTotpId,
+      'originalOtpId': history.originalOtpId,
       'action': history.action,
-      'name': history.name,
-      'description': history.description,
       'type': history.type,
       'issuer': history.issuer,
       'accountName': history.accountName,

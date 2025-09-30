@@ -10,7 +10,7 @@ class DatabaseTriggers {
     _createModifiedAtTriggerForIcons,
     _createModifiedAtTriggerForTags,
     _createModifiedAtTriggerForPasswords,
-    _createModifiedAtTriggerForTotps,
+    _createModifiedAtTriggerForOtp,
     _createModifiedAtTriggerForNotes,
     _createModifiedAtTriggerForAttachments,
 
@@ -20,18 +20,18 @@ class DatabaseTriggers {
     _createInsertTriggerForIcons,
     _createInsertTriggerForTags,
     _createInsertTriggerForPasswords,
-    _createInsertTriggerForTotps,
+    _createInsertTriggerForOtp,
     _createInsertTriggerForNotes,
     _createInsertTriggerForAttachments,
 
     // Триггеры для записи истории при UPDATE
     _createPasswordUpdateHistoryTrigger,
-    _createTotpUpdateHistoryTrigger,
+    _createOtpUpdateHistoryTrigger,
     _createNoteUpdateHistoryTrigger,
 
     // Триггеры для записи истории при DELETE
     _createPasswordDeleteHistoryTrigger,
-    _createTotpDeleteHistoryTrigger,
+    _createOtpDeleteHistoryTrigger,
     _createNoteDeleteHistoryTrigger,
   ];
 
@@ -42,7 +42,7 @@ class DatabaseTriggers {
     'DROP TRIGGER IF EXISTS update_icons_modified_at;',
     'DROP TRIGGER IF EXISTS update_tags_modified_at;',
     'DROP TRIGGER IF EXISTS update_passwords_modified_at;',
-    'DROP TRIGGER IF EXISTS update_totps_modified_at;',
+    'DROP TRIGGER IF EXISTS update_otps_modified_at;',
     'DROP TRIGGER IF EXISTS update_notes_modified_at;',
     'DROP TRIGGER IF EXISTS update_attachments_modified_at;',
     'DROP TRIGGER IF EXISTS insert_hoplixi_meta_timestamps;',
@@ -50,14 +50,14 @@ class DatabaseTriggers {
     'DROP TRIGGER IF EXISTS insert_icons_timestamps;',
     'DROP TRIGGER IF EXISTS insert_tags_timestamps;',
     'DROP TRIGGER IF EXISTS insert_passwords_timestamps;',
-    'DROP TRIGGER IF EXISTS insert_totps_timestamps;',
+    'DROP TRIGGER IF EXISTS insert_otps_timestamps;',
     'DROP TRIGGER IF EXISTS insert_notes_timestamps;',
     'DROP TRIGGER IF EXISTS insert_attachments_timestamps;',
     'DROP TRIGGER IF EXISTS password_update_history;',
-    'DROP TRIGGER IF EXISTS totp_update_history;',
+    'DROP TRIGGER IF EXISTS otp_update_history;',
     'DROP TRIGGER IF EXISTS note_update_history;',
     'DROP TRIGGER IF EXISTS password_delete_history;',
-    'DROP TRIGGER IF EXISTS totp_delete_history;',
+    'DROP TRIGGER IF EXISTS otp_delete_history;',
     'DROP TRIGGER IF EXISTS note_delete_history;',
   ];
 
@@ -123,13 +123,13 @@ class DatabaseTriggers {
     END;
   ''';
 
-  static const String _createModifiedAtTriggerForTotps = '''
-    CREATE TRIGGER IF NOT EXISTS update_totps_modified_at
-    AFTER UPDATE ON totps
+  static const String _createModifiedAtTriggerForOtp = '''
+    CREATE TRIGGER IF NOT EXISTS update_otps_modified_at
+    AFTER UPDATE ON otps
     FOR EACH ROW
     WHEN NEW.modified_at = OLD.modified_at
     BEGIN
-      UPDATE totps 
+      UPDATE otps 
       SET modified_at = strftime('%s','now') 
       WHERE id = NEW.id;
     END;
@@ -231,14 +231,14 @@ class DatabaseTriggers {
     END;
   ''';
 
-  static const String _createInsertTriggerForTotps = '''
-    CREATE TRIGGER IF NOT EXISTS insert_totps_timestamps
-    AFTER INSERT ON totps
+  static const String _createInsertTriggerForOtp = '''
+    CREATE TRIGGER IF NOT EXISTS insert_otps_timestamps
+    AFTER INSERT ON otps
     FOR EACH ROW
     WHEN NEW.created_at IS NULL OR NEW.modified_at IS NULL
     BEGIN
-      UPDATE totps 
-      SET 
+      UPDATE otps
+      SET
         created_at = COALESCE(NEW.created_at, strftime('%s','now')),
         modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
       WHERE id = NEW.id;
@@ -331,17 +331,16 @@ class DatabaseTriggers {
     END;
   ''';
 
-  static const String _createTotpUpdateHistoryTrigger = '''
-    CREATE TRIGGER IF NOT EXISTS totp_update_history
-    AFTER UPDATE ON totps
+  static const String _createOtpUpdateHistoryTrigger = '''
+    CREATE TRIGGER IF NOT EXISTS otp_update_history
+    AFTER UPDATE ON otps
     FOR EACH ROW
     WHEN OLD.id = NEW.id AND (
-      OLD.name != NEW.name OR
-      OLD.description != NEW.description OR
       OLD.type != NEW.type OR
       OLD.issuer != NEW.issuer OR
       OLD.account_name != NEW.account_name OR
-      OLD.secret_cipher != NEW.secret_cipher OR
+      OLD.secret != NEW.secret OR
+      OLD.notes != NEW.notes OR
       OLD.algorithm != NEW.algorithm OR
       OLD.digits != NEW.digits OR
       OLD.period != NEW.period OR
@@ -350,15 +349,15 @@ class DatabaseTriggers {
       OLD.is_favorite != NEW.is_favorite
     )
     BEGIN
-      INSERT INTO totp_histories (
+      INSERT INTO otp_histories (
         id,
-        original_totp_id,
+        original_otp_id,
         action,
-        name,
-        description,
         type,
         issuer,
         account_name,
+        secret,
+        notes,
         algorithm,
         digits,
         period,
@@ -373,20 +372,20 @@ class DatabaseTriggers {
         lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('ab89',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))),
         OLD.id,
         'modified',
-        OLD.name,
-        OLD.description,
         OLD.type,
         OLD.issuer,
         OLD.account_name,
+        OLD.secret,
+        OLD.notes,
         OLD.algorithm,
         OLD.digits,
         OLD.period,
         OLD.counter,
         OLD.category_id,
         (SELECT name FROM categories WHERE id = OLD.category_id),
-        (SELECT json_group_array(t.name) FROM tags t 
-         JOIN totp_tags tt ON t.id = tt.tag_id 
-         WHERE tt.totp_id = OLD.id),
+        (SELECT json_group_array(t.name) FROM tags t
+         JOIN otp_tags tt ON t.id = tt.tag_id
+         WHERE tt.otp_id = OLD.id),
         OLD.created_at,
         OLD.modified_at,
         strftime('%s','now')
@@ -487,20 +486,20 @@ class DatabaseTriggers {
     END;
   ''';
 
-  static const String _createTotpDeleteHistoryTrigger = '''
-    CREATE TRIGGER IF NOT EXISTS totp_delete_history
-    BEFORE DELETE ON totps
+  static const String _createOtpDeleteHistoryTrigger = '''
+    CREATE TRIGGER IF NOT EXISTS otp_delete_history
+    BEFORE DELETE ON otps
     FOR EACH ROW
     BEGIN
-      INSERT INTO totp_histories (
+      INSERT INTO otp_histories (
         id,
-        original_totp_id,
+        original_otp_id,
         action,
-        name,
-        description,
         type,
         issuer,
         account_name,
+        secret,
+        notes,
         algorithm,
         digits,
         period,
@@ -515,20 +514,20 @@ class DatabaseTriggers {
         lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('ab89',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))),
         OLD.id,
         'deleted',
-        OLD.name,
-        OLD.description,
         OLD.type,
         OLD.issuer,
         OLD.account_name,
+        OLD.secret,
+        OLD.notes,
         OLD.algorithm,
         OLD.digits,
         OLD.period,
         OLD.counter,
         OLD.category_id,
         (SELECT name FROM categories WHERE id = OLD.category_id),
-        (SELECT json_group_array(t.name) FROM tags t 
-         JOIN totp_tags tt ON t.id = tt.tag_id 
-         WHERE tt.totp_id = OLD.id),
+        (SELECT json_group_array(t.name) FROM tags t
+         JOIN otp_tags tt ON t.id = tt.tag_id
+         WHERE tt.otp_id = OLD.id),
         OLD.created_at,
         OLD.modified_at,
         strftime('%s','now')
