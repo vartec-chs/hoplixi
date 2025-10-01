@@ -11,6 +11,8 @@ import 'package:hoplixi/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 import 'package:hoplixi/core/theme/index.dart';
 import 'package:responsive_framework/responsive_framework.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class App extends ConsumerStatefulWidget {
   const App({super.key});
@@ -87,6 +89,13 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
       scaffoldMessengerKey: ScaffoldMessengerManager.globalKey,
 
       debugShowCheckedModeBanner: false,
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        FlutterQuillLocalizations.delegate,
+      ],
 
       routerConfig: router,
       themeMode: themeMode,

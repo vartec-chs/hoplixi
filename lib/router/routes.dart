@@ -8,6 +8,7 @@ import 'package:hoplixi/features/localsend/models/localsend_device_info.dart';
 import 'package:hoplixi/features/localsend/screens/discovery_screen.dart';
 import 'package:hoplixi/features/localsend/screens/transceive_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
+import 'package:hoplixi/features/password_manager/dashboard/futures/notes_form/notes_form.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/otp_form.dart';
 import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_manager_screen.dart';
@@ -98,6 +99,11 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.demoNotification,
     builder: (context, state) => const NotificationDemoScreen(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.notesForm,
+    builder: (context, state) => const NotesFormScreen(),
   ),
 
   GoRoute(

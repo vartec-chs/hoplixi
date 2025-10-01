@@ -92,7 +92,7 @@ BEGIN
             VALUE "CompanyName", "com.example" "\0"
             VALUE "FileDescription", "hoplixi" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "hoplixi" "\0"
+            VALUE "InternalName", "Hoplixi" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "hoplixi.exe" "\0"
             VALUE "ProductName", "hoplixi" "\0"

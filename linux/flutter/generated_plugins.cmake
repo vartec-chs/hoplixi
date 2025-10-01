@@ -9,6 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_webrtc
   screen_retriever_linux
   sqlcipher_flutter_libs
+  url_launcher_linux
   window_manager
 )
 

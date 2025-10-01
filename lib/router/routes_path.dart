@@ -24,6 +24,7 @@ class AppRoutes {
   static const String qrTest = '/qr-test';
   static const String otpForm = '/otp-form';
   static const String demoNotification = '/demo-notification';
+  static const String notesForm = '/notes-form';
 }
 
 class ProtectedRoutes {
