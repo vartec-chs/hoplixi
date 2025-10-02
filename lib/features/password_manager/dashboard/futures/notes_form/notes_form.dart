@@ -1,13 +1,18 @@
 import 'dart:convert';
+import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:path/path.dart' as path;
+import 'dart:io' as io;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path/path.dart' as path;
-import 'dart:io' as io;
-import 'custom_toolbar.dart';
+import 'package:universal_platform/universal_platform.dart';
+
+import 'time_stamp_embed.dart';
+import 'toolbar.dart';
+import 'youtube_video_player.dart';
 
 class NotesFormScreen extends StatefulWidget {
   const NotesFormScreen({super.key});
@@ -17,6 +22,7 @@ class NotesFormScreen extends StatefulWidget {
 }
 
 class _NotesFormScreenState extends State<NotesFormScreen> {
+  static const String _logTag = 'NotesForm';
   final QuillController _controller = () {
     return QuillController.basic(
       config: QuillControllerConfig(
@@ -35,6 +41,7 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
               io.Directory.systemTemp.path,
               newFileName,
             );
+            logInfo('Pasting image to $newPath', tag: _logTag);
             final file = await io.File(
               newPath,
             ).writeAsBytes(imageBytes, flush: true);
@@ -52,7 +59,7 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
     super.initState();
     // Load document
     _controller.document = Document.fromJson(
-      jsonDecode('[{"insert":"Hello World!\\n"}]'),
+      jsonDecode('[{"insert":"Написать!\\n"}]'),
     );
   }
 
@@ -60,116 +67,71 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: BackButton(
-          onPressed: () {
-            context.pop();
-          },
-        ),
+        leading: BackButton(onPressed: () => context.pop()),
         title: Text('Редактор заметок'),
         actionsPadding: const EdgeInsets.only(right: 8),
         actions: [
           IconButton(
-            icon: const Icon(Icons.output),
-            tooltip: 'Print Delta JSON to log',
+            tooltip: 'Сохранить',
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'The JSON Delta has been printed to the console.',
-                  ),
-                ),
+              // Save document
+              final deltaJson = jsonEncode(
+                _controller.document.toDelta().toJson(),
               );
-              debugPrint(jsonEncode(_controller.document.toDelta().toJson()));
+              logInfo('Document saved: $deltaJson', tag: _logTag);
+              // context.pop();
             },
+            icon: const Icon(Icons.save_rounded),
           ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
-          child: CustomToolbar(controller: _controller),
+          child: Toolbar(controller: _controller),
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // QuillSimpleToolbar(
-            //   controller: _controller,
-            //   config: QuillSimpleToolbarConfig(
-            //     embedButtons: FlutterQuillEmbeds.toolbarButtons(),
-            //     showClipboardPaste: true,
-            //     customButtons: [
-            //       QuillToolbarCustomButtonOptions(
-            //         icon: const Icon(Icons.add_alarm_rounded),
-            //         onPressed: () {
-            //           _controller.document.insert(
-            //             _controller.selection.extentOffset,
-            //             TimeStampEmbed(DateTime.now().toString()),
-            //           );
+        child: QuillEditor(
+          focusNode: _editorFocusNode,
+          scrollController: _editorScrollController,
+          controller: _controller,
+          config: QuillEditorConfig(
+            placeholder: 'Начните вводить текст...',
+            padding: const EdgeInsets.all(16),
+            embedBuilders: [
+              ...FlutterQuillEmbeds.editorBuilders(
+                imageEmbedConfig: QuillEditorImageEmbedConfig(
+                  imageProviderBuilder: (context, imageUrl) {
+                    logDebug('Loading embedded image: $imageUrl', tag: _logTag);
+                    // https://pub.dev/packages/flutter_quill_extensions#-image-assets
+                    if (imageUrl.startsWith('assets/')) {
+                      return AssetImage(imageUrl);
+                    }
+                    return null;
+                  },
+                  onImageRemovedCallback: (imageUrl) async {
+                    logInfo('Image removed: $imageUrl', tag: _logTag);
+                  },
+                ),
+                videoEmbedConfig: QuillEditorVideoEmbedConfig(
+                  customVideoBuilder: (videoUrl, readOnly) {
+                    logDebug('Loading embedded video: $videoUrl', tag: _logTag);
+                    // Example: Check for YouTube Video URL and return your
+                    // YouTube video widget here.
 
-            //           _controller.updateSelection(
-            //             TextSelection.collapsed(
-            //               offset: _controller.selection.extentOffset + 1,
-            //             ),
-            //             ChangeSource.local,
-            //           );
-            //         },
-            //       ),
-            //     ],
-            //     buttonOptions: QuillSimpleToolbarButtonOptions(
-            //       base: QuillToolbarBaseButtonOptions(
-            //         afterButtonPressed: () {
-            //           final isDesktop = {
-            //             TargetPlatform.linux,
-            //             TargetPlatform.windows,
-            //             TargetPlatform.macOS,
-            //           }.contains(defaultTargetPlatform);
-            //           if (isDesktop) {
-            //             _editorFocusNode.requestFocus();
-            //           }
-            //         },
-            //       ),
-            //       linkStyle: QuillToolbarLinkStyleButtonOptions(
-            //         validateLink: (link) {
-            //           // Treats all links as valid. When launching the URL,
-            //           // `https://` is prefixed if the link is incomplete (e.g., `google.com` → `https://google.com`)
-            //           // however this happens only within the editor.
-            //           return true;
-            //         },
-            //       ),
-            //     ),
-            //   ),
-            // ),
-            Expanded(
-              child: QuillEditor(
-                focusNode: _editorFocusNode,
-                scrollController: _editorScrollController,
-                controller: _controller,
-                config: QuillEditorConfig(
-                  placeholder: 'Start writing your notes...',
-                  padding: const EdgeInsets.all(16),
-                  embedBuilders: [
-                    ...FlutterQuillEmbeds.editorBuilders(
-                      imageEmbedConfig: QuillEditorImageEmbedConfig(
-                        imageProviderBuilder: (context, imageUrl) {
-                          // https://pub.dev/packages/flutter_quill_extensions#-image-assets
-                          if (imageUrl.startsWith('assets/')) {
-                            return AssetImage(imageUrl);
-                          }
-                          return null;
-                        },
-                      ),
-                      videoEmbedConfig: QuillEditorVideoEmbedConfig(
-                        customVideoBuilder: (videoUrl, readOnly) {
-                          // To load YouTube videos https://github.com/singerdmx/flutter-quill/releases/tag/v10.8.0
-                          return null;
-                        },
-                      ),
-                    ),
-                    TimeStampEmbedBuilder(),
-                  ],
+                    // Note: YouTube videos are not supported on Linux due to platform limitations
+                    if (_isYouTubeUrl(videoUrl) &&
+                        !(UniversalPlatform.isLinux)) {
+                      return YoutubeVideoPlayer(videoUrl: videoUrl);
+                    }
+
+                    // Return null to fallback to the default logic
+                    return null;
+                  },
                 ),
               ),
-            ),
-          ],
+              TimeStampEmbedBuilder(),
+            ],
+          ),
         ),
       ),
     );
@@ -184,33 +146,14 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
   }
 }
 
-class TimeStampEmbed extends Embeddable {
-  const TimeStampEmbed(String value) : super(timeStampType, value);
-
-  static const String timeStampType = 'timeStamp';
-
-  static TimeStampEmbed fromDocument(Document document) =>
-      TimeStampEmbed(jsonEncode(document.toDelta().toJson()));
-
-  Document get document => Document.fromJson(jsonDecode(data));
-}
-
-class TimeStampEmbedBuilder extends EmbedBuilder {
-  @override
-  String get key => 'timeStamp';
-
-  @override
-  String toPlainText(Embed node) {
-    return node.value.data;
-  }
-
-  @override
-  Widget build(BuildContext context, EmbedContext embedContext) {
-    return Row(
-      children: [
-        const Icon(Icons.access_time_rounded),
-        Text(embedContext.node.value.data as String),
-      ],
-    );
+bool _isYouTubeUrl(String videoUrl) {
+  try {
+    final uri = Uri.parse(videoUrl);
+    return uri.host == 'www.youtube.com' ||
+        uri.host == 'youtube.com' ||
+        uri.host == 'youtu.be' ||
+        uri.host == 'www.youtu.be';
+  } catch (_) {
+    return false;
   }
 }

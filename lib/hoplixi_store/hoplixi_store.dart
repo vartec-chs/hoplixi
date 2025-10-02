@@ -64,7 +64,7 @@ class HoplixiStore extends _$HoplixiStore {
   HoplixiStore(super.e);
 
   @override
-  int get schemaVersion => 3; // Keep as 1 for clean start
+  int get schemaVersion => 1; // Keep as 1 for clean start
 
   @override
   MigrationStrategy get migration {
@@ -72,7 +72,6 @@ class HoplixiStore extends _$HoplixiStore {
       onCreate: (Migrator m) async {
         // Создание всех таблиц
         await m.createAll();
-
         // Создание триггеров после создания таблиц
         logInfo('Создание SQL триггеров', tag: 'DatabaseMigration');
         await DatabaseTriggers.createTriggers(this);
@@ -90,11 +89,6 @@ class HoplixiStore extends _$HoplixiStore {
         // При обновлении пересоздаем триггеры
         await DatabaseTriggers.dropTriggers(this);
         await DatabaseTriggers.createTriggers(this);
-        if (from == 1) {
-          await m.addColumn(passwords, passwords.usedCount);
-        } else if (from == 2) {
-          await m.addColumn(passwords, passwords.isArchived);
-        }
 
         logInfo('Миграция завершена', tag: 'DatabaseMigration');
       },

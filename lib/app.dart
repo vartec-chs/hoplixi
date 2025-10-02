@@ -47,8 +47,8 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
     super.didChangeAppLifecycleState(state);
 
-    // Используем новый провайдер для обработки жизненного цикла
-    await ref.read(appLifecycleProvider.notifier).handleLifecycleState(state);
+    // Жизненный цикл приложения 
+    // await ref.read(appLifecycleProvider.notifier).handleLifecycleState(state);
 
     switch (state) {
       case AppLifecycleState.resumed:
