@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 
 /// Провайдер для управления жизненным циклом приложения
 final appLifecycleProvider =

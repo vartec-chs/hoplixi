@@ -21,7 +21,7 @@
 
 - `id` - TEXT, UUID v4, первичный ключ
 - `name` - TEXT(1-255), название иконки
-- `type` - TEXT(1-100), MIME тип (png, jpg, svg, etc.)
+- `type` - TEXT(1-50), MIME тип (png, jpg, svg, gif, bmp, webp)
 - `data` - BLOB, бинарные данные изображения
 - `created_at` - DATETIME, время создания (авто)
 - `modified_at` - DATETIME, время изменения (авто)
@@ -29,10 +29,10 @@
 ### 3. Categories - Категории
 
 - `id` - TEXT, UUID v4, первичный ключ
-- `name` - TEXT(1-100), название категории
+- `name` - TEXT(1-100), название категории (уникальное)
 - `description` - TEXT, описание (опционально)
 - `icon_id` - TEXT, ссылка на иконку (FK -> Icons.id, опционально)
-- `color` - TEXT, цвет в hex формате (опционально)
+- `color` - TEXT, цвет в hex формате (по умолчанию 'FFFFFF')
 - `type` - TEXT ENUM, тип категории (notes, password, totp, mixed)
 - `created_at` - DATETIME, время создания (авто)
 - `modified_at` - DATETIME, время изменения (авто)
@@ -50,6 +50,8 @@
 
 - `id` - TEXT, UUID v4, первичный ключ
 - `title` - TEXT(1-255), заголовок заметки
+- `description` - TEXT, описание (опционально)
+- `delta_json` - TEXT, JSON представление Quill Delta
 - `content` - TEXT, основное содержимое заметки
 - `category_id` - TEXT, ссылка на категорию (FK -> Categories.id, опционально)
 - `is_favorite` - BOOLEAN, флаг избранного (по умолчанию false)
@@ -69,6 +71,8 @@
 - `login` - TEXT, логин/имя пользователя (опционально)
 - `email` - TEXT, email (опционально)
 - `category_id` - TEXT, ссылка на категорию (FK -> Categories.id, опционально)
+- `used_count` - INTEGER, счетчик использования (по умолчанию 0)
+- `is_archived` - BOOLEAN, флаг архивации (по умолчанию false)
 - `is_favorite` - BOOLEAN, флаг избранного (по умолчанию false)
 - `created_at` - DATETIME, время создания (авто)
 - `modified_at` - DATETIME, время изменения (авто)
@@ -104,33 +108,34 @@
 - `mime_type` - TEXT, MIME тип файла
 - `file_size` - INTEGER, размер файла в байтах
 - `checksum` - TEXT, контрольная сумма файла (опционально)
-- `password_id` - TEXT, ссылка на пароль (FK -> Passwords.id, опционально)
-- `totp_id` - TEXT, ссылка на TOTP (FK -> Totps.id, опционально)
-- `note_id` - TEXT, ссылка на заметку (FK -> Notes.id, опционально)
+- `password_id` - TEXT, ссылка на пароль (FK -> Passwords.id, CASCADE, опционально)
+- `totp_id` - TEXT, ссылка на TOTP (FK -> Totps.id, CASCADE, опционально)
+- `note_id` - TEXT, ссылка на заметку (FK -> Notes.id, CASCADE, опционально)
 - `created_at` - DATETIME, время создания (авто)
 - `modified_at` - DATETIME, время изменения (авто)
+- `last_accessed` - DATETIME, время последнего доступа (опционально)
 - **Ограничение**: CHECK (точно одно из полей password_id, totp_id, note_id должно быть NOT NULL)
 
 ## Связующие таблицы (Many-to-Many)
 
 ### 9. PasswordTags - Связь паролей и тегов
 
-- `password_id` - TEXT, ссылка на пароль (FK -> Passwords.id)
-- `tag_id` - TEXT, ссылка на тег (FK -> Tags.id)
+- `password_id` - TEXT, ссылка на пароль (FK -> Passwords.id, CASCADE)
+- `tag_id` - TEXT, ссылка на тег (FK -> Tags.id, CASCADE)
 - `created_at` - DATETIME, время создания связи (авто)
 - **Первичный ключ**: (password_id, tag_id)
 
 ### 10. TotpTags - Связь TOTP и тегов
 
-- `totp_id` - TEXT, ссылка на TOTP (FK -> Totps.id)
-- `tag_id` - TEXT, ссылка на тег (FK -> Tags.id)
+- `totp_id` - TEXT, ссылка на TOTP (FK -> Totps.id, CASCADE)
+- `tag_id` - TEXT, ссылка на тег (FK -> Tags.id, CASCADE)
 - `created_at` - DATETIME, время создания связи (авто)
 - **Первичный ключ**: (totp_id, tag_id)
 
 ### 11. NoteTags - Связь заметок и тегов
 
-- `note_id` - TEXT, ссылка на заметку (FK -> Notes.id)
-- `tag_id` - TEXT, ссылка на тег (FK -> Tags.id)
+- `note_id` - TEXT, ссылка на заметку (FK -> Notes.id, CASCADE)
+- `tag_id` - TEXT, ссылка на тег (FK -> Tags.id, CASCADE)
 - `created_at` - DATETIME, время создания связи (авто)
 - **Первичный ключ**: (note_id, tag_id)
 
@@ -206,6 +211,26 @@
 - `totp` - Time-based One-Time Password (временной одноразовый пароль)
 - `hotp` - HMAC-based One-Time Password (счетчиковый одноразовый пароль)
 
+### AlgorithmOtp
+
+- `SHA1` - HMAC-SHA1 (по умолчанию)
+- `SHA256` - HMAC-SHA256
+- `SHA512` - HMAC-SHA512
+
+### ActionInHistory
+
+- `deleted` - Действие удаления
+- `modified` - Действие изменения
+
+### IconType
+
+- `png` - PNG изображение
+- `jpg` - JPEG изображение
+- `svg` - SVG векторное изображение
+- `gif` - GIF анимированное изображение
+- `bmp` - BMP растровое изображение
+- `webp` - WebP изображение
+
 ## Особенности безопасности
 
 1. **UUID v4**: Все ID используют UUID v4 для предотвращения перебора
@@ -266,7 +291,7 @@ CREATE TABLE hoplixi_meta (
 CREATE TABLE icons (
     id TEXT PRIMARY KEY,
     name TEXT(255) NOT NULL CHECK(length(name) >= 1),
-    type TEXT(100) NOT NULL CHECK(length(type) >= 1),
+    type TEXT(50) NOT NULL CHECK(length(type) >= 1),
     data BLOB NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -274,10 +299,10 @@ CREATE TABLE icons (
 
 CREATE TABLE categories (
     id TEXT PRIMARY KEY,
-    name TEXT(100) NOT NULL CHECK(length(name) >= 1),
+    name TEXT(100) NOT NULL UNIQUE CHECK(length(name) >= 1),
     description TEXT,
     icon_id TEXT,
-    color TEXT,
+    color TEXT NOT NULL DEFAULT 'FFFFFF',
     type TEXT NOT NULL CHECK(type IN ('notes', 'password', 'totp', 'mixed')),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -296,6 +321,8 @@ CREATE TABLE tags (
 CREATE TABLE notes (
     id TEXT PRIMARY KEY,
     title TEXT(255) NOT NULL CHECK(length(title) >= 1),
+    description TEXT,
+    delta_json TEXT NOT NULL,
     content TEXT NOT NULL,
     category_id TEXT,
     is_favorite BOOLEAN NOT NULL DEFAULT 0,
@@ -316,11 +343,13 @@ CREATE TABLE passwords (
     login TEXT,
     email TEXT,
     category_id TEXT,
+    used_count INTEGER NOT NULL DEFAULT 0,
+    is_archived BOOLEAN NOT NULL DEFAULT 0,
     is_favorite BOOLEAN NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_accessed DATETIME,
-    FOREIGN KEY (category_id) REFERENCES categories(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
     CHECK (login IS NOT NULL OR email IS NOT NULL)
 );
 
@@ -359,9 +388,10 @@ CREATE TABLE attachments (
     note_id TEXT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modified_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (password_id) REFERENCES passwords(id),
-    FOREIGN KEY (totp_id) REFERENCES totps(id),
-    FOREIGN KEY (note_id) REFERENCES notes(id),
+    last_accessed DATETIME,
+    FOREIGN KEY (password_id) REFERENCES passwords(id) ON DELETE CASCADE,
+    FOREIGN KEY (totp_id) REFERENCES totps(id) ON DELETE CASCADE,
+    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE,
     CHECK ((password_id IS NOT NULL AND totp_id IS NULL AND note_id IS NULL) OR 
            (password_id IS NULL AND totp_id IS NOT NULL AND note_id IS NULL) OR 
            (password_id IS NULL AND totp_id IS NULL AND note_id IS NOT NULL))
@@ -373,8 +403,8 @@ CREATE TABLE note_tags (
     tag_id TEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (note_id, tag_id),
-    FOREIGN KEY (note_id) REFERENCES notes(id),
-    FOREIGN KEY (tag_id) REFERENCES tags(id)
+    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
 CREATE TABLE password_tags (
@@ -382,8 +412,8 @@ CREATE TABLE password_tags (
     tag_id TEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (password_id, tag_id),
-    FOREIGN KEY (password_id) REFERENCES passwords(id),
-    FOREIGN KEY (tag_id) REFERENCES tags(id)
+    FOREIGN KEY (password_id) REFERENCES passwords(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
 CREATE TABLE totp_tags (
@@ -391,8 +421,8 @@ CREATE TABLE totp_tags (
     tag_id TEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (totp_id, tag_id),
-    FOREIGN KEY (totp_id) REFERENCES totps(id),
-    FOREIGN KEY (tag_id) REFERENCES tags(id)
+    FOREIGN KEY (totp_id) REFERENCES totps(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
 -- Таблицы истории

@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';
 
-part 'state.freezed.dart';
+part 'db_state.freezed.dart';
 
 enum DatabaseStatus { closed, open, locked, loading, error }
 

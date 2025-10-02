@@ -9,7 +9,8 @@ import 'package:hoplixi/features/password_manager/filters/category_filter/catego
 import 'package:hoplixi/features/password_manager/filters/tag_filter/tag_filter_widget.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/hoplixi_store/services_providers.dart' as services;
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart'
+    as services;
 
 // Модели и провайдеры
 import '../models/entety_type.dart';

@@ -5,10 +5,10 @@ import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
-import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/hoplixi_store/state.dart';
+import 'package:hoplixi/hoplixi_store/models/db_state.dart';
 
 class CreateStoreScreen extends ConsumerStatefulWidget {
   const CreateStoreScreen({super.key});

@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
-import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 
 class PasswordCard extends ConsumerStatefulWidget {

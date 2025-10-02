@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 
 /// Виджет для отображения иконки категории
 ///

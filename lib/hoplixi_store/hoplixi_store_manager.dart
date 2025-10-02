@@ -9,7 +9,7 @@ import 'package:hoplixi/hoplixi_store/services/database_connection_service.dart'
 import 'package:hoplixi/hoplixi_store/services/database_history_service.dart';
 import 'package:hoplixi/hoplixi_store/services/database_validation_service.dart';
 
-import 'state.dart';
+import 'models/db_state.dart';
 import 'dto/db_dto.dart';
 import 'dto/database_file_info.dart';
 import 'hoplixi_store.dart';

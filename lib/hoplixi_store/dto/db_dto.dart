@@ -100,6 +100,7 @@ abstract class CreateNoteDto with _$CreateNoteDto {
   const factory CreateNoteDto({
     required String title,
     String? description,
+    required String deltaJson,
     required String content,
     String? categoryId,
     @Default(false) bool isFavorite,
@@ -113,6 +114,7 @@ abstract class UpdateNoteDto with _$UpdateNoteDto {
     required String id,
     String? title,
     String? description,
+    String? deltaJson,
     String? content,
     String? categoryId,
     bool? isFavorite,

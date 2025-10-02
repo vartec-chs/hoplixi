@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'dart:typed_data';
 import 'dart:convert';
@@ -12,7 +13,6 @@ import 'dart:convert';
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/hoplixi_store/services/service_results.dart';
 
 /// Форма для добавления или редактирования иконки

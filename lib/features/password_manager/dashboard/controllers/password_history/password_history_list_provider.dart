@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/dao/index.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
-import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/dao_providers.dart';
 
 class PasswordHistoryListController
     extends AsyncNotifier<List<PasswordHistory>> {

@@ -4,15 +4,16 @@
 library;
 
 export 'hoplixi_store_providers.dart';
-export 'services_providers.dart';
-
+export 'service_providers.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
-import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'service_providers.dart';
+import 'dao_providers.dart';
 
-final clearAllProvider =
-    AsyncNotifierProvider<ClearAllNotifier, void>(ClearAllNotifier.new);
+final clearAllProvider = AsyncNotifierProvider<ClearAllNotifier, void>(
+  ClearAllNotifier.new,
+);
 
 class ClearAllNotifier extends AsyncNotifier<void> {
   @override

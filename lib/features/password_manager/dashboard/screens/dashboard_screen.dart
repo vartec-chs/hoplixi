@@ -11,7 +11,7 @@ import 'package:hoplixi/features/password_manager/dashboard/providers/lists_prov
 import 'package:hoplixi/features/password_manager/dashboard/widgets/dashboard_app_bar.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_list_view.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_fab.dart';
-import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 
 /// Главный экран дашборда с полнофункциональным SliverAppBar

@@ -4,7 +4,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services/categories_service.dart';
-import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
 
 /// Состояние экрана управления категориями

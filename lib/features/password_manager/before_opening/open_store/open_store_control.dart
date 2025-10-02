@@ -7,7 +7,7 @@ import 'package:hoplixi/core/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/dto/database_file_info.dart';
-import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:file_picker/file_picker.dart';
 
 /// Состояние формы открытия хранилища

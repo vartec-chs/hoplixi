@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/global/widgets/close_database_button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/theme/index.dart';
-import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
-import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
 import 'package:window_manager/window_manager.dart';
 

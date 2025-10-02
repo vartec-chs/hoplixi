@@ -103,6 +103,7 @@ class NoteTagsDao extends DatabaseAccessor<HoplixiStore>
             title: row.read<String>('title'),
             description: row.read<String?>('description'),
             content: row.read<String>('content'),
+            deltaJson: row.read<String>('delta_json'),
             categoryId: row.read<String?>('category_id'),
             isFavorite: row.read<bool>('is_favorite'),
             isPinned: row.read<bool>('is_pinned'),

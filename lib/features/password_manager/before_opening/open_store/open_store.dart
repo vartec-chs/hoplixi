@@ -7,10 +7,10 @@ import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store_control.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/widgets/database_files_list.dart';
-import 'package:hoplixi/hoplixi_store/hoplixi_store_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/hoplixi_store/state.dart';
+import 'package:hoplixi/hoplixi_store/models/db_state.dart';
 
 class OpenStoreScreen extends ConsumerStatefulWidget {
   const OpenStoreScreen({super.key});

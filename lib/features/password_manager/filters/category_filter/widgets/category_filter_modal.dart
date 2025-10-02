@@ -10,7 +10,7 @@ import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/dao/categories_dao.dart';
-import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 
 /// Провайдер для сервиса категорий
 /// Модальное окно для фильтрации категорий

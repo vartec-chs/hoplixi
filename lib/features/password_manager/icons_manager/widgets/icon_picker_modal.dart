@@ -3,9 +3,9 @@ import 'package:flutter/scheduler.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
-import 'package:hoplixi/hoplixi_store/services_providers.dart';
 import 'package:hoplixi/hoplixi_store/dao/icons_dao.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+import 'package:hoplixi/hoplixi_store/providers/dao_providers.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'selectable_icon_card.dart';
 

@@ -12,6 +12,10 @@ class NoteHistories extends Table {
     max: 50,
   )(); // 'deleted', 'modified'
   TextColumn get title => text().withLength(min: 1, max: 255)();
+  TextColumn get description =>
+      text().nullable()(); // Description at time of action
+  TextColumn get deltaJson =>
+      text().nullable()(); // Quill Delta JSON at time of action
   TextColumn get content =>
       text().nullable()(); // Content (nullable for privacy)
   TextColumn get categoryId => text().nullable()();

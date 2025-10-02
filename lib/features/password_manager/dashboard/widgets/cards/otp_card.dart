@@ -6,7 +6,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/hoplixi_store/services_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:otp/otp.dart';
 
 class TotpCard extends ConsumerStatefulWidget {

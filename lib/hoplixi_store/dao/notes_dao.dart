@@ -14,6 +14,7 @@ class NotesDao extends DatabaseAccessor<HoplixiStore> with _$NotesDaoMixin {
     final companion = NotesCompanion(
       title: Value(dto.title),
       description: Value(dto.description),
+      deltaJson: Value(dto.deltaJson),
       content: Value(dto.content),
       categoryId: Value(dto.categoryId),
       isFavorite: Value(dto.isFavorite),
@@ -35,6 +36,9 @@ class NotesDao extends DatabaseAccessor<HoplixiStore> with _$NotesDaoMixin {
       title: dto.title != null ? Value(dto.title!) : const Value.absent(),
       description: dto.description != null
           ? Value(dto.description)
+          : const Value.absent(),
+      deltaJson: dto.deltaJson != null
+          ? Value(dto.deltaJson!)
           : const Value.absent(),
       content: dto.content != null ? Value(dto.content!) : const Value.absent(),
       categoryId: dto.categoryId != null
@@ -252,6 +256,7 @@ class NotesDao extends DatabaseAccessor<HoplixiStore> with _$NotesDaoMixin {
         final companion = NotesCompanion(
           title: Value(dto.title),
           description: Value(dto.description),
+          deltaJson: Value(dto.deltaJson),
           content: Value(dto.content),
           categoryId: Value(dto.categoryId),
           isFavorite: Value(dto.isFavorite),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
-import 'package:hoplixi/hoplixi_store/providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 
 class CloseDatabaseButton extends ConsumerWidget {
