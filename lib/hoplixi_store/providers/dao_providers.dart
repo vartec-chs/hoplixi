@@ -75,3 +75,27 @@ final otpFilterDaoProvider = Provider.autoDispose<OtpFilterDao>((ref) {
 
   return OtpFilterDao(db.currentDatabase);
 });
+
+final otpTagsDaoProvider = Provider<OtpTagsDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  return OtpTagsDao(db.currentDatabase);
+});
+
+final otpHistoriesDaoProvider = Provider.autoDispose<OtpHistoriesDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  return OtpHistoriesDao(db.currentDatabase);
+});
+
+final attachmentsDaoProvider = Provider<AttachmentsDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  return AttachmentsDao(db.currentDatabase);
+});
+
+final notesDaoProvider = Provider.autoDispose<NotesDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  return NotesDao(db.currentDatabase);
+});

@@ -14,9 +14,10 @@ class Attachments extends Table {
       text().clientDefault(() => UuidGenerator.generate())(); // UUID v4
   TextColumn get name => text().withLength(min: 1, max: 255)();
   TextColumn get description => text().nullable()();
-  TextColumn get filePath => text()(); // Path to the file on disk
+  TextColumn get filePath => text().nullable()(); // Path to the file on disk
+  BlobColumn get fileData => blob().nullable()(); // File data (optional)
   TextColumn get mimeType => text()(); // MIME type of the file
-  IntColumn get fileSize => integer()(); // File size in bytes
+  IntColumn get fileSize => integer().nullable()(); // File size in bytes
   TextColumn get checksum =>
       text().nullable()(); // File checksum for integrity verification
 

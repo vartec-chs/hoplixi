@@ -12,6 +12,7 @@ import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/services/password_service.dart';
 import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
 import 'package:hoplixi/hoplixi_store/services/totp_service.dart';
+import 'package:hoplixi/hoplixi_store/services/attachment_service.dart';
 import 'dao_providers.dart';
 import 'hoplixi_store_providers.dart';
 
@@ -67,7 +68,6 @@ final passwordsServiceProvider = Provider<PasswordService>((ref) {
 });
 
 /// Провайдер для TOTPService
-
 final totpServiceProvider = Provider.autoDispose<TOTPService>((ref) {
   final otpsDao = ref.watch(otpsDaoProvider);
   final categoriesDao = ref.watch(categoriesDaoProvider);
@@ -77,6 +77,32 @@ final totpServiceProvider = Provider.autoDispose<TOTPService>((ref) {
   });
 
   return TOTPService(otpsDao, categoriesDao);
+});
+
+/// Провайдер для AttachmentService
+final attachmentServiceProvider = Provider.autoDispose<AttachmentService>((
+  ref,
+) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+  final attachmentsDao = ref.watch(attachmentsDaoProvider);
+  final passwordsDao = ref.watch(passwordsDaoProvider);
+  final otpsDao = ref.watch(otpsDaoProvider);
+  final notesDao = ref.watch(notesDaoProvider);
+
+  ref.onDispose(() {
+    logInfo(
+      'Освобождение ресурсов AttachmentService',
+      tag: 'ServicesProviders',
+    );
+  });
+
+  return AttachmentService(
+    db.currentDatabase,
+    attachmentsDao,
+    passwordsDao,
+    otpsDao,
+    notesDao,
+  );
 });
 
 // =============================================================================

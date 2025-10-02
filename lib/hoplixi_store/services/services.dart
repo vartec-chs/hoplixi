@@ -6,6 +6,8 @@ export 'icons_service.dart';
 export 'tags_service.dart';
 export 'metadata_service.dart';
 export 'password_service.dart';
+export 'totp_service.dart';
+export 'attachment_service.dart';
 
 // Также экспортируем существующие сервисы
 export 'database_connection_service.dart';
