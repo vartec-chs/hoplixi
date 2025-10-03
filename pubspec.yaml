@@ -106,6 +106,7 @@ dependencies:
   rename: ^3.1.0
   icons_launcher: ^3.0.3
   youtube_player_flutter: ^9.1.2
+  file_encrypter: ^2.0.2
   
 
 

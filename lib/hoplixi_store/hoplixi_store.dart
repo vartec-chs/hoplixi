@@ -150,6 +150,32 @@ class HoplixiStore extends _$HoplixiStore {
     }
   }
 
+  // attachmentKey в Base64
+  Future<String?> getAttachmentKey() async {
+    logDebug('Получение ключа вложений', tag: 'EncryptedDatabase');
+    try {
+      final result = await (selectOnly(
+        hoplixiMeta,
+      )..addColumns([hoplixiMeta.attachmentKey])).get();
+      final meta = result.first.read(hoplixiMeta.attachmentKey);
+      logDebug('Ключ вложений получен', tag: 'EncryptedDatabase');
+      return meta;
+    } catch (e) {
+      logError(
+        'Ошибка получения ключа вложений',
+        error: e,
+        tag: 'EncryptedDatabase',
+        stackTrace: StackTrace.current,
+      );
+      throw DatabaseError.operationFailed(
+        operation: 'getAttachmentKey',
+        details: e.toString(),
+        message: 'Ошибка получения ключа вложений',
+        stackTrace: StackTrace.current,
+      );
+    }
+  }
+
   Future<void> closeDatabase() async {
     logInfo('Закрытие базы данных', tag: 'EncryptedDatabase');
     try {

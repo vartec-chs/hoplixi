@@ -11,9 +11,12 @@ class HoplixiMeta extends Table {
       text().withLength(min: 0, max: 1024).nullable()();
   TextColumn get passwordHash => text()();
   TextColumn get salt => text()();
+  TextColumn get attachmentKey => text()();
   DateTimeColumn get createdAt =>
       dateTime().clientDefault(() => DateTime.now())();
   DateTimeColumn get modifiedAt =>
+      dateTime().clientDefault(() => DateTime.now())();
+  DateTimeColumn get lastOpenedAt =>
       dateTime().clientDefault(() => DateTime.now())();
   TextColumn get version => text().withDefault(const Constant('1.0.0'))();
 

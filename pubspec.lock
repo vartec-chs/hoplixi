@@ -393,6 +393,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  file_encrypter:
+    dependency: "direct main"
+    description:
+      name: file_encrypter
+      sha256: fd0efdaa53732b47b10d04e0af81b43057586fadb940c93335f9e2cfdbc93a27
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.2"
   file_picker:
     dependency: "direct main"
     description:

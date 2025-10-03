@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/core/utils/file_crypto/file_encryptor.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:sqlcipher_flutter_libs/sqlcipher_flutter_libs.dart';
 import 'package:sqlite3/open.dart';
@@ -109,6 +110,7 @@ class DatabaseConnectionService {
                 description: Value(description),
                 passwordHash: passwordData['hash']!,
                 salt: passwordData['salt']!,
+                attachmentKey: passwordData['attachmentKey']!,
               ),
             );
         logDebug(

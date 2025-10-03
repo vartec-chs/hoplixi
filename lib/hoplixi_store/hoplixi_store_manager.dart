@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:hoplixi/core/utils/file_crypto/file_encryptor.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/services/database_connection_service.dart';
 import 'package:hoplixi/hoplixi_store/services/database_history_service.dart';
@@ -30,6 +31,67 @@ class HoplixiStoreManager {
       _historyService ??= DatabaseHistoryService();
 
   bool get hasOpenDatabase => _database != null;
+
+  /// Получает ключ шифрования для вложений
+  /// Требует открытую базу данных
+  Future<String> getAttachmentKey() async {
+    const String operation = 'getAttachmentKey';
+
+    if (!hasOpenDatabase) {
+      logError(
+        'Попытка получить ключ вложений при закрытой БД',
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+      throw const DatabaseError.operationFailed(
+        operation: operation,
+        details: 'Database is not open',
+        message: 'База данных не открыта',
+      );
+    }
+
+    try {
+      final key = await _database!.getAttachmentKey();
+
+      if (key == null || key.isEmpty) {
+        logError(
+          'Ключ вложений пуст в метаданных БД',
+          tag: 'HoplixiStoreManager',
+          data: {'operation': operation},
+        );
+        throw const DatabaseError.operationFailed(
+          operation: operation,
+          details: 'Attachment key is empty in database metadata',
+          message: 'Ключ шифрования вложений не найден в базе данных',
+        );
+      }
+
+      logDebug(
+        'Ключ вложений получен успешно',
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+
+      return key;
+    } catch (e, s) {
+      if (e is DatabaseError) rethrow;
+
+      logError(
+        'Ошибка получения ключа вложений',
+        error: e,
+        stackTrace: s,
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+
+      throw DatabaseError.operationFailed(
+        operation: operation,
+        stackTrace: s,
+        details: e.toString(),
+        message: 'Не удалось получить ключ шифрования вложений',
+      );
+    }
+  }
 
   Future<DatabaseState> createDatabase(CreateDatabaseDto dto) async {
     const String operation = 'createDatabase';
@@ -253,7 +315,8 @@ class HoplixiStoreManager {
   Map<String, String> _generatePasswordData(String password) {
     final salt = _generateSecureSalt();
     final hash = _hashPassword(password, salt);
-    return {'hash': hash, 'salt': salt};
+    final attachmentKey = FileEncryptor.generateAes256Key();
+    return {'hash': hash, 'salt': salt, 'attachmentKey': attachmentKey};
   }
 
   /// Получает путь для базы данных по умолчанию
