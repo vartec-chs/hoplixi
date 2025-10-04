@@ -3,6 +3,8 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/features/global/providers/file_encryptor_provider.dart';
+import 'package:hoplixi/features/global/providers/sodium_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
@@ -53,6 +55,8 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     try {
       state = const AsyncValue.loading();
       final newState = await _manager.createDatabase(dto);
+      final manager = ref.read(fileEncryptorProvider.notifier);
+      await manager.initialize();
       state = AsyncValue.data(newState);
       logInfo(
         'База данных создана успешно',
@@ -84,6 +88,8 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     try {
       state = const AsyncValue.loading();
       final newState = await _manager.openDatabase(dto);
+      final manager = ref.read(fileEncryptorProvider.notifier);
+      await manager.initialize();
       state = AsyncValue.data(newState);
       logInfo(
         'База данных открыта успешно',
@@ -115,6 +121,9 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     try {
       state = const AsyncValue.loading();
       await _manager.closeDatabase();
+      final manager = ref.read(fileEncryptorProvider.notifier);
+      await manager.cleanup();
+      ref.invalidate(hoplixiStoreProvider); // Сброс состояния нотификатора
       state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));
       logInfo('База данных закрыта успешно', tag: 'DatabaseAsyncNotifier');
     } catch (e, st) {

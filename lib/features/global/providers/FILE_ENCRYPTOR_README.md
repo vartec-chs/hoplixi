@@ -1,339 +1,177 @@
-# FileEncryptor Provider - Документация
+# FileEncryptorProvider - Краткий обзор
 
-## Обзор
+## 🎯 Назначение
 
-`fileEncryptorProvider` - это Riverpod провайдер для шифрования/дешифрования файлов с использованием AEAD (Authenticated Encryption with Associated Data) через библиотеку libsodium.
+Центральный менеджер для безопасной работы с файлами в Hoplixi:
+- Шифрование/дешифрование файлов через AeadFileEncryptor (libsodium)
+- Автоматическое отслеживание расшифрованных временных файлов
+- **Автоматическое удаление при таймауте неактивности**
+- Защита от утечки данных
 
-**Ключевые особенности:**
-- ✅ **AutoDispose** - автоматическое освобождение ресурсов
-- ✅ **Безопасное хранение** - ключ в `SecureKey` (защищенная память)
-- ✅ **Streaming шифрование** - не загружает весь файл в память
-- ✅ **Аутентификация** - встроенная проверка целостности данных
-- ✅ **Метаданные** - сохраняет fileId и расширение файла
-
-## Требования
-
-1. База данных должна быть **открыта**
-2. Sodium должен быть **инициализирован**
-3. В таблице `HoplixiMeta` должен быть ключ шифрования (`attachmentKey` в base64)
-
-## Провайдеры
-
-### 1. `fileEncryptorProvider`
-
-Основной провайдер, возвращающий `FileEncryptorResult`.
-
-**Когда использовать:**
-- Нужна проверка успешности инициализации
-- Требуется обработка ошибок без исключений
-- Для критичных операций
+## 🔐 Интеграция с AppLifecycleProvider
 
 ```dart
-final encryptorResult = await ref.read(fileEncryptorProvider.future);
-
-if (encryptorResult.success) {
-  final encryptor = encryptorResult.data;
-  // Используем encryptor...
-} else {
-  // Обработка ошибки
-  ToastHelper.error(encryptorResult.message ?? 'Ошибка инициализации');
-}
+// В FileEncryptorNotifier автоматически:
+ref.listen<AppLifecycleStateData>(
+  appLifecycleProvider,
+  (previous, next) {
+    if (next.dataCleared) {
+      cleanup(); // Удаляет все временные файлы
+    }
+  },
+);
 ```
 
-### 2. `fileEncryptorInstanceProvider`
+### Цепочка безопасности
 
-Упрощенный провайдер, сразу возвращающий `AeadFileEncryptor`.
+1. Пользователь сворачивает приложение
+2. `AppLifecycleNotifier` запускает таймер (120 секунд)
+3. Таймер истекает → `dataCleared = true`
+4. `FileEncryptorNotifier` автоматически удаляет все временные файлы
+5. БД закрывается, приложение требует повторную аутентификацию
 
-**Когда использовать:**
-- Для упрощения кода
-- Когда уверены, что БД открыта
-- С блоком try-catch
+**Результат**: Никаких расшифрованных данных не остаётся на устройстве ✓
+
+## 📝 Быстрый старт
+
+### Инициализация
 
 ```dart
-try {
-  final encryptor = await ref.read(fileEncryptorInstanceProvider.future);
-  await encryptor.encryptFile(...);
-} catch (e) {
-  // Обработка ошибки
-}
+final manager = ref.read(fileEncryptorProvider.notifier);
+await manager.initialize();
 ```
 
-## Основные операции
-
-### Шифрование файла
+### Шифрование
 
 ```dart
-final encryptor = await ref.read(fileEncryptorInstanceProvider.future);
-
-await encryptor.encryptFile(
+final success = await manager.encryptFile(
   input: File('/path/to/document.pdf'),
-  output: File('/path/to/encrypted.enc'),
-  fileId: 'document_123',
+  output: File('/encrypted/file.enc'),
+  fileId: 'doc_${uuid.v4()}',
   fileExtension: 'pdf',
-  chunkSize: 64 * 1024, // опционально, по умолчанию 64 KB
-  onProgress: (progress) {
-    print('${progress.progressPercent}%');
-  },
 );
 ```
 
-**Параметры:**
-- `input` - исходный файл для шифрования
-- `output` - выходной зашифрованный файл
-- `fileId` - идентификатор файла (сохраняется в зашифрованном виде)
-- `fileExtension` - расширение файла (опционально)
-- `chunkSize` - размер блока для потокового шифрования
-- `onProgress` - callback для отслеживания прогресса
-
-### Дешифрование файла
+### Дешифрование (с автоотслеживанием)
 
 ```dart
-final encryptor = await ref.read(fileEncryptorInstanceProvider.future);
-
-final extension = await encryptor.decryptFile(
-  input: File('/path/to/encrypted.enc'),
-  output: File('/path/to/decrypted'),
-  expectedFileId: 'document_123', // опционально - проверка ID
-  useOriginalExtension: true, // автоматически добавит расширение
-  onProgress: (progress) {
-    print('${progress.progressPercent}%');
-  },
+final extension = await manager.decryptFile(
+  input: File('/encrypted/file.enc'),
+  output: File('/tmp/temp_file'),
+  trackForCleanup: true, // ← Автоматическое удаление
 );
-
-print('Оригинальное расширение: $extension');
 ```
 
-**Параметры:**
-- `input` - зашифрованный файл
-- `output` - выходной расшифрованный файл (или директория)
-- `expectedFileId` - ожидаемый ID файла для проверки
-- `useOriginalExtension` - автоматически добавить оригинальное расширение
-- `chunkSize` - размер блока для потокового дешифрования
-- `onProgress` - callback для отслеживания прогресса
-
-## Использование в UI
-
-### В Consumer Widget
+### Ручная очистка
 
 ```dart
-class FileEncryptionButton extends ConsumerWidget {
-  const FileEncryptionButton({super.key});
+// Удалить все временные файлы
+final deletedCount = await manager.cleanup();
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final encryptorAsync = ref.watch(fileEncryptorProvider);
-
-    return encryptorAsync.when(
-      data: (result) {
-        if (!result.success) {
-          return Text('Ошибка: ${result.message}');
-        }
-        
-        return ElevatedButton(
-          onPressed: () async {
-            final encryptor = result.data;
-            // Шифруем файл...
-          },
-          child: const Text('Зашифровать'),
-        );
-      },
-      loading: () => const CircularProgressIndicator(),
-      error: (error, stack) => Text('Ошибка: $error'),
-    );
-  }
-}
+// Удалить конкретный файл
+await manager.removeDecryptedFile('/tmp/specific_file.pdf');
 ```
 
-### В StatefulWidget
+## 🛡️ Безопасность
+
+### ✅ Что делает провайдер автоматически
+
+- Отслеживает все расшифрованные файлы
+- Удаляет файлы при таймауте неактивности
+- Удаляет файлы при dispose провайдера
+- Удаляет файлы при закрытии приложения
+- Удаляет файлы при logout
+
+### ⚠️ Что нужно помнить
+
+- Используйте `trackForCleanup: true` для временных файлов
+- Используйте `trackForCleanup: false` для постоянных файлов
+- Не логируйте пути расшифрованных файлов
+- Проверяйте `isInitialized` перед использованием
+
+## 📊 Мониторинг
 
 ```dart
-class FileEncryptionScreen extends ConsumerStatefulWidget {
-  const FileEncryptionScreen({super.key});
+// Просмотр состояния
+final state = ref.watch(fileEncryptorProvider);
 
-  @override
-  ConsumerState<FileEncryptionScreen> createState() => _FileEncryptionScreenState();
-}
+print('Инициализирован: ${state.isInitialized}');
+print('Временных файлов: ${state.decryptedFiles.length}');
+print('Ошибка: ${state.errorMessage}');
 
-class _FileEncryptionScreenState extends ConsumerState<FileEncryptionScreen> {
-  double _progress = 0.0;
-
-  Future<void> _encryptFile() async {
-    try {
-      final encryptor = await ref.read(fileEncryptorInstanceProvider.future);
-      
-      await encryptor.encryptFile(
-        input: File('/path/to/file'),
-        output: File('/path/to/encrypted'),
-        fileId: 'my_file',
-        onProgress: (progress) {
-          setState(() {
-            _progress = progress.progress;
-          });
-        },
-      );
-      
-      ToastHelper.success('Файл зашифрован');
-    } catch (e) {
-      ToastHelper.error('Ошибка: $e');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        LinearProgressIndicator(value: _progress),
-        ElevatedButton(
-          onPressed: _encryptFile,
-          child: const Text('Зашифровать'),
-        ),
-      ],
-    );
-  }
-}
+// Или через notifier
+final manager = ref.read(fileEncryptorProvider.notifier);
+print('Файлы: ${manager.decryptedFiles}');
 ```
 
-## Использование в сервисах
+## 🔄 Жизненный цикл
+
+```
+┌─────────────────────────────────────────┐
+│  Приложение активно                     │
+│  - Файлы дешифруются и отслеживаются   │
+└─────────────────┬───────────────────────┘
+                  │
+                  │ Пользователь сворачивает приложение
+                  ▼
+┌─────────────────────────────────────────┐
+│  Таймер неактивности (120 сек)          │
+│  - AppLifecycleNotifier отсчитывает     │
+└─────────────────┬───────────────────────┘
+                  │
+                  │ Таймер истекает
+                  ▼
+┌─────────────────────────────────────────┐
+│  Автоматическая очистка                 │
+│  1. AppLifecycleNotifier:               │
+│     dataCleared = true                  │
+│  2. FileEncryptorNotifier:              │
+│     cleanup() - удаление всех файлов    │
+│  3. Закрытие БД                         │
+└─────────────────┬───────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────┐
+│  Приложение заблокировано               │
+│  - Требуется повторная аутентификация   │
+│  - Никаких временных файлов             │
+└─────────────────────────────────────────┘
+```
+
+## 🧪 Тестирование
 
 ```dart
-class AttachmentEncryptionService {
-  final Ref ref;
+// Проверка автоматической очистки
+final manager = ref.read(fileEncryptorProvider.notifier);
+final lifecycle = ref.read(appLifecycleProvider.notifier);
 
-  AttachmentEncryptionService(this.ref);
+await manager.decryptFile(...);
+print('Файлов: ${manager.decryptedFiles.length}'); // 1
 
-  Future<ServiceResult<String>> encryptAttachment({
-    required File inputFile,
-    required String attachmentId,
-  }) async {
-    try {
-      final encryptorResult = await ref.read(fileEncryptorProvider.future);
-      
-      if (!encryptorResult.success) {
-        return ServiceResult.error(
-          encryptorResult.message ?? 'Ошибка инициализации шифрования',
-        );
-      }
+await lifecycle.clearAll(); // Симуляция таймаута
+await Future.delayed(Duration(milliseconds: 100));
 
-      final encryptor = encryptorResult.data;
-      final outputFile = File('/encrypted/attachments/$attachmentId.enc');
-
-      await encryptor.encryptFile(
-        input: inputFile,
-        output: outputFile,
-        fileId: attachmentId,
-        fileExtension: extension(inputFile.path),
-      );
-
-      return ServiceResult.success(
-        data: outputFile.path,
-        message: 'Файл зашифрован успешно',
-      );
-    } catch (e, stackTrace) {
-      logError('Ошибка шифрования attachment', error: e, stackTrace: stackTrace);
-      return ServiceResult.error('Не удалось зашифровать файл: $e');
-    }
-  }
-}
+print('Файлов: ${manager.decryptedFiles.length}'); // 0 ✓
 ```
 
-## Обновление провайдера
+## 📚 Полная документация
 
-После смены БД или изменения ключа шифрования:
+См. `file_encryptor_usage_example.md` для детальных примеров и best practices.
 
-```dart
-// Инвалидировать провайдер
-ref.invalidate(fileEncryptorProvider);
+## ⚙️ Конфигурация
 
-// Следующее чтение создаст новый экземпляр с актуальным ключом
-final encryptor = await ref.read(fileEncryptorInstanceProvider.future);
-```
+Настройки в `AppLifecycleNotifier`:
+- `_inactivityTimeoutSeconds = 120` - таймаут неактивности
 
-## Обработка ошибок
+## 🔗 Связанные провайдеры
 
-### CryptoException
+- `AppLifecycleProvider` - управление жизненным циклом и таймером
+- `SodiumProvider` - криптографическая библиотека
+- `HoplixiStoreProvider` - база данных и ключ шифрования
 
-Выбрасывается при ошибках шифрования/дешифрования:
+## ✨ Ключевые особенности
 
-```dart
-try {
-  await encryptor.encryptFile(...);
-} on CryptoException catch (e) {
-  print('Криптографическая ошибка: ${e.message}');
-} catch (e) {
-  print('Другая ошибка: $e');
-}
-```
-
-### Проверка инициализации
-
-```dart
-final result = await ref.read(fileEncryptorProvider.future);
-
-switch (result.success) {
-  case true:
-    final encryptor = result.data;
-    // Работаем с encryptor
-    break;
-  case false:
-    print('Ошибка: ${result.message}');
-    // База не открыта или ключ недоступен
-    break;
-}
-```
-
-## Безопасность
-
-### ✅ Что делается автоматически:
-
-- Ключ хранится в `SecureKey` (защищенная память libsodium)
-- Автоматическая очистка ключа при dispose провайдера
-- Логи не содержат чувствительных данных
-- Аутентификация данных (AEAD)
-- Проверка целостности файла
-
-### ⚠️ Что нужно учитывать:
-
-- Ключ шифрования из БД должен храниться надежно
-- Удаленные зашифрованные файлы нельзя восстановить без ключа
-- Поврежденные файлы не расшифруются (встроенная проверка целостности)
-
-## Производительность
-
-- **Streaming**: файл обрабатывается блоками (не загружается в память целиком)
-- **Chunk size**: по умолчанию 64 KB, можно настроить
-- **Рекомендации**:
-  - Для больших файлов (>100 MB): chunk size 256 KB или больше
-  - Для малых файлов (<1 MB): chunk size 32 KB или меньше
-  - Используйте `onProgress` для UI feedback
-
-## Примеры кода
-
-См. файл `file_encryptor_usage_example.dart` для полных примеров использования.
-
-## Архитектура
-
-```
-fileEncryptorProvider (AsyncNotifier)
-  ↓
-  ├─ sodiumProvider (инициализация libsodium)
-  ├─ hoplixiStoreManagerProvider (доступ к БД)
-  └─ FileEncryptorResult
-       ├─ success: bool
-       ├─ errorMessage: String?
-       └─ encryptor: AeadFileEncryptor?
-
-fileEncryptorInstanceProvider (FutureProvider)
-  ↓
-  └─ AeadFileEncryptor (прямой доступ или exception)
-```
-
-## Связанные файлы
-
-- `lib/core/lib/sodium_file_encryptor/aead_file_encryptor.dart` - основной класс шифрования
-- `lib/features/global/providers/sodium_provider.dart` - инициализация Sodium
-- `lib/hoplixi_store/providers/hoplixi_store_providers.dart` - провайдеры БД
-- `lib/hoplixi_store/tables/hoplixi_meta.dart` - таблица с ключом шифрования
-
----
-
-**Последнее обновление:** 4 октября 2025 г.
+1. **Notifier API** - синхронный провайдер согласно архитектуре Hoplixi
+2. **Автоматическая безопасность** - интеграция с lifecycle
+3. **Отслеживание файлов** - полный контроль над временными данными
+4. **Zero-trust** - файлы удаляются автоматически при любом подозрительном событии

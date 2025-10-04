@@ -24,7 +24,7 @@ import 'package:path/path.dart' as p;
 
 class HoplixiStoreManager {
   HoplixiStore? _database;
-  Sodium? _sodium;
+
   DatabaseHistoryService? _historyService;
 
   static const String _dbExtension = MainConstants.dbExtension;
@@ -92,6 +92,60 @@ class HoplixiStoreManager {
         stackTrace: s,
         details: e.toString(),
         message: 'Не удалось получить ключ шифрования вложений',
+      );
+    }
+  }
+
+  //set attachmentsKey
+  Future<String> setAttachmentKey(String key) async {
+    const String operation = 'setAttachmentKey';
+
+    if (!hasOpenDatabase) {
+      logError(
+        'Попытка получить ключ вложений при закрытой БД',
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+      throw const DatabaseError.operationFailed(
+        operation: operation,
+        details: 'Database is not open',
+        message: 'База данных не открыта',
+      );
+    }
+
+    try {
+      final currentKey = await _database!.getAttachmentKey();
+      if (currentKey != null && currentKey.isNotEmpty) {
+        logWarning(
+          'Попытка перезаписи существующего ключа вложений',
+          tag: 'HoplixiStoreManager',
+          data: {'operation': operation},
+        );
+        return currentKey;
+      }
+      await _database!.setAttachmentKey(key);
+      logDebug(
+        'Ключ вложений установлен успешно',
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+      return key;
+    } catch (e, s) {
+      if (e is DatabaseError) rethrow;
+
+      logError(
+        'Ошибка установки ключа вложений',
+        error: e,
+        stackTrace: s,
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+
+      throw DatabaseError.operationFailed(
+        operation: operation,
+        stackTrace: s,
+        details: e.toString(),
+        message: 'Не удалось установить ключ шифрования вложений',
       );
     }
   }
@@ -244,6 +298,7 @@ class HoplixiStoreManager {
       }
 
       final meta = await database.getDatabaseMeta();
+
       await _finalizeOpenDatabase(database, dto, meta);
 
       logInfo(
@@ -373,20 +428,6 @@ class HoplixiStoreManager {
     final salt = _generateSecureSalt();
     final hash = _hashPassword(password, salt);
     String attachmentKey = '';
-    try {
-      attachmentKey = AeadFileEncryptor.generateKeyBase64(_sodium!);
-    } catch (e) {
-      logError(
-        'Ошибка генерации ключа шифрования вложений',
-        error: e,
-        tag: 'HoplixiStoreManager',
-      );
-      // throw DatabaseError.operationFailed(
-      //   operation: 'generatePasswordData',
-      //   details: e.toString(),
-      //   message: 'Не удалось сгенерировать ключ шифрования вложений',
-      // );
-    }
     return {'hash': hash, 'salt': salt, 'attachmentKey': attachmentKey};
   }
 
