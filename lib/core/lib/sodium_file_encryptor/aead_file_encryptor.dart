@@ -102,6 +102,11 @@ class AeadFileEncryptor {
     return sodium.crypto.secretStream.keygen();
   }
 
+	static String generateKeyBase64(Sodium sodium) {
+		final key = generateKey(sodium);
+		return base64Encode(key.extractBytes());
+	}
+
   // to base64 string
   String keyToBase64() {
     return base64Encode(_key.extractBytes());
