@@ -105,7 +105,9 @@ class HoplixiStoreManager {
       masterPassword: dto.masterPassword,
     );
 
-    final dbPath = await _prepareDatabasePath(dto);
+    final dbPath = await _prepareDatabasePath(
+      dto,
+    ); // Подготовка пути к базе данных
     await DatabaseValidationService.validateDatabaseCreation(dbPath);
 
     if (hasOpenDatabase) {
@@ -116,9 +118,59 @@ class HoplixiStoreManager {
       await closeDatabase();
     }
 
+    final dbDirPath = p.withoutExtension(dbPath);
+
+    // Создаем директорию для базы данных, если ее нет
+
+    final dbDir = Directory(dbDirPath);
+    if (!await dbDir.exists()) {
+      await dbDir.create(recursive: true);
+      logInfo(
+        'Создана директория для базы данных',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': dbDirPath},
+      );
+    } else {
+      logInfo(
+        'Директория для базы данных уже существует',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': dbDirPath},
+      );
+      throw const DatabaseError.operationFailed(
+        operation: operation,
+        details: 'Failed to create database directory',
+        message: 'Не удалось создать директорию для базы данных',
+      );
+    }
+
+    // create attachment dir
+    final attachmentDir = Directory(p.join(dbDirPath, 'attachments'));
+    if (!await attachmentDir.exists()) {
+      await attachmentDir.create(recursive: true);
+      logInfo(
+        'Создана директория для вложений',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': attachmentDir.path},
+      );
+    } else {
+      logInfo(
+        'Директория для вложений уже существует',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': attachmentDir.path},
+      );
+    }
+
+    logInfo(
+      'Начало создания базы данных',
+      tag: 'EncryptedDatabaseManager',
+      data: {'path': dbPath, 'name': dto.name},
+    );
+
+    final newDbPath = p.join(dbDirPath, p.basename(dbPath));
+
     final passwordData = _generatePasswordData(dto.masterPassword);
     final database = await DatabaseConnectionService.createConnection(
-      path: dbPath,
+      path: newDbPath,
       password: dto.masterPassword,
     );
 
@@ -129,10 +181,10 @@ class HoplixiStoreManager {
       passwordData: passwordData,
     );
 
-    await _finalizeDatabaseCreation(database, dto, passwordData, dbPath);
+    await _finalizeDatabaseCreation(database, dto, passwordData, newDbPath);
 
     final state = DatabaseState(
-      path: dbPath,
+      path: newDbPath,
       name: dto.name,
       status: DatabaseStatus.open,
     );
@@ -170,6 +222,8 @@ class HoplixiStoreManager {
         );
         await closeDatabase();
       }
+
+      // final pathDirStore = p.dirname(dto.path);
 
       final database = await DatabaseConnectionService.createConnection(
         path: dto.path,
@@ -367,16 +421,27 @@ class HoplixiStoreManager {
         return DatabaseFilesResult(files: [], searchPath: defaultPath);
       }
 
-      // Получаем все файлы с расширением .hpx
-      final files = await directory
+      // все дириктории внутри
+      final directories = await directory
           .list()
-          .where(
-            (entity) =>
-                entity is File &&
-                entity.path.toLowerCase().endsWith('.$_dbExtension'),
-          )
-          .cast<File>()
+          .where((entity) => entity is Directory)
+          .cast<Directory>()
           .toList();
+
+      // Получаем все файлы .hpx внутри этих директорий
+      final files = <File>[];
+      for (final dir in directories) {
+        final dirFiles = await dir
+            .list()
+            .where(
+              (entity) =>
+                  entity is File &&
+                  entity.path.toLowerCase().endsWith('.$_dbExtension'),
+            )
+            .cast<File>()
+            .toList();
+        files.addAll(dirFiles);
+      }
 
       // Преобразуем в DatabaseFileInfo и сортируем по дате изменения
       final databaseFiles = <DatabaseFileInfo>[];

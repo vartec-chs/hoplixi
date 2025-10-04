@@ -115,8 +115,8 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
     }
 
     final fileName = state.storeName.isNotEmpty
-        ? '${state.storeName}.${MainConstants.dbExtension}'
-        : 'new_store.${MainConstants.dbExtension}';
+        ? '${state.storeName}\\${state.storeName}.${MainConstants.dbExtension}'
+        : 'new_store\\new_store.${MainConstants.dbExtension}';
 
     return p.join(basePath, fileName);
   }
@@ -224,9 +224,8 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
     try {
       final result = await FilePicker.platform.saveFile(
         dialogTitle: 'Выберите место для сохранения хранилища',
-        fileName:
-            '${state.storeName.isNotEmpty ? state.storeName : 'new_store'}.${MainConstants.dbExtension}',
-        allowedExtensions: [MainConstants.dbExtension],
+        fileName: state.storeName.isNotEmpty ? state.storeName : 'new_store',
+        allowedExtensions: [],
         type: FileType.custom,
       );
 

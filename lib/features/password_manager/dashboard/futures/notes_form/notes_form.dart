@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/hoplixi_store/dto/attachment_dto.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io' as io;
 
@@ -54,6 +55,8 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
   final FocusNode _editorFocusNode = FocusNode();
   final ScrollController _editorScrollController = ScrollController();
 
+  final List<CreateAttachmentFromData> _newAttachments = [];
+
   @override
   void initState() {
     super.initState();
@@ -102,6 +105,9 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
                 imageEmbedConfig: QuillEditorImageEmbedConfig(
                   imageProviderBuilder: (context, imageUrl) {
                     logDebug('Loading embedded image: $imageUrl', tag: _logTag);
+
+                    
+
                     // https://pub.dev/packages/flutter_quill_extensions#-image-assets
                     if (imageUrl.startsWith('assets/')) {
                       return AssetImage(imageUrl);

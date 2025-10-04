@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:hoplixi/hoplixi_store/dto/attachment_dto.dart';
 import 'dart:typed_data';
 import '../enums/entity_types.dart';
 
@@ -105,6 +106,7 @@ abstract class CreateNoteDto with _$CreateNoteDto {
     String? categoryId,
     @Default(false) bool isFavorite,
     @Default(false) bool isPinned,
+    List<CreateAttachmentFromData>? attachments,
   }) = _CreateNoteDto;
 }
 
