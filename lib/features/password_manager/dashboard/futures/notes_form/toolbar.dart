@@ -147,7 +147,7 @@ class _ToolbarState extends State<Toolbar> {
     ];
 
     return Material(
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.04),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.04),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

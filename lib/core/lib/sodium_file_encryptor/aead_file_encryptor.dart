@@ -34,7 +34,7 @@ class CryptoProgress {
 
   @override
   String toString() =>
-      'CryptoProgress(${progressPercent}% - $processedBytes/$totalBytes bytes)';
+      'CryptoProgress($progressPercent% - $processedBytes/$totalBytes bytes)';
 }
 
 /// AEAD file encryptor using libsodium's XChaCha20-Poly1305 secretstream.
@@ -100,6 +100,17 @@ class AeadFileEncryptor {
   /// encrypted data cannot be recovered.
   static SecureKey generateKey(Sodium sodium) {
     return sodium.crypto.secretStream.keygen();
+  }
+
+  // to base64 string
+  String keyToBase64() {
+    return base64Encode(_key.extractBytes());
+  }
+
+  // from base64 string
+  static SecureKey keyFromBase64(Sodium sodium, String base64Key) {
+    final keyBytes = base64Decode(base64Key);
+    return SecureKey.fromList(sodium, Uint8List.fromList(keyBytes));
   }
 
   /// Encrypts a file using streaming ChaCha20-Poly1305 AEAD.

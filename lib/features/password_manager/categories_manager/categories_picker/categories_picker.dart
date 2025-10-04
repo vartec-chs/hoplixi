@@ -6,7 +6,6 @@ import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as db;
 import 'package:hoplixi/hoplixi_store/providers/dao_providers.dart';
-import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 
 /// Компонент для выбора категорий
 ///

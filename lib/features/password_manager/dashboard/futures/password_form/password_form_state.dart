@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers/dao_providers.dart';
-import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:hoplixi/hoplixi_store/dao/password_tags_dao.dart';
 
 /// Состояние формы пароля - чистая логическая модель

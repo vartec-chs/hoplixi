@@ -315,7 +315,7 @@ class HoplixiStoreManager {
   Map<String, String> _generatePasswordData(String password) {
     final salt = _generateSecureSalt();
     final hash = _hashPassword(password, salt);
-    final attachmentKey = FileEncryptor.generateAes256Key();
+    final attachmentKey = '';
     return {'hash': hash, 'salt': salt, 'attachmentKey': attachmentKey};
   }
 

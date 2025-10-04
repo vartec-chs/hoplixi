@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:drift/drift.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
