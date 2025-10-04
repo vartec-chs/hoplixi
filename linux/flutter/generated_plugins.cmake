@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_timezone
   flutter_webrtc
   screen_retriever_linux
+  sodium_libs
   sqlcipher_flutter_libs
   url_launcher_linux
   window_manager

@@ -107,6 +107,9 @@ dependencies:
   icons_launcher: ^3.0.3
   youtube_player_flutter: ^9.1.2
   file_encrypter: ^2.0.2
+
+  sodium: ^3.4.6
+  sodium_libs: ^3.4.6+2
   
 
 
