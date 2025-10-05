@@ -129,7 +129,7 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
   }
 
   Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) {
+    if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
@@ -283,26 +283,29 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: isMobile ? _buildMobileAppBar() : null,
-      body: Column(
-        children: [
-          if (!isMobile) _buildDesktopHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Форма
-                  _buildImageSection(),
-                  const SizedBox(height: 24),
-                  _buildNameField(),
-                ],
+      body: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            if (!isMobile) _buildDesktopHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Форма
+                    _buildImageSection(),
+                    const SizedBox(height: 24),
+                    _buildNameField(),
+                  ],
+                ),
               ),
             ),
-          ),
-          _buildActionButtons(),
-        ],
+            _buildActionButtons(),
+          ],
+        ),
       ),
     );
   }

@@ -216,7 +216,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(4.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
               // Фильтры и поиск
@@ -247,6 +247,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
 
   Widget _buildFiltersSection() {
     return Card(
+      margin: EdgeInsets.zero,
       elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(8),
