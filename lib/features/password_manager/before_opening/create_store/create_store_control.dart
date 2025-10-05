@@ -24,6 +24,7 @@ class CreateStoreFormState {
   final bool isLoading;
   final String? errorMessage;
   final Map<String, String?> fieldErrors;
+  final int currentStep; // Текущий шаг (0-3)
 
   const CreateStoreFormState({
     this.storeName = '',
@@ -37,6 +38,7 @@ class CreateStoreFormState {
     this.isLoading = false,
     this.errorMessage,
     this.fieldErrors = const {},
+    this.currentStep = 0,
   });
 
   CreateStoreFormState copyWith({
@@ -51,6 +53,7 @@ class CreateStoreFormState {
     bool? isLoading,
     String? errorMessage,
     Map<String, String?>? fieldErrors,
+    int? currentStep,
   }) {
     return CreateStoreFormState(
       storeName: storeName ?? this.storeName,
@@ -64,6 +67,7 @@ class CreateStoreFormState {
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       fieldErrors: fieldErrors ?? this.fieldErrors,
+      currentStep: currentStep ?? this.currentStep,
     );
   }
 
@@ -381,6 +385,63 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
       'Выполнена очистка чувствительных данных формы создания хранилища',
       tag: 'CreateStoreController',
     );
+  }
+
+  /// Переход к следующему шагу
+  void nextStep() {
+    if (state.currentStep < 3 && _canProceedToNextStep()) {
+      state = state.copyWith(currentStep: state.currentStep + 1);
+      logDebug(
+        'Переход к шагу ${state.currentStep + 1}',
+        tag: 'CreateStoreController',
+      );
+    }
+  }
+
+  /// Переход к предыдущему шагу
+  void previousStep() {
+    if (state.currentStep > 0) {
+      state = state.copyWith(currentStep: state.currentStep - 1);
+      logDebug(
+        'Возврат к шагу ${state.currentStep + 1}',
+        tag: 'CreateStoreController',
+      );
+    }
+  }
+
+  /// Переход к конкретному шагу
+  void goToStep(int step) {
+    if (step >= 0 && step <= 3) {
+      state = state.copyWith(currentStep: step);
+      logDebug('Переход к шагу ${step + 1}', tag: 'CreateStoreController');
+    }
+  }
+
+  /// Проверка возможности перехода к следующему шагу
+  bool _canProceedToNextStep() {
+    switch (state.currentStep) {
+      case 0: // Основная информация
+        return state.storeName.isNotEmpty &&
+            !state.fieldErrors.containsKey('storeName') &&
+            !state.fieldErrors.containsKey('storeDescription');
+      case 1: // Настройка безопасности
+        return state.masterPassword.isNotEmpty &&
+            state.confirmPassword.isNotEmpty &&
+            state.masterPassword == state.confirmPassword &&
+            !state.fieldErrors.containsKey('masterPassword') &&
+            !state.fieldErrors.containsKey('confirmPassword');
+      case 2: // Выбор пути
+        return state.finalPath.isNotEmpty;
+      case 3: // Подтверждение
+        return state.isValid;
+      default:
+        return false;
+    }
+  }
+
+  /// Проверка валидности текущего шага
+  bool isCurrentStepValid() {
+    return _canProceedToNextStep();
   }
 }
 

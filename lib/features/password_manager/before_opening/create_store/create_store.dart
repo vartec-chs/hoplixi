@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
-import 'package:hoplixi/features/global/widgets/text_field.dart';
-import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
+import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_1_basic_info.dart';
+import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_2_security.dart';
+import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_3_storage_path.dart';
+import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_4_confirmation.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +26,14 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _masterPasswordController;
   late final TextEditingController _confirmPasswordController;
+
+  // Список заголовков шагов
+  final List<String> _stepTitles = [
+    'Информация',
+    'Безопасность',
+    'Путь',
+    'Подтверждение',
+  ];
 
   @override
   void initState() {
@@ -50,11 +60,35 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     super.dispose();
   }
 
+  Widget _buildStepContent(int step) {
+    switch (step) {
+      case 0:
+        return Step1BasicInfo(
+          nameController: _nameController,
+          descriptionController: _descriptionController,
+        );
+      case 1:
+        return Step2Security(
+          masterPasswordController: _masterPasswordController,
+          confirmPasswordController: _confirmPasswordController,
+        );
+      case 2:
+        return const Step3StoragePath();
+      case 3:
+        return const Step4Confirmation();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final formState = ref.watch(createStoreControllerProvider);
     final controller = ref.read(createStoreControllerProvider.notifier);
     final isReady = ref.watch(createStoreReadyProvider);
+    final currentStep = formState.currentStep;
+    final isLastStep = currentStep == 3;
+    final isFirstStep = currentStep == 0;
 
     // Слушаем изменения состояния базы данных
     ref.listen<AsyncValue<DatabaseState>>(hoplixiStoreProvider, (
@@ -66,7 +100,8 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
       } else {
         controller.setLoading(false);
       }
-      if (next.value?.isOpen == true && previous?.value?.status != next.value?.status) {
+      if (next.value?.isOpen == true &&
+          previous?.value?.status != next.value?.status) {
         // База данных успешно создана, очищаем данные и переходим на главный экран
         controller.clearAllData();
 
@@ -89,7 +124,6 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     if (formState.errorMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ToastHelper.error(
-          // context: context,
           title: 'Ошибка',
           description: formState.errorMessage!,
         );
@@ -117,263 +151,211 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
           ),
         ),
         body: SafeArea(
-          child: Container(
-            padding: const EdgeInsets.all(8.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                spacing: 8,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        spacing: 8,
-                        children: [
-                          // Название хранилища
-                          TextFormField(
-                            controller: _nameController,
-                            onChanged: controller.updateStoreName,
-                            decoration:
-                                primaryInputDecoration(
-                                  context,
-                                  labelText: 'Название хранилища',
-                                  filled: true,
-                                  errorText: formState.fieldErrors['storeName'],
-                                ).copyWith(
-                                  prefixIcon: IconButton(
-                                    icon: const Icon(Icons.title),
-                                    onPressed: () {},
-                                  ),
-                                ),
-                            validator: (value) =>
-                                formState.fieldErrors['storeName'],
-                          ),
+          child: Column(
+            children: [
+              // Индикатор прогресса шагов
+              _buildStepIndicator(currentStep),
 
-                          // Описание хранилища
-                          TextFormField(
-                            controller: _descriptionController,
-                            onChanged: controller.updateStoreDescription,
-                            decoration:
-                                primaryInputDecoration(
-                                  context,
-                                  labelText: 'Описание хранилища',
-                                  filled: true,
-                                  errorText:
-                                      formState.fieldErrors['storeDescription'],
-                                ).copyWith(
-                                  prefixIcon: IconButton(
-                                    icon: const Icon(Icons.subtitles),
-                                    onPressed: () {},
-                                  ),
-                                ),
-                            minLines: 2,
-                            maxLines: 4,
-                            validator: (value) =>
-                                formState.fieldErrors['storeDescription'],
-                          ),
+              const SizedBox(height: 16),
 
-                          // Мастер пароль
-                          CustomPasswordField(
-                            label: 'Мастер пароль',
-                            controller: _masterPasswordController,
-                            onChanged: controller.updateMasterPassword,
-                            errorText: formState.fieldErrors['masterPassword'],
-                          ),
-
-                          // Подтверждение пароля
-                          CustomPasswordField(
-                            label: 'Подтвердите мастер пароль',
-                            controller: _confirmPasswordController,
-                            onChanged: controller.updateConfirmPassword,
-                            errorText: formState.fieldErrors['confirmPassword'],
-                          ),
-
-                          // Переключатель сохранения пароля с предупреждением
-                          Card(
-                            color: formState.saveMasterPassword
-                                ? Theme.of(context).colorScheme.errorContainer
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainer,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SwitchListTile(
-                                    value: formState.saveMasterPassword,
-                                    onChanged:
-                                        controller.toggleSaveMasterPassword,
-                                    title: const Text(
-                                      'Сохранить мастер-пароль',
-                                    ),
-                                    subtitle: const Text(
-                                      'Автоматически открывать хранилище без ввода пароля',
-                                    ),
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-
-                                  if (formState.saveMasterPassword) ...[
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.all(12.0),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error
-                                            .withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .error
-                                              .withValues(alpha: 0.3),
-                                        ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.warning_amber,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.error,
-                                                size: 20,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'ВНИМАНИЕ: РИСК БЕЗОПАСНОСТИ',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleSmall
-                                                    ?.copyWith(
-                                                      color: Theme.of(
-                                                        context,
-                                                      ).colorScheme.error,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            'Сохранение мастер-пароля крайне рискованно! Включайте эту опцию только если:\n'
-                                            '• Вы уверены в безопасности своего окружения\n'
-                                            '• На устройстве нет вирусов и вредоносного ПО\n'
-                                            '• Устройство защищено надежным паролем/биометрией\n'
-                                            '• Никто другой не имеет доступа к устройству\n\n'
-                                            'При компрометации устройства злоумышленники получат доступ ко всем вашим паролям!',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.error,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          Divider(
-                            color: Theme.of(context).colorScheme.outline,
-                            radius: BorderRadius.all(Radius.circular(12)),
-                          ),
-
-                          // Выбор типа пути
-                          SegmentedButton<bool>(
-                            segments: const [
-                              ButtonSegment(
-                                value: true,
-                                label: Text('Предустановленный путь'),
-                              ),
-                              ButtonSegment(
-                                value: false,
-                                label: Text('Пользовательский путь'),
-                              ),
-                            ],
-                            selected: <bool>{formState.isDefaultPath},
-                            onSelectionChanged: (Set<bool> newSelection) {
-                              controller.togglePathType(newSelection.first);
-                            },
-                          ),
-
-                          // Итоговый путь
-                          TextFormField(
-                            decoration:
-                                primaryInputDecoration(
-                                  context,
-                                  labelText: 'Итоговый путь',
-                                  helperText:
-                                      'Итоговый путь где будет сохранен файл хранилища',
-                                  filled: true,
-                                ).copyWith(
-                                  prefixIcon: IconButton(
-                                    icon: const Icon(Icons.folder_open),
-                                    onPressed: formState.isDefaultPath
-                                        ? null
-                                        : () {
-                                            controller.selectCustomPath();
-                                          },
-                                  ),
-                                ),
-                            minLines: 1,
-                            maxLines: 3,
-                            readOnly: true,
-                            initialValue: formState.finalPath,
-                            key: ValueKey(
-                              formState.finalPath,
-                            ), // Принудительное обновление
-                            enabled: false,
-                          ),
-
-                          if (!formState.isDefaultPath)
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: formState.isLoading
-                                    ? null
-                                    : controller.selectCustomPath,
-                                icon: const Icon(Icons.folder_open),
-                                label: const Text('Выбрать путь'),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+              // Контент текущего шага
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Form(
+                    key: _formKey,
+                    child: _buildStepContent(currentStep),
                   ),
-
-                  // Кнопка создания
-                  SmoothButton(
-                    isFullWidth: true,
-                    onPressed: isReady
-                        ? () async {
-                            if (_formKey.currentState?.validate() ?? false) {
-                              await controller.createStore();
-                            }
-                          }
-                        : null,
-                    loading: formState.isLoading,
-                    label: "Создать",
-                    type: SmoothButtonType.filled,
-                    size: SmoothButtonSize.medium,
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
+                ),
               ),
-            ),
+
+              // Навигационные кнопки
+              _buildNavigationButtons(
+                context,
+                controller,
+                isFirstStep,
+                isLastStep,
+                formState.isLoading,
+                isReady,
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStepIndicator(int currentStep) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: List.generate(
+          _stepTitles.length,
+          (index) => Expanded(child: _buildStepItem(index, currentStep)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepItem(int index, int currentStep) {
+    final isActive = index == currentStep;
+    final isCompleted = index < currentStep;
+    final controller = ref.read(createStoreControllerProvider.notifier);
+
+    return InkWell(
+      onTap: () {
+        // Разрешаем переход только на уже пройденные шаги или текущий
+        if (index <= currentStep) {
+          controller.goToStep(index);
+        }
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                // Кружок с номером/галочкой
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isCompleted
+                        ? Theme.of(context).colorScheme.primary
+                        : isActive
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Theme.of(context).colorScheme.surfaceContainer,
+                    border: Border.all(
+                      color: isActive || isCompleted
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outline,
+                      width: 2,
+                    ),
+                  ),
+                  child: Center(
+                    child: isCompleted
+                        ? Icon(
+                            Icons.check,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          )
+                        : Text(
+                            '${index + 1}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isActive
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                  ),
+                ),
+                // Линия к следующему шагу
+                if (index < _stepTitles.length - 1)
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      color: isCompleted
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Название шага
+            Text(
+              _stepTitles[index],
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationButtons(
+    BuildContext context,
+    CreateStoreController controller,
+    bool isFirstStep,
+    bool isLastStep,
+    bool isLoading,
+    bool isReady,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Кнопка "Назад"
+          if (!isFirstStep)
+            Expanded(
+              child: SmoothButton(
+                onPressed: isLoading ? null : controller.previousStep,
+                label: 'Назад',
+                type: SmoothButtonType.outlined,
+                size: SmoothButtonSize.medium,
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
+          if (!isFirstStep) const SizedBox(width: 16),
+
+          // Кнопка "Далее" или "Создать"
+          Expanded(
+            flex: isFirstStep ? 1 : 1,
+            child: SmoothButton(
+              isFullWidth: true,
+              onPressed: () async {
+                if (isLastStep) {
+                  // Последний шаг - создаем хранилище
+                  if (isReady && (_formKey.currentState?.validate() ?? false)) {
+                    await controller.createStore();
+                  }
+                } else {
+                  // Переходим к следующему шагу
+                  if (controller.isCurrentStepValid()) {
+                    controller.nextStep();
+                  }
+                }
+              },
+              loading: isLoading,
+              label: isLastStep ? 'Создать хранилище' : 'Далее',
+              type: SmoothButtonType.filled,
+              size: SmoothButtonSize.medium,
+              icon: Icon(isLastStep ? Icons.check : Icons.arrow_forward),
+              iconPosition: SmoothButtonIconPosition.end,
+            ),
+          ),
+        ],
       ),
     );
   }
