@@ -123,7 +123,6 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       await _manager.closeDatabase();
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.cleanup();
-      ref.invalidate(hoplixiStoreProvider); // Сброс состояния нотификатора
       state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));
       logInfo('База данных закрыта успешно', tag: 'DatabaseAsyncNotifier');
     } catch (e, st) {

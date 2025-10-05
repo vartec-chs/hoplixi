@@ -40,7 +40,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     // Инициализация с задержкой для плавной анимации
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fabAnimationController.forward();
-      // Убираем инициализацию контроллера отсюда, чтобы избежать циклической зависимости
     });
   }
 

@@ -53,6 +53,8 @@ class _DatabasePasswordDialogState extends State<DatabasePasswordDialog> {
     final colorScheme = theme.colorScheme;
 
     return AlertDialog(
+      constraints: const BoxConstraints(maxWidth: 400),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 8),
       title: Row(
         children: [
           Icon(Icons.key, color: colorScheme.primary, size: 24),
