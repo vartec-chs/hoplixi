@@ -113,9 +113,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       builder: (context) => Dialog(
         insetPadding: const EdgeInsets.all(16),
         backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
           child: IconFormWidget(existingIcon: existingIcon),
@@ -337,7 +335,9 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -349,7 +349,9 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
           ),
           Text(
             'Страница $currentPage из $totalPages',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
         ],
       ),
