@@ -266,6 +266,31 @@ class NotesService {
     }
   }
 
+  /// Получение содержимого заметки по ID
+  Future<ServiceResult<String>> getNoteContentById(String noteId) async {
+    try {
+      final content = await _notesDao.getNoteContentById(noteId);
+      if (content == null) {
+        return ServiceResult.error('Заметка не найдена');
+      }
+
+      return ServiceResult.success(
+        data: content,
+        message: 'Содержимое получено',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения содержимого заметки',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'NotesService',
+      );
+      return ServiceResult.error(
+        'Ошибка получения содержимого: ${e.toString()}',
+      );
+    }
+  }
+
   // ==================== ПОИСК И ФИЛЬТРАЦИЯ ====================
 
   /// Получение всех заметок

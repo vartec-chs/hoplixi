@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:drift/drift.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import '../hoplixi_store.dart';
@@ -78,6 +79,17 @@ class NotesDao extends DatabaseAccessor<HoplixiStore> with _$NotesDaoMixin {
     final query = select(attachedDatabase.notes)
       ..where((tbl) => tbl.id.equals(id));
     return await query.getSingleOrNull();
+  }
+
+  /// Получение содержимого заметки по ID
+  Future<String?> getNoteContentById(String id) async {
+    final query = selectOnly(attachedDatabase.notes)
+      ..addColumns([attachedDatabase.notes.content])
+      ..where(attachedDatabase.notes.id.equals(id));
+    final result = await query.getSingleOrNull();
+    final content = result?.read(attachedDatabase.notes.content);
+    if (content == null) return null;
+    return content.substring(0, min(200, content.length));
   }
 
   /// Получение всех заметок
