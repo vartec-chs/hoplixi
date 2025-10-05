@@ -36,17 +36,18 @@ class NotesDao extends DatabaseAccessor<HoplixiStore> with _$NotesDaoMixin {
   /// Обновление заметки
   Future<bool> updateNote(UpdateNoteDto dto) async {
     final companion = NotesCompanion(
+      // primary key обязательно указываем
       id: Value(dto.id),
       title: dto.title != null ? Value(dto.title!) : const Value.absent(),
       description: dto.description != null
-          ? Value(dto.description)
+          ? Value(dto.description!)
           : const Value.absent(),
       deltaJson: dto.deltaJson != null
           ? Value(dto.deltaJson!)
           : const Value.absent(),
       content: dto.content != null ? Value(dto.content!) : const Value.absent(),
       categoryId: dto.categoryId != null
-          ? Value(dto.categoryId)
+          ? Value(dto.categoryId!)
           : const Value.absent(),
       isFavorite: dto.isFavorite != null
           ? Value(dto.isFavorite!)
@@ -55,15 +56,16 @@ class NotesDao extends DatabaseAccessor<HoplixiStore> with _$NotesDaoMixin {
           ? Value(dto.isPinned!)
           : const Value.absent(),
       lastAccessed: dto.lastAccessed != null
-          ? Value(dto.lastAccessed)
+          ? Value(dto.lastAccessed!)
           : const Value.absent(),
       modifiedAt: Value(DateTime.now()),
     );
 
-    final rowsAffected = await update(
+    final rowsAffected = await (update(
       attachedDatabase.notes,
-    ).replace(companion);
-    return rowsAffected;
+    )..where((t) => t.id.equals(dto.id))).write(companion);
+
+    return rowsAffected > 0;
   }
 
   /// Удаление заметки по ID

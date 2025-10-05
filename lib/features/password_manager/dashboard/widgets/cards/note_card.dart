@@ -190,6 +190,7 @@ class _NoteCardState extends ConsumerState<NoteCard>
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
+                        const SizedBox(width: 8),
                         // Pin Icon
                         IconButton(
                           onPressed: widget.onPinToggle,

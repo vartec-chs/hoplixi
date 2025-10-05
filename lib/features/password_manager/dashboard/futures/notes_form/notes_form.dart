@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:path/path.dart' as path;
@@ -188,6 +189,7 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
 
         if (result.success) {
           if (mounted) {
+            DataRefreshHelper.refreshNotes(ref);
             ToastHelper.success(
               title: 'Успех',
               description: result.message ?? 'Заметка создана',
@@ -221,6 +223,8 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
 
         if (result.success) {
           if (mounted) {
+            DataRefreshHelper.refreshNotes(ref);
+
             ToastHelper.success(
               title: 'Успех',
               description: result.message ?? 'Заметка обновлена',
@@ -273,31 +277,6 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
         title: Text(widget.id == null ? 'Новая заметка' : 'Редактор заметок'),
         actionsPadding: const EdgeInsets.only(right: 8),
         actions: [
-          if (_metadata != null && widget.id != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Tooltip(
-                message: 'Изменить метаданные',
-                child: TextButton.icon(
-                  onPressed: _isSaving
-                      ? null
-                      : () async {
-                          final metadata = await showNoteMetadataDialog(
-                            context,
-                            initialMetadata: _metadata,
-                            isEditing: true,
-                          );
-                          if (metadata != null) {
-                            setState(() {
-                              _metadata = metadata;
-                            });
-                          }
-                        },
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: Text(_metadata!.title),
-                ),
-              ),
-            ),
           IconButton(
             tooltip: 'Сохранить',
             onPressed: _isSaving ? null : _onSave,

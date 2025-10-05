@@ -103,8 +103,15 @@ final List<GoRoute> appRoutes = [
 
   GoRoute(
     path: AppRoutes.notesForm,
-    builder: (context, state) =>
-        NotesFormScreen(id: state.pathParameters['id']),
+    builder: (context, state) => NotesFormScreen(),
+  ),
+
+  GoRoute(
+    path: '${AppRoutes.notesForm}/:noteId',
+    builder: (context, state) {
+      final noteId = state.pathParameters['noteId'];
+      return NotesFormScreen(id: noteId);
+    },
   ),
 
   GoRoute(

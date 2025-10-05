@@ -35,7 +35,7 @@ class ProtectedRoutes {
     AppRoutes.passwordForm,
     AppRoutes.passwordHistory,
     AppRoutes.universalFilterDemo,
-
+    AppRoutes.notesForm,
     AppRoutes.otpForm,
     // Добавьте другие защищённые маршруты сюда
   ];

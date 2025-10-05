@@ -7,6 +7,7 @@ import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/utils.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
@@ -447,6 +448,10 @@ class _OtpFormState extends ConsumerState<OtpForm>
         isFavorite = false;
         selectedCategoryId = null;
       });
+      if (mounted) {
+        DataRefreshHelper.refreshOtp(ref);
+        context.pop();
+      }
     } else {
       ToastHelper.error(
         title: 'Ошибка',

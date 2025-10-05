@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,6 +9,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/features/global/providers/notification_providers.dart';
 import 'package:hoplixi/core/secure_storage/index.dart';
+import 'package:hoplixi/features/global/widgets/index.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';
 import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
@@ -124,28 +126,50 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         : appRoutes,
 
     errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(
-        title: Text('Error'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.arrow_left),
-            onPressed: () {
-              navigateBack(context);
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text('Ошибка')),
       body: SafeArea(
-        child: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error, color: Colors.red),
-              SizedBox(width: 8),
-              Text('Упс! Произошла ошибка:'),
-              SizedBox(width: 8),
-              Text(state.error.toString()),
-            ],
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Упс! Произошла ошибка:', style: TextStyle(fontSize: 18)),
+                SizedBox(width: 8),
+                Container(
+                  constraints: BoxConstraints(maxWidth: 400),
+                  child: Text(
+                    state.error.toString(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      wordSpacing: 1.2,
+                      // overflow: TextOverflow.ellipsis,
+                    ),
+
+                    softWrap: true,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                SizedBox(height: 16),
+                SmoothButton(
+                  type: SmoothButtonType.text,
+                  label: 'Копировать',
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(text: state.error.toString()),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Текст ошибки скопирован в буфер'),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
