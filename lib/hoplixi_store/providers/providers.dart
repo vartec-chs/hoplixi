@@ -34,7 +34,7 @@ class ClearAllNotifier extends AsyncNotifier<void> {
         iconsServiceProvider,
         tagsServiceProvider,
         passwordsServiceProvider,
-        fileEncryptorProvider,
+        // fileEncryptorProvider,
       };
 
       // Если нужно асинхронно что-то делать — await внутри цикла.

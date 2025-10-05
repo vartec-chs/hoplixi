@@ -55,8 +55,8 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     try {
       state = const AsyncValue.loading();
       final newState = await _manager.createDatabase(dto);
-      final manager = ref.read(fileEncryptorProvider.notifier);
-      await manager.initialize();
+      // final manager = ref.read(fileEncryptorProvider.notifier);
+      // await manager.initialize();
       state = AsyncValue.data(newState);
       logInfo(
         'База данных создана успешно',
@@ -88,8 +88,8 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     try {
       state = const AsyncValue.loading();
       final newState = await _manager.openDatabase(dto);
-      final manager = ref.read(fileEncryptorProvider.notifier);
-      await manager.initialize();
+      // final manager = ref.read(fileEncryptorProvider.notifier);
+      // await manager.initialize();
       state = AsyncValue.data(newState);
       logInfo(
         'База данных открыта успешно',
@@ -121,8 +121,8 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     try {
       state = const AsyncValue.loading();
       await _manager.closeDatabase();
-      final manager = ref.read(fileEncryptorProvider.notifier);
-      await manager.cleanup();
+      // final manager = ref.read(fileEncryptorProvider.notifier);
+      // await manager.cleanup();
       ref.invalidate(hoplixiStoreProvider); // Сброс состояния нотификатора
       state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));
       logInfo('База данных закрыта успешно', tag: 'DatabaseAsyncNotifier');
