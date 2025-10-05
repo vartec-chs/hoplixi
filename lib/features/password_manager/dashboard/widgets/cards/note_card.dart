@@ -179,16 +179,18 @@ class _NoteCardState extends ConsumerState<NoteCard>
                         IconButton(
                           onPressed: widget.onFavoriteToggle,
                           icon: Icon(
-                            widget.note.isFavorite ?? false
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            color: widget.note.isFavorite ?? false
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurface.withOpacity(0.4),
+                            widget.note.isFavorite!
+                                ? Icons.star
+                                : Icons.star_border,
                             size: 20,
                           ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
+                          color: widget.note.isFavorite!
+                              ? Colors.amber
+                              : theme.colorScheme.onSurface.withOpacity(0.5),
+                          tooltip: widget.note.isFavorite!
+                              ? 'Убрано из избранного'
+                              : 'В избранное',
+                          splashRadius: 20,
                         ),
                         const SizedBox(width: 8),
                         // Pin Icon

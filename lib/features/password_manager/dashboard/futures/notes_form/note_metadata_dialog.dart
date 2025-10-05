@@ -116,17 +116,20 @@ class _NoteMetadataDialogState extends ConsumerState<NoteMetadataDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       insetPadding: const EdgeInsets.all(8),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
-        padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(maxWidth: 600),
+
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
+            spacing: 24,
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Заголовок
               Row(
+                spacing: 24,
                 children: [
                   Expanded(
                     child: Text(
@@ -143,12 +146,11 @@ class _NoteMetadataDialogState extends ConsumerState<NoteMetadataDialog> {
                 ],
               ),
 
-              const SizedBox(height: 24),
-
               // Поля формы
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
+                    spacing: 16,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Название
@@ -160,8 +162,6 @@ class _NoteMetadataDialogState extends ConsumerState<NoteMetadataDialog> {
                         maxLength: 255,
                       ),
 
-                      const SizedBox(height: 16),
-
                       // Описание
                       PrimaryTextField(
                         controller: _descriptionController,
@@ -169,8 +169,6 @@ class _NoteMetadataDialogState extends ConsumerState<NoteMetadataDialog> {
                         hintText: 'Введите описание заметки (необязательно)',
                         maxLines: 3,
                       ),
-
-                      const SizedBox(height: 16),
 
                       // Категория
                       CategoriesPicker(
@@ -195,8 +193,6 @@ class _NoteMetadataDialogState extends ConsumerState<NoteMetadataDialog> {
                         hintText: 'Выберите категорию (необязательно)',
                       ),
 
-                      const SizedBox(height: 16),
-
                       // Теги
                       TagsPicker(
                         tagType: TagType.notes,
@@ -220,10 +216,9 @@ class _NoteMetadataDialogState extends ConsumerState<NoteMetadataDialog> {
                 ),
               ),
 
-              const SizedBox(height: 24),
-
               // Кнопки действий
               Row(
+                spacing: 16,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   SmoothButton(
@@ -231,7 +226,7 @@ class _NoteMetadataDialogState extends ConsumerState<NoteMetadataDialog> {
                     label: 'Отмена',
                     type: SmoothButtonType.outlined,
                   ),
-                  const SizedBox(width: 12),
+
                   SmoothButton(
                     onPressed: _onSave,
                     label: widget.isEditing ? 'Обновить' : 'Сохранить',

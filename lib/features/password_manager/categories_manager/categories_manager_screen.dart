@@ -66,10 +66,8 @@ class _CategoriesManagerScreenState
       appBar: _buildAppBar(context),
       body: Column(
         children: [
-          if (_showSearch) _buildSearchBar(),
-          _buildFilters(selectedType),
+          _buildSearchAndFilters(selectedType, pagination),
           if (error != null) _buildErrorBanner(error),
-          if (pagination != null) _buildPaginationInfo(pagination),
           Expanded(
             child: _buildContent(
               categories,
@@ -89,19 +87,19 @@ class _CategoriesManagerScreenState
       title: const Text('Управление категориями'),
       centerTitle: true,
       actions: [
-        IconButton(
-          onPressed: () {
-            setState(() => _showSearch = !_showSearch);
-            if (!_showSearch) {
-              _searchController.clear();
-              ref
-                  .read(categoriesManagerControllerProvider.notifier)
-                  .searchCategories('');
-            }
-          },
-          icon: Icon(_showSearch ? Icons.search_off : Icons.search),
-          tooltip: _showSearch ? 'Скрыть поиск' : 'Поиск',
-        ),
+        // IconButton(
+        //   onPressed: () {
+        //     setState(() => _showSearch = !_showSearch);
+        //     if (!_showSearch) {
+        //       _searchController.clear();
+        //       ref
+        //           .read(categoriesManagerControllerProvider.notifier)
+        //           .searchCategories('');
+        //     }
+        //   },
+        //   icon: Icon(_showSearch ? Icons.search_off : Icons.search),
+        //   tooltip: _showSearch ? 'Скрыть поиск' : 'Поиск',
+        // ),
         IconButton(
           onPressed: () =>
               ref.read(categoriesManagerControllerProvider.notifier).refresh(),
@@ -139,9 +137,9 @@ class _CategoriesManagerScreenState
 
   Widget _buildSearchBar() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        // color: Theme.of(context).colorScheme.surface,
         border: Border(
           bottom: BorderSide(
             color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
@@ -179,7 +177,8 @@ class _CategoriesManagerScreenState
 
   Widget _buildFilters(CategoryType? selectedType) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      color: Colors.transparent,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -228,6 +227,22 @@ class _CategoriesManagerScreenState
     );
   }
 
+  Widget _buildSearchAndFilters(
+    CategoryType? selectedType,
+    PaginationInfo? pagination,
+  ) {
+    return Card(
+      margin: const EdgeInsets.all(8),
+      child: Column(
+        children: [
+          _buildSearchBar(),
+          _buildFilters(selectedType),
+          if (pagination != null) _buildPaginationInfo(pagination),
+        ],
+      ),
+    );
+  }
+
   Widget _buildErrorBanner(String error) {
     return Container(
       width: double.infinity,
@@ -262,15 +277,8 @@ class _CategoriesManagerScreenState
 
   Widget _buildPaginationInfo(PaginationInfo pagination) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-          ),
-        ),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      color: Colors.transparent,
       child: Row(
         children: [
           Text(

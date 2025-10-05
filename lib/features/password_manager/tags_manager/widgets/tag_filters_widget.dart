@@ -55,11 +55,11 @@ class TagFiltersWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        // color: Theme.of(
+        //   context,
+        // ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
         border: Border(
           top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
           bottom: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),

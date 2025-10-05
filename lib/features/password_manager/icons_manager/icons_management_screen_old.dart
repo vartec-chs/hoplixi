@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
+
 import 'package:responsive_framework/responsive_framework.dart';
+
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+
 import 'widgets/icon_card.dart';
 import 'widgets/icon_form.dart';
 import 'widgets/icon_filters.dart';
@@ -77,51 +80,110 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
     });
   }
 
-  Future<void> _showIconDialog({store.IconData? existingIcon}) async {
+  Future<void> _showAddIconDialog() async {
     final bool isMobile = ResponsiveBreakpoints.of(context).isMobile;
 
     if (isMobile) {
-      await _showMobileBottomSheet(existingIcon: existingIcon);
+      await _showMobileBottomSheet();
     } else {
-      await _showDesktopDialog(existingIcon: existingIcon);
+      await _showDesktopDialog();
     }
   }
 
-  Future<void> _showMobileBottomSheet({store.IconData? existingIcon}) async {
+  Future<void> _showMobileBottomSheet() async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       enableDrag: true,
-      showDragHandle: true,
+      showDragHandle: false,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      // backgroundColor: Theme.of(context).colorScheme.secondary,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.9,
-        child: IconFormWidget(existingIcon: existingIcon),
+        decoration: BoxDecoration(
+          // color: Theme.of(context).colorScheme.secondary,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: const IconFormWidget(),
       ),
     );
   }
 
-  Future<void> _showDesktopDialog({store.IconData? existingIcon}) async {
+  Future<void> _showDesktopDialog() async {
     await showDialog(
       context: context,
       useSafeArea: true,
       barrierDismissible: true,
       builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
-          child: IconFormWidget(existingIcon: existingIcon),
+        insetPadding: const EdgeInsets.all(8),
+        // backgroundColor: Colors.transparent,
+        child: Container(
+          width: 600,
+          constraints: const BoxConstraints(maxHeight: 700),
+          decoration: BoxDecoration(
+            // color: Theme.of(context).colorScheme.secondary,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: const IconFormWidget(),
         ),
       ),
     );
+  }
+
+  Future<void> _showEditIconDialog(store.IconData icon) async {
+    final bool isMobile = ResponsiveBreakpoints.of(context).isMobile;
+
+    if (isMobile) {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        enableDrag: true,
+        // showDragHandle: true,
+        useSafeArea: true,
+        // showDragHandle: true,
+        // backgroundColor: Theme.of(context).colorScheme.secondary,
+        builder: (context) => Container(
+          height: MediaQuery.of(context).size.height * 0.9,
+          decoration: BoxDecoration(
+            // color: Theme.of(context).colorScheme.secondary,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: IconFormWidget(existingIcon: icon),
+        ),
+      );
+    } else {
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        builder: (context) => Dialog(
+          insetPadding: const EdgeInsets.all(8),
+          // backgroundColor: Theme.of(context).colorScheme.secondary,
+          child: Container(
+            width: 600,
+            constraints: const BoxConstraints(maxHeight: 700),
+            decoration: BoxDecoration(
+              // color: Theme.of(context).colorScheme.secondary,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: IconFormWidget(existingIcon: icon),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmDeleteIcon(store.IconData icon) async {
@@ -162,8 +224,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
             title: 'Иконка удалена',
             description: result.message ?? 'Иконка успешно удалена',
           );
-          // Invalidate provider to refresh the list
-          ref.invalidate(allIconsStreamProvider);
+          // ref.invalidate(allIconsStreamProvider);
         }
       } else {
         if (mounted) {
@@ -199,7 +260,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
             tooltip: _isGridView ? 'Список' : 'Сетка',
           ),
           IconButton(
-            onPressed: () => _showIconDialog(),
+            onPressed: _showAddIconDialog,
             icon: const Icon(Icons.add),
             tooltip: 'Добавить иконку',
           ),
@@ -211,7 +272,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(4.0),
           child: Column(
             children: [
               // Фильтры и поиск
@@ -233,7 +294,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       ),
       floatingActionButton: isMobile
           ? FloatingActionButton(
-              onPressed: () => _showIconDialog(),
+              onPressed: _showAddIconDialog,
               child: const Icon(Icons.add),
             )
           : null,
@@ -243,7 +304,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
   Widget _buildFiltersSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(8),
         child: Column(
           children: [
             // Поиск
@@ -337,7 +398,9 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+        color: Theme.of(
+          context,
+        ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -349,7 +412,9 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
           ),
           Text(
             'Страница $currentPage из $totalPages',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -376,7 +441,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
         final icon = icons[index];
         return IconCard(
           icon: icon,
-          onEdit: () => _showIconDialog(existingIcon: icon),
+          onEdit: () => _showEditIconDialog(icon),
           onDelete: () => _confirmDeleteIcon(icon),
         );
       },
@@ -393,7 +458,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
         return IconCard(
           icon: icon,
           isListView: true,
-          onEdit: () => _showIconDialog(existingIcon: icon),
+          onEdit: () => _showEditIconDialog(icon),
           onDelete: () => _confirmDeleteIcon(icon),
         );
       },
@@ -431,7 +496,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
-            onPressed: () => _showIconDialog(),
+            onPressed: _showAddIconDialog,
             icon: const Icon(Icons.add),
             label: const Text('Добавить иконку'),
           ),

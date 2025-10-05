@@ -44,6 +44,7 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
   Future<void> _showCreateTagModal() async {
     await showModalBottomSheet(
       context: context,
+      showDragHandle: true,
       useSafeArea: true,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -55,7 +56,6 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
 
   Future<void> _showEditTagModal(store.Tag tag) async {
     await showModalBottomSheet(
-      
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -93,51 +93,61 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Поиск
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: PrimaryTextField(
-              controller: _searchController,
-              hintText: 'Поиск тегов...',
-              prefixIcon: const Icon(Icons.search),
-              onChanged: _onSearch,
-            ),
-          ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: [
+                    // Поиск
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: PrimaryTextField(
+                        controller: _searchController,
+                        hintText: 'Поиск тегов...',
+                        prefixIcon: const Icon(Icons.search),
+                        onChanged: _onSearch,
+                      ),
+                    ),
 
-          // Фильтры
-          TagFiltersWidget(
-            selectedType: state.filterType,
-            selectedSort: state.sortBy,
-            isAscending: state.isAscending,
-            onTypeChanged: _onFilterChanged,
-            onSortChanged: _onSortChanged,
-          ),
+                    // Фильтры
+                    TagFiltersWidget(
+                      selectedType: state.filterType,
+                      selectedSort: state.sortBy,
+                      isAscending: state.isAscending,
+                      onTypeChanged: _onFilterChanged,
+                      onSortChanged: _onSortChanged,
+                    ),
 
-          // Статистика
-          Container(
-            padding: const EdgeInsets.all(16.0),
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Всего тегов: ${state.totalCount}',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                    // Статистика
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Всего тегов: ${state.totalCount}',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          if (state.searchQuery.isNotEmpty)
+                            Text(
+                              'Найдено: ${state.tags.length}',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                if (state.searchQuery.isNotEmpty)
-                  Text(
-                    'Найдено: ${state.tags.length}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-              ],
+              ),
             ),
-          ),
 
-          // Список тегов
-          Expanded(child: _buildTagsList(state)),
-        ],
+            // Список тегов
+            Expanded(child: _buildTagsList(state)),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateTagModal,
@@ -206,7 +216,7 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
       child: ListView.builder(
         controller: _scrollController,
         itemCount: state.tags.length + (state.hasMore ? 1 : 0),
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
         itemBuilder: (context, index) {
           if (index >= state.tags.length) {
             // Показываем индикатор загрузки для следующей страницы

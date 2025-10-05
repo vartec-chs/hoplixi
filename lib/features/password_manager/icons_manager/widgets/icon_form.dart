@@ -283,7 +283,7 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
       backgroundColor: Colors.transparent,
       appBar: isMobile ? _buildMobileAppBar() : null,
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 16 : 24),
+        padding: EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(

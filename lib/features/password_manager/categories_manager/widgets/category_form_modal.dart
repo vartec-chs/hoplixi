@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons.dart';
 import 'package:responsive_framework/responsive_framework.dart';
@@ -104,7 +105,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
     return Container(
       constraints: BoxConstraints(
         maxWidth: isMobile ? double.infinity : 600,
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -348,23 +349,19 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
       child: Row(
         children: [
           Expanded(
-            child: OutlinedButton(
+            child: SmoothButton(
+              type: SmoothButtonType.outlined,
               onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-              child: const Text('Отмена'),
+              label: 'Отмена',
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             flex: 2,
-            child: FilledButton(
+            child: SmoothButton(
               onPressed: _isLoading ? null : _saveCategory,
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(_isEditing ? 'Сохранить' : 'Создать'),
+              loading: _isLoading,
+              label: _isEditing ? "Сохранить" : "Создать",
             ),
           ),
         ],
@@ -432,7 +429,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
       if (success && mounted) {
         widget.onSaved?.call();
         try {
-           DataRefreshHelper.refreshAll(ref);
+          DataRefreshHelper.refreshAll(ref);
         } catch (e) {
           logError('Error notifying password change: $e');
         }
@@ -538,6 +535,7 @@ Future<void> showCategoryFormModal({
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: true,
       builder: (context) =>
           CategoryFormModal(category: category, onSaved: onSaved),
     );
@@ -546,6 +544,7 @@ Future<void> showCategoryFormModal({
     await showDialog(
       context: context,
       builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(8),
         child: CategoryFormModal(category: category, onSaved: onSaved),
       ),
     );

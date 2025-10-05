@@ -104,6 +104,7 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.all(8),
         title: const Text('Выберите цвет'),
         content: SingleChildScrollView(
           child: ColorPicker(
@@ -115,11 +116,13 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
           ),
         ),
         actions: [
-          TextButton(
+          SmoothButton(
+            type: SmoothButtonType.outlined,
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
+            label: "Отмена",
           ),
-          TextButton(
+          SmoothButton(
+            type: SmoothButtonType.filled,
             onPressed: () {
               if (pickedColor != null) {
                 setState(() {
@@ -128,7 +131,7 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
               }
               Navigator.of(context).pop();
             },
-            child: const Text('Выбрать'),
+            label: "Выбрать",
           ),
         ],
       ),
@@ -288,8 +291,10 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: _selectColor,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: Theme.of(context).colorScheme.outline),
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
               ),
             ),
 
@@ -328,24 +333,22 @@ class _TagCreateEditModalState extends ConsumerState<TagCreateEditModal> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
+                  child: SmoothButton(
+                    type: SmoothButtonType.outlined,
+                    loading: _isLoading,
                     onPressed: _isLoading
                         ? null
                         : () => Navigator.of(context).pop(),
-                    child: const Text('Отмена'),
+                    label: 'Отмена',
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: ElevatedButton(
+                  child: SmoothButton(
                     onPressed: _isLoading ? null : _saveTag,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(isEditing ? 'Сохранить' : 'Создать'),
+                    loading: _isLoading,
+                    type: SmoothButtonType.filled,
+                    label: isEditing ? 'Сохранить' : 'Создать',
                   ),
                 ),
               ],
