@@ -25,6 +25,7 @@ class AppRoutes {
   static const String otpForm = '/otp-form';
   static const String demoNotification = '/demo-notification';
   static const String notesForm = '/notes-form';
+  static const String importOtpCodes = '/import-otp-codes';
 }
 
 class ProtectedRoutes {
@@ -37,6 +38,7 @@ class ProtectedRoutes {
     AppRoutes.universalFilterDemo,
     AppRoutes.notesForm,
     AppRoutes.otpForm,
+    AppRoutes.importOtpCodes,
     // Добавьте другие защищённые маршруты сюда
   ];
 }

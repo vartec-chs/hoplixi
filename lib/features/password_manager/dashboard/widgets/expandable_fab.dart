@@ -8,6 +8,8 @@ class ExpandableFAB extends StatefulWidget {
     this.distance = 112,
     this.iconData,
 
+    this.importOtpCodes,
+
     required this.onCreateEntity,
     required this.entityName,
 
@@ -20,6 +22,7 @@ class ExpandableFAB extends StatefulWidget {
   final double distance;
   final String entityName;
   final IconData? iconData;
+  final VoidCallback? importOtpCodes;
   final VoidCallback onCreateEntity;
   final VoidCallback onCreateCategory;
   final VoidCallback onCreateTag;
@@ -136,6 +139,14 @@ class _ExpandableFABState extends State<ExpandableFAB>
         backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onSecondaryContainer,
       ),
+      if (widget.importOtpCodes != null)
+        ActionButton(
+          onPressed: () => _executeAction(widget.importOtpCodes!),
+          icon: const Icon(Icons.qr_code),
+          label: 'Импортировать OTP коды',
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        ),
       ActionButton(
         onPressed: () => _executeAction(widget.onCreateEntity),
         icon: widget.iconData != null

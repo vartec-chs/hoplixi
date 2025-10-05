@@ -13,6 +13,7 @@ import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/otp
 import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_screen.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_manager_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/password_form/password_form_screen.dart';
+import 'package:hoplixi/features/password_manager/dashboard/screens/import_otp_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard/screens/password_history_screen.dart';
 import 'package:hoplixi/features/password_manager/icons_manager/icons_management_screen.dart';
 
@@ -128,6 +129,11 @@ final List<GoRoute> appRoutes = [
 
       return const QrScannerScreen();
     },
+  ),
+
+  GoRoute(
+    path: AppRoutes.importOtpCodes,
+    builder: (context, state) => const ImportOtpScreen(),
   ),
 
   GoRoute(

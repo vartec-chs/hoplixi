@@ -109,6 +109,9 @@ dependencies:
 
   sodium: ^3.4.6
   sodium_libs: ^3.4.6+2
+
+  zxing2: ^0.2.4
+  protobuf: ^5.0.0
   
 
 

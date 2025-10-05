@@ -163,6 +163,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               onCreateCategory: _onCreateCategory,
               onCreateTag: _onCreateTag,
               onIconCreate: _onCreateIcon,
+              importOtpCodes: currentEntityType == EntityType.otp
+                  ? () {
+                      logInfo('DashboardScreen: Импорт OTP кодов');
+                      context.push(AppRoutes.importOtpCodes);
+                    }
+                  : null,
             );
           },
         ),

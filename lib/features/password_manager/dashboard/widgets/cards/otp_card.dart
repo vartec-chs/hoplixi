@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,18 @@ import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:otp/otp.dart';
+
+bool isBase64(String input) {
+  // Пустая строка не считается Base64
+  if (input.trim().isEmpty) return false;
+
+  try {
+    base64.decode(input);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
 
 class TotpCard extends ConsumerStatefulWidget {
   final CardOtpDto totp;
@@ -113,7 +126,7 @@ class _TotpCardState extends ConsumerState<TotpCard>
             : widget.totp.algorithm == AlgorithmOtp.SHA256
             ? Algorithm.SHA256
             : Algorithm.SHA512,
-        // isGoogle: widget.totp.,
+        isGoogle: isBase64(_secret ?? ''),
       );
     });
   }

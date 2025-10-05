@@ -1,0 +1,620 @@
+/// Экран импорта OTP токенов из QR-кодов
+///
+/// Поддерживает:
+/// - Импорт из изображения (галерея)
+/// - Сканирование QR-кода камерой
+/// - Парсинг otpauth-migration:// ссылок (Google Authenticator формат)
+/// - Множественный выбор токенов для импорта
+/// - Предпросмотр импортируемых данных
+/// - Пакетное сохранение в БД через TOTPService
+///
+/// Автоматически конвертирует алгоритмы и типы OTP в формат БД.
+/// MD5 не поддерживается и заменяется на SHA1.
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/core/utils/otp_extractor.dart';
+import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
+import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
+
+import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
+import 'package:zxing2/qrcode.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/router/routes_path.dart';
+
+class ImportOtpScreen extends ConsumerStatefulWidget {
+  const ImportOtpScreen({super.key});
+
+  @override
+  ConsumerState<ImportOtpScreen> createState() => _ImportOtpScreenState();
+}
+
+class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
+  final TextEditingController _controller = TextEditingController();
+
+  List<OtpData> importedOtps = [];
+  Set<int> selectedIndices = {};
+  Set<int> expandedIndices = {};
+  bool isSaving = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImageAndDecode() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      final image = img.decodeImage(bytes);
+      if (image != null) {
+        final source = RGBLuminanceSource(
+          image.width,
+          image.height,
+          image
+              .convert(numChannels: 4)
+              .getBytes(order: img.ChannelOrder.abgr)
+              .buffer
+              .asInt32List(),
+        );
+        final bitmap = BinaryBitmap(GlobalHistogramBinarizer(source));
+        final reader = QRCodeReader();
+        try {
+          final result = reader.decode(bitmap);
+          _importOtp(
+            Uint8List.fromList(Uint8List.fromList(result.text.codeUnits)),
+          );
+          setState(() {
+            _controller.text = result.text;
+          });
+        } catch (e) {
+          // Handle error, e.g., show toast
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось декодировать QR-код')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _scanQr() async {
+    final result = await context.push(AppRoutes.qrScanner);
+    if (result != null && result is String) {
+      _importOtp(Uint8List.fromList(result.codeUnits));
+      setState(() {
+        _controller.text = result;
+      });
+    }
+  }
+
+  Future<void> _importOtp(Uint8List decodedBytes) async {
+    try {
+      final input = utf8.decode(decodedBytes);
+      final otpList = parseMigrationUri(input);
+      setState(() {
+        importedOtps = otpList;
+        // Автоматически выбираем все импортированные OTP
+        selectedIndices = Set.from(List.generate(otpList.length, (i) => i));
+      });
+      ToastHelper.success(title: 'Найдено ${otpList.length} OTP записей');
+    } catch (e) {
+      ToastHelper.error(title: 'Ошибка при импорте', description: '$e');
+    }
+  }
+
+  void _toggleExpanded(int index) {
+    setState(() {
+      if (expandedIndices.contains(index)) {
+        expandedIndices.remove(index);
+      } else {
+        expandedIndices.add(index);
+      }
+    });
+  }
+
+  void _toggleSelection(int index) {
+    setState(() {
+      if (selectedIndices.contains(index)) {
+        selectedIndices.remove(index);
+      } else {
+        selectedIndices.add(index);
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      selectedIndices = Set.from(List.generate(importedOtps.length, (i) => i));
+    });
+  }
+
+  void _deselectAll() {
+    setState(() {
+      selectedIndices.clear();
+    });
+  }
+
+  Future<void> _saveSelectedOtps() async {
+    if (selectedIndices.isEmpty) {
+      ToastHelper.warning(title: 'Выберите хотя бы один OTP для сохранения');
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      final totpService = ref.read(totpServiceProvider);
+      int successCount = 0;
+      int failCount = 0;
+
+      for (final index in selectedIndices) {
+        final otp = importedOtps[index];
+
+        // Конвертируем тип алгоритма
+        AlgorithmOtp algorithm;
+        switch (otp.algorithm.toUpperCase()) {
+          case 'SHA256':
+            algorithm = AlgorithmOtp.SHA256;
+            break;
+          case 'SHA512':
+            algorithm = AlgorithmOtp.SHA512;
+            break;
+          case 'MD5':
+            // MD5 не поддерживается, используем SHA1 как fallback
+            algorithm = AlgorithmOtp.SHA1;
+            break;
+          default:
+            algorithm = AlgorithmOtp.SHA1;
+        }
+
+        // Конвертируем тип OTP
+        OtpType type;
+        if (otp.type.toUpperCase() == 'HOTP') {
+          type = OtpType.hotp;
+        } else {
+          type = OtpType.totp;
+        }
+
+        final createDto = CreateTotpDto(
+          issuer: otp.issuer.isNotEmpty ? otp.issuer : null,
+          accountName: otp.name.isNotEmpty ? otp.name : null,
+          secret: otp.secretBase32,
+          algorithm: algorithm,
+          digits: otp.digits,
+          period: 30, // Стандартный период
+          counter: otp.counter > 0 ? otp.counter : null,
+          type: type,
+        );
+
+        final result = await totpService.createTotp(createDto);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        ToastHelper.success(
+          title: 'Импорт завершён',
+          description:
+              'Успешно: $successCount${failCount > 0 ? ', Ошибок: $failCount' : ''}',
+        );
+
+        // Очищаем список после успешного импорта
+        if (failCount == 0 && mounted) {
+          setState(() {
+            importedOtps.clear();
+            selectedIndices.clear();
+            _controller.clear();
+          });
+
+          // Возвращаемся назад
+          if (mounted) {
+            context.pop();
+          }
+        }
+      } else {
+        ToastHelper.error(
+          title: 'Не удалось импортировать OTP',
+          description: 'Все попытки завершились ошибкой',
+        );
+      }
+    } catch (e) {
+      ToastHelper.error(title: 'Ошибка при сохранении', description: '$e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Импорт OTP'),
+        actions: importedOtps.isNotEmpty
+            ? [
+                if (selectedIndices.length < importedOtps.length)
+                  TextButton(
+                    onPressed: _selectAll,
+                    child: const Text('Выбрать все'),
+                  )
+                else
+                  TextButton(
+                    onPressed: _deselectAll,
+                    child: const Text('Снять все'),
+                  ),
+                const SizedBox(width: 8),
+              ]
+            : null,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Кнопки импорта
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Выберите способ импорта',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SmoothButton(
+                            label: 'Из изображения',
+                            onPressed: _pickImageAndDecode,
+                            type: SmoothButtonType.outlined,
+                            icon: const Icon(Icons.image, size: 20),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SmoothButton(
+                            label: 'Сканировать QR',
+                            onPressed: _scanQr,
+                            type: SmoothButtonType.filled,
+                            icon: const Icon(Icons.qr_code_scanner, size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Статистика
+            if (importedOtps.isNotEmpty)
+              Card(
+                color: colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Найдено записей',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          Text(
+                            '${importedOtps.length}',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Выбрано',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                          Text(
+                            '${selectedIndices.length}',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Список OTP
+            if (importedOtps.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.qr_code_2,
+                        size: 80,
+                        color: colorScheme.outline.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Нет импортированных OTP',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: colorScheme.outline,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Выберите способ импорта выше',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.outline.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
+                  itemCount: importedOtps.length,
+                  itemBuilder: (context, index) {
+                    final otp = importedOtps[index];
+                    final isSelected = selectedIndices.contains(index);
+                    final isExpanded = expandedIndices.contains(index);
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        children: [
+                          CheckboxListTile(
+                            value: isSelected,
+                            onChanged: (value) => _toggleSelection(index),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    otp.issuer.isNotEmpty
+                                        ? otp.issuer
+                                        : 'Без эмитента',
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    isExpanded
+                                        ? Icons.expand_less
+                                        : Icons.expand_more,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => _toggleExpanded(index),
+                                  tooltip: isExpanded
+                                      ? 'Свернуть'
+                                      : 'Развернуть',
+                                ),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (otp.name.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text('Аккаунт: ${otp.name}'),
+                                ],
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: [
+                                    _buildChip(
+                                      context,
+                                      '${otp.type}',
+                                      Icons.security,
+                                    ),
+                                    _buildChip(
+                                      context,
+                                      otp.algorithm,
+                                      Icons.lock,
+                                    ),
+                                    _buildChip(
+                                      context,
+                                      '${otp.digits} цифр',
+                                      Icons.pin,
+                                    ),
+                                    if (otp.counter > 0)
+                                      _buildChip(
+                                        context,
+                                        'Счётчик: ${otp.counter}',
+                                        Icons.numbers,
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            secondary: Icon(
+                              Icons.vpn_key,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          if (isExpanded)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16.0),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest,
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(12),
+                                  bottomRight: Radius.circular(12),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Детали токена',
+                                    style: theme.textTheme.labelLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildDetailRow(
+                                    context,
+                                    'Эмитент',
+                                    otp.issuer.isNotEmpty
+                                        ? otp.issuer
+                                        : 'Не указан',
+                                  ),
+                                  _buildDetailRow(
+                                    context,
+                                    'Аккаунт',
+                                    otp.name.isNotEmpty
+                                        ? otp.name
+                                        : 'Не указан',
+                                  ),
+                                  _buildDetailRow(context, 'Тип', otp.type),
+                                  _buildDetailRow(
+                                    context,
+                                    'Алгоритм',
+                                    otp.algorithm,
+                                  ),
+                                  _buildDetailRow(
+                                    context,
+                                    'Цифр',
+                                    '${otp.digits}',
+                                  ),
+                                  if (otp.counter > 0)
+                                    _buildDetailRow(
+                                      context,
+                                      'Счётчик',
+                                      '${otp.counter}',
+                                    ),
+                                  const Divider(),
+                                  _buildDetailRow(
+                                    context,
+                                    'Секрет (Base32)',
+                                    otp.secretBase32,
+                                    monospace: true,
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            // Кнопка сохранения
+            if (importedOtps.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              SmoothButton(
+                label: selectedIndices.isEmpty
+                    ? 'Выберите OTP для сохранения'
+                    : 'Сохранить выбранные (${selectedIndices.length})',
+                onPressed: selectedIndices.isEmpty ? null : _saveSelectedOtps,
+                type: SmoothButtonType.filled,
+                loading: isSaving,
+                icon: const Icon(Icons.save, size: 20),
+                size: SmoothButtonSize.large,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChip(BuildContext context, String label, IconData icon) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Chip(
+      label: Text(label),
+      avatar: Icon(icon, size: 16),
+      visualDensity: VisualDensity.compact,
+      backgroundColor: colorScheme.secondaryContainer,
+      labelStyle: TextStyle(
+        fontSize: 12,
+        color: colorScheme.onSecondaryContainer,
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    BuildContext context,
+    String label,
+    String value, {
+    bool monospace = false,
+  }) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontFamily: monospace ? 'monospace' : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
