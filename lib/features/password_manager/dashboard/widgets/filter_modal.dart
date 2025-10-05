@@ -5,8 +5,8 @@ import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/password_manager/filters/category_filter/category_filter_widget.dart';
-import 'package:hoplixi/features/password_manager/filters/tag_filter/tag_filter_widget.dart';
+import 'package:hoplixi/features/password_manager/categories_manager/category_filter/category_filter_widget.dart';
+import 'package:hoplixi/features/password_manager/tags_manager/tag_filter/tag_filter_widget.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart'
