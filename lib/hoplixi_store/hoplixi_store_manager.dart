@@ -616,7 +616,7 @@ class HoplixiStoreManager {
             ? meta.name
             : p.basenameWithoutExtension(dto.path),
         description: meta.description,
-        masterPassword: dto.masterPassword,
+        masterPassword: dto.saveMasterPassword ? dto.masterPassword : "",
         saveMasterPassword: dto.saveMasterPassword,
       );
       logDebug(
