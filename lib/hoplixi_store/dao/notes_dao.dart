@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import '../hoplixi_store.dart';
 import '../tables/notes.dart';
 import '../dto/db_dto.dart';
@@ -11,7 +12,9 @@ class NotesDao extends DatabaseAccessor<HoplixiStore> with _$NotesDaoMixin {
 
   /// Создание новой заметки
   Future<String> createNote(CreateNoteDto dto) async {
+    final id = UuidGenerator.generate();
     final companion = NotesCompanion(
+      id: Value(id),
       title: Value(dto.title),
       description: Value(dto.description),
       deltaJson: Value(dto.deltaJson),

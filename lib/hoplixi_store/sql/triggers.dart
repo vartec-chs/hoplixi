@@ -400,7 +400,7 @@ class DatabaseTriggers {
     WHEN OLD.id = NEW.id AND (
       OLD.title != NEW.title OR
       OLD.description != NEW.description OR
-      OLD.deltaJson != NEW.deltaJson OR
+  OLD.delta_json != NEW.delta_json OR
       OLD.content != NEW.content OR
       OLD.category_id != NEW.category_id OR
       OLD.is_favorite != NEW.is_favorite OR
@@ -413,7 +413,7 @@ class DatabaseTriggers {
         action,
         title,
         description,
-        deltaJson,
+  delta_json,
         content,
         category_id,
         category_name,
@@ -429,7 +429,7 @@ class DatabaseTriggers {
         'modified',
         OLD.title,
         OLD.description,
-        OLD.deltaJson,
+  OLD.delta_json,
         OLD.content,
         OLD.category_id,
         (SELECT name FROM categories WHERE id = OLD.category_id),
@@ -552,7 +552,7 @@ class DatabaseTriggers {
         action,
         title,
         description,
-        deltaJson,
+  delta_json,
         content,
         category_id,
         category_name,
@@ -568,7 +568,7 @@ class DatabaseTriggers {
         'deleted',
         OLD.title,
         OLD.description,
-        OLD.deltaJson,
+  OLD.delta_json,
         OLD.content,
         OLD.category_id,
         (SELECT name FROM categories WHERE id = OLD.category_id),

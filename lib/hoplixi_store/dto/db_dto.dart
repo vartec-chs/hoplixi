@@ -125,7 +125,40 @@ abstract class UpdateNoteDto with _$UpdateNoteDto {
   }) = _UpdateNoteDto;
 }
 
-// TOTP DTOs
+@freezed
+abstract class CardNoteDto with _$CardNoteDto {
+  const factory CardNoteDto({
+    required String id,
+    required String title,
+    String? description,
+    String? content, // Short content preview 200 chars
+    CardCategoryDto? category,
+    List<CardTagDto>? tags,
+    bool? isFavorite,
+    bool? isPinned,
+    DateTime? lastAccessed,
+  }) = _CardNoteDto;
+}
+
+@freezed
+abstract class CardCategoryDto with _$CardCategoryDto {
+  const factory CardCategoryDto({
+    required String name,
+    @Default('FFFFFF') String color,
+  }) = _CardCategoryDto;
+}
+
+/// Tag DTOs for CardPassword and CardOtp
+/// Used to avoid circular dependency issues
+@freezed
+abstract class CardTagDto with _$CardTagDto {
+  const factory CardTagDto({
+    required String name,
+    @Default('FFFFFF') String color,
+  }) = _CardTagDto;
+}
+
+/// TOTP DTOs
 @freezed
 abstract class CreateTotpDto with _$CreateTotpDto {
   const factory CreateTotpDto({
