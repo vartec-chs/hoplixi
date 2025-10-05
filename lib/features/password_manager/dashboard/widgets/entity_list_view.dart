@@ -16,6 +16,7 @@ import 'package:hoplixi/features/password_manager/dashboard/futures/otp_edit_mod
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:sliver_tools/sliver_tools.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Виджет для отображения списков различных сущностей с пагинацией
 class EntityListView extends ConsumerStatefulWidget {
@@ -294,9 +295,13 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
 
     final result = await OtpEditModalHelper.show(context, otp);
 
-    // Если изменения были сохранены, обновляем список
+    // Если изменения были сохранены, обновляем список в следующем кадре
     if (result == true && mounted) {
-      ref.read(paginatedOtpsProvider.notifier).refresh();
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(paginatedOtpsProvider.notifier).refresh();
+        }
+      });
     }
   }
 

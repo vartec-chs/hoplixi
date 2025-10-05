@@ -12,7 +12,8 @@ class OtpsSliverList extends StatelessWidget {
   final Function(CardOtpDto) onOtpDelete;
   final Function(CardOtpDto) onOtpLongPress;
 
-  const OtpsSliverList({super.key, 
+  const OtpsSliverList({
+    super.key,
     required this.state,
     this.scrollController,
     required this.onOtpFavoriteToggle,

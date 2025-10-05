@@ -333,6 +333,7 @@ class _TotpCardState extends ConsumerState<TotpCard>
                                               .onSecondaryContainer,
                                           fontFamily: 'monospace',
                                         ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(width: 16),
                                   SizedBox(

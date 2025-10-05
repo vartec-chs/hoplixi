@@ -134,7 +134,7 @@ class _EntityActionModalState extends State<EntityActionModal>
               width: double.infinity,
               margin: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
+                color: theme.colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
@@ -172,7 +172,7 @@ class _EntityActionModalState extends State<EntityActionModal>
                 child: Container(
                   margin: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
+                    color: theme.colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
@@ -398,20 +398,10 @@ class _EntityActionModalState extends State<EntityActionModal>
           // Кнопка отмены
           SizedBox(
             width: double.infinity,
-            child: TextButton(
+            child: SmoothButton(
               onPressed: _hideDeleteConfirmation,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Отмена',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              type: SmoothButtonType.outlined,
+              label: 'Отмена',
             ),
           ),
         ],
@@ -625,7 +615,9 @@ class EntityActionModalHelper {
               title: 'Редактировать',
               subtitle: 'Изменить данные OTP',
               icon: Icons.edit_outlined,
-              onPressed: onEdit,
+              onPressed: () {
+                onEdit();
+              },
             ),
             EntityAction(
               type: EntityActionType.delete,

@@ -169,8 +169,9 @@ class _OtpEditModalState extends ConsumerState<OtpEditModal> {
     final theme = Theme.of(context);
 
     return Dialog(
-      backgroundColor: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.all(8),
+
+      // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Container(
         constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
         padding: const EdgeInsets.all(24),
@@ -309,6 +310,7 @@ class _OtpEditModalState extends ConsumerState<OtpEditModal> {
                 children: [
                   Expanded(
                     child: SmoothButton(
+                      loading: _isLoading,
                       onPressed: _isLoading ? null : _cancel,
                       type: SmoothButtonType.outlined,
                       label: 'Отмена',
@@ -316,16 +318,11 @@ class _OtpEditModalState extends ConsumerState<OtpEditModal> {
                   ),
                   Expanded(
                     child: SmoothButton(
+                      loading: _isLoading,
                       onPressed: _isLoading ? null : _saveChanges,
                       type: SmoothButtonType.filled,
-                      label: _isLoading ? 'Сохранение...' : 'Сохранить',
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save),
+                      label: 'Сохранить',
+                      icon: const Icon(Icons.save),
                     ),
                   ),
                 ],
