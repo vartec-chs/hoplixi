@@ -3,6 +3,7 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dao/filters_dao/otp_filter_dao.dart';
+import 'package:hoplixi/hoplixi_store/dao/filters_dao/note_filter_dao.dart';
 import 'package:hoplixi/hoplixi_store/dao/index.dart';
 import 'hoplixi_store_providers.dart';
 
@@ -98,4 +99,14 @@ final notesDaoProvider = Provider.autoDispose<NotesDao>((ref) {
   final db = ref.watch(hoplixiStoreProvider.notifier);
 
   return NotesDao(db.currentDatabase);
+});
+
+final noteFilterDaoProvider = Provider<NoteFilterDao>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  ref.onDispose(() {
+    logInfo('Освобождение ресурсов NoteFilterDao', tag: 'ServicesProviders');
+  });
+
+  return NoteFilterDao(db.currentDatabase);
 });

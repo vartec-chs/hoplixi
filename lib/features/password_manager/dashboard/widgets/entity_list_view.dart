@@ -6,10 +6,12 @@ import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.d
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_passwords_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_otps_provider.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_notes_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_action_modal.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/empty_list.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/passwords_list.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/otps_list.dart';
+import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/notes_list.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:sliver_tools/sliver_tools.dart';
@@ -56,7 +58,7 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
           ref.read(paginatedOtpsProvider.notifier).loadMore();
           break;
         case EntityType.note:
-          // Пагинация для заметок не реализована
+          ref.read(paginatedNotesProvider.notifier).loadMore();
           break;
       }
     }
@@ -74,7 +76,7 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
       case EntityType.otp:
         return _buildOtpsList();
       case EntityType.note:
-        return _buildNotImplementedView('Заметки', Icons.note);
+        return _buildNotesList();
     }
   }
 
@@ -190,14 +192,60 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
     );
   }
 
-  Widget _buildNotImplementedView(String title, IconData icon) {
-    return SliverFillRemaining(
-      child: EmptyView(
-        title: title,
-        subtitle: 'Функционал находится в разработке',
-        icon: icon,
-        isNotImplemented: true,
+  Widget _buildNotesList() {
+    final notesAsync = ref.watch(paginatedNotesProvider);
+
+    return notesAsync.when(
+      loading: () => const SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Загрузка данных...'),
+            ],
+          ),
+        ),
       ),
+      error: (error, _) => _ErrorSliverView(
+        error: error.toString(),
+        onRetry: () {
+          ref.read(paginatedNotesProvider.notifier).refresh();
+        },
+      ),
+      data: (state) {
+        if (state.notes.isEmpty && !state.isLoading) {
+          return SliverFillRemaining(
+            child: EmptyView(
+              title: 'Нет заметок',
+              subtitle: 'Создайте первую заметку, чтобы начать работу',
+              icon: Icons.note,
+            ),
+          );
+        }
+
+        return SliverStack(
+          children: [
+            NotesSliverList(
+              state: state,
+              scrollController: _scrollController,
+              onNoteFavoriteToggle: _onNoteFavoriteToggle,
+              onNotePinToggle: _onNotePinToggle,
+              onNoteEdit: _onNoteEdit,
+              onNoteDelete: _onNoteDelete,
+              onNoteLongPress: _onNoteLongPress,
+            ),
+            if (state.isLoading)
+              SliverFillRemaining(
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -261,6 +309,43 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
       accountName: otp.accountName ?? 'Нет данных',
       onEdit: () => _onOtpEdit(otp),
       onDelete: () => _onOtpDelete(otp),
+    );
+  }
+
+  void _onNoteFavoriteToggle(CardNoteDto note) {
+    logInfo('EntityListView: Переключение избранного для заметки ${note.id}');
+    if (mounted) {
+      ref.read(paginatedNotesProvider.notifier).toggleFavorite(note.id);
+    }
+  }
+
+  void _onNotePinToggle(CardNoteDto note) {
+    logInfo('EntityListView: Переключение закрепления для заметки ${note.id}');
+    if (mounted) {
+      ref.read(paginatedNotesProvider.notifier).togglePinned(note.id);
+    }
+  }
+
+  void _onNoteEdit(CardNoteDto note) {
+    logInfo('EntityListView: Редактирование заметки ${note.id}');
+    context.push('${AppRoutes.notesForm}/${note.id}');
+  }
+
+  void _onNoteDelete(CardNoteDto note) {
+    logInfo('EntityListView: Удаление заметки ${note.id}');
+    if (mounted) {
+      ref.read(paginatedNotesProvider.notifier).deleteNote(note.id);
+    }
+  }
+
+  void _onNoteLongPress(CardNoteDto note) {
+    logInfo('EntityListView: Долгое нажатие на заметку ${note.id}');
+    EntityActionModalHelper.showNoteActions(
+      context,
+      noteTitle: note.title,
+      noteContent: note.content ?? note.description ?? 'Нет содержимого',
+      onEdit: () => _onNoteEdit(note),
+      onDelete: () => _onNoteDelete(note),
     );
   }
 }
