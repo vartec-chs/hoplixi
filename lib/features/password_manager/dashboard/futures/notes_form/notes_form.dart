@@ -15,8 +15,11 @@ import 'time_stamp_embed.dart';
 import 'toolbar.dart';
 import 'youtube_video_player.dart';
 
+/// ВАЖНО РАБОТУ С ФАЙЛАМИ ПОКА НЕ БУДЕМ ВНЕДРЯТЬ
+
 class NotesFormScreen extends StatefulWidget {
-  const NotesFormScreen({super.key});
+  NotesFormScreen({super.key, this.id});
+  String? id;
 
   @override
   State<NotesFormScreen> createState() => _NotesFormScreenState();
@@ -55,7 +58,7 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
   final FocusNode _editorFocusNode = FocusNode();
   final ScrollController _editorScrollController = ScrollController();
 
-  final List<CreateAttachmentFromData> _newAttachments = [];
+  // final List<CreateAttachmentFromPath> _newAttachments = [];
 
   @override
   void initState() {
@@ -106,31 +109,46 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
                   imageProviderBuilder: (context, imageUrl) {
                     logDebug('Loading embedded image: $imageUrl', tag: _logTag);
 
-                    
+                    // IS it a file path?
+                    // if (io.File(imageUrl).existsSync()) {
+                    //   setState(() {
+                    //     _newAttachments.add(
+                    //       CreateAttachmentFromPath(
+                    //         name: path.basename(imageUrl),
+                    //         filePath: imageUrl,
+                    //         description: 'Вставленное изображение',
+                    //         mimeType: path.extension(imageUrl),
+                    //       ),
+                    //     );
+                    //   });
+                    //   return FileImage(io.File(imageUrl));
+                    // }
 
-                    // https://pub.dev/packages/flutter_quill_extensions#-image-assets
-                    if (imageUrl.startsWith('assets/')) {
-                      return AssetImage(imageUrl);
-                    }
+                    // // https://pub.dev/packages/flutter_quill_extensions#-image-assets
+                    // if (imageUrl.startsWith('assets/')) {
+                    //   return AssetImage(imageUrl);
+                    // }
                     return null;
                   },
                   onImageRemovedCallback: (imageUrl) async {
+                    // setState(() {
+                    //   _newAttachments.removeWhere(
+                    //     (element) =>
+                    //         element.filePath == imageUrl ||
+                    //         element.name == path.basename(imageUrl),
+                    //   );
+                    // });
                     logInfo('Image removed: $imageUrl', tag: _logTag);
                   },
                 ),
                 videoEmbedConfig: QuillEditorVideoEmbedConfig(
                   customVideoBuilder: (videoUrl, readOnly) {
                     logDebug('Loading embedded video: $videoUrl', tag: _logTag);
-                    // Example: Check for YouTube Video URL and return your
-                    // YouTube video widget here.
 
-                    // Note: YouTube videos are not supported on Linux due to platform limitations
                     if (_isYouTubeUrl(videoUrl) &&
                         !(UniversalPlatform.isLinux)) {
                       return YoutubeVideoPlayer(videoUrl: videoUrl);
                     }
-
-                    // Return null to fallback to the default logic
                     return null;
                   },
                 ),

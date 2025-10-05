@@ -149,7 +149,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   _onCreatePassword();
                 } else if (currentEntityType == EntityType.note) {
                   logInfo('DashboardScreen: Создание новой заметки');
-                  ToastHelper.info(title: 'Функция в разработке');
+                  context.push(AppRoutes.notesForm);
                   // context.push(AppRoutes.noteForm);
                 } else if (currentEntityType == EntityType.otp) {
                   logInfo('DashboardScreen: Создание нового OTP');

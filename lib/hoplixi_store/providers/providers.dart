@@ -8,6 +8,7 @@ export 'service_providers.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
+import 'package:hoplixi/features/global/providers/file_encryptor_provider.dart';
 import 'service_providers.dart';
 import 'dao_providers.dart';
 
@@ -17,9 +18,7 @@ final clearAllProvider = AsyncNotifierProvider<ClearAllNotifier, void>(
 
 class ClearAllNotifier extends AsyncNotifier<void> {
   @override
-  void build() {
-    // пусто
-  }
+  void build() {}
 
   Future<void> clearAll() async {
     state = const AsyncValue.loading();
@@ -35,6 +34,7 @@ class ClearAllNotifier extends AsyncNotifier<void> {
         iconsServiceProvider,
         tagsServiceProvider,
         passwordsServiceProvider,
+        fileEncryptorProvider,
       };
 
       // Если нужно асинхронно что-то делать — await внутри цикла.

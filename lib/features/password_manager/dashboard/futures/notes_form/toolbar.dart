@@ -86,13 +86,13 @@ class _ToolbarState extends State<Toolbar> {
 
     // Secondary (less used) buttons as widgets
     final secondary = <Widget>[
-      _wrapWithTooltip(
-        message: 'Вставить изображение',
-        child: QuillToolbarImageButton(
-          controller: widget.controller,
-          options: const QuillToolbarImageButtonOptions(),
-        ),
-      ),
+      // _wrapWithTooltip(
+      //   message: 'Вставить изображение',
+      //   child: QuillToolbarImageButton(
+      //     controller: widget.controller,
+      //     options: const QuillToolbarImageButtonOptions(),
+      //   ),
+      // ),
       // Video and Camera are disabled, so skip or show disabled
       // _wrapWithTooltip(
       //   message: 'Вставить видео',

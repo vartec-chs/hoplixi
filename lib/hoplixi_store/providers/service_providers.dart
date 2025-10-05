@@ -13,6 +13,7 @@ import 'package:hoplixi/hoplixi_store/services/password_service.dart';
 import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
 import 'package:hoplixi/hoplixi_store/services/totp_service.dart';
 import 'package:hoplixi/hoplixi_store/services/attachment_service.dart';
+import 'package:hoplixi/hoplixi_store/services/notes_service.dart';
 import 'dao_providers.dart';
 import 'hoplixi_store_providers.dart';
 
@@ -103,6 +104,17 @@ final attachmentServiceProvider = Provider.autoDispose<AttachmentService>((
     otpsDao,
     notesDao,
   );
+});
+
+/// Провайдер для NotesService
+final notesServiceProvider = Provider.autoDispose<NotesService>((ref) {
+  final db = ref.watch(hoplixiStoreProvider.notifier);
+
+  ref.onDispose(() {
+    logInfo('Освобождение ресурсов NotesService', tag: 'ServicesProviders');
+  });
+
+  return NotesService(db.currentDatabase);
 });
 
 // =============================================================================

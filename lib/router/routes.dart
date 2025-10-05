@@ -103,7 +103,8 @@ final List<GoRoute> appRoutes = [
 
   GoRoute(
     path: AppRoutes.notesForm,
-    builder: (context, state) => const NotesFormScreen(),
+    builder: (context, state) =>
+        NotesFormScreen(id: state.pathParameters['id']),
   ),
 
   GoRoute(
