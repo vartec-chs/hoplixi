@@ -14,7 +14,8 @@ import 'package:hoplixi/features/password_manager/dashboard/screens/dashboard_sc
 import 'package:hoplixi/features/password_manager/categories_manager/categories_manager_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/password_form/password_form_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard/screens/password_history_screen.dart';
-import 'package:hoplixi/features/password_manager/icons_manager/icons_management_screen_old.dart';
+import 'package:hoplixi/features/password_manager/icons_manager/icons_management_screen.dart';
+
 import 'package:hoplixi/features/password_manager/qr_scaner/qr_scaner_screen.dart';
 import 'package:hoplixi/features/password_manager/qr_scaner/qr_test_screen.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';

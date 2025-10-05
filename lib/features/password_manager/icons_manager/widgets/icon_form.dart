@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:hoplixi/features/global/widgets/index.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:responsive_framework/responsive_framework.dart';
@@ -282,26 +283,26 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: isMobile ? _buildMobileAppBar() : null,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Заголовок для десктопа
-              if (!isMobile) _buildDesktopHeader(),
-
-              // Форма
-              _buildImageSection(),
-              const SizedBox(height: 24),
-              _buildNameField(),
-              const SizedBox(height: 24),
-              _buildActionButtons(),
-            ],
+      body: Column(
+        children: [
+          if (!isMobile) _buildDesktopHeader(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Форма
+                  _buildImageSection(),
+                  const SizedBox(height: 24),
+                  _buildNameField(),
+                ],
+              ),
+            ),
           ),
-        ),
+          _buildActionButtons(),
+        ],
       ),
     );
   }
@@ -328,28 +329,33 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
   }
 
   Widget _buildDesktopHeader() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                _isEditing ? 'Редактировать иконку' : 'Добавить иконку',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _isEditing ? 'Редактировать иконку' : 'Добавить иконку',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            IconButton(
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Divider(color: Theme.of(context).colorScheme.outline.withOpacity(0.2)),
-        const SizedBox(height: 16),
-      ],
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Divider(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 
@@ -529,10 +535,11 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
+                child: SmoothButton(
+                  type: SmoothButtonType.outlined,
                   onPressed: _pickFile,
                   icon: const Icon(Icons.photo_library),
-                  label: const Text('Галерея'),
+                  label: 'Галерея',
                 ),
               ),
               const SizedBox(width: 12),
@@ -543,10 +550,13 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
     } else {
       return Row(
         children: [
-          OutlinedButton.icon(
-            onPressed: _pickFile,
-            icon: const Icon(Icons.photo_library),
-            label: const Text('Выбрать файл'),
+          Expanded(
+            child: SmoothButton(
+              type: SmoothButtonType.outlined,
+              onPressed: _pickFile,
+              icon: const Icon(Icons.photo_library),
+              label: 'Выбрать файл',
+            ),
           ),
         ],
       );
@@ -574,62 +584,64 @@ class _IconFormWidgetState extends ConsumerState<IconFormWidget> {
   Widget _buildActionButtons() {
     final isMobile = ResponsiveBreakpoints.of(context).isMobile;
 
-    if (isMobile) {
-      return Column(
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _isLoading ? null : _submitForm,
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Text(
-                      _isEditing ? 'Сохранить изменения' : 'Добавить иконку',
-                    ),
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        // color: Theme.of(context).colorScheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+      ),
+      child: isMobile
+          ? Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: SmoothButton(
+                    onPressed: _isLoading ? null : _submitForm,
+                    loading: _isLoading,
+                    label: _isEditing ? 'Сохранить' : 'Добавить',
+                    icon: Icon(_isEditing ? Icons.save : Icons.add),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: SmoothButton(
+                    type: SmoothButtonType.outlined,
+                    loading: _isLoading,
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    label: 'Отмена',
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SmoothButton(
+                  type: SmoothButtonType.outlined,
+                  loading: _isLoading,
+                  onPressed: _isLoading
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  label: 'Отмена',
+                ),
+                const SizedBox(width: 12),
+                SmoothButton(
+                  onPressed: _isLoading ? null : _submitForm,
+                  loading: _isLoading,
+                  label: _isEditing ? 'Сохранить' : 'Добавить',
+                  icon: Icon(_isEditing ? Icons.save : Icons.add),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-              child: const Text('Отмена'),
-            ),
-          ),
-        ],
-      );
-    } else {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          OutlinedButton(
-            onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
-          ),
-          const SizedBox(width: 12),
-          FilledButton(
-            onPressed: _isLoading ? null : _submitForm,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Text(_isEditing ? 'Сохранить' : 'Добавить'),
-          ),
-        ],
-      );
-    }
+    );
   }
 
   Widget _buildImagePreview() {

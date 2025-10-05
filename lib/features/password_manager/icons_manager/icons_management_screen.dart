@@ -94,11 +94,14 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       enableDrag: true,
       showDragHandle: true,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      // backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         height: MediaQuery.of(context).size.height * 0.9,
         child: IconFormWidget(existingIcon: existingIcon),
       ),
@@ -111,11 +114,15 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       useSafeArea: true,
       barrierDismissible: true,
       builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        insetPadding: const EdgeInsets.all(8),
+        // backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+        child: Container(
+          padding: EdgeInsets.all(8),
+          constraints: BoxConstraints(
+            maxWidth: 600,
+            maxHeight: MediaQuery.of(context).size.height * 0.88,
+          ),
           child: IconFormWidget(existingIcon: existingIcon),
         ),
       ),
@@ -209,7 +216,7 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(4.0),
           child: Column(
             children: [
               // Фильтры и поиск
@@ -240,8 +247,9 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
 
   Widget _buildFiltersSection() {
     return Card(
+      elevation: 0,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(8),
         child: Column(
           children: [
             // Поиск

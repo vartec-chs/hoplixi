@@ -97,6 +97,7 @@ class _TagsManagementScreenState extends ConsumerState<TagsManagementScreen> {
         child: Column(
           children: [
             Card(
+              elevation: 0,
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Column(

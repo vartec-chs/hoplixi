@@ -494,6 +494,7 @@ class _CategoriesManagerScreenState
     final color = _parseColor(category.color);
 
     return Card(
+      elevation: 0,
       child: InkWell(
         onTap: () => _showEditCategoryModal(category),
         borderRadius: BorderRadius.circular(12),
