@@ -3,13 +3,15 @@ import '../../core/logger/app_logger.dart';
 import '../hoplixi_store.dart';
 import '../dao/notes_dao.dart';
 import '../dao/categories_dao.dart';
+import '../dao/note_tags_dao.dart';
+import '../dao/tags_dao.dart';
 import '../dto/db_dto.dart';
 import '../enums/entity_types.dart';
 import 'service_results.dart';
 
 /// Полный сервис для работы с заметками, включающий:
 /// - CRUD операции с заметками
-/// - Управление категориями
+/// - Управление категориями и тегами
 /// - Поиск и фильтрацию
 /// - Stream-подписки для UI
 /// - Работу с избранным и закреплением
@@ -17,16 +19,23 @@ class NotesService {
   final HoplixiStore _database;
   late final NotesDao _notesDao;
   late final CategoriesDao _categoriesDao;
+  late final NoteTagsDao _noteTagsDao;
+  late final TagsDao _tagsDao;
 
   NotesService(this._database) {
     _notesDao = NotesDao(_database);
     _categoriesDao = CategoriesDao(_database);
+    _noteTagsDao = NoteTagsDao(_database);
+    _tagsDao = TagsDao(_database);
   }
 
   // ==================== ОСНОВНЫЕ CRUD ОПЕРАЦИИ ====================
 
   /// Создание новой заметки
-  Future<ServiceResult<String>> createNote(CreateNoteDto dto) async {
+  Future<ServiceResult<String>> createNote(
+    CreateNoteDto dto, {
+    List<String>? tagIds,
+  }) async {
     try {
       logInfo('Создание новой заметки: ${dto.title}', tag: 'NotesService');
 
@@ -40,16 +49,35 @@ class NotesService {
         }
       }
 
+      // Проверяем существование тегов если указаны
+      if (tagIds != null && tagIds.isNotEmpty) {
+        for (final tagId in tagIds) {
+          final tagExists = await _tagsDao.getTagById(tagId);
+          if (tagExists == null) {
+            return ServiceResult.error('Тег $tagId не найден');
+          }
+        }
+      }
+
       // TODO: В будущем здесь будет обработка вложений (attachments)
       // Сейчас игнорируем dto.attachments - заглушка
 
       // Создаем заметку
       final noteId = await _notesDao.createNote(dto);
 
+      // Добавляем теги если указаны
+      if (tagIds != null && tagIds.isNotEmpty) {
+        await _noteTagsDao.addTagsToNotesBatch([noteId], tagIds);
+      }
+
       logInfo(
         'Заметка создана успешно: $noteId',
         tag: 'NotesService',
-        data: {'noteId': noteId, 'title': dto.title},
+        data: {
+          'noteId': noteId,
+          'title': dto.title,
+          'tagsCount': tagIds?.length ?? 0,
+        },
       );
 
       return ServiceResult.success(
@@ -68,7 +96,11 @@ class NotesService {
   }
 
   /// Обновление заметки
-  Future<ServiceResult<bool>> updateNote(UpdateNoteDto dto) async {
+  Future<ServiceResult<bool>> updateNote(
+    UpdateNoteDto dto, {
+    List<String>? tagIds,
+    bool replaceAllTags = false,
+  }) async {
     try {
       logInfo('Обновление заметки: ${dto.id}', tag: 'NotesService');
 
@@ -88,6 +120,16 @@ class NotesService {
         }
       }
 
+      // Проверяем существование тегов если указаны
+      if (tagIds != null && tagIds.isNotEmpty) {
+        for (final tagId in tagIds) {
+          final tagExists = await _tagsDao.getTagById(tagId);
+          if (tagExists == null) {
+            return ServiceResult.error('Тег $tagId не найден');
+          }
+        }
+      }
+
       // Обновляем заметку
       final updated = await _notesDao.updateNote(dto);
 
@@ -95,10 +137,25 @@ class NotesService {
         return ServiceResult.error('Не удалось обновить заметку');
       }
 
+      // Обновляем теги если указаны
+      if (tagIds != null) {
+        if (replaceAllTags) {
+          await _noteTagsDao.replaceNoteTags(dto.id, tagIds);
+        } else {
+          // Добавляем новые теги, не удаляя существующие
+          await _noteTagsDao.addTagsToNotesBatch([dto.id], tagIds);
+        }
+      }
+
       logInfo(
         'Заметка обновлена успешно: ${dto.id}',
         tag: 'NotesService',
-        data: {'noteId': dto.id, 'title': dto.title},
+        data: {
+          'noteId': dto.id,
+          'title': dto.title,
+          'tagsCount': tagIds?.length ?? 0,
+          'replaceAllTags': replaceAllTags,
+        },
       );
 
       return ServiceResult.success(
@@ -661,6 +718,154 @@ class NotesService {
       return ServiceResult.error('Ошибка проверки: ${e.toString()}');
     }
   }
+
+  // ==================== РАБОТА С ТЕГАМИ ====================
+
+  /// Добавление тега к заметке
+  Future<ServiceResult<bool>> addTagToNote(String noteId, String tagId) async {
+    try {
+      // Проверяем существование заметки и тега
+      final note = await _notesDao.getNoteById(noteId);
+      if (note == null) {
+        return ServiceResult.error('Заметка не найдена');
+      }
+
+      final tag = await _tagsDao.getTagById(tagId);
+      if (tag == null) {
+        return ServiceResult.error('Тег не найден');
+      }
+
+      // Проверяем, не назначен ли уже тег
+      final hasTag = await _noteTagsDao.noteHasTag(noteId, tagId);
+      if (hasTag) {
+        return ServiceResult.success(
+          data: true,
+          message: 'Тег уже назначен заметке',
+        );
+      }
+
+      await _noteTagsDao.addTagToNote(noteId, tagId);
+
+      logInfo(
+        'Тег добавлен к заметке',
+        tag: 'NotesService',
+        data: {'noteId': noteId, 'tagId': tagId, 'tagName': tag.name},
+      );
+
+      return ServiceResult.success(
+        data: true,
+        message: 'Тег "${tag.name}" добавлен к заметке',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка добавления тега к заметке',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'NotesService',
+      );
+      return ServiceResult.error('Ошибка добавления тега: ${e.toString()}');
+    }
+  }
+
+  /// Удаление тега у заметки
+  Future<ServiceResult<bool>> removeTagFromNote(
+    String noteId,
+    String tagId,
+  ) async {
+    try {
+      final removed = await _noteTagsDao.removeTagFromNote(noteId, tagId);
+
+      if (!removed) {
+        return ServiceResult.error('Связь между заметкой и тегом не найдена');
+      }
+
+      logInfo(
+        'Тег удален у заметки',
+        tag: 'NotesService',
+        data: {'noteId': noteId, 'tagId': tagId},
+      );
+
+      return ServiceResult.success(data: true, message: 'Тег удален у заметки');
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка удаления тега у заметки',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'NotesService',
+      );
+      return ServiceResult.error('Ошибка удаления тега: ${e.toString()}');
+    }
+  }
+
+  /// Получение тегов заметки
+  Future<ServiceResult<List<Tag>>> getNoteTags(String noteId) async {
+    try {
+      final tags = await _noteTagsDao.getTagsForNote(noteId);
+      return ServiceResult.success(
+        data: tags,
+        message: 'Теги заметки получены',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения тегов заметки',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'NotesService',
+      );
+      return ServiceResult.error('Ошибка получения тегов: ${e.toString()}');
+    }
+  }
+
+  /// Stream тегов для конкретной заметки
+  Stream<List<Tag>> watchNoteTags(String noteId) {
+    return _noteTagsDao.watchTagsForNote(noteId);
+  }
+
+  /// Получение заметки с полными деталями (категория + теги)
+  Future<ServiceResult<NoteWithFullDetails>> getNoteWithFullDetails(
+    String noteId,
+  ) async {
+    try {
+      logDebug(
+        'Получение полных деталей заметки: $noteId',
+        tag: 'NotesService',
+      );
+
+      final note = await _notesDao.getNoteById(noteId);
+      if (note == null) {
+        return ServiceResult.error('Заметка не найдена');
+      }
+
+      // Получаем дополнительную информацию
+      final category = note.categoryId != null
+          ? await _categoriesDao.getCategoryById(note.categoryId!)
+          : null;
+
+      final tags = await _noteTagsDao.getTagsForNote(noteId);
+
+      // Обновляем время последнего доступа
+      await _notesDao.updateLastAccessed(noteId);
+
+      final details = NoteWithFullDetails(
+        note: note,
+        category: category,
+        tags: tags,
+      );
+
+      return ServiceResult.success(
+        data: details,
+        message: 'Детали заметки получены',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения полных деталей заметки',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'NotesService',
+      );
+      return ServiceResult.error('Ошибка получения заметки: ${e.toString()}');
+    }
+  }
 }
 
 // ==================== МОДЕЛИ ДЛЯ СЕРВИСА ====================
@@ -671,6 +876,15 @@ class NoteWithDetails {
   final Category? category;
 
   NoteWithDetails({required this.note, this.category});
+}
+
+/// Модель заметки с полными деталями (категория + теги)
+class NoteWithFullDetails {
+  final Note note;
+  final Category? category;
+  final List<Tag> tags;
+
+  NoteWithFullDetails({required this.note, this.category, required this.tags});
 }
 
 /// Модель статистики заметок

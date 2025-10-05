@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/hoplixi_store/dto/attachment_dto.dart';
+import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io' as io;
 
@@ -8,27 +10,43 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:universal_platform/universal_platform.dart';
 
+import 'note_metadata_dialog.dart';
 import 'time_stamp_embed.dart';
 import 'toolbar.dart';
 import 'youtube_video_player.dart';
 
-/// ВАЖНО РАБОТУ С ФАЙЛАМИ ПОКА НЕ БУДЕМ ВНЕДРЯТЬ
+/// Экран создания и редактирования заметок
 
-class NotesFormScreen extends StatefulWidget {
-  NotesFormScreen({super.key, this.id});
-  String? id;
+class NotesFormScreen extends ConsumerStatefulWidget {
+  final String? id;
+
+  const NotesFormScreen({super.key, this.id});
 
   @override
-  State<NotesFormScreen> createState() => _NotesFormScreenState();
+  ConsumerState<NotesFormScreen> createState() => _NotesFormScreenState();
 }
 
-class _NotesFormScreenState extends State<NotesFormScreen> {
+class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
   static const String _logTag = 'NotesForm';
-  final QuillController _controller = () {
-    return QuillController.basic(
+
+  late final QuillController _controller;
+  final FocusNode _editorFocusNode = FocusNode();
+  final ScrollController _editorScrollController = ScrollController();
+
+  // Метаданные заметки
+  NoteMetadata? _metadata;
+  bool _isSaving = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = QuillController.basic(
       config: QuillControllerConfig(
         clipboardConfig: QuillClipboardConfig(
           enableExternalRichPaste: true,
@@ -54,40 +72,242 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
         ),
       ),
     );
-  }();
-  final FocusNode _editorFocusNode = FocusNode();
-  final ScrollController _editorScrollController = ScrollController();
 
-  // final List<CreateAttachmentFromPath> _newAttachments = [];
+    // Загружаем заметку если редактируем
+    if (widget.id != null) {
+      _loadNote();
+    } else {
+      // Для новой заметки загружаем пустой документ
+      _controller.document = Document.fromJson(
+        jsonDecode('[{"insert":"\\n"}]'),
+      );
+    }
+  }
 
-  @override
-  void initState() {
-    super.initState();
-    // Load document
-    _controller.document = Document.fromJson(
-      jsonDecode('[{"insert":"Написать!\\n"}]'),
+  /// Загружает заметку для редактирования
+  Future<void> _loadNote() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final service = ref.read(notesServiceProvider);
+      final result = await service.getNoteWithFullDetails(widget.id!);
+
+      if (!result.success || result.data == null) {
+        if (mounted) {
+          ToastHelper.error(
+            title: 'Ошибка',
+            description: result.message ?? 'Не удалось загрузить заметку',
+          );
+          context.pop();
+        }
+        return;
+      }
+
+      final details = result.data!;
+      final note = details.note;
+
+      // Загружаем контент в редактор
+      try {
+        _controller.document = Document.fromJson(jsonDecode(note.deltaJson));
+      } catch (e) {
+        logError('Ошибка загрузки deltaJson', error: e, tag: _logTag);
+        // Если не удалось загрузить deltaJson, используем content
+        _controller.document = Document()..insert(0, note.content);
+      }
+
+      // Загружаем метаданные
+      setState(() {
+        _metadata = NoteMetadata(
+          title: note.title,
+          description: note.description,
+          categoryId: note.categoryId,
+          tagIds: details.tags.map((tag) => tag.id).toList(),
+        );
+      });
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка загрузки заметки',
+        error: e,
+        stackTrace: stackTrace,
+        tag: _logTag,
+      );
+      if (mounted) {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Не удалось загрузить заметку: $e',
+        );
+        context.pop();
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Открывает диалог метаданных и сохраняет заметку
+  Future<void> _onSave() async {
+    // Показываем диалог метаданных
+    final metadata = await showNoteMetadataDialog(
+      context,
+      initialMetadata: _metadata,
+      isEditing: widget.id != null,
     );
+
+    if (metadata == null) return; // Пользователь отменил
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final service = ref.read(notesServiceProvider);
+
+      // Получаем содержимое из редактора
+      final deltaJson = jsonEncode(_controller.document.toDelta().toJson());
+      final plainText = _controller.document.toPlainText();
+
+      if (widget.id == null) {
+        // Создание новой заметки
+        final createDto = CreateNoteDto(
+          title: metadata.title,
+          description: metadata.description,
+          deltaJson: deltaJson,
+          content: plainText,
+          categoryId: metadata.categoryId,
+          isFavorite: false,
+          isPinned: false,
+        );
+
+        final result = await service.createNote(
+          createDto,
+          tagIds: metadata.tagIds.isNotEmpty ? metadata.tagIds : null,
+        );
+
+        if (result.success) {
+          if (mounted) {
+            ToastHelper.success(
+              title: 'Успех',
+              description: result.message ?? 'Заметка создана',
+            );
+            context.pop();
+          }
+        } else {
+          if (mounted) {
+            ToastHelper.error(
+              title: 'Ошибка',
+              description: result.message ?? 'Не удалось создать заметку',
+            );
+          }
+        }
+      } else {
+        // Обновление существующей заметки
+        final updateDto = UpdateNoteDto(
+          id: widget.id!,
+          title: metadata.title,
+          description: metadata.description,
+          deltaJson: deltaJson,
+          content: plainText,
+          categoryId: metadata.categoryId,
+        );
+
+        final result = await service.updateNote(
+          updateDto,
+          tagIds: metadata.tagIds.isNotEmpty ? metadata.tagIds : null,
+          replaceAllTags: true, // Заменяем все теги
+        );
+
+        if (result.success) {
+          if (mounted) {
+            ToastHelper.success(
+              title: 'Успех',
+              description: result.message ?? 'Заметка обновлена',
+            );
+            setState(() {
+              _metadata = metadata;
+            });
+          }
+        } else {
+          if (mounted) {
+            ToastHelper.error(
+              title: 'Ошибка',
+              description: result.message ?? 'Не удалось обновить заметку',
+            );
+          }
+        }
+      }
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка сохранения заметки',
+        error: e,
+        stackTrace: stackTrace,
+        tag: _logTag,
+      );
+      if (mounted) {
+        ToastHelper.error(
+          title: 'Ошибка',
+          description: 'Не удалось сохранить заметку: $e',
+        );
+      }
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Загрузка...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: BackButton(onPressed: () => context.pop()),
-        title: Text('Редактор заметок'),
+        title: Text(widget.id == null ? 'Новая заметка' : 'Редактор заметок'),
         actionsPadding: const EdgeInsets.only(right: 8),
         actions: [
+          if (_metadata != null && widget.id != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Tooltip(
+                message: 'Изменить метаданные',
+                child: TextButton.icon(
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          final metadata = await showNoteMetadataDialog(
+                            context,
+                            initialMetadata: _metadata,
+                            isEditing: true,
+                          );
+                          if (metadata != null) {
+                            setState(() {
+                              _metadata = metadata;
+                            });
+                          }
+                        },
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: Text(_metadata!.title),
+                ),
+              ),
+            ),
           IconButton(
             tooltip: 'Сохранить',
-            onPressed: () {
-              // Save document
-              final deltaJson = jsonEncode(
-                _controller.document.toDelta().toJson(),
-              );
-              logInfo('Document saved: $deltaJson', tag: _logTag);
-              // context.pop();
-            },
-            icon: const Icon(Icons.save_rounded),
+            onPressed: _isSaving ? null : _onSave,
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_rounded),
           ),
         ],
         bottom: PreferredSize(
@@ -108,36 +328,10 @@ class _NotesFormScreenState extends State<NotesFormScreen> {
                 imageEmbedConfig: QuillEditorImageEmbedConfig(
                   imageProviderBuilder: (context, imageUrl) {
                     logDebug('Loading embedded image: $imageUrl', tag: _logTag);
-
-                    // IS it a file path?
-                    // if (io.File(imageUrl).existsSync()) {
-                    //   setState(() {
-                    //     _newAttachments.add(
-                    //       CreateAttachmentFromPath(
-                    //         name: path.basename(imageUrl),
-                    //         filePath: imageUrl,
-                    //         description: 'Вставленное изображение',
-                    //         mimeType: path.extension(imageUrl),
-                    //       ),
-                    //     );
-                    //   });
-                    //   return FileImage(io.File(imageUrl));
-                    // }
-
-                    // // https://pub.dev/packages/flutter_quill_extensions#-image-assets
-                    // if (imageUrl.startsWith('assets/')) {
-                    //   return AssetImage(imageUrl);
-                    // }
+                    // TODO: В будущем здесь будет обработка вложений
                     return null;
                   },
                   onImageRemovedCallback: (imageUrl) async {
-                    // setState(() {
-                    //   _newAttachments.removeWhere(
-                    //     (element) =>
-                    //         element.filePath == imageUrl ||
-                    //         element.name == path.basename(imageUrl),
-                    //   );
-                    // });
                     logInfo('Image removed: $imageUrl', tag: _logTag);
                   },
                 ),
