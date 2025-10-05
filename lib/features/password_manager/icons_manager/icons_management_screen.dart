@@ -217,22 +217,10 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              // Фильтры и поиск
-              _buildFiltersSection(),
-              const SizedBox(height: 16),
-
-              // Контент
-              Expanded(
-                child: iconsAsync.when(
-                  data: (icons) => _buildIconsList(icons),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => _buildErrorState(error),
-                ),
-              ),
-            ],
+          child: iconsAsync.when(
+            data: (icons) => _buildContent(icons),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => _buildErrorState(error),
           ),
         ),
       ),
@@ -245,7 +233,49 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
     );
   }
 
-  Widget _buildFiltersSection() {
+  Widget _buildContent(List<store.IconData> allIcons) {
+    // Фильтрация
+    List<store.IconData> filteredIcons = allIcons;
+
+    if (_searchQuery.isNotEmpty) {
+      filteredIcons = filteredIcons
+          .where(
+            (icon) =>
+                icon.name.toLowerCase().contains(_searchQuery.toLowerCase()),
+          )
+          .toList();
+    }
+
+    if (_selectedType != null) {
+      filteredIcons = filteredIcons
+          .where((icon) => icon.type == _selectedType)
+          .toList();
+    }
+
+    // Пагинация
+    final totalItems = filteredIcons.length;
+    final totalPages = (totalItems / _itemsPerPage).ceil();
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
+    final currentPageIcons = filteredIcons.sublist(startIndex, endIndex);
+
+    return Column(
+      spacing: 8,
+      children: [
+        // Фильтры и поиск с информацией о результатах
+        _buildFiltersSection(totalItems, _currentPage, totalPages),
+
+        // Контент
+        Expanded(
+          child: currentPageIcons.isEmpty
+              ? _buildEmptyState()
+              : _buildIconsContent(currentPageIcons, totalPages),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFiltersSection(int totalItems, int currentPage, int totalPages) {
     return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
@@ -275,48 +305,22 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
               selectedType: _selectedType,
               onTypeChanged: _onTypeFilterChanged,
             ),
+            const SizedBox(height: 12),
+
+            // Информация о результатах
+            _buildResultsInfo(totalItems, currentPage, totalPages),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildIconsList(List<store.IconData> allIcons) {
-    // Фильтрация
-    List<store.IconData> filteredIcons = allIcons;
-
-    if (_searchQuery.isNotEmpty) {
-      filteredIcons = filteredIcons
-          .where(
-            (icon) =>
-                icon.name.toLowerCase().contains(_searchQuery.toLowerCase()),
-          )
-          .toList();
-    }
-
-    if (_selectedType != null) {
-      filteredIcons = filteredIcons
-          .where((icon) => icon.type == _selectedType)
-          .toList();
-    }
-
-    // Пагинация
-    final totalItems = filteredIcons.length;
-    final totalPages = (totalItems / _itemsPerPage).ceil();
-    final startIndex = (_currentPage - 1) * _itemsPerPage;
-    final endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
-    final currentPageIcons = filteredIcons.sublist(startIndex, endIndex);
-
-    if (filteredIcons.isEmpty) {
-      return _buildEmptyState();
-    }
-
+  Widget _buildIconsContent(
+    List<store.IconData> currentPageIcons,
+    int totalPages,
+  ) {
     return Column(
       children: [
-        // Информация о результатах
-        _buildResultsInfo(totalItems, _currentPage, totalPages),
-        const SizedBox(height: 16),
-
         // Список иконок
         Expanded(
           child: _isGridView
@@ -342,13 +346,8 @@ class _IconsManagementScreenState extends ConsumerState<IconsManagementScreen> {
     final endItem = (startItem + _itemsPerPage - 1).clamp(0, totalItems);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

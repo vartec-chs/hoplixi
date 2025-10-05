@@ -114,7 +114,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
           Flexible(
             child: SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.all(isMobile ? 16 : 24),
+                padding: EdgeInsets.all(16.0),
                 child: _buildForm(),
               ),
             ),
@@ -127,7 +127,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
 
   Widget _buildHeader(BuildContext context, bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -164,6 +164,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
     return Form(
       key: _formKey,
       child: Column(
+        spacing: 12,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Поле имени
@@ -187,7 +188,6 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
             maxLength: 100,
             textInputAction: TextInputAction.next,
           ),
-          const SizedBox(height: 16),
 
           // Поле описания
           PrimaryTextFormField(
@@ -208,7 +208,6 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
             },
             textInputAction: TextInputAction.newline,
           ),
-          const SizedBox(height: 16),
 
           // Выбор типа категории
           Text(
@@ -217,9 +216,8 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 8),
+
           _buildTypeSelector(),
-          const SizedBox(height: 24),
 
           // Выбор цвета
           Text(
@@ -228,9 +226,8 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 8),
+
           _buildColorPicker(),
-          const SizedBox(height: 24),
 
           // Выбор иконки
           Text(
@@ -239,9 +236,8 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 8),
+
           _buildIconPicker(),
-          const SizedBox(height: 16),
         ],
       ),
     );
@@ -270,15 +266,12 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
   Widget _buildColorPicker() {
     return InkWell(
       onTap: _showColorPickerDialog,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-          ),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
