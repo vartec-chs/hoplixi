@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/utils/otp_extractor.dart';
+import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
@@ -27,6 +28,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:zxing2/qrcode.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/router/routes_path.dart';
+import 'package:otp/otp.dart';
+import 'dart:async';
+import 'package:flutter/services.dart';
 
 class ImportOtpScreen extends ConsumerStatefulWidget {
   const ImportOtpScreen({super.key});
@@ -43,10 +47,71 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
   Set<int> expandedIndices = {};
   bool isSaving = false;
 
+  // Таймер для обновления TOTP кодов
+  Timer? _totpTimer;
+  Map<int, String> _currentCodes = {};
+  int _remainingSeconds = 30;
+
   @override
   void dispose() {
     _controller.dispose();
+    _totpTimer?.cancel();
     super.dispose();
+  }
+
+  void _startTotpTimer() {
+    _totpTimer?.cancel();
+    _updateTotpCodes();
+    _totpTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _updateTotpCodes();
+    });
+  }
+
+  void _updateTotpCodes() {
+    if (importedOtps.isEmpty) return;
+
+    final now = DateTime.now();
+    final currentSecond = now.second;
+    final newRemainingSeconds = 30 - (currentSecond % 30);
+
+    setState(() {
+      _remainingSeconds = newRemainingSeconds;
+
+      for (int i = 0; i < importedOtps.length; i++) {
+        final otp = importedOtps[i];
+        if (otp.type.toUpperCase() == 'TOTP') {
+          final timestamp = now.millisecondsSinceEpoch;
+
+          // Определяем алгоритм для генерации
+          Algorithm algorithm;
+          switch (otp.algorithm.toUpperCase()) {
+            case 'SHA256':
+              algorithm = Algorithm.SHA256;
+              break;
+            case 'SHA512':
+              algorithm = Algorithm.SHA512;
+              break;
+            default:
+              algorithm = Algorithm.SHA1;
+          }
+
+          try {
+            // Генерируем TOTP код
+            final code = OTP.generateTOTPCodeString(
+              otp.secretBase32,
+              timestamp,
+              interval: 30,
+              length: otp.digits,
+              algorithm: algorithm,
+              isGoogle: true, // Используем формат Google по умолчанию
+            );
+            _currentCodes[i] = code;
+          } catch (e) {
+            _currentCodes[i] = '------';
+          }
+        }
+      }
+    });
   }
 
   Future<void> _pickImageAndDecode() async {
@@ -105,6 +170,10 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
         // Автоматически выбираем все импортированные OTP
         selectedIndices = Set.from(List.generate(otpList.length, (i) => i));
       });
+
+      // Запускаем таймер для TOTP кодов
+      _startTotpTimer();
+
       ToastHelper.success(title: 'Найдено ${otpList.length} OTP записей');
     } catch (e) {
       ToastHelper.error(title: 'Ошибка при импорте', description: '$e');
@@ -141,6 +210,16 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
     setState(() {
       selectedIndices.clear();
     });
+  }
+
+  Future<void> _copyCodeToClipboard(String code, String issuer) async {
+    await Clipboard.setData(ClipboardData(text: code));
+    if (mounted) {
+      ToastHelper.success(
+        title: 'Код скопирован',
+        description: 'TOTP код для $issuer скопирован в буфер обмена',
+      );
+    }
   }
 
   Future<void> _saveSelectedOtps() async {
@@ -222,6 +301,7 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
 
           // Возвращаемся назад
           if (mounted) {
+            DataRefreshHelper.refreshOtp(ref);
             context.pop();
           }
         }
@@ -305,6 +385,37 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondaryContainer.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colorScheme.secondary.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 20,
+                            color: Colors.redAccent,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Протестировано только с Google Authenticator. Другие приложения могут использовать несовместимые форматы.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSecondaryContainer,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -443,7 +554,93 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
                                   const SizedBox(height: 4),
                                   Text('Аккаунт: ${otp.name}'),
                                 ],
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 8),
+
+                                // TOTP код с таймером
+                                if (otp.type.toUpperCase() == 'TOTP' &&
+                                    _currentCodes.containsKey(index)) ...[
+                                  InkWell(
+                                    onTap: () => _copyCodeToClipboard(
+                                      _currentCodes[index] ?? '',
+                                      otp.issuer.isNotEmpty
+                                          ? otp.issuer
+                                          : 'OTP',
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: colorScheme.primary
+                                              .withOpacity(0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.lock_clock,
+                                            size: 20,
+                                            color:
+                                                colorScheme.onPrimaryContainer,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _currentCodes[index] ?? '------',
+                                            style: theme.textTheme.headlineSmall
+                                                ?.copyWith(
+                                                  fontFamily: 'monospace',
+                                                  fontWeight: FontWeight.bold,
+                                                  color: colorScheme
+                                                      .onPrimaryContainer,
+                                                  letterSpacing: 4,
+                                                ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Icon(
+                                            Icons.copy,
+                                            size: 16,
+                                            color: colorScheme
+                                                .onPrimaryContainer
+                                                .withOpacity(0.7),
+                                          ),
+                                          const Spacer(),
+                                          SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              value: _remainingSeconds / 30,
+                                              strokeWidth: 3,
+                                              color: colorScheme
+                                                  .onPrimaryContainer,
+                                              backgroundColor: colorScheme
+                                                  .onPrimaryContainer
+                                                  .withOpacity(0.3),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${_remainingSeconds}с',
+                                            style: theme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color: colorScheme
+                                                      .onPrimaryContainer,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+
                                 Wrap(
                                   spacing: 8,
                                   runSpacing: 4,

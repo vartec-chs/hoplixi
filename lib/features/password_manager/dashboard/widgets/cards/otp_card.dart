@@ -22,6 +22,11 @@ bool isBase64(String input) {
   }
 }
 
+bool isBase32(String input) {
+  final base32Regex = RegExp(r'^[A-Z2-7]+=*$');
+  return base32Regex.hasMatch(input.replaceAll(' ', '').toUpperCase());
+}
+
 class TotpCard extends ConsumerStatefulWidget {
   final CardOtpDto totp;
   final VoidCallback onFavoriteToggle;
@@ -126,7 +131,7 @@ class _TotpCardState extends ConsumerState<TotpCard>
             : widget.totp.algorithm == AlgorithmOtp.SHA256
             ? Algorithm.SHA256
             : Algorithm.SHA512,
-        isGoogle: isBase64(_secret ?? ''),
+        isGoogle: isBase64(_secret ?? '') || isBase32(_secret ?? ''),
       );
     });
   }
