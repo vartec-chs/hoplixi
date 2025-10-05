@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/filter_tab.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/base_filter_provider.dart';
@@ -51,30 +52,35 @@ class FilterTabsController extends Notifier<FilterTab> {
   /// Применяет фильтры в соответствии с выбранной вкладкой
   void _applyTabFilters(FilterTab tab) {
     final baseFilterNotifier = ref.read(baseFilterProvider.notifier);
+    final passwordFilterNotifier = ref.read(passwordFilterProvider.notifier);
 
     switch (tab) {
       case FilterTab.all:
         // Сбрасываем фильтры избранного и архивного
         baseFilterNotifier.updateFavorite(null);
+        passwordFilterNotifier.updateIsFrequent(null);
         baseFilterNotifier.updateArchived(null);
         break;
 
       case FilterTab.favorites:
         // Показываем только избранные, исключаем архивные
         baseFilterNotifier.updateFavorite(true);
+        passwordFilterNotifier.updateIsFrequent(null);
         baseFilterNotifier.updateArchived(false);
         break;
 
       case FilterTab.frequent:
         // Для частых не устанавливаем базовые фильтры,
         // логика обрабатывается в соответствующих провайдерах
-        baseFilterNotifier.updateFavorite(null);
+        baseFilterNotifier.updateFavorite(false);
+        passwordFilterNotifier.updateIsFrequent(true);
         baseFilterNotifier.updateArchived(false);
         break;
 
       case FilterTab.archived:
         // Показываем только архивные
         baseFilterNotifier.updateArchived(true);
+        passwordFilterNotifier.updateIsFrequent(false);
         baseFilterNotifier.updateFavorite(null);
         break;
     }

@@ -19,12 +19,12 @@ enum FilterTab {
           FilterTab.all,
           FilterTab.favorites,
           FilterTab.frequent,
-          FilterTab.archived,
+          // FilterTab.archived,
         ];
       case EntityType.note:
-        return [FilterTab.all, FilterTab.favorites, FilterTab.archived];
+        return [FilterTab.all, FilterTab.favorites];
       case EntityType.otp:
-        return [FilterTab.all, FilterTab.favorites, FilterTab.archived];
+        return [FilterTab.all, FilterTab.favorites];
     }
   }
 }

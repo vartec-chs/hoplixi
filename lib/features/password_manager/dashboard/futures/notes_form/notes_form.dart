@@ -318,10 +318,10 @@ class _NotesFormScreenState extends ConsumerState<NotesFormScreen> {
                   customVideoBuilder: (videoUrl, readOnly) {
                     logDebug('Loading embedded video: $videoUrl', tag: _logTag);
 
-                    if (_isYouTubeUrl(videoUrl) &&
-                        !(UniversalPlatform.isLinux)) {
-                      return YoutubeVideoPlayer(videoUrl: videoUrl);
-                    }
+                    // if (_isYouTubeUrl(videoUrl) &&
+                    //     !(UniversalPlatform.isLinux)) {
+                    //   return YoutubeVideoPlayer(videoUrl: videoUrl);
+                    // }
                     return null;
                   },
                 ),

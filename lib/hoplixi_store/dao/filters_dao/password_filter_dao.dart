@@ -509,6 +509,11 @@ class PasswordFilterDao extends DatabaseAccessor<HoplixiStore>
       }
     }
 
+    logDebug(
+      'PasswordFilterDao: Применение фильтра isFrequent: ${filter.isFrequent}',
+      tag: 'isFrequent',
+    );
+
     if (filter.isFrequent != null) {
       if (filter.isFrequent!) {
         conditions.add(

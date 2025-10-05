@@ -113,7 +113,7 @@ class _TotpCardState extends ConsumerState<TotpCard>
             : widget.totp.algorithm == AlgorithmOtp.SHA256
             ? Algorithm.SHA256
             : Algorithm.SHA512,
-        isGoogle: widget.totp.issuer?.toLowerCase().contains('google') ?? false,
+        // isGoogle: widget.totp.,
       );
     });
   }

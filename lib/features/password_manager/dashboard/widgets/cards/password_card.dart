@@ -230,11 +230,14 @@ class _PasswordCardState extends ConsumerState<PasswordCard>
                           child: Row(
                             children: [
                               const SizedBox(width: 4),
-                              Icon(
-                                // Whatshot
-                                Icons.whatshot,
-                                size: 20,
-                                color: Colors.red.withOpacity(0.8),
+                              Tooltip(
+                                message: 'Часто используемый',
+                                child: Icon(
+                                  // Whatshot
+                                  Icons.whatshot,
+                                  size: 20,
+                                  color: Colors.red.withOpacity(0.8),
+                                ),
                               ),
                             ],
                           ),

@@ -44,6 +44,8 @@ class _OtpFormState extends ConsumerState<OtpForm>
   bool isFavorite = false;
   String? selectedCategoryId;
 
+  bool isGoogleFormat = true;
+
   bool buttonEnabled = false;
 
   // Определение вкладок и их состояния (включена/отключена)
@@ -220,17 +222,31 @@ class _OtpFormState extends ConsumerState<OtpForm>
 
                   TextFormField(
                     controller: secretController,
-                    decoration: primaryInputDecoration(
-                      context,
-                      labelText: 'Secret',
-                      hintText: 'Base32 encoded secret',
-                    ),
+                    decoration:
+                        primaryInputDecoration(
+                          context,
+                          labelText: 'Secret',
+                          hintText: 'Base32 encoded secret',
+                        ).copyWith(
+                          helperText:
+                              'Включите формат Google, если код при проверке не совпадает.',
+                        ),
                     // obscureText: true,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Secret обязателен';
                       }
                       return null;
+                    },
+                  ),
+
+                  SwitchListTile(
+                    title: const Text('Использовать формат Google'),
+                    value: isGoogleFormat,
+                    onChanged: (value) {
+                      setState(() {
+                        isGoogleFormat = value;
+                      });
                     },
                   ),
 
@@ -408,7 +424,10 @@ class _OtpFormState extends ConsumerState<OtpForm>
             : selectedAlgorithm == AlgorithmOtp.SHA256
             ? Algorithm.SHA256
             : Algorithm.SHA512,
-        isGoogle: issuerController.text.toLowerCase().contains('google'),
+        isGoogle:
+            isGoogleFormat ||
+            issuerController.text.toLowerCase().contains('google') ||
+            accountNameController.text.toLowerCase().contains('google'),
       ),
     );
 
@@ -487,6 +506,7 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
   late int _remainingSeconds;
 
   final TextEditingController _codeController = TextEditingController();
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -537,7 +557,7 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Текущий код: $_currentCode'),
+          // Text('Текущий код: $_currentCode'),
           const SizedBox(height: 8),
 
           Row(
@@ -566,8 +586,18 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
                             strokeWidth: 4,
                           ),
                         ),
+                        errorText: _errorMessage,
                       ),
                   keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(widget.digits),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _errorMessage = null;
+                    });
+                  },
                 ),
               ),
 
@@ -585,25 +615,31 @@ class _OtpVerificationDialogState extends State<OtpVerificationDialog> {
           ),
 
           const SizedBox(height: 8),
-          Text('Секрет: ${widget.secret}'),
+
+          Text(
+            'Если код не совпадает, проверьте правильность секрета и формат Google Authenticator.',
+          ),
         ],
       ),
       actions: [
-        TextButton(
+        SmoothButton(
+          type: SmoothButtonType.text,
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Отмена'),
+          label: 'Отмена',
         ),
-        FilledButton(
-          onPressed: () {
-            if (_codeController.text == _currentCode) {
-              Navigator.of(context).pop(true);
-            } else {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Неверный код')));
-            }
-          },
-          child: const Text('Подтвердить'),
+        SmoothButton(
+          onPressed: _codeController.text.length == widget.digits
+              ? () {
+                  if (_codeController.text == _currentCode) {
+                    Navigator.of(context).pop(true);
+                  } else {
+                    setState(() {
+                      _errorMessage = 'Неверный код';
+                    });
+                  }
+                }
+              : null,
+          label: 'Подтвердить',
         ),
       ],
     );
