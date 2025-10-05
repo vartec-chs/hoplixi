@@ -12,6 +12,7 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/empty_
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/passwords_list.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/otps_list.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/notes_list.dart';
+import 'package:hoplixi/features/password_manager/dashboard/futures/otp_edit_modal.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:sliver_tools/sliver_tools.dart';
@@ -288,10 +289,15 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
     }
   }
 
-  void _onOtpEdit(CardOtpDto otp) {
+  void _onOtpEdit(CardOtpDto otp) async {
     logInfo('EntityListView: Редактирование OTP ${otp.id}');
-    // TODO: Добавить маршрут для редактирования OTP
-    // context.push('${AppRoutes.otpForm}/${otp.id}');
+
+    final result = await OtpEditModalHelper.show(context, otp);
+
+    // Если изменения были сохранены, обновляем список
+    if (result == true && mounted) {
+      ref.read(paginatedOtpsProvider.notifier).refresh();
+    }
   }
 
   void _onOtpDelete(CardOtpDto otp) {

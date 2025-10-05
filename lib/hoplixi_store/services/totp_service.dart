@@ -419,4 +419,86 @@ class TOTPService {
   Stream<List<Otp>> watchTotpsByCategory(String categoryId) {
     return _otpsDao.watchOtpsByCategory(categoryId);
   }
+
+  // ==================== РАБОТА С ТЕГАМИ ====================
+
+  /// Получение ID тегов для TOTP
+  Future<ServiceResult<List<String>>> getOtpTagIds(String otpId) async {
+    try {
+      final tagIds = await _otpsDao.getOtpTagIds(otpId);
+      return ServiceResult.success(data: tagIds, message: 'Теги получены');
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения тегов TOTP',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'TOTPService',
+      );
+      return ServiceResult.error('Ошибка получения тегов: ${e.toString()}');
+    }
+  }
+
+  /// Обновление базовых полей TOTP с тегами
+  Future<ServiceResult<bool>> updateTotpBasic({
+    required String id,
+    String? issuer,
+    String? accountName,
+    String? categoryId,
+    List<String>? tagIds,
+    bool? isFavorite,
+  }) async {
+    try {
+      logInfo('Обновление базовых полей TOTP: $id', tag: 'TOTPService');
+
+      // Проверяем существование токена
+      final existingOtp = await _otpsDao.getTotpById(id);
+      if (existingOtp == null) {
+        return ServiceResult.error('TOTP токен не найден');
+      }
+
+      // Проверяем существование категории если указана
+      if (categoryId != null) {
+        final categoryExists = await _categoriesDao.getCategoryById(categoryId);
+        if (categoryExists == null) {
+          return ServiceResult.error('Указанная категория не найдена');
+        }
+      }
+
+      // Обновляем основные поля
+      final updateDto = UpdateTotpDto(
+        id: id,
+        issuer: issuer,
+        accountName: accountName,
+        categoryId: categoryId,
+        isFavorite: isFavorite,
+      );
+
+      final updated = await _otpsDao.updateTotp(updateDto);
+      if (!updated) {
+        return ServiceResult.error('Не удалось обновить TOTP токен');
+      }
+
+      // Обновляем теги если переданы
+      if (tagIds != null) {
+        await _otpsDao.setOtpTags(id, tagIds);
+      }
+
+      logInfo('Базовые поля TOTP обновлены успешно: $id', tag: 'TOTPService');
+
+      return ServiceResult.success(
+        data: true,
+        message: 'TOTP токен обновлен успешно',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка обновления базовых полей TOTP',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'TOTPService',
+      );
+      return ServiceResult.error(
+        'Ошибка обновления TOTP токена: ${e.toString()}',
+      );
+    }
+  }
 }

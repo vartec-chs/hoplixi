@@ -195,6 +195,19 @@ abstract class UpdateTotpDto with _$UpdateTotpDto {
   }) = _UpdateTotpDto;
 }
 
+/// DTO для обновления базовых полей TOTP (без секрета)
+@freezed
+abstract class UpdateTotpBasicDto with _$UpdateTotpBasicDto {
+  const factory UpdateTotpBasicDto({
+    required String id,
+    String? issuer,
+    String? accountName,
+    String? categoryId,
+    List<String>? tagIds,
+    bool? isFavorite,
+  }) = _UpdateTotpBasicDto;
+}
+
 // Category DTOs
 @freezed
 abstract class CreateCategoryDto with _$CreateCategoryDto {

@@ -338,24 +338,6 @@ class _TotpCardState extends ConsumerState<TotpCard>
                               ),
                             ),
                           ),
-                          // const SizedBox(height: 12),
-                          // Edit Button
-                          // SizedBox(
-                          //   width: double.infinity,
-                          //   child: TextButton.icon(
-                          //     onPressed: widget.onEdit,
-                          //     icon: const Icon(Icons.edit, size: 18),
-                          //     label: const Text('Редактировать'),
-                          //     style: TextButton.styleFrom(
-                          //       padding: const EdgeInsets.symmetric(
-                          //         vertical: 12,
-                          //       ),
-                          //       shape: RoundedRectangleBorder(
-                          //         borderRadius: BorderRadius.circular(12),
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
                         ],
                       );
                     },

@@ -2,12 +2,13 @@ import 'package:drift/drift.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import '../hoplixi_store.dart';
 import '../tables/otps.dart';
+import '../tables/otp_tags.dart';
 import '../dto/db_dto.dart';
 import '../enums/entity_types.dart';
 
 part 'otps_dao.g.dart';
 
-@DriftAccessor(tables: [Otps])
+@DriftAccessor(tables: [Otps, OtpTags])
 class OtpsDao extends DatabaseAccessor<HoplixiStore> with _$OtpsDaoMixin {
   OtpsDao(super.db);
 
@@ -51,7 +52,7 @@ class OtpsDao extends DatabaseAccessor<HoplixiStore> with _$OtpsDaoMixin {
           : const Value.absent(),
       secret: dto.secret != null
           ? Value(dto.secret!)
-          : const Value.absent(), // Будет зашифровано
+          : const Value.absent(), // будет зашифровано
       algorithm: dto.algorithm != null
           ? Value(dto.algorithm!)
           : const Value.absent(),
@@ -70,8 +71,11 @@ class OtpsDao extends DatabaseAccessor<HoplixiStore> with _$OtpsDaoMixin {
       modifiedAt: Value(DateTime.now()),
     );
 
-    final rowsAffected = await update(attachedDatabase.otps).replace(companion);
-    return rowsAffected;
+    final rowsAffected = await (update(
+      attachedDatabase.otps,
+    )..where((t) => t.id.equals(dto.id))).write(companion);
+
+    return rowsAffected > 0;
   }
 
   /// Удаление TOTP по ID
@@ -290,5 +294,60 @@ class OtpsDao extends DatabaseAccessor<HoplixiStore> with _$OtpsDaoMixin {
         batch.insert(attachedDatabase.otps, companion);
       }
     });
+  }
+
+  // ==================== РАБОТА С ТЕГАМИ ====================
+
+  /// Получение тегов для OTP
+  Future<List<String>> getOtpTagIds(String otpId) async {
+    final query = select(attachedDatabase.otpTags)
+      ..where((tbl) => tbl.otpId.equals(otpId));
+
+    final tags = await query.get();
+    return tags.map((t) => t.tagId).toList();
+  }
+
+  /// Добавление тега к OTP
+  Future<void> addTagToOtp(String otpId, String tagId) async {
+    await into(attachedDatabase.otpTags).insert(
+      OtpTagsCompanion(otpId: Value(otpId), tagId: Value(tagId)),
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
+
+  /// Удаление тега от OTP
+  Future<void> removeTagFromOtp(String otpId, String tagId) async {
+    await (delete(
+      attachedDatabase.otpTags,
+    )..where((tbl) => tbl.otpId.equals(otpId) & tbl.tagId.equals(tagId))).go();
+  }
+
+  /// Установка тегов для OTP (замена всех)
+  Future<void> setOtpTags(String otpId, List<String> tagIds) async {
+    await transaction(() async {
+      // Удаляем все существующие теги
+      await (delete(
+        attachedDatabase.otpTags,
+      )..where((tbl) => tbl.otpId.equals(otpId))).go();
+
+      // Добавляем новые теги
+      if (tagIds.isNotEmpty) {
+        await batch((batch) {
+          for (final tagId in tagIds) {
+            batch.insert(
+              attachedDatabase.otpTags,
+              OtpTagsCompanion(otpId: Value(otpId), tagId: Value(tagId)),
+            );
+          }
+        });
+      }
+    });
+  }
+
+  /// Удаление всех тегов от OTP
+  Future<void> clearOtpTags(String otpId) async {
+    await (delete(
+      attachedDatabase.otpTags,
+    )..where((tbl) => tbl.otpId.equals(otpId))).go();
   }
 }
