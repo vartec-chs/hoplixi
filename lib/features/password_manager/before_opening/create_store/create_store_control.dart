@@ -26,6 +26,7 @@ class CreateStoreFormState {
   final String? errorMessage;
   final Map<String, String?> fieldErrors;
   final int currentStep; // Текущий шаг (0-3)
+  final int? previousStep; // Предыдущий шаг для анимации
 
   const CreateStoreFormState({
     this.storeName = '',
@@ -41,6 +42,7 @@ class CreateStoreFormState {
     this.errorMessage,
     this.fieldErrors = const {},
     this.currentStep = 0,
+    this.previousStep,
   });
 
   CreateStoreFormState copyWith({
@@ -57,6 +59,7 @@ class CreateStoreFormState {
     String? errorMessage,
     Map<String, String?>? fieldErrors,
     int? currentStep,
+    int? previousStep,
   }) {
     return CreateStoreFormState(
       storeName: storeName ?? this.storeName,
@@ -72,6 +75,7 @@ class CreateStoreFormState {
       errorMessage: errorMessage,
       fieldErrors: fieldErrors ?? this.fieldErrors,
       currentStep: currentStep ?? this.currentStep,
+      previousStep: previousStep ?? this.previousStep,
     );
   }
 
@@ -411,7 +415,10 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
   /// Переход к следующему шагу
   void nextStep() {
     if (state.currentStep < 3 && _canProceedToNextStep()) {
-      state = state.copyWith(currentStep: state.currentStep + 1);
+      state = state.copyWith(
+        previousStep: state.currentStep,
+        currentStep: state.currentStep + 1,
+      );
       logDebug(
         'Переход к шагу ${state.currentStep + 1}',
         tag: 'CreateStoreController',
@@ -422,7 +429,10 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
   /// Переход к предыдущему шагу
   void previousStep() {
     if (state.currentStep > 0) {
-      state = state.copyWith(currentStep: state.currentStep - 1);
+      state = state.copyWith(
+        previousStep: state.currentStep,
+        currentStep: state.currentStep - 1,
+      );
       logDebug(
         'Возврат к шагу ${state.currentStep + 1}',
         tag: 'CreateStoreController',
@@ -433,7 +443,10 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
   /// Переход к конкретному шагу
   void goToStep(int step) {
     if (step >= 0 && step <= 3) {
-      state = state.copyWith(currentStep: step);
+      state = state.copyWith(
+        previousStep: state.currentStep,
+        currentStep: step,
+      );
       logDebug('Переход к шагу ${step + 1}', tag: 'CreateStoreController');
     }
   }

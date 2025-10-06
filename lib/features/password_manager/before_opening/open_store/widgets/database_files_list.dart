@@ -23,6 +23,7 @@ class DatabaseFilesList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (files.isEmpty) {
       return Card(
+        elevation: 0,
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(
@@ -64,6 +65,7 @@ class DatabaseFilesList extends ConsumerWidget {
     final hasMoreFiles = files.length > 1;
 
     return Card(
+      elevation: 0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

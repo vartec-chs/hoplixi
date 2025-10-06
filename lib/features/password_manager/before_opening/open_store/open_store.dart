@@ -133,11 +133,12 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
-                        spacing: 16,
+                        spacing: 12,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Описание
                           Card(
+                            elevation: 0,
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
@@ -229,13 +230,14 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                                             });
                                           },
                                         ),
-                                        const SizedBox(height: 16),
+                                        const SizedBox(height: 12),
                                       ],
                                     );
                                   }
                                   return const SizedBox.shrink();
                                 },
                                 loading: () => Card(
+                                  elevation: 0,
                                   child: Padding(
                                     padding: const EdgeInsets.all(16.0),
                                     child: Row(
@@ -357,17 +359,22 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
 
                           // Переключатель сохранения пароля с предупреждением
                           Card(
-                            color: formState.saveMasterPassword
-                                ? Theme.of(context).colorScheme.errorContainer
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainer,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainer,
                             child: Padding(
-                              padding: const EdgeInsets.all(16.0),
+                              padding: const EdgeInsets.all(8.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SwitchListTile(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                     value: formState.saveMasterPassword,
                                     onChanged:
                                         controller.toggleSaveMasterPassword,
@@ -377,7 +384,7 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                                     subtitle: const Text(
                                       'Автоматически открывать хранилище без ввода пароля',
                                     ),
-                                    contentPadding: EdgeInsets.zero,
+                                    contentPadding: EdgeInsets.all(8),
                                   ),
 
                                   if (formState.saveMasterPassword) ...[
@@ -385,16 +392,14 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                                     Container(
                                       padding: const EdgeInsets.all(12.0),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error
-                                            .withValues(alpha: 0.1),
+                                        // color: Colors.red.withValues(
+                                        //   alpha: 0.05,
+                                        // ),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .error
-                                              .withValues(alpha: 0.3),
+                                          color: Colors.red.withValues(
+                                            alpha: 0.2,
+                                          ),
                                         ),
                                       ),
                                       child: Column(
@@ -405,9 +410,7 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                                             children: [
                                               Icon(
                                                 Icons.warning_amber,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.error,
+                                                color: Colors.red,
                                                 size: 20,
                                               ),
                                               const SizedBox(width: 8),
@@ -456,6 +459,7 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                           if (formState.databasePath.isNotEmpty) ...[
                             const Divider(),
                             Card(
+                              elevation: 0,
                               color: Theme.of(
                                 context,
                               ).colorScheme.surfaceContainer,
@@ -503,7 +507,7 @@ class _OpenStoreScreenState extends ConsumerState<OpenStoreScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
 
                   // Кнопка открытия
                   SmoothButton(

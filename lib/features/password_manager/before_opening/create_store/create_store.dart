@@ -59,24 +59,31 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
   }
 
   Widget _buildStepContent(int step) {
+    Widget content;
     switch (step) {
       case 0:
-        return Step1BasicInfo(
+        content = Step1BasicInfo(
           nameController: _nameController,
           descriptionController: _descriptionController,
         );
+        break;
       case 1:
-        return Step2Security(
+        content = Step2Security(
           masterPasswordController: _masterPasswordController,
           confirmPasswordController: _confirmPasswordController,
         );
+        break;
       case 2:
-        return const Step3StoragePath();
+        content = const Step3StoragePath();
+        break;
       case 3:
-        return const Step4Confirmation();
+        content = const Step4Confirmation();
+        break;
       default:
-        return const SizedBox.shrink();
+        content = const SizedBox.shrink();
     }
+
+    return Container(key: ValueKey(step), child: content);
   }
 
   @override
@@ -157,7 +164,31 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(8.0),
-                  child: _buildStepContent(currentStep),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    transitionBuilder: (child, animation) {
+                      final isForward =
+                          formState.previousStep == null ||
+                          formState.previousStep! < currentStep;
+                      final curvedAnimation = CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeInOutCubic,
+                      );
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: isForward
+                              ? const Offset(1.0, 0.0)
+                              : const Offset(-1.0, 0.0),
+                          end: Offset.zero,
+                        ).animate(curvedAnimation),
+                        child: FadeTransition(
+                          opacity: curvedAnimation,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _buildStepContent(currentStep),
+                  ),
                 ),
               ),
 
@@ -342,6 +373,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
 
             // Кнопка "Далее" или "Создать"
             SmoothButton(
+              loading: formState.isLoading,
               onPressed: isValid
                   ? () async {
                       if (isLastStep) {

@@ -17,7 +17,7 @@ class MainConstants {
 
   static const bool isProduction = false;
 
-  static const Size defaultWindowSize = Size(700, 600);
+  static const Size defaultWindowSize = Size(650, 650);
   static const Size minWindowSize = Size(400, 500);
   static const Size maxWindowSize = Size(1000, 1000);
   static const bool isCenter = true;

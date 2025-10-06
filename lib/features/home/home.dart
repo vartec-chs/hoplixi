@@ -121,6 +121,12 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           );
         });
 
+        ref.listen<HomeState>(homeControllerProvider, (previous, next) {
+          if (next.error != null && next.error != previous?.error) {
+            ToastHelper.error(title: 'Ошибка', description: next.error!);
+          }
+        });
+
         return Scaffold(
           body: SafeArea(
             child: PageView(
@@ -156,7 +162,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
             _buildAppBar(),
             _buildQuickActions(),
             ...widgets.map(_buildHomeWidget),
-            _buildErrorMessage(),
+            // _buildErrorMessage(),
             !MainConstants.isProduction
                 ? SliverToBoxAdapter(
                     child: Padding(
@@ -468,28 +474,28 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           visible: UniversalPlatform.isMobile,
           child: const ThemeSwitcher(size: 24),
         ),
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined),
-          onPressed: () {
-            ToastHelper.info(title: 'Функция в разработке');
-            // TODO: Показать уведомления
-          },
-          tooltip: 'Уведомления',
-        ),
-        IconButton(
-          icon: const Icon(Icons.tune),
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => UniversalPlatform.isMobile
-                    ? const DynamicSettingsScreen()
-                    : const SizedBox(),
-              ),
-            );
-          },
-          tooltip: 'Настройки',
-        ),
-        const SizedBox(width: 8),
+        // IconButton(
+        //   icon: const Icon(Icons.notifications_outlined),
+        //   onPressed: () {
+        //     ToastHelper.info(title: 'Функция в разработке');
+        //     // TODO: Показать уведомления
+        //   },
+        //   tooltip: 'Уведомления',
+        // ),
+        // IconButton(
+        //   icon: const Icon(Icons.tune),
+        //   onPressed: () {
+        //     Navigator.of(context).push(
+        //       MaterialPageRoute(
+        //         builder: (context) => UniversalPlatform.isMobile
+        //             ? const DynamicSettingsScreen()
+        //             : const SizedBox(),
+        //       ),
+        //     );
+        //   },
+        //   tooltip: 'Настройки',
+        // ),
+        // const SizedBox(width: 8),
       ],
     );
   }
@@ -539,6 +545,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                     label: 'LocalSend',
                     onTap: () => context.push(AppRoutes.localSend),
                     isPrimary: false,
+                    description:
+                        'Обмен файлами по локальной сети (в разработке)',
                   ),
                 ),
               ],
@@ -552,6 +560,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
   /// Создает карточку быстрого действия
   Widget _buildQuickActionCard({
     required IconData icon,
+    String? description,
     required String label,
     required VoidCallback onTap,
     required bool isPrimary,
@@ -563,7 +572,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: isPrimary
@@ -578,6 +587,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                 : null,
           ),
           child: Column(
+            spacing: 8,
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
@@ -587,7 +597,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                     ? Theme.of(context).colorScheme.onPrimary
                     : Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(height: 12),
+
               Text(
                 label,
                 textAlign: TextAlign.center,
@@ -598,6 +608,22 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                       : Theme.of(context).colorScheme.onSurface,
                 ),
               ),
+              if (description != null) ...[
+                Text(
+                  description,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isPrimary
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.9)
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -639,13 +665,13 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Недавние базы данных',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
+                // Text(
+                //   'Недавняя база данных',
+                //   style: Theme.of(
+                //     context,
+                //   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                // ),
+                // const SizedBox(height: 16),
                 RecentDatabaseCard(
                   database: homeState.recentDatabase!,
                   isLoading: homeState.isLoading,
@@ -753,6 +779,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           if (homeState.error == null) {
             return const SizedBox.shrink();
           }
+
+          // ToastHelper.error(title: homeState.error!);
 
           return Container(
             margin: const EdgeInsets.all(24),
@@ -866,7 +894,7 @@ class ActionButton extends StatelessWidget {
     this.backgroundColor,
     this.borderColor,
     this.width = 150,
-
+    this.description,
     this.height = 150,
     this.borderRadius = 12,
     this.isWidthFull = false,
@@ -875,7 +903,7 @@ class ActionButton extends StatelessWidget {
 
   final VoidCallback onPressed;
   final Widget child;
-
+  final String? description;
   final double borderRadius;
   final Widget? icon;
   final Color? backgroundColor;
