@@ -1,133 +1,128 @@
+﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
 
 /// Шаг 3: Выбор пути хранения
-class Step3StoragePath extends ConsumerWidget {
+class Step3StoragePath extends ConsumerStatefulWidget {
   const Step3StoragePath({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Step3StoragePath> createState() => _Step3StoragePathState();
+}
+
+class _Step3StoragePathState extends ConsumerState<Step3StoragePath> {
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  Widget build(BuildContext context) {
     final formState = ref.watch(createStoreControllerProvider);
     final controller = ref.read(createStoreControllerProvider.notifier);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Заголовок шага
-        Text(
-          'Место хранения',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Выберите, где будет сохранен файл хранилища',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Путь хранения',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
-        ),
-        const SizedBox(height: 24),
-
-        // Выбор типа пути
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(
-              value: true,
-              label: Text('Предустановленный'),
-              icon: Icon(Icons.folder_special),
-            ),
-            ButtonSegment(
-              value: false,
-              label: Text('Пользовательский'),
-              icon: Icon(Icons.create_new_folder),
-            ),
-          ],
-          selected: <bool>{formState.isDefaultPath},
-          onSelectionChanged: (Set<bool> newSelection) {
-            controller.togglePathType(newSelection.first);
-          },
-          style: ButtonStyle(
-            padding: WidgetStateProperty.all(
-              const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          const SizedBox(height: 8),
+          Text(
+            'Выберите расположение файла базы данных',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-        ),
-        const SizedBox(height: 24),
-
-        // Информационная карточка
-        if (formState.isDefaultPath)
-          Card(
-            color: Theme.of(context).colorScheme.secondaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: Theme.of(context).colorScheme.onSecondaryContainer,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Хранилище будет сохранено в стандартной папке приложения',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(
+          const SizedBox(height: 24),
+          RadioListTile<bool>(
+            value: true,
+            groupValue: formState.useDefaultPath,
+            onChanged: (value) {
+              if (value != null) {
+                controller.toggleUseDefaultPath(value);
+              }
+            },
+            title: const Text('Использовать путь по умолчанию'),
+            subtitle: Text(
+              formState.defaultStoragePath ?? 'Путь не определен',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+          const SizedBox(height: 8),
+          RadioListTile<bool>(
+            value: false,
+            groupValue: formState.useDefaultPath,
+            onChanged: (value) {
+              if (value != null) {
+                controller.toggleUseDefaultPath(value);
+              }
+            },
+            title: const Text('Выбрать свой путь'),
+            subtitle: const Text(
+              'Укажите собственное расположение базы данных',
+            ),
+            contentPadding: EdgeInsets.zero,
+          ),
+          if (!formState.useDefaultPath) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    readOnly: true,
+                    validator: (value) {
+                      if (!formState.useDefaultPath &&
+                          (value == null || value.isEmpty)) {
+                        return 'Выберите путь для хранения';
+                      }
+                      return null;
+                    },
+                    decoration:
+                        primaryInputDecoration(
                           context,
-                        ).colorScheme.onSecondaryContainer,
-                      ),
+                          labelText: 'Путь к файлу базы данных',
+                          helperText: 'Нажмите кнопку для выбора расположения',
+                          filled: true,
+                          errorText: formState.fieldErrors['customPath'],
+                        ).copyWith(
+                          hintText: formState.customStoragePath ?? 'Не выбран',
+                        ),
+                    controller: TextEditingController(
+                      text: formState.customStoragePath ?? '',
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                SmoothButton(
+                  onPressed: () async {
+                    String? selectedDirectory = await FilePicker.platform
+                        .getDirectoryPath();
+                    if (selectedDirectory != null) {
+                      controller.updateCustomPath(selectedDirectory);
+                    }
+                  },
+                  label: 'Обзор',
+                  icon: const Icon(Icons.folder_open),
+                ),
+              ],
             ),
-          ),
-        const SizedBox(height: 16),
-
-        // Итоговый путь
-        TextFormField(
-          decoration:
-              primaryInputDecoration(
-                context,
-                labelText: 'Путь к файлу хранилища',
-                helperText: 'Файл будет сохранен в этой директории',
-                filled: true,
-              ).copyWith(
-                prefixIcon: const Icon(Icons.folder_outlined),
-                suffixIcon: !formState.isDefaultPath
-                    ? IconButton(
-                        icon: const Icon(Icons.edit_location_alt),
-                        onPressed: controller.selectCustomPath,
-                        tooltip: 'Изменить путь',
-                      )
-                    : null,
-              ),
-          minLines: 1,
-          maxLines: 3,
-          readOnly: true,
-          initialValue: formState.finalPath,
-          key: ValueKey(formState.finalPath),
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
-        ),
-        const SizedBox(height: 16),
-
-        // Кнопка выбора пути (только для пользовательского пути)
-        if (!formState.isDefaultPath)
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.tonalIcon(
-              onPressed: formState.isLoading
-                  ? null
-                  : controller.selectCustomPath,
-              icon: const Icon(Icons.folder_open),
-              label: const Text('Выбрать место сохранения'),
-            ),
-          ),
-      ],
+          ],
+        ],
+      ),
     );
+  }
+
+  // Метод для валидации формы (вызывается извне)
+  bool validate() {
+    return _formKey.currentState?.validate() ?? false;
   }
 }

@@ -13,12 +13,10 @@ import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:universal_platform/universal_platform.dart';
 
 import 'note_metadata_dialog.dart';
 import 'time_stamp_embed.dart';
 import 'toolbar.dart';
-import 'youtube_video_player.dart';
 
 /// Экран создания и редактирования заметок
 

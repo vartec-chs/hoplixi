@@ -10,6 +10,7 @@
 ///
 /// Автоматически конвертирует алгоритмы и типы OTP в формат БД.
 /// MD5 не поддерживается и заменяется на SHA1.
+library;
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -49,7 +50,7 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
 
   // Таймер для обновления TOTP кодов
   Timer? _totpTimer;
-  Map<int, String> _currentCodes = {};
+  final Map<int, String> _currentCodes = {};
   int _remainingSeconds = 30;
 
   @override
@@ -626,7 +627,7 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
-                                            '${_remainingSeconds}с',
+                                            '$_remainingSecondsс',
                                             style: theme.textTheme.labelSmall
                                                 ?.copyWith(
                                                   color: colorScheme
@@ -647,7 +648,7 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
                                   children: [
                                     _buildChip(
                                       context,
-                                      '${otp.type}',
+                                      otp.type,
                                       Icons.security,
                                     ),
                                     _buildChip(

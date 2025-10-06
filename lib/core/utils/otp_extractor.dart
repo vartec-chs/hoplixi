@@ -76,10 +76,11 @@ String base32Encode(Uint8List bytes) {
       index = (index + 5) % 8;
       final combined = (digit << index) | (nextByte >> (8 - index));
       buffer.write(_base32Alphabet[combined & 0x1F]);
-      if (index == 0)
+      if (index == 0) {
         i++;
-      else
+      } else {
         i++;
+      }
     } else {
       final digit = (currByte >> (8 - (index + 5))) & 0x1F;
       buffer.write(_base32Alphabet[digit]);

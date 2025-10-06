@@ -8,7 +8,6 @@ export 'service_providers.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
-import 'package:hoplixi/features/global/providers/file_encryptor_provider.dart';
 import 'service_providers.dart';
 import 'dao_providers.dart';
 

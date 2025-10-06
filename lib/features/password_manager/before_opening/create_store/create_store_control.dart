@@ -20,6 +20,7 @@ class CreateStoreFormState {
   final bool isDefaultPath;
   final String customPath;
   final String finalPath;
+  final String? defaultStoragePath; // Путь по умолчанию
   final bool saveMasterPassword;
   final bool isLoading;
   final String? errorMessage;
@@ -34,6 +35,7 @@ class CreateStoreFormState {
     this.isDefaultPath = true,
     this.customPath = '',
     this.finalPath = '',
+    this.defaultStoragePath,
     this.saveMasterPassword = false,
     this.isLoading = false,
     this.errorMessage,
@@ -49,6 +51,7 @@ class CreateStoreFormState {
     bool? isDefaultPath,
     String? customPath,
     String? finalPath,
+    String? defaultStoragePath,
     bool? saveMasterPassword,
     bool? isLoading,
     String? errorMessage,
@@ -63,6 +66,7 @@ class CreateStoreFormState {
       isDefaultPath: isDefaultPath ?? this.isDefaultPath,
       customPath: customPath ?? this.customPath,
       finalPath: finalPath ?? this.finalPath,
+      defaultStoragePath: defaultStoragePath ?? this.defaultStoragePath,
       saveMasterPassword: saveMasterPassword ?? this.saveMasterPassword,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
@@ -79,6 +83,10 @@ class CreateStoreFormState {
         finalPath.isNotEmpty &&
         fieldErrors.isEmpty;
   }
+
+  // Геттеры для совместимости с UI
+  bool get useDefaultPath => isDefaultPath;
+  String? get customStoragePath => customPath.isEmpty ? null : customPath;
 }
 
 /// Контроллер для управления состоянием формы создания хранилища
@@ -93,7 +101,10 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
   Future<void> _initializeDefaultPath() async {
     try {
       final defaultPath = await _getDefaultStoragePath();
-      state = state.copyWith(finalPath: defaultPath);
+      state = state.copyWith(
+        finalPath: defaultPath,
+        defaultStoragePath: defaultPath,
+      );
     } catch (e) {
       logError(
         'Ошибка инициализации пути по умолчанию',
@@ -221,6 +232,16 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
   /// Переключение сохранения мастер-пароля
   void toggleSaveMasterPassword(bool saveMasterPassword) {
     state = state.copyWith(saveMasterPassword: saveMasterPassword);
+  }
+
+  /// Переключение между путем по умолчанию и пользовательским (алиас для togglePathType)
+  void toggleUseDefaultPath(bool isDefault) {
+    togglePathType(isDefault);
+  }
+
+  /// Обновление пользовательского пути
+  void updateCustomPath(String path) {
+    state = state.copyWith(customPath: path, finalPath: path);
   }
 
   /// Выбор пользовательского пути

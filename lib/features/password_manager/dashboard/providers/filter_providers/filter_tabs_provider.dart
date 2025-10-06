@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/filter_tab.dart';
-import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
-import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/base_filter_provider.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
 /// Провайдер для управления вкладками фильтров

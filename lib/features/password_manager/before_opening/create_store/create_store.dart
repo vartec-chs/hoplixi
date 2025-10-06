@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_1_basic_info.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_2_security.dart';
@@ -20,8 +20,6 @@ class CreateStoreScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
-  final _formKey = GlobalKey<FormState>();
-
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _masterPasswordController;
@@ -85,10 +83,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
   Widget build(BuildContext context) {
     final formState = ref.watch(createStoreControllerProvider);
     final controller = ref.read(createStoreControllerProvider.notifier);
-    final isReady = ref.watch(createStoreReadyProvider);
     final currentStep = formState.currentStep;
-    final isLastStep = currentStep == 3;
-    final isFirstStep = currentStep == 0;
 
     // Слушаем изменения состояния базы данных
     ref.listen<AsyncValue<DatabaseState>>(hoplixiStoreProvider, (
@@ -101,7 +96,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
         controller.setLoading(false);
       }
       if (next.value?.isOpen == true &&
-          previous?.value?.status != next.value?.status) {
+          previous?.value?.isOpen != next.value?.isOpen) {
         // База данных успешно создана, очищаем данные и переходим на главный экран
         controller.clearAllData();
 
@@ -161,23 +156,13 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
               // Контент текущего шага
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Form(
-                    key: _formKey,
-                    child: _buildStepContent(currentStep),
-                  ),
+                  padding: const EdgeInsets.all(8.0),
+                  child: _buildStepContent(currentStep),
                 ),
               ),
 
-              // Навигационные кнопки
-              _buildNavigationButtons(
-                context,
-                controller,
-                isFirstStep,
-                isLastStep,
-                formState.isLoading,
-                isReady,
-              ),
+              // Кнопки навигации (прибиты к низу)
+              _buildNavigationButtons(currentStep, formState, controller),
             ],
           ),
         ),
@@ -189,7 +174,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        // color: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: Border(
           bottom: BorderSide(
             color: Theme.of(context).colorScheme.outlineVariant,
@@ -295,16 +280,41 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     );
   }
 
+  // Построение кнопок навигации (прибиты к низу)
   Widget _buildNavigationButtons(
-    BuildContext context,
+    int currentStep,
+    CreateStoreFormState formState,
     CreateStoreController controller,
-    bool isFirstStep,
-    bool isLastStep,
-    bool isLoading,
-    bool isReady,
   ) {
+    // Проверка валидности текущего шага
+    bool isStepValid() {
+      switch (currentStep) {
+        case 0:
+          return formState.storeName.isNotEmpty &&
+              formState.storeName.length >= 3 &&
+              formState.fieldErrors['storeName'] == null;
+        case 1:
+          return formState.masterPassword.isNotEmpty &&
+              formState.confirmPassword.isNotEmpty &&
+              formState.masterPassword == formState.confirmPassword &&
+              formState.fieldErrors['masterPassword'] == null &&
+              formState.fieldErrors['confirmPassword'] == null;
+        case 2:
+          return formState.useDefaultPath ||
+              (formState.customStoragePath != null &&
+                  formState.customStoragePath!.isNotEmpty);
+        case 3:
+          return true; // На последнем шаге всегда валидно
+        default:
+          return false;
+      }
+    }
+
+    final isValid = isStepValid();
+    final isLastStep = currentStep == 3;
+
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border(
@@ -314,48 +324,50 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          // Кнопка "Назад"
-          if (!isFirstStep)
-            Expanded(
-              child: SmoothButton(
-                onPressed: isLoading ? null : controller.previousStep,
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Кнопка "Назад" (показываем на всех шагах кроме первого)
+            if (currentStep > 0)
+              SmoothButton(
+                onPressed: () => controller.previousStep(),
                 label: 'Назад',
-                type: SmoothButtonType.outlined,
-                size: SmoothButtonSize.medium,
                 icon: const Icon(Icons.arrow_back),
-              ),
-            ),
-          if (!isFirstStep) const SizedBox(width: 16),
+                type: SmoothButtonType.outlined,
+              )
+            else
+              const SizedBox.shrink(),
 
-          // Кнопка "Далее" или "Создать"
-          Expanded(
-            flex: isFirstStep ? 1 : 1,
-            child: SmoothButton(
-              isFullWidth: true,
-              onPressed: () async {
-                if (isLastStep) {
-                  // Последний шаг - создаем хранилище
-                  if (isReady && (_formKey.currentState?.validate() ?? false)) {
-                    await controller.createStore();
-                  }
-                } else {
-                  // Переходим к следующему шагу
-                  if (controller.isCurrentStepValid()) {
-                    controller.nextStep();
-                  }
-                }
-              },
-              loading: isLoading,
-              label: isLastStep ? 'Создать хранилище' : 'Далее',
-              type: SmoothButtonType.filled,
-              size: SmoothButtonSize.medium,
-              icon: Icon(isLastStep ? Icons.check : Icons.arrow_forward),
-              iconPosition: SmoothButtonIconPosition.end,
+            // Кнопка "Далее" или "Создать"
+            SmoothButton(
+              onPressed: isValid
+                  ? () async {
+                      if (isLastStep) {
+                        // На последнем шаге - создаем хранилище
+                        await controller.createStore();
+                      } else {
+                        // На других шагах - переходим далее
+                        controller.nextStep();
+                      }
+                    }
+                  : null,
+              label: isLastStep
+                  ? (formState.isLoading ? 'Создание...' : 'Создать хранилище')
+                  : 'Далее',
+              icon: isLastStep
+                  ? (formState.isLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check))
+                  : const Icon(Icons.arrow_forward),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

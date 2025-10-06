@@ -4,13 +4,10 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:hoplixi/core/lib/sodium_file_encryptor/aead_file_encryptor.dart';
-import 'package:hoplixi/core/utils/file_crypto/file_encryptor.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/services/database_connection_service.dart';
 import 'package:hoplixi/hoplixi_store/services/database_history_service.dart';
 import 'package:hoplixi/hoplixi_store/services/database_validation_service.dart';
-import 'package:sodium/sodium.dart';
 
 import 'models/db_state.dart';
 import 'dto/db_dto.dart';

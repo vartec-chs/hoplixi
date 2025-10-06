@@ -5,6 +5,7 @@ import 'package:hoplixi/features/global/widgets/text_field.dart';
 class CustomPasswordField extends StatefulWidget {
   final String label;
   final String? hintText;
+  final String? helperText;
   final TextEditingController? controller;
   final void Function(String)? onChanged;
   final void Function(String)? onFieldSubmitted;
@@ -26,6 +27,7 @@ class CustomPasswordField extends StatefulWidget {
     super.key,
     required this.label,
     this.hintText,
+    this.helperText,
     this.controller,
     this.onChanged,
     this.validator,
@@ -66,6 +68,7 @@ class _CustomPasswordFieldState extends State<CustomPasswordField> {
           context,
           labelText: widget.label,
           hintText: widget.hintText,
+          helperText: widget.helperText,
           errorText: widget.errorText,
           filled: widget.filled,
         );
