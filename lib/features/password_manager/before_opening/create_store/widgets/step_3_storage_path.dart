@@ -1,9 +1,11 @@
 ﻿import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Шаг 3: Выбор пути хранения
 class Step3StoragePath extends ConsumerStatefulWidget {
@@ -90,7 +92,7 @@ class _Step3StoragePathState extends ConsumerState<Step3StoragePath> {
                         primaryInputDecoration(
                           context,
                           labelText: 'Путь к файлу базы данных',
-                          helperText: 'Нажмите кнопку для выбора расположения',
+
                           filled: true,
                           errorText: formState.fieldErrors['customPath'],
                         ).copyWith(
@@ -104,6 +106,19 @@ class _Step3StoragePathState extends ConsumerState<Step3StoragePath> {
                 const SizedBox(width: 12),
                 SmoothButton(
                   onPressed: () async {
+                    PermissionStatus status = await Permission
+                        .manageExternalStorage
+                        .request();
+                    if (!status.isGranted) {
+                      if (context.mounted) {
+                        ToastHelper.error(
+                          title: 'Разрешение отклонено',
+                          description:
+                              'Для выбора пути необходимо разрешение на доступ к хранилищу',
+                        );
+                      }
+                      return;
+                    }
                     String? selectedDirectory = await FilePicker.platform
                         .getDirectoryPath();
                     if (selectedDirectory != null) {
@@ -111,6 +126,7 @@ class _Step3StoragePathState extends ConsumerState<Step3StoragePath> {
                     }
                   },
                   label: 'Обзор',
+                  type: SmoothButtonType.outlined,
                   icon: const Icon(Icons.folder_open),
                 ),
               ],

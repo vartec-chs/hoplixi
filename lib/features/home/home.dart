@@ -525,7 +525,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                     isPrimary: true,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildQuickActionCard(
                     icon: Icons.add_box,
@@ -536,7 +536,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(

@@ -201,6 +201,7 @@ class RecentDatabaseCard extends StatelessWidget {
         // Кнопка автоматического открытия (если пароль сохранен)
         if (canAutoOpen)
           SmoothButton(
+            type: SmoothButtonType.filled,
             isFullWidth: true,
             onPressed: isLoading ? null : onOpenAuto,
             label: 'Открыть',
