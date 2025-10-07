@@ -7,7 +7,7 @@ import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/features/global/providers/notification_providers.dart';
-import 'package:hoplixi/core/secure_storage/index.dart';
+
 import 'package:hoplixi/features/global/screens/error_screen.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global.dart';
@@ -27,7 +27,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     observers: [GoTransition.observer, LoggingRouteObserver()],
     refreshListenable: ref.watch(routerRefreshProvider.notifier),
     redirect: (context, state) async {
-      final initializationAsync = ref.watch(storageInitProvider);
       // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
       final dataCleared = ref.watch(dataClearedProvider);
 
@@ -62,22 +61,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             .home; // Если настройка завершена, перенаправляем на домашний экран
       }
 
-      initializationAsync.when(
-        data: (data) {
-          return null; // Нет перенаправления, если инициализация успешна
-        },
-        error: (error, stack) {
-          // Если произошла ошибка, перенаправляем на экран ошибки
-          if (state.fullPath != '/error') {
-            return '/error';
-          }
-          logError('Initialization error', error: error, stackTrace: stack);
-          return null; // Уже на экране ошибки, не перенаправляем
-        },
-        loading: () {
-          return '/loading'; // Перенаправление на страницу загрузки
-        },
-      );
 
       return null;
     },

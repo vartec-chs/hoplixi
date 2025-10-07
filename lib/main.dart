@@ -9,7 +9,6 @@ import 'package:hoplixi/core/app_preferences/app_preferences.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/preferences/app_preferences.dart';
-import 'package:hoplixi/core/secure_storage/storage_service_locator.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/core/services/notification_helpers.dart';
 import 'package:toastification/toastification.dart';
@@ -61,12 +60,6 @@ Future<void> main() async {
       }
 
       final container = ProviderContainer();
-
-      // Инициализируем сервис-локатор
-      StorageServiceLocator.initialize(container);
-
-      // Инициализируем хранилище
-      await StorageServiceLocator.initializeStorage();
 
       // Инициализируем систему уведомлений
       try {

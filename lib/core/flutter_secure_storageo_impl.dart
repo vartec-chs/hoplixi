@@ -2,11 +2,23 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod/riverpod.dart';
 
 abstract class SecureStorage {
-  Future<void> write({required String key, required String value});
-  Future<String?> read({required String key});
-  Future<void> delete({required String key});
-  Future<Map<String, String>> readAll();
+  /// Прочитать значение по ключу
+  Future<String?> read(String key);
+
+  /// Записать значение
+  Future<void> write(String key, String value);
+
+  /// Удалить значение
+  Future<void> delete(String key);
+
+  /// Проверить существование ключа
+  Future<bool> containsKey(String key);
+
+  /// Очистить все значения
   Future<void> deleteAll();
+
+  // read all keys (for debugging)
+  Future<Map<String, String>> readAll();
 }
 
 class FlutterSecureStorageImpl implements SecureStorage {
@@ -30,22 +42,22 @@ class FlutterSecureStorageImpl implements SecureStorage {
           );
 
   @override
-  Future<void> write({required String key, required String value}) =>
+  Future<void> write(String key, String value) =>
       _store.write(key: key, value: value);
 
   @override
-  Future<String?> read({required String key}) => _store.read(key: key);
+  Future<String?> read(String key) => _store.read(key: key);
 
   @override
-  Future<void> delete({required String key}) => _store.delete(key: key);
+  Future<void> delete(String key) => _store.delete(key: key);
 
   @override
-  Future<Map<String, String>> readAll() => _store.readAll();
+  Future<bool> containsKey(String key) => _store.containsKey(key: key);
 
   @override
   Future<void> deleteAll() => _store.deleteAll();
+
+  @override
+  Future<Map<String, String>> readAll() => _store.readAll();
 }
 
-final secureStorageProvider = Provider<SecureStorage>((ref) {
-  return FlutterSecureStorageImpl(); // или с опциями
-});

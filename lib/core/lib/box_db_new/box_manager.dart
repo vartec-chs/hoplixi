@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:archive/archive_io.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:path/path.dart' as path;
 import 'box_db.dart';
 import 'secure_storage.dart';
@@ -48,7 +49,7 @@ class BoxManager {
   final Map<String, BoxDB> _openBoxes = {};
 
   BoxManager({required this.basePath, SecureStorage? secureStorage})
-    : _secureStorage = secureStorage ?? MemorySecureStorage();
+    : _secureStorage = secureStorage ?? FlutterSecureStorageImpl();
 
   /// Создать новую базу данных
   ///
