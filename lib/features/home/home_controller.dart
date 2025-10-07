@@ -205,7 +205,7 @@ class HomeController extends Notifier<HomeState> {
       logDebug('Загрузка недавней базы данных', tag: 'HomeController');
 
       // Получаем менеджер для работы с историей БД
-      final storeManager = ref.read(hoplixiStoreManagerProvider);
+      final storeManager = await ref.read(hoplixiStoreManagerProvider.future);
       final history = await storeManager.getDatabaseHistory();
 
       if (history.isNotEmpty) {
@@ -467,7 +467,7 @@ class HomeController extends Notifier<HomeState> {
     try {
       state = state.copyWith(isLoading: true, clearError: true);
 
-      final storeManager = ref.read(hoplixiStoreManagerProvider);
+      final storeManager = await ref.read(hoplixiStoreManagerProvider.future);
       await storeManager.removeDatabaseHistoryEntry(state.recentDatabase!.path);
 
       logInfo(
@@ -497,7 +497,7 @@ class HomeController extends Notifier<HomeState> {
   /// Получает статистику истории
   Future<Map<String, dynamic>> getHistoryStats() async {
     try {
-      final storeManager = ref.read(hoplixiStoreManagerProvider);
+      final storeManager = await ref.read(hoplixiStoreManagerProvider.future);
       return await storeManager.getDatabaseHistoryStats();
     } catch (e) {
       logError(

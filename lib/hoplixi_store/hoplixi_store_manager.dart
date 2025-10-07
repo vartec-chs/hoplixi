@@ -6,8 +6,10 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/services/database_connection_service.dart';
-import 'package:hoplixi/hoplixi_store/services/database_history_service.dart';
+import 'package:hoplixi/hoplixi_store/services/database_history_service_v2.dart';
 import 'package:hoplixi/hoplixi_store/services/database_validation_service.dart';
+import 'package:hoplixi/core/lib/box_db_new/index.dart';
+import 'package:hoplixi/core/index.dart';
 
 import 'models/db_state.dart';
 import 'dto/db_dto.dart';
@@ -22,13 +24,48 @@ import 'package:path/path.dart' as p;
 class HoplixiStoreManager {
   HoplixiStore? _database;
 
-  DatabaseHistoryService? _historyService;
+  DatabaseHistoryServiceV2? _historyService;
+  final BoxManager _boxManager;
 
   static const String _dbExtension = MainConstants.dbExtension;
 
+  /// Конструктор HoplixiStoreManager
+  ///
+  /// [boxManager] - обязательный BoxManager для работы с зашифрованным хранилищем истории
+  HoplixiStoreManager({required BoxManager boxManager})
+    : _boxManager = boxManager;
+
   HoplixiStore? get database => _database;
-  DatabaseHistoryService get historyService =>
-      _historyService ??= DatabaseHistoryService();
+
+  /// Получает сервис истории (асинхронно инициализирует при необходимости)
+  Future<DatabaseHistoryServiceV2> getHistoryService() async {
+    return _getHistoryService();
+  }
+
+  /// Получает или инициализирует сервис истории
+  Future<DatabaseHistoryServiceV2> _getHistoryService() async {
+    if (_historyService == null) {
+      _historyService = DatabaseHistoryServiceV2(boxManager: _boxManager);
+
+      // Инициализируем сервис
+      final initResult = await _historyService!.initialize();
+      if (!initResult.success) {
+        logError(
+          'Не удалось инициализировать DatabaseHistoryServiceV2: ${initResult.message}',
+          tag: 'HoplixiStoreManager',
+        );
+        throw Exception(
+          'Ошибка инициализации сервиса истории: ${initResult.message}',
+        );
+      }
+
+      logDebug(
+        'DatabaseHistoryServiceV2 инициализирован',
+        tag: 'HoplixiStoreManager',
+      );
+    }
+    return _historyService!;
+  }
 
   bool get hasOpenDatabase => _database != null;
 
@@ -376,15 +413,22 @@ class HoplixiStoreManager {
         );
       }
 
-      // Закрываем сервис истории
+      // Закрываем новый сервис истории
       if (_historyService != null) {
         await _historyService!.dispose();
         _historyService = null;
         logDebug(
-          'Сервис истории закрыт при освобождении ресурсов',
+          'Сервис истории V2 закрыт при освобождении ресурсов',
           tag: 'EncryptedDatabaseManager',
         );
       }
+
+      // Закрываем BoxManager (но не устанавливаем в null, так как он final)
+      await _boxManager.closeAll();
+      logDebug(
+        'BoxManager закрыт при освобождении ресурсов',
+        tag: 'EncryptedDatabaseManager',
+      );
 
       logInfo(
         'Ресурсы EncryptedDatabaseManager освобождены',
@@ -638,18 +682,28 @@ class HoplixiStoreManager {
     bool saveMasterPassword = false,
   }) async {
     try {
-      await historyService.recordDatabaseAccess(
+      final service = await getHistoryService();
+      final result = await service.recordDatabaseAccess(
         path: path,
         name: name,
         description: description,
         masterPassword: masterPassword,
         saveMasterPassword: saveMasterPassword,
       );
-      logDebug(
-        'Информация о базе данных записана в историю',
-        tag: 'EncryptedDatabaseManager',
-        data: {'path': path, 'name': name},
-      );
+
+      if (result.success) {
+        logDebug(
+          'Информация о базе данных записана в историю',
+          tag: 'EncryptedDatabaseManager',
+          data: {'path': path, 'name': name},
+        );
+      } else {
+        logWarning(
+          'Не удалось записать информацию о базе данных в историю: ${result.message}',
+          tag: 'EncryptedDatabaseManager',
+          data: {'path': path, 'error': result.message},
+        );
+      }
     } catch (e) {
       logWarning(
         'Не удалось записать информацию о базе данных в историю (не критично)',
@@ -659,12 +713,20 @@ class HoplixiStoreManager {
     }
   }
 
-  // Методы для работы с историей
-
   /// Получить всю историю баз данных
   Future<List<DatabaseEntry>> getDatabaseHistory() async {
     try {
-      return await historyService.getAllHistory();
+      final service = await getHistoryService();
+      final result = await service.getAllHistory();
+      if (result.success && result.data != null) {
+        return result.data!;
+      } else {
+        logError(
+          'Ошибка получения истории БД: ${result.message}',
+          tag: 'HoplixiStoreManager',
+        );
+        return [];
+      }
     } catch (e) {
       logError(
         'Ошибка получения истории БД',
@@ -678,7 +740,18 @@ class HoplixiStoreManager {
   /// Получить запись из истории по пути
   Future<DatabaseEntry?> getDatabaseHistoryEntry(String path) async {
     try {
-      return await historyService.getEntryByPath(path);
+      final service = await getHistoryService();
+      final result = await service.getEntryByPath(path);
+      if (result.success && result.entry != null) {
+        return result.entry;
+      } else {
+        logError(
+          'Ошибка получения записи истории БД: ${result.message}',
+          tag: 'HoplixiStoreManager',
+          data: {'path': path},
+        );
+        return null;
+      }
     } catch (e) {
       logError(
         'Ошибка получения записи истории БД',
@@ -693,12 +766,22 @@ class HoplixiStoreManager {
   /// Удалить запись из истории
   Future<void> removeDatabaseHistoryEntry(String path) async {
     try {
-      await historyService.removeEntry(path);
-      logInfo(
-        'Запись удалена из истории БД',
-        tag: 'HoplixiStoreManager',
-        data: {'path': path},
-      );
+      final service = await getHistoryService();
+      final result = await service.removeEntry(path);
+      if (result.success) {
+        logInfo(
+          'Запись удалена из истории БД',
+          tag: 'HoplixiStoreManager',
+          data: {'path': path},
+        );
+      } else {
+        logError(
+          'Не удалось удалить запись из истории БД: ${result.message}',
+          tag: 'HoplixiStoreManager',
+          data: {'path': path},
+        );
+        throw Exception(result.message);
+      }
     } catch (e) {
       logError(
         'Ошибка удаления записи из истории БД',
@@ -713,8 +796,17 @@ class HoplixiStoreManager {
   /// Очистить всю историю
   Future<void> clearDatabaseHistory() async {
     try {
-      await historyService.clearHistory();
-      logInfo('История БД очищена', tag: 'HoplixiStoreManager');
+      final service = await getHistoryService();
+      final result = await service.clearHistory();
+      if (result.success) {
+        logInfo('История БД очищена', tag: 'HoplixiStoreManager');
+      } else {
+        logError(
+          'Не удалось очистить историю БД: ${result.message}',
+          tag: 'HoplixiStoreManager',
+        );
+        throw Exception(result.message);
+      }
     } catch (e) {
       logError(
         'Ошибка очистки истории БД',
@@ -728,7 +820,22 @@ class HoplixiStoreManager {
   /// Получить статистику истории
   Future<Map<String, dynamic>> getDatabaseHistoryStats() async {
     try {
-      return await historyService.getHistoryStats();
+      final service = await getHistoryService();
+      final result = await service.getHistoryStats();
+      if (result.success && result.data != null) {
+        return result.data!;
+      } else {
+        logError(
+          'Ошибка получения статистики истории БД: ${result.message}',
+          tag: 'HoplixiStoreManager',
+        );
+        return {
+          'totalEntries': 0,
+          'entriesWithSavedPasswords': 0,
+          'oldestEntry': null,
+          'newestEntry': null,
+        };
+      }
     } catch (e) {
       logError(
         'Ошибка получения статистики истории БД',
@@ -747,7 +854,17 @@ class HoplixiStoreManager {
   /// Получить записи с сохраненными паролями
   Future<List<DatabaseEntry>> getDatabaseHistoryWithSavedPasswords() async {
     try {
-      return await historyService.getEntriesWithSavedPasswords();
+      final service = await getHistoryService();
+      final result = await service.getEntriesWithSavedPasswords();
+      if (result.success && result.data != null) {
+        return result.data!;
+      } else {
+        logError(
+          'Ошибка получения записей с сохраненными паролями: ${result.message}',
+          tag: 'HoplixiStoreManager',
+        );
+        return [];
+      }
     } catch (e) {
       logError(
         'Ошибка получения записей с сохраненными паролями',

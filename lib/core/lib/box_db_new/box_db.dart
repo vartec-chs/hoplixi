@@ -205,7 +205,7 @@ class BoxDB<T> {
       await _index.save();
 
       // Проверить, нужна ли компактификация (по умолчанию >= 10 удалённых строк)
-      if (_index.needsCompaction(threshold: 1500)) {
+      if (_index.needsCompaction(threshold: 5)) {
         await _compact();
       }
     });
@@ -224,7 +224,7 @@ class BoxDB<T> {
       await _index.save();
 
       // Проверить, нужна ли компактификация
-      if (_index.needsCompaction(threshold: 1500)) {
+      if (_index.needsCompaction(threshold: 5)) {
         await _compact();
       }
     });

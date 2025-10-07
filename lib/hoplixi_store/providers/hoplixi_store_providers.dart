@@ -3,13 +3,32 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/features/global/providers/box_db_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/models/db_state.dart';
 
-final hoplixiStoreManagerProvider = Provider<HoplixiStoreManager>((ref) {
-  final manager = HoplixiStoreManager();
+final hoplixiStoreManagerProvider = FutureProvider<HoplixiStoreManager>((
+  ref,
+) async {
+  // final boxManager = ref.read(boxDbProvider).asData?.value;
+  // final manager = HoplixiStoreManager(boxManager: boxManager!);
+
+  // // Cleanup on dispose
+  // ref.onDispose(() {
+  //   logInfo(
+  //     'Освобождение ресурсов databaseManagerProvider',
+  //     tag: 'DatabaseProviders',
+  //   );
+  //   manager.dispose();
+  //   boxManager.closeAll();
+  // });
+
+  // return manager;
+
+  final boxManager = await ref.watch(boxDbProvider.future);
+  final manager = HoplixiStoreManager(boxManager: boxManager);
 
   // Cleanup on dispose
   ref.onDispose(() {
@@ -18,6 +37,7 @@ final hoplixiStoreManagerProvider = Provider<HoplixiStoreManager>((ref) {
       tag: 'DatabaseProviders',
     );
     manager.dispose();
+    boxManager.closeAll();
   });
 
   return manager;
@@ -44,7 +64,7 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
 
   @override
   Future<DatabaseState> build() async {
-    _manager = ref.read(hoplixiStoreManagerProvider);
+    _manager = await ref.read(hoplixiStoreManagerProvider.future);
     return const DatabaseState();
   }
 

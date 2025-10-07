@@ -283,7 +283,6 @@ final openStoreControllerProvider =
       return OpenStoreController(ref);
     });
 
-
 /// Провайдер для проверки готовности к открытию
 final openStoreReadyProvider = Provider<bool>((ref) {
   final formState = ref.watch(openStoreControllerProvider);
@@ -292,7 +291,7 @@ final openStoreReadyProvider = Provider<bool>((ref) {
 
 /// Провайдер для поиска файлов БД в папке по умолчанию
 final databaseFilesProvider = FutureProvider<DatabaseFilesResult>((ref) async {
-  final manager = ref.read(hoplixiStoreManagerProvider);
+  final manager = await ref.read(hoplixiStoreManagerProvider.future);
   return await manager.findDatabaseFiles();
 });
 
@@ -300,6 +299,6 @@ final databaseFilesProvider = FutureProvider<DatabaseFilesResult>((ref) async {
 final mostRecentDatabaseFileProvider = FutureProvider<DatabaseFileInfo?>((
   ref,
 ) async {
-  final manager = ref.read(hoplixiStoreManagerProvider);
+  final manager = await ref.read(hoplixiStoreManagerProvider.future);
   return await manager.getMostRecentDatabaseFile();
 });
