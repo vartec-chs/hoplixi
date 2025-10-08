@@ -20,12 +20,12 @@ import 'routes_path.dart';
 import 'routes.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
+  final GoRouter router = GoRouter(
     initialLocation: AppRoutes.home,
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
-
     observers: [GoTransition.observer, LoggingRouteObserver()],
     refreshListenable: ref.watch(routerRefreshProvider.notifier),
+
     redirect: (context, state) async {
       // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
       final dataCleared = ref.watch(dataClearedProvider);
@@ -61,7 +61,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             .home; // Если настройка завершена, перенаправляем на домашний экран
       }
 
-
       return null;
     },
     routes: UniversalPlatform.isDesktop
@@ -89,6 +88,36 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     errorBuilder: (context, state) =>
         ErrorScreen(errorMessage: state.error.toString()),
   );
+
+  ref.onDispose(() {
+    router.dispose();
+  });
+
+  return router;
+});
+
+class CurrentPathNotifier extends Notifier<String> {
+  static const String _logTag = 'CurrentPathNotifier';
+  late GoRouter router;
+
+  @override
+  String build() {
+    router = ref.watch(goRouterProvider);
+    router.routerDelegate.addListener(_updatePath);
+    ref.onDispose(() {
+      router.routerDelegate.removeListener(_updatePath);
+    });
+    return router.routerDelegate.currentConfiguration.uri.path;
+  }
+
+  void _updatePath() {
+    state = router.routerDelegate.currentConfiguration.uri.path;
+    logInfo('Path updated: $state', tag: _logTag);
+  }
+}
+
+final currentPathProvider = NotifierProvider<CurrentPathNotifier, String>(() {
+  return CurrentPathNotifier();
 });
 
 const beforeOpenDBPath = [

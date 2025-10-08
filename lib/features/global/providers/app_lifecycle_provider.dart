@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
+import 'package:hoplixi/router/router_provider.dart';
 
 /// Провайдер для управления жизненным циклом приложения
 final appLifecycleProvider =
@@ -102,45 +103,51 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   /// Приложение приостановлено
   Future<void> _onPaused() async {
     logInfo('Приложение приостановлено', tag: 'AppLifecycleNotifier');
-    // final isInProtectedRoute = ref.read(isInProtectedRouteProvider);
-    // if (isInProtectedRoute) {
-    _startInactivityTimer();
-    // } else {
-    //   logInfo(
-    //     'Не в защищённом маршруте, таймер не запускается',
-    //     tag: 'AppLifecycleNotifier',
-    //   );
-    // }
+    final isInProtectedRoute = ref
+        .read(currentPathProvider)
+        .startsWith('/dashboard');
+    if (isInProtectedRoute) {
+      _startInactivityTimer();
+    } else {
+      logInfo(
+        'Не в защищённом маршруте, таймер не запускается',
+        tag: 'AppLifecycleNotifier',
+      );
+    }
     state = state.copyWith(isActive: false);
   }
 
   /// Приложение неактивно
   Future<void> _onInactive() async {
     logInfo('Приложение неактивно', tag: 'AppLifecycleNotifier');
-    // final isInProtectedRoute = ref.read(isInProtectedRouteProvider);
-    // if (isInProtectedRoute) {
-    _startInactivityTimer();
-    // } else {
-    //   logInfo(
-    //     'Не в защищённом маршруте, таймер не запускается',
-    //     tag: 'AppLifecycleNotifier',
-    //   );
-    // }
+    final isInProtectedRoute = ref
+        .read(currentPathProvider)
+        .startsWith('/dashboard');
+    if (isInProtectedRoute) {
+      _startInactivityTimer();
+    } else {
+      logInfo(
+        'Не в защищённом маршруте, таймер не запускается',
+        tag: 'AppLifecycleNotifier',
+      );
+    }
     state = state.copyWith(isActive: false);
   }
 
   /// Приложение скрыто
   Future<void> _onHidden() async {
     logInfo('Приложение скрыто', tag: 'AppLifecycleNotifier');
-    // final isInProtectedRoute = ref.read(isInProtectedRouteProvider);
-    // if (isInProtectedRoute) {
-    _startInactivityTimer();
-    // } else {
-    //   logInfo(
-    //     'Не в защищённом маршруте, таймер не запускается',
-    //     tag: 'AppLifecycleNotifier',
-    //   );
-    // }
+    final isInProtectedRoute = ref
+        .read(currentPathProvider)
+        .startsWith('/dashboard');
+    if (isInProtectedRoute) {
+      _startInactivityTimer();
+    } else {
+      logInfo(
+        'Не в защищённом маршруте, таймер не запускается',
+        tag: 'AppLifecycleNotifier',
+      );
+    }
     state = state.copyWith(isActive: false);
   }
 

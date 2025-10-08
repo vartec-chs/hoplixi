@@ -7,25 +7,24 @@ class AppRoutes {
   static const String openStore = '/open-store';
   static const String testDemo = '/test-demo';
   static const String dashboard = '/dashboard';
-  static const String passwordManager = '/password-manager';
   static const String baseSettings = '/base-settings';
-  static const String categoryManager = '/category-manager';
-  static const String categoryCreate = '/category-manager/create';
-  static const String iconManager = '/icon-manager';
-  static const String iconCreate = '/icon-manager/create';
-  static const String tagsManager = '/tags-manager';
-  static const String tagCreate = '/tags-manager/create';
-  static const String passwordForm = '/password-form';
-  static const String passwordHistory = '/password-history';
+  static const String categoryManager = '/dashboard/category-manager';
+  static const String categoryCreate = '/dashboard/category-manager/create';
+  static const String iconManager = '/dashboard/icon-manager';
+  static const String iconCreate = '/dashboard/icon-manager/create';
+  static const String tagsManager = '/dashboard/tags-manager';
+  static const String tagCreate = '/dashboard/tags-manager/create';
+  static const String passwordForm = '/dashboard/password-form';
+  static const String passwordHistory = '/dashboard/password-history';
   static const String universalFilterDemo = '/universal-filter-demo';
   static const String localSend = '/localsend';
   static const String localSendTransfer = '/localsend/transfer';
   static const String qrScanner = '/qr-scanner';
   static const String qrTest = '/qr-test';
-  static const String otpForm = '/otp-form';
+  static const String otpForm = '/dashboard/otp-form';
   static const String demoNotification = '/demo-notification';
-  static const String notesForm = '/notes-form';
-  static const String importOtpCodes = '/import-otp-codes';
+  static const String notesForm = '/dashboard/notes-form';
+  static const String importOtpCodes = '/dashboard/import-otp-codes';
 }
 
 class ProtectedRoutes {

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 
 import 'package:hoplixi/core/theme/index.dart';
+import 'package:hoplixi/router/router_provider.dart';
 
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
@@ -124,6 +125,17 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         ref.listen<HomeState>(homeControllerProvider, (previous, next) {
           if (next.error != null && next.error != previous?.error) {
             ToastHelper.error(title: 'Ошибка', description: next.error!);
+          }
+        });
+
+        //currentPathProvider
+        ref.listen<String>(currentPathProvider, (previous, next) {
+          // logInfo('Current path changed: $next', tag: 'ModernHomeScreen');
+          if (next == '/' && selectedIndex != 0) {
+            logInfo(
+              'Navigated to home, resetting bottom nav index to 0',
+              tag: 'ModernHomeScreen',
+            );
           }
         });
 
