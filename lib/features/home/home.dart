@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 
 import 'package:hoplixi/core/theme/index.dart';
+import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
 import 'package:hoplixi/router/router_provider.dart';
 
 import 'package:universal_platform/universal_platform.dart';

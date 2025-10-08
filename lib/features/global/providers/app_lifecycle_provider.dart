@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/global.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 
 /// Провайдер для управления жизненным циклом приложения
@@ -50,7 +52,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   Timer? _inactivityTimer;
   Timer? _countdownTimer;
 
-  static const int _inactivityTimeoutSeconds = 120; // 2 минуты
+  static const int _inactivityTimeoutSeconds = 5; // 2 минуты
 
   @override
   AppLifecycleStateData build() {
@@ -102,21 +104,42 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   /// Приложение приостановлено
   Future<void> _onPaused() async {
     logInfo('Приложение приостановлено', tag: 'AppLifecycleNotifier');
-    _startInactivityTimer();
+    final context = navigatorKey.currentContext;
+    if (context != null &&
+        GoRouter.of(context!).state.path!.startsWith('/dashboard')) {
+      // Здесь можно выполнить действия с контекстом, если он доступен
+
+      _startInactivityTimer();
+    }
     state = state.copyWith(isActive: false);
   }
 
   /// Приложение неактивно
   Future<void> _onInactive() async {
     logInfo('Приложение неактивно', tag: 'AppLifecycleNotifier');
-    _startInactivityTimer();
+    final context = navigatorKey.currentContext;
+
+    if (context != null &&
+        GoRouter.of(context!).state.path!.startsWith('/dashboard')) {
+      // Здесь можно выполнить действия с контекстом, если он доступен
+
+      logInfo(
+        'App is inactive and in protected route, starting inactivity timer',
+        tag: 'AppLifecycleNotifier',
+      );
+      _startInactivityTimer();
+    }
     state = state.copyWith(isActive: false);
   }
 
   /// Приложение скрыто
   Future<void> _onHidden() async {
     logInfo('Приложение скрыто', tag: 'AppLifecycleNotifier');
-    _startInactivityTimer();
+    final context = navigatorKey.currentContext;
+    if (context != null &&
+        GoRouter.of(context!).state.path!.startsWith('/dashboard')) {
+      _startInactivityTimer();
+    }
     state = state.copyWith(isActive: false);
   }
 
@@ -167,13 +190,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
         'Таймер неактивности истек, очищаем данные',
         tag: 'AppLifecycleNotifier',
       );
-      _stopInactivityTimer();
-      state = state.copyWith(
-        isActive: false,
-        timerActive: false,
-        remainingTime: 0,
-        dataCleared: true, // Устанавливаем флаг очистки данных
-      );
+      _clearAllData();
       // _clearAllData();
     });
   }
@@ -213,59 +230,59 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   }
 
   /// Очищает все данные приложения
-  // Future<void> _clearAllData() async {
-  //   try {
-  //     logInfo('Начинаем очистку всех данных', tag: 'AppLifecycleNotifier');
+  Future<void> _clearAllData() async {
+    try {
+      logInfo('Начинаем очистку всех данных', tag: 'AppLifecycleNotifier');
 
-  //     // Останавливаем таймер
-  //     _stopInactivityTimer();
+      // Останавливаем таймер
+      _stopInactivityTimer();
 
-  //     try {
-  //       // final dbState = ref.read(hoplixiStoreProvider);
+      try {
+        // final dbState = ref.read(hoplixiStoreProvider);
 
-  //       // Очищаем провайдеры
-  //       await ref.read(clearAllProvider.notifier).clearAll();
+        // Очищаем провайдеры
+        await ref.read(clearAllProvider.notifier).clearAll();
 
-  //       // Закрываем базу данных
-  //       await ref.read(hoplixiStoreProvider.notifier).closeDatabase();
+        // Закрываем базу данных
+        await ref.read(hoplixiStoreProvider.notifier).closeDatabase();
 
-  //       // Обновляем состояние - помечаем что данные очищены
-  //       state = state.copyWith(
-  //         isActive: false,
-  //         timerActive: false,
-  //         remainingTime: 0,
-  //         dataCleared: true, // Устанавливаем флаг очистки данных
-  //       );
-  //     } catch (e, st) {
-  //       logError(
-  //         'Ошибка при обращении к провайдерам во время очистки',
-  //         error: e,
-  //         stackTrace: st,
-  //         tag: 'AppLifecycleNotifier',
-  //       );
-  //       // Все равно устанавливаем флаг очистки данных
-  //       state = state.copyWith(
-  //         isActive: false,
-  //         timerActive: false,
-  //         remainingTime: 0,
-  //         dataCleared: true,
-  //       );
-  //     }
-  //   } catch (e, st) {
-  //     logError(
-  //       'Ошибка при очистке данных',
-  //       error: e,
-  //       stackTrace: st,
-  //       tag: 'AppLifecycleNotifier',
-  //     );
-  //   }
-  // }
+        // Обновляем состояние - помечаем что данные очищены
+        state = state.copyWith(
+          isActive: false,
+          timerActive: false,
+          remainingTime: 0,
+          dataCleared: true, // Устанавливаем флаг очистки данных
+        );
+      } catch (e, st) {
+        logError(
+          'Ошибка при обращении к провайдерам во время очистки',
+          error: e,
+          stackTrace: st,
+          tag: 'AppLifecycleNotifier',
+        );
+        // Все равно устанавливаем флаг очистки данных
+        state = state.copyWith(
+          isActive: false,
+          timerActive: false,
+          remainingTime: 0,
+          dataCleared: true,
+        );
+      }
+    } catch (e, st) {
+      logError(
+        'Ошибка при очистке данных',
+        error: e,
+        stackTrace: st,
+        tag: 'AppLifecycleNotifier',
+      );
+    }
+  }
 
-  /// Принудительная очистка данных (для внешнего вызова)
-  // Future<void> clearAll() async {
-  //   logInfo('Принудительная очистка всех данных', tag: 'AppLifecycleNotifier');
-  //   await _clearAllData();
-  // }
+  // Принудительная очистка данных (для внешнего вызова)
+  Future<void> clearAll() async {
+    logInfo('Принудительная очистка всех данных', tag: 'AppLifecycleNotifier');
+    await _clearAllData();
+  }
 
   /// Сбрасывает флаг очистки данных (вызывается после перенаправления)
   void resetDataClearedFlag() {

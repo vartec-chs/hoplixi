@@ -52,8 +52,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           logWarning('Не удалось отправить уведомление безопасности: $e');
         }
 
-        ref.read(appLifecycleProvider.notifier).cleanup();
-
         return AppRoutes.home;
       }
 
