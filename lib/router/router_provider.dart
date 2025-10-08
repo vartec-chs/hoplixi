@@ -1,3 +1,6 @@
+/// Библиотека провайдеров для роутера
+library router_provider;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,8 +34,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final dataCleared = ref.watch(dataClearedProvider);
 
       // Если данные были очищены, перенаправляем на home
-      if (dataCleared == true &&
-          ProtectedRoutes.routes.contains(state.fullPath)) {
+      if (dataCleared == true) {
         logInfo(
           'Данные очищены, перенаправляем на home',
           tag: 'GoRouter',
@@ -96,29 +98,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-class CurrentPathNotifier extends Notifier<String> {
-  static const String _logTag = 'CurrentPathNotifier';
-  late GoRouter router;
-
-  @override
-  String build() {
-    router = ref.watch(goRouterProvider);
-    router.routerDelegate.addListener(_updatePath);
-    ref.onDispose(() {
-      router.routerDelegate.removeListener(_updatePath);
-    });
-    return router.routerDelegate.currentConfiguration.uri.path;
-  }
-
-  void _updatePath() {
-    state = router.routerDelegate.currentConfiguration.uri.path;
-    logInfo('Path updated: $state', tag: _logTag);
-  }
+class ProtectedRoutes {
+  static const List<String> routes = [
+    AppRoutes.dashboard,
+    AppRoutes.categoryManager,
+    AppRoutes.tagsManager,
+    AppRoutes.passwordForm,
+    AppRoutes.passwordHistory,
+    AppRoutes.universalFilterDemo,
+    AppRoutes.notesForm,
+    AppRoutes.otpForm,
+    AppRoutes.importOtpCodes,
+    // Добавьте другие защищённые маршруты сюда
+  ];
 }
-
-final currentPathProvider = NotifierProvider<CurrentPathNotifier, String>(() {
-  return CurrentPathNotifier();
-});
 
 const beforeOpenDBPath = [
   AppRoutes.home,

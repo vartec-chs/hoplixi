@@ -27,17 +27,3 @@ class AppRoutes {
   static const String importOtpCodes = '/dashboard/import-otp-codes';
 }
 
-class ProtectedRoutes {
-  static const List<String> routes = [
-    AppRoutes.dashboard,
-    AppRoutes.categoryManager,
-    AppRoutes.tagsManager,
-    AppRoutes.passwordForm,
-    AppRoutes.passwordHistory,
-    AppRoutes.universalFilterDemo,
-    AppRoutes.notesForm,
-    AppRoutes.otpForm,
-    AppRoutes.importOtpCodes,
-    // Добавьте другие защищённые маршруты сюда
-  ];
-}

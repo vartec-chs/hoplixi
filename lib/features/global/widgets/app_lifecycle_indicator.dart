@@ -68,7 +68,7 @@ class AppLifecycleTestButtons extends ConsumerWidget {
         const SizedBox(height: 8),
         ElevatedButton(
           onPressed: () {
-            ref.read(appLifecycleProvider.notifier).clearAll();
+            // ref.read(appLifecycleProvider.notifier).clearAll();
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.red,

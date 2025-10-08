@@ -128,17 +128,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           }
         });
 
-        //currentPathProvider
-        ref.listen<String>(currentPathProvider, (previous, next) {
-          // logInfo('Current path changed: $next', tag: 'ModernHomeScreen');
-          if (next == '/' && selectedIndex != 0) {
-            logInfo(
-              'Navigated to home, resetting bottom nav index to 0',
-              tag: 'ModernHomeScreen',
-            );
-          }
-        });
-
         return Scaffold(
           body: SafeArea(
             child: PageView(
