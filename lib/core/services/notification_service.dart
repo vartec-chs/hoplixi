@@ -555,7 +555,9 @@ class NotificationService {
     );
 
     final WindowsNotificationDetails windowsDetails =
-        WindowsNotificationDetails();
+        WindowsNotificationDetails(
+          // header: WindowsHeader(id: id, title: title, arguments: arguments)
+        );
 
     return NotificationDetails(
       android: androidDetails,
