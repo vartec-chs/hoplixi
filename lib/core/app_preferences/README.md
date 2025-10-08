@@ -1,7 +1,8 @@
-### App Preferences
+# App Preferences
+
 A simple wrapper around SharedPreferences with typed keys and change listeners.
 
-```
+```dart
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Prefs.init(); // важно

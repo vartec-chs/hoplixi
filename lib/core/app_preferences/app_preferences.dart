@@ -15,6 +15,8 @@ class Prefs {
     _prefs = await SharedPreferences.getInstance();
   }
 
+  
+
   static bool contains(PrefKey key) => _prefs.containsKey(key.key);
 
   static Future<bool> remove(PrefKey key) => _prefs.remove(key.key);

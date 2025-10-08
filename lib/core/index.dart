@@ -2,7 +2,7 @@
 library;
 
 // Preferences
-export 'preferences/index.dart';
+export 'app_preferences/index.dart';
 
 // Constants
 export 'constants/main_constants.dart';

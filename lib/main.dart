@@ -8,7 +8,6 @@ import 'package:hoplixi/app.dart';
 import 'package:hoplixi/core/app_preferences/app_preferences.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
-import 'package:hoplixi/core/preferences/app_preferences.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/core/services/notification_helpers.dart';
 import 'package:toastification/toastification.dart';
@@ -42,22 +41,8 @@ Future<void> main() async {
       );
 
       // Инициализируем AppPreferences
-      await AppPreferences.init();
+
       await Prefs.init();
-
-      // Получаем экземпляр настроек
-      final prefs = AppPreferences.instance;
-
-      // Логируем информацию о запуске
-      if (prefs.isFirstLaunch) {
-        logDebug('Hoplixi: Первый запуск приложения');
-      } else {
-        logDebug('Hoplixi: Повторный запуск приложения');
-        logDebug(
-          'Hoplixi: Последнее использованное хранилище: ${prefs.lastUsedStore ?? "не установлено"}',
-        );
-        logDebug('Hoplixi: Режим темы: ${prefs.themeMode}');
-      }
 
       final container = ProviderContainer();
 

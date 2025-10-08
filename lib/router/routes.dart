@@ -55,10 +55,7 @@ final List<GoRoute> appRoutes = [
     path: AppRoutes.dashboard,
     builder: (context, state) => const DashboardScreen(),
   ),
-  GoRoute(
-    path: AppRoutes.baseSettings,
-    builder: (context, state) => const DynamicSettingsScreen(),
-  ),
+ 
   GoRoute(
     path: AppRoutes.categoryManager,
     builder: (context, state) => const CategoriesManagerScreen(),

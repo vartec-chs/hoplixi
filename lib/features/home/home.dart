@@ -399,15 +399,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
               leading: const Icon(Icons.settings),
               title: const Text('Настройки'),
               onTap: () {
-                Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => UniversalPlatform.isMobile
-                        ? const DynamicSettingsScreen()
-                        // : const AutoSettingsScreen(),
-                        : const SizedBox.expand(),
-                  ),
-                );
+                // Navigator.pop(context);
+                // context.go(AppRoutes.settings);
               },
             ),
           ],
