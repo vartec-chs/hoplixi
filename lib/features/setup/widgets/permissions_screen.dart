@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/theme/colors.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
@@ -73,9 +74,18 @@ class PermissionsNotifier extends Notifier<Map<Permission, PermissionStatus>> {
     }
   }
 
+  /// Обновить статус разрешения
+  void updatePermissionStatus(Permission permission, PermissionStatus status) {
+    state = {...state, permission: status};
+  }
+
   /// Запросить все разрешения
   Future<void> requestAllPermissions(List<Permission> permissions) async {
     for (final permission in permissions) {
+      if (permission == Permission.notification) {
+        // Пропускаем уведомления, так как они обрабатываются отдельно через плагин
+        continue;
+      }
       try {
         await requestPermission(permission);
       } catch (e) {
@@ -115,6 +125,8 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+
   // Список требуемых разрешений
   static const List<PermissionItem> _permissions = [
     PermissionItem(
@@ -152,6 +164,13 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
       icon: Icons.camera_alt_rounded,
       isRequired: false,
     ),
+    PermissionItem(
+      permission: Permission.notification,
+      title: 'Уведомления',
+      description: 'Для отправки уведомлений в приложении',
+      icon: Icons.notifications,
+      isRequired: false,
+    ),
   ];
 
   @override
@@ -160,6 +179,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
     _initializeAnimations();
     _startAnimations();
     _checkInitialPermissions();
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   }
 
   void _initializeAnimations() {
@@ -554,29 +574,66 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
       _showSettingsDialog();
     } else {
       try {
-        await ref
-            .read(permissionsProvider.notifier)
-            .requestPermission(permission);
-
-        final newStatus = await permission.status;
-        if (newStatus.isGranted) {
-          ToastHelper.success(title: 'Разрешение предоставлено');
-        } else if (newStatus.isDenied) {
-          ToastHelper.warning(title: 'Разрешение отклонено');
-        } else if (newStatus == PermissionStatus.restricted) {
-          ToastHelper.error(title: 'Разрешение ограничено системой');
-        } else if (newStatus.isPermanentlyDenied) {
-          ToastHelper.error(
-            title: 'Разрешение отклонено навсегда',
-            description:
-                'Пожалуйста, предоставьте его в настройках приложения.',
-          );
-        } else if (newStatus.isLimited) {
-          ToastHelper.info(title: 'Разрешение предоставлено частично');
-        } else if (newStatus == PermissionStatus.denied) {
-          ToastHelper.warning(title: 'Разрешение отклонено');
+        if (permission == Permission.notification) {
+          // Специальная обработка для уведомлений через flutter_local_notifications
+          final androidPlugin = flutterLocalNotificationsPlugin
+              .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin
+              >();
+          if (androidPlugin != null) {
+            final granted = await androidPlugin
+                .requestNotificationsPermission();
+            if (granted != null) {
+              final newStatus = granted
+                  ? PermissionStatus.granted
+                  : PermissionStatus.denied;
+              ref
+                  .read(permissionsProvider.notifier)
+                  .updatePermissionStatus(permission, newStatus);
+              if (granted) {
+                ToastHelper.success(
+                  title: 'Разрешение на уведомления предоставлено',
+                );
+              } else {
+                ToastHelper.warning(
+                  title: 'Разрешение на уведомления отклонено',
+                );
+              }
+            } else {
+              ToastHelper.error(
+                title: 'Не удалось определить статус разрешения на уведомления',
+              );
+            }
+          } else {
+            ToastHelper.error(
+              title: 'Плагин уведомлений не доступен на этой платформе',
+            );
+          }
         } else {
-          ToastHelper.info(title: 'Статус разрешения изменен');
+          await ref
+              .read(permissionsProvider.notifier)
+              .requestPermission(permission);
+
+          final newStatus = await permission.status;
+          if (newStatus.isGranted) {
+            ToastHelper.success(title: 'Разрешение предоставлено');
+          } else if (newStatus.isDenied) {
+            ToastHelper.warning(title: 'Разрешение отклонено');
+          } else if (newStatus == PermissionStatus.restricted) {
+            ToastHelper.error(title: 'Разрешение ограничено системой');
+          } else if (newStatus.isPermanentlyDenied) {
+            ToastHelper.error(
+              title: 'Разрешение отклонено навсегда',
+              description:
+                  'Пожалуйста, предоставьте его в настройках приложения.',
+            );
+          } else if (newStatus.isLimited) {
+            ToastHelper.info(title: 'Разрешение предоставлено частично');
+          } else if (newStatus == PermissionStatus.denied) {
+            ToastHelper.warning(title: 'Разрешение отклонено');
+          } else {
+            ToastHelper.info(title: 'Статус разрешения изменен');
+          }
         }
       } catch (e) {
         // Обработка случая отмены пользователем (PHASE_CLIENT_ALREADY_HIDDEN)
@@ -617,6 +674,23 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
       await ref
           .read(permissionsProvider.notifier)
           .requestAllPermissions(permissions);
+
+      // Специальная обработка для уведомлений
+      final androidPlugin = flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      if (androidPlugin != null) {
+        final granted = await androidPlugin.requestNotificationsPermission();
+        if (granted != null) {
+          final newStatus = granted
+              ? PermissionStatus.granted
+              : PermissionStatus.denied;
+          ref
+              .read(permissionsProvider.notifier)
+              .updatePermissionStatus(Permission.notification, newStatus);
+        }
+      }
 
       ToastHelper.info(title: 'Проверка разрешений завершена');
     } catch (e) {

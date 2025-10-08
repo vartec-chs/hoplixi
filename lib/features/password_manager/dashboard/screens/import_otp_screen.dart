@@ -11,6 +11,7 @@
 /// Автоматически конвертирует алгоритмы и типы OTP в формат БД.
 /// MD5 не поддерживается и заменяется на SHA1.
 library;
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -346,418 +347,497 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
               ]
             : null,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: SafeArea(
+        child: Stack(
           children: [
-            // Кнопки импорта
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Выберите способ импорта',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SmoothButton(
-                            label: 'Из изображения',
-                            onPressed: _pickImageAndDecode,
-                            type: SmoothButtonType.outlined,
-                            icon: const Icon(Icons.image, size: 20),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: SmoothButton(
-                            label: 'Сканировать QR',
-                            onPressed: _scanQr,
-                            type: SmoothButtonType.filled,
-                            icon: const Icon(Icons.qr_code_scanner, size: 20),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: colorScheme.secondaryContainer.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: colorScheme.secondary.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 20,
-                            color: Colors.redAccent,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Протестировано только с Google Authenticator. Другие приложения могут использовать несовместимые форматы.',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSecondaryContainer,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Статистика
-            if (importedOtps.isNotEmpty)
-              Card(
-                color: colorScheme.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Найдено записей',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                          Text(
-                            '${importedOtps.length}',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Выбрано',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                          Text(
-                            '${selectedIndices.length}',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            const SizedBox(height: 16),
-
-            // Список OTP
-            if (importedOtps.isEmpty)
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.qr_code_2,
-                        size: 80,
-                        color: colorScheme.outline.withOpacity(0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Нет импортированных OTP',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: colorScheme.outline,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Выберите способ импорта выше',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.outline.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              Expanded(
-                child: ListView.builder(
-                  itemCount: importedOtps.length,
-                  itemBuilder: (context, index) {
-                    final otp = importedOtps[index];
-                    final isSelected = selectedIndices.contains(index);
-                    final isExpanded = expandedIndices.contains(index);
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(
+                4.0,
+              ).copyWith(bottom: 80), // Отступ для кнопки
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Кнопки импорта
+                  Card(
+                    elevation: 0,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          CheckboxListTile(
-                            value: isSelected,
-                            onChanged: (value) => _toggleSelection(index),
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    otp.issuer.isNotEmpty
-                                        ? otp.issuer
-                                        : 'Без эмитента',
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    isExpanded
-                                        ? Icons.expand_less
-                                        : Icons.expand_more,
-                                    size: 20,
-                                  ),
-                                  onPressed: () => _toggleExpanded(index),
-                                  tooltip: isExpanded
-                                      ? 'Свернуть'
-                                      : 'Развернуть',
-                                ),
-                              ],
+                          Text(
+                            'Выберите способ импорта',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
                             ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (otp.name.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text('Аккаунт: ${otp.name}'),
-                                ],
-                                const SizedBox(height: 8),
-
-                                // TOTP код с таймером
-                                if (otp.type.toUpperCase() == 'TOTP' &&
-                                    _currentCodes.containsKey(index)) ...[
-                                  InkWell(
-                                    onTap: () => _copyCodeToClipboard(
-                                      _currentCodes[index] ?? '',
-                                      otp.issuer.isNotEmpty
-                                          ? otp.issuer
-                                          : 'OTP',
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: colorScheme.primary
-                                              .withOpacity(0.3),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.lock_clock,
+                          ),
+                          const SizedBox(height: 16),
+                          Builder(
+                            builder: (context) {
+                              final screenWidth = MediaQuery.of(
+                                context,
+                              ).size.width;
+                              final isMobile = screenWidth <= 450;
+                              return isMobile
+                                  ? Column(
+                                      children: [
+                                        SmoothButton(
+                                          isFullWidth: true,
+                                          label: 'Из изображения',
+                                          onPressed: _pickImageAndDecode,
+                                          type: SmoothButtonType.outlined,
+                                          icon: const Icon(
+                                            Icons.image,
                                             size: 20,
-                                            color:
-                                                colorScheme.onPrimaryContainer,
                                           ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            _currentCodes[index] ?? '------',
-                                            style: theme.textTheme.headlineSmall
-                                                ?.copyWith(
-                                                  fontFamily: 'monospace',
-                                                  fontWeight: FontWeight.bold,
-                                                  color: colorScheme
-                                                      .onPrimaryContainer,
-                                                  letterSpacing: 4,
-                                                ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        SmoothButton(
+                                          isFullWidth: true,
+                                          label: 'Сканировать QR',
+                                          onPressed: _scanQr,
+                                          type: SmoothButtonType.filled,
+                                          icon: const Icon(
+                                            Icons.qr_code_scanner,
+                                            size: 20,
                                           ),
-                                          const SizedBox(width: 8),
-                                          Icon(
-                                            Icons.copy,
-                                            size: 16,
-                                            color: colorScheme
-                                                .onPrimaryContainer
-                                                .withOpacity(0.7),
-                                          ),
-                                          const Spacer(),
-                                          SizedBox(
-                                            width: 24,
-                                            height: 24,
-                                            child: CircularProgressIndicator(
-                                              value: _remainingSeconds / 30,
-                                              strokeWidth: 3,
-                                              color: colorScheme
-                                                  .onPrimaryContainer,
-                                              backgroundColor: colorScheme
-                                                  .onPrimaryContainer
-                                                  .withOpacity(0.3),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        Expanded(
+                                          child: SmoothButton(
+                                            label: 'Из изображения',
+                                            onPressed: _pickImageAndDecode,
+                                            type: SmoothButtonType.outlined,
+                                            icon: const Icon(
+                                              Icons.image,
+                                              size: 20,
                                             ),
                                           ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '$_remainingSecondsс',
-                                            style: theme.textTheme.labelSmall
-                                                ?.copyWith(
-                                                  color: colorScheme
-                                                      .onPrimaryContainer,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: SmoothButton(
+                                            label: 'Сканировать QR',
+                                            onPressed: _scanQr,
+                                            type: SmoothButtonType.filled,
+                                            icon: const Icon(
+                                              Icons.qr_code_scanner,
+                                              size: 20,
+                                            ),
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
+                                    );
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.secondaryContainer.withOpacity(
+                                0.5,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: colorScheme.secondary.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 20,
+                                  color: Colors.redAccent,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Протестировано только с Google Authenticator. Другие приложения могут использовать несовместимые форматы.',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSecondaryContainer,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
-                                ],
-
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
-                                  children: [
-                                    _buildChip(
-                                      context,
-                                      otp.type,
-                                      Icons.security,
-                                    ),
-                                    _buildChip(
-                                      context,
-                                      otp.algorithm,
-                                      Icons.lock,
-                                    ),
-                                    _buildChip(
-                                      context,
-                                      '${otp.digits} цифр',
-                                      Icons.pin,
-                                    ),
-                                    if (otp.counter > 0)
-                                      _buildChip(
-                                        context,
-                                        'Счётчик: ${otp.counter}',
-                                        Icons.numbers,
-                                      ),
-                                  ],
                                 ),
                               ],
                             ),
-                            secondary: Icon(
-                              Icons.vpn_key,
-                              color: colorScheme.primary,
-                            ),
                           ),
-                          if (isExpanded)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(16.0),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerHighest,
-                                borderRadius: const BorderRadius.only(
-                                  bottomLeft: Radius.circular(12),
-                                  bottomRight: Radius.circular(12),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Детали токена',
-                                    style: theme.textTheme.labelLarge?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildDetailRow(
-                                    context,
-                                    'Эмитент',
-                                    otp.issuer.isNotEmpty
-                                        ? otp.issuer
-                                        : 'Не указан',
-                                  ),
-                                  _buildDetailRow(
-                                    context,
-                                    'Аккаунт',
-                                    otp.name.isNotEmpty
-                                        ? otp.name
-                                        : 'Не указан',
-                                  ),
-                                  _buildDetailRow(context, 'Тип', otp.type),
-                                  _buildDetailRow(
-                                    context,
-                                    'Алгоритм',
-                                    otp.algorithm,
-                                  ),
-                                  _buildDetailRow(
-                                    context,
-                                    'Цифр',
-                                    '${otp.digits}',
-                                  ),
-                                  if (otp.counter > 0)
-                                    _buildDetailRow(
-                                      context,
-                                      'Счётчик',
-                                      '${otp.counter}',
-                                    ),
-                                  const Divider(),
-                                  _buildDetailRow(
-                                    context,
-                                    'Секрет (Base32)',
-                                    otp.secretBase32,
-                                    monospace: true,
-                                  ),
-                                ],
-                              ),
-                            ),
                         ],
                       ),
-                    );
-                  },
+                    ),
+                  ),
+
+                  // Статистика
+                  if (importedOtps.isNotEmpty)
+                    Card(
+                      elevation: 0,
+                      // color: colorScheme.primaryContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Найдено записей',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSecondaryContainer,
+                                  ),
+                                ),
+                                Text(
+                                  '${importedOtps.length}',
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                        color: colorScheme.onSecondaryContainer,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Выбрано',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSecondaryContainer,
+                                  ),
+                                ),
+                                Text(
+                                  '${selectedIndices.length}',
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                        color: colorScheme.onSecondaryContainer,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  const SizedBox(height: 4),
+
+                  // Список OTP
+                  if (importedOtps.isEmpty)
+                    SizedBox(
+                      height: 300, // Фиксированная высота для пустого состояния
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.qr_code_2,
+                              size: 80,
+                              color: colorScheme.outline.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Нет импортированных OTP',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: colorScheme.outline,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Выберите способ импорта выше',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colorScheme.outline.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Column(
+                      children: List.generate(importedOtps.length, (index) {
+                        final otp = importedOtps[index];
+                        final isSelected = selectedIndices.contains(index);
+                        final isExpanded = expandedIndices.contains(index);
+
+                        return Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: isSelected
+                                  ? colorScheme.primary
+                                  : colorScheme.outline.withOpacity(0.3),
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              CheckboxListTile(
+                                value: isSelected,
+                                onChanged: (value) => _toggleSelection(index),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        otp.issuer.isNotEmpty
+                                            ? otp.issuer
+                                            : 'Без эмитента',
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        isExpanded
+                                            ? Icons.expand_less
+                                            : Icons.expand_more,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => _toggleExpanded(index),
+                                      tooltip: isExpanded
+                                          ? 'Свернуть'
+                                          : 'Развернуть',
+                                    ),
+                                  ],
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (otp.name.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text('Аккаунт: ${otp.name}'),
+                                    ],
+                                    const SizedBox(height: 8),
+
+                                    // TOTP код с таймером
+                                    if (otp.type.toUpperCase() == 'TOTP' &&
+                                        _currentCodes.containsKey(index)) ...[
+                                      InkWell(
+                                        onTap: () => _copyCodeToClipboard(
+                                          _currentCodes[index] ?? '',
+                                          otp.issuer.isNotEmpty
+                                              ? otp.issuer
+                                              : 'OTP',
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.primaryContainer,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border.all(
+                                              color: colorScheme.primary
+                                                  .withOpacity(0.3),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.lock_clock,
+                                                size: 20,
+                                                color: colorScheme
+                                                    .onPrimaryContainer,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                _currentCodes[index] ??
+                                                    '------',
+                                                style: theme
+                                                    .textTheme
+                                                    .headlineSmall
+                                                    ?.copyWith(
+                                                      fontFamily: 'monospace',
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: colorScheme
+                                                          .onPrimaryContainer,
+                                                      letterSpacing: 4,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Icon(
+                                                Icons.copy,
+                                                size: 16,
+                                                color: colorScheme
+                                                    .onPrimaryContainer
+                                                    .withOpacity(0.7),
+                                              ),
+                                              const Spacer(),
+                                              SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  value: _remainingSeconds / 30,
+                                                  strokeWidth: 3,
+                                                  color: colorScheme
+                                                      .onPrimaryContainer,
+                                                  backgroundColor: colorScheme
+                                                      .onPrimaryContainer
+                                                      .withOpacity(0.3),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '$_remainingSecondsс',
+                                                style: theme
+                                                    .textTheme
+                                                    .labelSmall
+                                                    ?.copyWith(
+                                                      color: colorScheme
+                                                          .onPrimaryContainer,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: [
+                                        _buildChip(
+                                          context,
+                                          otp.type,
+                                          Icons.security,
+                                        ),
+                                        _buildChip(
+                                          context,
+                                          otp.algorithm,
+                                          Icons.lock,
+                                        ),
+                                        _buildChip(
+                                          context,
+                                          '${otp.digits} цифр',
+                                          Icons.pin,
+                                        ),
+                                        if (otp.counter > 0)
+                                          _buildChip(
+                                            context,
+                                            'Счётчик: ${otp.counter}',
+                                            Icons.numbers,
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                secondary: Icon(
+                                  Icons.vpn_key,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                              if (isExpanded)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16.0),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerHighest,
+                                    borderRadius: const BorderRadius.only(
+                                      bottomLeft: Radius.circular(12),
+                                      bottomRight: Radius.circular(12),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Детали токена',
+                                        style: theme.textTheme.labelLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _buildDetailRow(
+                                        context,
+                                        'Эмитент',
+                                        otp.issuer.isNotEmpty
+                                            ? otp.issuer
+                                            : 'Не указан',
+                                      ),
+                                      _buildDetailRow(
+                                        context,
+                                        'Аккаунт',
+                                        otp.name.isNotEmpty
+                                            ? otp.name
+                                            : 'Не указан',
+                                      ),
+                                      _buildDetailRow(context, 'Тип', otp.type),
+                                      _buildDetailRow(
+                                        context,
+                                        'Алгоритм',
+                                        otp.algorithm,
+                                      ),
+                                      _buildDetailRow(
+                                        context,
+                                        'Цифр',
+                                        '${otp.digits}',
+                                      ),
+                                      if (otp.counter > 0)
+                                        _buildDetailRow(
+                                          context,
+                                          'Счётчик',
+                                          '${otp.counter}',
+                                        ),
+                                      const Divider(),
+                                      _buildDetailRow(
+                                        context,
+                                        'Секрет (Base32)',
+                                        otp.secretBase32,
+                                        monospace: true,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                ],
+              ),
+            ),
+            if (importedOtps.isNotEmpty)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8.0),
+                  color: colorScheme.surface, // Фон для кнопки
+                  child: SmoothButton(
+                    label: selectedIndices.isEmpty
+                        ? 'Выберите OTP для сохранения'
+                        : 'Сохранить выбранные (${selectedIndices.length})',
+                    onPressed: selectedIndices.isEmpty
+                        ? null
+                        : _saveSelectedOtps,
+                    type: SmoothButtonType.filled,
+                    loading: isSaving,
+                    icon: const Icon(Icons.save, size: 20),
+                    size: SmoothButtonSize.medium,
+                  ),
                 ),
               ),
-
-            // Кнопка сохранения
-            if (importedOtps.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              SmoothButton(
-                label: selectedIndices.isEmpty
-                    ? 'Выберите OTP для сохранения'
-                    : 'Сохранить выбранные (${selectedIndices.length})',
-                onPressed: selectedIndices.isEmpty ? null : _saveSelectedOtps,
-                type: SmoothButtonType.filled,
-                loading: isSaving,
-                icon: const Icon(Icons.save, size: 20),
-                size: SmoothButtonSize.large,
-              ),
-            ],
           ],
         ),
       ),

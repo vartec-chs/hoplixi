@@ -32,16 +32,31 @@
 		<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 		<uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
 		<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+		<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
 
     <application
         android:label="com.hoplixi.manager"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+
+				<receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+<receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+    <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+        <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+    </intent-filter>
+</receiver>
+
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+						 android:showWhenLocked="true"
+    android:turnScreenOn="true"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"

@@ -135,7 +135,7 @@ class _PasswordGeneratorState extends State<PasswordGenerator> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
       ),
       child: Column(
@@ -250,8 +250,8 @@ class _PasswordGeneratorState extends State<PasswordGenerator> {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
+              // color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: theme.colorScheme.outline.withOpacity(0.3),
               ),
@@ -301,7 +301,7 @@ class _PasswordGeneratorState extends State<PasswordGenerator> {
             onPressed: () {
               widget.onPasswordGenerated(generatedPassword);
             },
-            type: SmoothButtonType.filled,
+            type: SmoothButtonType.tonal,
             size: SmoothButtonSize.medium,
             isFullWidth: true,
             icon: const Icon(Icons.check, size: 18),

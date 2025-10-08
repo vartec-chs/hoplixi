@@ -207,7 +207,10 @@ class _CategorySelectorDialog extends StatelessWidget {
     return Dialog(
       insetPadding: const EdgeInsets.all(8),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
+        constraints: BoxConstraints(
+          maxWidth: 600,
+          maxHeight: MediaQuery.of(context).size.height * 0.88,
+        ),
         padding: const EdgeInsets.all(8),
         child: _CategorySelectorContent(
           categoryType: categoryType,

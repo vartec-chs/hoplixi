@@ -23,12 +23,8 @@ class PasswordFormScreen extends ConsumerStatefulWidget {
 }
 
 class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
-    with WidgetsBindingObserver, TickerProviderStateMixin {
+    with WidgetsBindingObserver {
   bool _showPasswordGenerator = false;
-  late AnimationController _fadeAnimationController;
-  late AnimationController _slideAnimationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
 
   // Контроллеры для полей ввода
   late final TextEditingController _nameController;
@@ -46,31 +42,6 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-    // Инициализация анимаций
-    _fadeAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _slideAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeAnimationController,
-        curve: Curves.easeOutQuart,
-      ),
-    );
-
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _slideAnimationController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
 
     // Инициализация контроллеров
     _nameController = TextEditingController();
@@ -92,19 +63,12 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
       if (widget.passwordId != null) {
         _loadPasswordForEditing();
       }
-      // Запускаем анимации появления
-      _fadeAnimationController.forward();
-      _slideAnimationController.forward();
     });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-
-    // Остановка и освобождение анимаций
-    _fadeAnimationController.dispose();
-    _slideAnimationController.dispose();
 
     // Удаляем слушатели
     _nameController.removeListener(_validateForm);
@@ -243,85 +207,60 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
     int delay = 0,
   }) {
     final theme = Theme.of(context);
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 300 + delay),
-          curve: Curves.easeOutCubic,
-          decoration: BoxDecoration(
-            color: backgroundColor ?? theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.shadow.withOpacity(0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: theme.colorScheme.shadow.withOpacity(0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(0.08),
-              width: 1,
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor ?? theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.shadow.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          BoxShadow(
+            color: theme.colorScheme.shadow.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: theme.colorScheme.outline.withOpacity(0.08),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Заголовок секции с анимацией
+            Row(
               children: [
-                // Заголовок секции с анимацией
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        icon,
-                        size: 20,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 20, color: theme.colorScheme.primary),
                 ),
-
-                const SizedBox(height: 20),
-                // Содержимое секции с задержкой анимации
-                TweenAnimationBuilder<double>(
-                  duration: Duration(milliseconds: 500 + delay),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  curve: Curves.easeOutQuart,
-                  builder: (context, value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 10 * (1 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: Column(children: children),
-                      ),
-                    );
-                  },
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
+
+            const SizedBox(height: 20),
+            // Содержимое секции с задержкой анимации
+            Column(children: children),
+          ],
         ),
       ),
     );
@@ -343,73 +282,42 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
         }
       },
       child: Scaffold(
-        extendBodyBehindAppBar: true,
-        appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: AppBar(
-            // backgroundColor: Colors.transparent,
-            elevation: 0,
-            title: Text(
-              notifier.screenTitle,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
-              ),
+        // extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          // backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            notifier.screenTitle,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface,
             ),
-            leading: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withOpacity(0.8),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.shadow.withOpacity(0.1),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: _cancel,
-                style: IconButton.styleFrom(
-                  foregroundColor: theme.colorScheme.onSurface,
-                ),
-              ),
-            ),
-            actions: [
-              // Кнопка избранного
-              Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: formState.isFavorite
-                      ? Colors.amber.withOpacity(0.2)
-                      : theme.colorScheme.surface.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.shadow.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: Icon(
-                    formState.isFavorite ? Icons.star : Icons.star_border,
-                    color: formState.isFavorite
-                        ? Colors.amber
-                        : theme.colorScheme.onSurface,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    notifier.toggleFavorite();
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
           ),
+          leading: BackButton(
+            color: theme.colorScheme.onSurface,
+            onPressed: _cancel,
+          ),
+          actions: [
+            // Кнопка избранного
+            Tooltip(
+              message: formState.isFavorite
+                  ? 'Убрать из избранного'
+                  : 'Добавить в избранное',
+              child: IconButton(
+                icon: Icon(
+                  formState.isFavorite ? Icons.star : Icons.star_border,
+                  color: formState.isFavorite
+                      ? Colors.amber
+                      : theme.colorScheme.onSurface,
+                  size: 20,
+                ),
+                onPressed: () {
+                  notifier.toggleFavorite();
+                },
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
         body: Form(
           key: _formKey,
@@ -418,12 +326,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
               // Основная скроллируемая область с полями
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    8,
-                    MediaQuery.of(context).padding.top + kToolbarHeight + 8,
-                    8,
-                    8,
-                  ),
+                  padding: EdgeInsets.all(8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -512,8 +415,6 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
                                 // Кнопка генератора паролей
                                 Container(
                                   decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: IconButton(
@@ -549,6 +450,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
                                     },
                                   ),
                                 ),
+                                const SizedBox(width: 4),
                               ],
                             ),
                           ),
@@ -558,9 +460,7 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
                       // Генератор паролей (показывается при нажатии на кнопку)
                       if (_showPasswordGenerator) ...[
                         const SizedBox(height: 16),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear,
+                        Container(
                           child: _buildSectionCard(
                             context: context,
                             title: 'Генератор паролей',
@@ -645,102 +545,46 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
 
               // Нижняя панель с кнопкой сохранения
               Container(
-                padding: EdgeInsets.fromLTRB(
-                  8,
-                  8,
-                  8,
-                  MediaQuery.of(context).padding.bottom + 8,
-                ),
-                child: Column(
-                  children: [
-                    Visibility(
-                      visible: !formState.isFormValid && !formState.isLoading,
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.errorContainer.withOpacity(
-                            0.1,
+                padding: EdgeInsets.all(8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: formState.isLoading || !formState.isFormValid
+                        ? null
+                        : LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              theme.colorScheme.primary,
+                              theme.colorScheme.primary.withOpacity(0.8),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: theme.colorScheme.error.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: theme.colorScheme.error,
-                              size: 20,
+                    boxShadow: formState.isLoading || !formState.isFormValid
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Заполните обязательные поля: название, пароль и логин или email',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.error,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
                             ),
                           ],
-                        ),
-                      ),
-                    ),
-                    // Индикатор требований для валидации
-
-                    // Стилизованная кнопка сохранения
-                    Visibility(
-                      visible: formState.isFormValid || formState.isLoading,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient:
-                              formState.isLoading || !formState.isFormValid
-                              ? null
-                              : LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    theme.colorScheme.primary,
-                                    theme.colorScheme.primary.withOpacity(0.8),
-                                  ],
-                                ),
-                          boxShadow:
-                              formState.isLoading || !formState.isFormValid
-                              ? null
-                              : [
-                                  BoxShadow(
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                  BoxShadow(
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.1),
-                                    blurRadius: 6,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                        ),
-                        child: SmoothButton(
-                          label: notifier.saveButtonText,
-                          onPressed:
-                              formState.isLoading || !formState.isFormValid
-                              ? null
-                              : _savePassword,
-                          loading: formState.isLoading,
-                          type: SmoothButtonType.filled,
-                          size: SmoothButtonSize.medium,
-                          isFullWidth: true,
-                          bold: true,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
+                  child: SmoothButton(
+                    label: notifier.saveButtonText,
+                    onPressed: formState.isLoading || !formState.isFormValid
+                        ? null
+                        : _savePassword,
+                    loading: formState.isLoading,
+                    type: SmoothButtonType.filled,
+                    size: SmoothButtonSize.medium,
+                    isFullWidth: true,
+                    bold: true,
+                  ),
                 ),
               ),
             ],
