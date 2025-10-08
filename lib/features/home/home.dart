@@ -399,8 +399,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
               leading: const Icon(Icons.settings),
               title: const Text('Настройки'),
               onTap: () {
-                // Navigator.pop(context);
-                // context.go(AppRoutes.settings);
+                Navigator.pop(context);
+                context.push(AppRoutes.settings);
               },
             ),
           ],
@@ -469,28 +469,15 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           visible: UniversalPlatform.isMobile,
           child: const ThemeSwitcher(size: 24),
         ),
-        // IconButton(
-        //   icon: const Icon(Icons.notifications_outlined),
-        //   onPressed: () {
-        //     ToastHelper.info(title: 'Функция в разработке');
-        //     // TODO: Показать уведомления
-        //   },
-        //   tooltip: 'Уведомления',
-        // ),
-        // IconButton(
-        //   icon: const Icon(Icons.tune),
-        //   onPressed: () {
-        //     Navigator.of(context).push(
-        //       MaterialPageRoute(
-        //         builder: (context) => UniversalPlatform.isMobile
-        //             ? const DynamicSettingsScreen()
-        //             : const SizedBox(),
-        //       ),
-        //     );
-        //   },
-        //   tooltip: 'Настройки',
-        // ),
-        // const SizedBox(width: 8),
+
+        IconButton(
+          icon: const Icon(Icons.tune),
+          onPressed: () {
+            context.push(AppRoutes.settings);
+          },
+          tooltip: 'Настройки',
+        ),
+        const SizedBox(width: 8),
       ],
     );
   }
@@ -762,49 +749,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
   Widget _buildCustomWidget(HomeWidgetData widget) {
     return const SliverToBoxAdapter(child: SizedBox.shrink());
-  }
-
-  /// Показывает ошибки если есть
-  Widget _buildErrorMessage() {
-    return SliverToBoxAdapter(
-      child: Consumer(
-        builder: (context, ref, child) {
-          final homeState = ref.watch(homeControllerProvider);
-
-          if (homeState.error == null) {
-            return const SizedBox.shrink();
-          }
-
-          // ToastHelper.error(title: homeState.error!);
-
-          return Container(
-            margin: const EdgeInsets.all(24),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    homeState.error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
   }
 
   Widget buildAppBar() {

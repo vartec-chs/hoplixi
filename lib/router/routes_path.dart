@@ -25,5 +25,5 @@ class AppRoutes {
   static const String demoNotification = '/demo-notification';
   static const String notesForm = '/dashboard/notes-form';
   static const String importOtpCodes = '/dashboard/import-otp-codes';
+  static const String settings = '/settings';
 }
-

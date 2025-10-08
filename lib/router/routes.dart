@@ -22,6 +22,7 @@ import 'package:hoplixi/features/password_manager/qr_scaner/qr_test_screen.dart'
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
 import 'package:hoplixi/features/setup/setup.dart';
+import 'package:hoplixi/features/settings/screens/settings_screen.dart';
 import 'package:hoplixi/router/router_provider.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'routes_path.dart';
@@ -55,7 +56,7 @@ final List<GoRoute> appRoutes = [
     path: AppRoutes.dashboard,
     builder: (context, state) => const DashboardScreen(),
   ),
- 
+
   GoRoute(
     path: AppRoutes.categoryManager,
     builder: (context, state) => const CategoriesManagerScreen(),
@@ -159,6 +160,11 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.otpForm,
     builder: (context, state) => const OtpForm(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.settings,
+    builder: (context, state) => const SettingsScreen(),
   ),
 ];
 

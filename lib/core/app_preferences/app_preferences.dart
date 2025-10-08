@@ -3,8 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'keys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
-
 /// 2) Сервис-обёртка
 class Prefs {
   static late SharedPreferences _prefs;
@@ -14,8 +12,6 @@ class Prefs {
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
   }
-
-  
 
   static bool contains(PrefKey key) => _prefs.containsKey(key.key);
 
