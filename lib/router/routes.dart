@@ -175,15 +175,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Hoplixi '),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            navigateBack(context);
-          },
-        ),
-      ),
+      appBar: AppBar(title: Text('Hoplixi')),
       body: SafeArea(
         child: Center(
           child: Text(title ?? '', style: const TextStyle(fontSize: 16)),

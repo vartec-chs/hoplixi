@@ -24,7 +24,7 @@ import 'routes.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final GoRouter router = GoRouter(
-    initialLocation: AppRoutes.setup,
+    initialLocation: AppRoutes.splash,
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
     observers: [GoTransition.observer, LoggingRouteObserver()],
     refreshListenable: ref.watch(routerRefreshProvider.notifier),
@@ -57,11 +57,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.home;
       }
 
-      // bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
-      // if (isFirstRun == false && state.fullPath == AppRoutes.setup) {
-      //   return AppRoutes
-      //       .home; // Если настройка завершена, перенаправляем на домашний экран
-      // }
+      bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
+      if (isFirstRun == false && state.fullPath == AppRoutes.setup || 
+          isFirstRun == null && state.fullPath == AppRoutes.splash) {
+        return AppRoutes
+            .home; // Если настройка завершена, перенаправляем на домашний экран
+      } else if (isFirstRun == true && state.fullPath != AppRoutes.setup) {
+        return AppRoutes
+            .setup; // Если настройка не завершена, перенаправляем на экран настройки
+      }
 
       return null;
     },
