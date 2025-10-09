@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
 
@@ -13,6 +14,8 @@ class Step4Confirmation extends ConsumerStatefulWidget {
 class _Step4ConfirmationState extends ConsumerState<Step4Confirmation> {
   final _formKey = GlobalKey<FormState>();
   bool _showPassword = false;
+  bool _copyPasswordCheck = false;
+  bool _copyPathCheck = false;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +71,20 @@ class _Step4ConfirmationState extends ConsumerState<Step4Confirmation> {
                 _showPassword = !_showPassword;
               });
             },
+            action2Icon: _copyPasswordCheck ? Icons.check : Icons.copy,
+            onAction2Pressed: () {
+              setState(() {
+                _copyPasswordCheck = true;
+              });
+              Clipboard.setData(ClipboardData(text: formState.masterPassword));
+              Future.delayed(const Duration(seconds: 1), () {
+                if (mounted) {
+                  setState(() {
+                    _copyPasswordCheck = false;
+                  });
+                }
+              });
+            },
           ),
           const SizedBox(height: 12),
           _buildSummaryCard(
@@ -77,6 +94,29 @@ class _Step4ConfirmationState extends ConsumerState<Step4Confirmation> {
                 ? formState.defaultStoragePath ?? 'Путь по умолчанию'
                 : formState.customStoragePath ?? 'Не выбран',
             icon: Icons.folder_outlined,
+            showActionIcon: !formState.useDefaultPath,
+            actionIcon: !formState.useDefaultPath && _copyPathCheck
+                ? Icons.check
+                : Icons.copy,
+            onActionPressed: () {
+              if (!formState.useDefaultPath &&
+                  formState.customStoragePath != null) {
+                setState(() {
+                  _copyPathCheck = true;
+                });
+                Clipboard.setData(
+                  ClipboardData(text: formState.customStoragePath!),
+                );
+               
+                Future.delayed(const Duration(seconds: 1), () {
+                  if (mounted) {
+                    setState(() {
+                      _copyPathCheck = false;
+                    });
+                  }
+                });
+              }
+            },
           ),
           const SizedBox(height: 24),
           Container(
@@ -85,7 +125,7 @@ class _Step4ConfirmationState extends ConsumerState<Step4Confirmation> {
               color: Theme.of(
                 context,
               ).colorScheme.primaryContainer.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
               ),
@@ -125,13 +165,15 @@ class _Step4ConfirmationState extends ConsumerState<Step4Confirmation> {
     required IconData icon,
     bool showActionIcon = false,
     IconData? actionIcon,
+    IconData? action2Icon,
+    VoidCallback? onAction2Pressed,
     VoidCallback? onActionPressed,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         // color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
@@ -139,13 +181,13 @@ class _Step4ConfirmationState extends ConsumerState<Step4Confirmation> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(8),
+              // color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
               icon,
               color: Theme.of(context).colorScheme.primary,
-              size: 20,
+              size: 24,
             ),
           ),
           const SizedBox(width: 16),
@@ -176,6 +218,12 @@ class _Step4ConfirmationState extends ConsumerState<Step4Confirmation> {
               icon: Icon(actionIcon),
               onPressed: onActionPressed,
               tooltip: _showPassword ? 'Скрыть пароль' : 'Показать пароль',
+            ),
+          if (action2Icon != null && onAction2Pressed != null)
+            IconButton(
+              icon: Icon(action2Icon),
+              onPressed: onAction2Pressed,
+              tooltip: 'Дополнительное действие',
             ),
         ],
       ),

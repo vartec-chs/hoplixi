@@ -60,6 +60,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             // Основной контент с PageView
             Expanded(
               child: PageView(
+                
                 controller: pageController,
                 onPageChanged: (index) {
                   ref.read(setupProvider.notifier).goToScreen(index);
@@ -238,12 +239,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     showDialog(
       context: context,
       barrierDismissible: false, // Не позволять закрыть диалог тапом вне
+
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           insetPadding: const EdgeInsets.all(16),
           title: const Text('Выбор базы данных'),
           content: const Text(
             'Хотите создать новую базу данных или открыть существующую?',
+            style: TextStyle(fontSize: 16),
           ),
           actions: [
             SmoothButton(
@@ -254,7 +257,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 await Prefs.set<bool>(Keys.isFirstRun, false);
                 context.go(AppRoutes.createStore);
               },
-              label: 'Создать новую',
+              label: 'Создать',
               type: SmoothButtonType.filled,
             ),
             const SizedBox(height: 8),

@@ -184,6 +184,8 @@ class CreateStoreController extends StateNotifier<CreateStoreFormState> {
 
     if (password.isEmpty) {
       errors['masterPassword'] = 'Мастер-пароль обязателен';
+    } else if (password.length < 4) {
+      errors['masterPassword'] = 'Пароль должен содержать минимум 4 символа';
     }
     // } else if (password.length < 1) {
     //   errors['masterPassword'] = 'Пароль должен содержать минимум 1 символ';

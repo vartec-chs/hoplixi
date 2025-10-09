@@ -578,6 +578,9 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
                           child: Column(
                             children: [
                               CheckboxListTile(
+                                checkboxShape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
                                 value: isSelected,
                                 onChanged: (value) => _toggleSelection(index),
                                 title: Row(
@@ -629,8 +632,8 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 8,
+                                            horizontal: 4,
+                                            vertical: 4,
                                           ),
                                           decoration: BoxDecoration(
                                             color: colorScheme.primaryContainer,
@@ -667,6 +670,8 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
                                                           .onPrimaryContainer,
                                                       letterSpacing: 4,
                                                     ),
+                                                softWrap: true,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                               const SizedBox(width: 8),
                                               Icon(

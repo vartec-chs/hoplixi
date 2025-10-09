@@ -383,9 +383,9 @@ class _CategoriesManagerScreenState
   Widget _buildListView(List<store.Category> categories) {
     return ListView.separated(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(4),
       itemCount: categories.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
+      separatorBuilder: (context, index) => const SizedBox(height: 4),
       itemBuilder: (context, index) {
         final category = categories[index];
         return _buildCategoryListTile(category);
@@ -415,6 +415,7 @@ class _CategoriesManagerScreenState
     final color = _parseColor(category.color);
 
     return Card(
+      elevation: 0,
       child: ListTile(
         leading: CategoryIconWithData(
           category: category,

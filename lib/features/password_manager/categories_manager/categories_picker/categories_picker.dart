@@ -241,10 +241,11 @@ class _CategorySelectorBottomSheet extends StatelessWidget {
       initialChildSize: 0.7,
       minChildSize: 0.5,
       maxChildSize: 0.9,
+
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: _CategorySelectorContent(
@@ -444,7 +445,7 @@ class _CategorySelectorContentState
 
         // Поле поиска
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: PrimaryTextField(
             controller: _searchController,
             hintText: 'Поиск категорий...',
@@ -480,7 +481,7 @@ class _CategorySelectorContentState
               ? const Center(child: Text('Категории не найдены'))
               : ListView.builder(
                   controller: widget.scrollController ?? _listScrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   itemCount: _categories.length + (_hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == _categories.length) {
@@ -500,6 +501,10 @@ class _CategorySelectorContentState
                         _currentSelectedIds.length < widget.maxSelection;
 
                     return Card(
+                      elevation: 0,
+                      color: Theme.of(context).colorScheme.secondaryContainer
+                          .withOpacity(isSelected ? 0.3 : 0.1),
+
                       child: ListTile(
                         title: Text(category.name),
                         subtitle: category.description?.isNotEmpty == true
@@ -541,27 +546,29 @@ class _CategorySelectorContentState
         ),
 
         // Кнопки действий
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            spacing: 8,
-            children: [
-              Expanded(
-                child: SmoothButton(
-                  onPressed: _cancelSelection,
-                  label: 'Отмена',
-                  type: SmoothButtonType.outlined,
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              spacing: 8,
+              children: [
+                Expanded(
+                  child: SmoothButton(
+                    onPressed: _cancelSelection,
+                    label: 'Отмена',
+                    type: SmoothButtonType.outlined,
+                  ),
                 ),
-              ),
 
-              Expanded(
-                child: SmoothButton(
-                  onPressed: _confirmSelection,
-                  label: 'Подтвердить',
-                  type: SmoothButtonType.filled,
+                Expanded(
+                  child: SmoothButton(
+                    onPressed: _confirmSelection,
+                    label: 'Подтвердить',
+                    type: SmoothButtonType.filled,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

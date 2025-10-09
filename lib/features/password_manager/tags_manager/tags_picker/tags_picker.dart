@@ -251,7 +251,7 @@ class _TagSelectorBottomSheet extends StatelessWidget {
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: _TagSelectorContent(
@@ -568,27 +568,29 @@ class _TagSelectorContentState extends ConsumerState<_TagSelectorContent> {
         ),
 
         // Кнопки действий
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            spacing: 8,
-            children: [
-              Expanded(
-                child: SmoothButton(
-                  onPressed: _cancelSelection,
-                  type: SmoothButtonType.outlined,
-                  label: 'Отмена',
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              spacing: 8,
+              children: [
+                Expanded(
+                  child: SmoothButton(
+                    onPressed: _cancelSelection,
+                    type: SmoothButtonType.outlined,
+                    label: 'Отмена',
+                  ),
                 ),
-              ),
 
-              Expanded(
-                child: SmoothButton(
-                  onPressed: _confirmSelection,
-                  type: SmoothButtonType.filled,
-                  label: 'Подтвердить',
+                Expanded(
+                  child: SmoothButton(
+                    onPressed: _confirmSelection,
+                    type: SmoothButtonType.filled,
+                    label: 'Подтвердить',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

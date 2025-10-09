@@ -49,13 +49,16 @@ class _Step2SecurityState extends ConsumerState<Step2Security> {
           CustomPasswordField(
             controller: widget.masterPasswordController,
             label: 'Мастер-пароль',
-            helperText: 'Минимум 1 символ',
+            helperText: 'Минимум 4 символа',
             errorText: formState.fieldErrors['masterPassword'],
             onChanged: controller.updateMasterPassword,
             autofocus: true,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Мастер-пароль обязателен';
+              }
+              if (value.length < 4) {
+                return 'Пароль должен содержать минимум 4 символа';
               }
               return null;
             },

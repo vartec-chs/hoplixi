@@ -127,7 +127,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
 
   Widget _buildHeader(BuildContext context, bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
@@ -331,7 +331,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
 
   Widget _buildActions(BuildContext context, bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      padding: EdgeInsets.all(isMobile ? 8 : 24),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
@@ -453,6 +453,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.all(8),
         title: const Text('Выберите цвет'),
         content: SingleChildScrollView(
           child: ColorPicker(
@@ -465,13 +466,14 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
           ),
         ),
         actions: [
-          TextButton(
+          SmoothButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
+            label: 'Отмена',
+            type: SmoothButtonType.outlined,
           ),
-          FilledButton(
+          SmoothButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Выбрать'),
+            label: 'Выбрать',
           ),
         ],
       ),
@@ -528,9 +530,10 @@ Future<void> showCategoryFormModal({
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      showDragHandle: true,
-      builder: (context) =>
-          CategoryFormModal(category: category, onSaved: onSaved),
+
+      builder: (context) => SafeArea(
+        child: CategoryFormModal(category: category, onSaved: onSaved),
+      ),
     );
   } else {
     // На десктопе/планшете показываем диалог

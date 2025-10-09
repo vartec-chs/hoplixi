@@ -263,7 +263,7 @@ class RecentDatabaseCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            'Автоматическое открытие базы данных...',
+            'Открытие...',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.primary,
               fontWeight: FontWeight.w500,

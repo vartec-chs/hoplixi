@@ -426,11 +426,7 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
           IconButton(
             onPressed: _cancel,
             icon: const Icon(Icons.close),
-            style: IconButton.styleFrom(
-              backgroundColor: theme.colorScheme.errorContainer.withOpacity(
-                0.1,
-              ),
-            ),
+            style: IconButton.styleFrom(),
           ),
         ],
       ),
@@ -654,33 +650,35 @@ class _TagFilterModalState extends ConsumerState<TagFilterModal> {
   }
 
   Widget _buildActionButtons(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: theme.dividerColor, width: 1)),
-      ),
-      child: Row(
-        children: [
-          // Информация о выбранных тегах
-          Expanded(
-            child: Text(
-              'Выбрано: ${_localSelectedTags.length} тегов',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.disabledColor,
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: theme.dividerColor, width: 1)),
+        ),
+        child: Row(
+          children: [
+            // Информация о выбранных тегах
+            Expanded(
+              child: Text(
+                'Выбрано: ${_localSelectedTags.length} тегов',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.disabledColor,
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
 
-          // Кнопка отмены
-          TextButton(onPressed: _cancel, child: const Text('Отмена')),
+            // Кнопка отмены
+            TextButton(onPressed: _cancel, child: const Text('Отмена')),
 
-          const SizedBox(width: 8),
+            const SizedBox(width: 8),
 
-          // Кнопка применения
-          SmoothButton(label: 'Применить', onPressed: _applyFilter),
-        ],
+            // Кнопка применения
+            SmoothButton(label: 'Применить', onPressed: _applyFilter),
+          ],
+        ),
       ),
     );
   }

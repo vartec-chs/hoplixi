@@ -109,6 +109,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const SizedBox(height: 20),
               // Анимированный логотип
               AnimatedBuilder(
                 animation: _logoController,
