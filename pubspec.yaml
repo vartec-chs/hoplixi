@@ -113,6 +113,7 @@ dependencies:
 
   zxing2: ^0.2.4
   protobuf: ^5.0.0
+  flutter_confetti: ^0.5.1
   
 
 

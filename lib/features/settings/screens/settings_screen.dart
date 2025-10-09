@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/app_preferences/app_preferences.dart';
 import 'package:hoplixi/core/app_preferences/keys.dart';
 import 'package:hoplixi/features/global/widgets/index.dart';
-import 'package:hoplixi/features/settings/widgets/notification_settings_widget.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});

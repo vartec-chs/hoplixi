@@ -229,19 +229,10 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
     final permissionStates = ref.watch(permissionsProvider);
 
     return Scaffold(
-      body: Container(
+      body: SizedBox(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.lightColors.primary.withOpacity(0.05),
-              AppColors.lightColors.secondary.withOpacity(0.05),
-            ],
-          ),
-        ),
+
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -568,6 +559,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
     logDebug('Запрос разрешения: $permission');
 
     final status = await permission.status;
+    if (!mounted) return;
 
     if (status.isPermanentlyDenied) {
       // Показать диалог для перехода в настройки
@@ -583,6 +575,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
           if (androidPlugin != null) {
             final granted = await androidPlugin
                 .requestNotificationsPermission();
+            if (!mounted) return;
             if (granted != null) {
               final newStatus = granted
                   ? PermissionStatus.granted
@@ -613,8 +606,10 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
           await ref
               .read(permissionsProvider.notifier)
               .requestPermission(permission);
+          if (!mounted) return;
 
           final newStatus = await permission.status;
+          if (!mounted) return;
           if (newStatus.isGranted) {
             ToastHelper.success(title: 'Разрешение предоставлено');
           } else if (newStatus.isDenied) {
@@ -645,21 +640,24 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
           logDebug(
             'Пользователь отменил запрос разрешения $permission на этапе PHASE_CLIENT_ALREADY_HIDDEN',
           );
-          ToastHelper.info(title: 'Запрос разрешения отменен пользователем');
+          if (mounted)
+            ToastHelper.info(title: 'Запрос разрешения отменен пользователем');
         } else if (errorMessage.contains('onCancelled')) {
           // Общая отмена пользователем
           logDebug('Пользователь отменил запрос разрешения $permission');
-          ToastHelper.info(title: 'Запрос разрешения отменен');
+          if (mounted) ToastHelper.info(title: 'Запрос разрешения отменен');
         } else if (errorMessage.contains('Permission denied')) {
           // Разрешение отклонено системой
           logDebug('Разрешение $permission отклонено системой');
-          ToastHelper.warning(title: 'Разрешение отклонено системой');
+          if (mounted)
+            ToastHelper.warning(title: 'Разрешение отклонено системой');
         } else {
           // Неизвестная ошибка
           logDebug(
             'Неизвестная ошибка при запросе разрешения $permission: $errorMessage',
           );
-          ToastHelper.error(title: 'Ошибка при запросе разрешения');
+          if (mounted)
+            ToastHelper.error(title: 'Ошибка при запросе разрешения');
         }
       }
     }
@@ -674,6 +672,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
       await ref
           .read(permissionsProvider.notifier)
           .requestAllPermissions(permissions);
+      if (!mounted) return;
 
       // Специальная обработка для уведомлений
       final androidPlugin = flutterLocalNotificationsPlugin
@@ -682,6 +681,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
           >();
       if (androidPlugin != null) {
         final granted = await androidPlugin.requestNotificationsPermission();
+        if (!mounted) return;
         if (granted != null) {
           final newStatus = granted
               ? PermissionStatus.granted
@@ -692,7 +692,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
         }
       }
 
-      ToastHelper.info(title: 'Проверка разрешений завершена');
+      if (mounted) ToastHelper.info(title: 'Проверка разрешений завершена');
     } catch (e) {
       final errorMessage = e.toString();
       logDebug('Ошибка при запросе всех разрешений: $errorMessage');
@@ -701,13 +701,15 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
         logDebug(
           'Пользователь отменил запрос разрешений на этапе PHASE_CLIENT_ALREADY_HIDDEN',
         );
-        ToastHelper.info(title: 'Запрос разрешений отменен пользователем');
+        if (mounted)
+          ToastHelper.info(title: 'Запрос разрешений отменен пользователем');
       } else if (errorMessage.contains('onCancelled')) {
         logDebug('Пользователь отменил запрос разрешений');
-        ToastHelper.info(title: 'Запрос разрешений отменен');
+        if (mounted) ToastHelper.info(title: 'Запрос разрешений отменен');
       } else {
         logDebug('Неизвестная ошибка при запросе разрешений: $errorMessage');
-        ToastHelper.warning(title: 'Не все разрешения были обработаны');
+        if (mounted)
+          ToastHelper.warning(title: 'Не все разрешения были обработаны');
       }
     }
   }

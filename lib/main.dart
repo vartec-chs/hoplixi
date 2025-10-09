@@ -102,7 +102,7 @@ Future<void> main() async {
                   ? Alignment.bottomRight
                   : Alignment.topCenter,
             ),
-            child: App(),
+            child: const App(),
           ),
         ),
       );

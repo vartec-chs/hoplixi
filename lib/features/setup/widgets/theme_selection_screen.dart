@@ -71,87 +71,73 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen>
     final themeAsync = ref.watch(themeProvider);
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.lightColors.primary.withOpacity(0.05),
-              AppColors.lightColors.secondary.withOpacity(0.05),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      // Заголовок
-                      _buildHeader(),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Заголовок
+                    _buildHeader(),
 
-                      const SizedBox(height: 60),
+                    const SizedBox(height: 60),
 
-                      // Карточки выбора темы
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: themeAsync.when(
-                          data: (currentTheme) => [
-                            _buildThemeCard(
-                              title: 'Светлая тема',
-                              description:
-                                  'Классический светлый интерфейс для комфортной работы днём',
-                              icon: Icons.light_mode_rounded,
-                              themeMode: ThemeMode.light,
-                              currentTheme: currentTheme,
-                              delay: 0,
-                            ),
+                    // Карточки выбора темы
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: themeAsync.when(
+                        data: (currentTheme) => [
+                          _buildThemeCard(
+                            title: 'Светлая тема',
+                            description:
+                                'Классический светлый интерфейс для комфортной работы днём',
+                            icon: Icons.light_mode_rounded,
+                            themeMode: ThemeMode.light,
+                            currentTheme: currentTheme,
+                            delay: 0,
+                          ),
 
-                            const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                            _buildThemeCard(
-                              title: 'Тёмная тема',
-                              description:
-                                  'Современный тёмный интерфейс для работы в условиях слабого освещения',
-                              icon: Icons.dark_mode_rounded,
-                              themeMode: ThemeMode.dark,
-                              currentTheme: currentTheme,
-                              delay: 200,
-                            ),
+                          _buildThemeCard(
+                            title: 'Тёмная тема',
+                            description:
+                                'Современный тёмный интерфейс для работы в условиях слабого освещения',
+                            icon: Icons.dark_mode_rounded,
+                            themeMode: ThemeMode.dark,
+                            currentTheme: currentTheme,
+                            delay: 200,
+                          ),
 
-                            const SizedBox(height: 24),
+                          const SizedBox(height: 24),
 
-                            _buildThemeCard(
-                              title: 'Системная тема',
-                              description:
-                                  'Автоматическое переключение в зависимости от настроек устройства',
-                              icon: Icons.auto_mode_rounded,
-                              themeMode: ThemeMode.system,
-                              currentTheme: currentTheme,
-                              delay: 400,
-                            ),
+                          _buildThemeCard(
+                            title: 'Системная тема',
+                            description:
+                                'Автоматическое переключение в зависимости от настроек устройства',
+                            icon: Icons.auto_mode_rounded,
+                            themeMode: ThemeMode.system,
+                            currentTheme: currentTheme,
+                            delay: 400,
+                          ),
 
-                            // Дополнительное пространство в конце для лучшей прокрутки
-                            const SizedBox(height: 40),
-                          ],
-                          loading: () => [
-                            const Center(child: CircularProgressIndicator()),
-                          ],
-                          error: (error, stack) => [
-                            Text('Ошибка загрузки темы: $error'),
-                          ],
-                        ),
+                          // Дополнительное пространство в конце для лучшей прокрутки
+                          // const SizedBox(height: 40),
+                        ],
+                        loading: () => [
+                          const Center(child: CircularProgressIndicator()),
+                        ],
+                        error: (error, stack) => [
+                          Text('Ошибка загрузки темы: $error'),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -350,6 +336,8 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen>
         await themeNotifier.setSystemTheme();
         break;
     }
+
+    if (!mounted) return;
 
     // Отметить экран как завершенный
     ref

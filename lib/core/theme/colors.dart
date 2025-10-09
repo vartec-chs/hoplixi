@@ -34,4 +34,8 @@ abstract final class AppColors {
 
   /// Цвет поверхности для тёмной темы
   static const Color darkSurfaceTint = Color(0xFF005BFF);
+
+  //primary: Color(0xFF005BFF),
+
+  static const Color primary = Color(0xFF005BFF);
 }
