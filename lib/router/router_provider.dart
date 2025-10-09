@@ -57,7 +57,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.home;
       }
 
-      bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun) ?? true;
+      bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
+      if (isFirstRun == null) {
+        isFirstRun =
+            true; // Если значение не установлено, считаем, что это первый запуск
+      }
+      logInfo(
+        'Redirect check',
+        tag: 'GoRouter',
+        data: {'isFirstRun': isFirstRun, 'currentPath': state.fullPath},
+      );
       if (isFirstRun == false && state.fullPath == AppRoutes.splash) {
         return AppRoutes
             .home; // Если настройка завершена, перенаправляем на домашний экран
