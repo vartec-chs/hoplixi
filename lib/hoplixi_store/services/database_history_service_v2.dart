@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/core/lib/box_db_new/index.dart';
-import '../../core/logger/app_logger.dart';
 import '../models/database_entry.dart';
 import 'service_results.dart';
 

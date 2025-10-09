@@ -106,7 +106,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
     logInfo('Приложение приостановлено', tag: 'AppLifecycleNotifier');
     final context = navigatorKey.currentContext;
     if (context != null &&
-        GoRouter.of(context!).state.path!.startsWith('/dashboard')) {
+        GoRouter.of(context).state.path!.startsWith('/dashboard')) {
       // Здесь можно выполнить действия с контекстом, если он доступен
 
       _startInactivityTimer();
@@ -120,7 +120,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
     final context = navigatorKey.currentContext;
 
     if (context != null &&
-        GoRouter.of(context!).state.path!.startsWith('/dashboard')) {
+        GoRouter.of(context).state.path!.startsWith('/dashboard')) {
       // Здесь можно выполнить действия с контекстом, если он доступен
 
       logInfo(
@@ -137,7 +137,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
     logInfo('Приложение скрыто', tag: 'AppLifecycleNotifier');
     final context = navigatorKey.currentContext;
     if (context != null &&
-        GoRouter.of(context!).state.path!.startsWith('/dashboard')) {
+        GoRouter.of(context).state.path!.startsWith('/dashboard')) {
       _startInactivityTimer();
     }
     state = state.copyWith(isActive: false);

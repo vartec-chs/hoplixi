@@ -8,17 +8,14 @@ import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/services/database_connection_service.dart';
 import 'package:hoplixi/hoplixi_store/services/database_history_service_v2.dart';
 import 'package:hoplixi/hoplixi_store/services/database_validation_service.dart';
-import 'package:hoplixi/core/lib/box_db_new/index.dart';
 import 'package:hoplixi/core/index.dart';
 
 import 'models/db_state.dart';
 import 'dto/db_dto.dart';
 import 'dto/database_file_info.dart';
 import 'hoplixi_store.dart';
-import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:path/path.dart' as p;
 
 class HoplixiStoreManager {

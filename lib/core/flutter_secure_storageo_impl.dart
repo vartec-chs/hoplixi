@@ -1,5 +1,4 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:riverpod/riverpod.dart';
 
 abstract class SecureStorage {
   /// Прочитать значение по ключу

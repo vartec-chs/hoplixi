@@ -34,7 +34,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             // Режим темы
             DropdownButtonFormField<String>(
-              value:
+              initialValue:
                   [
                     'light',
                     'dark',
@@ -59,7 +59,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             // Режим домашнего экрана
             DropdownButtonFormField<String>(
-              value:
+              initialValue:
                   Prefs.get<String>(Keys.homeScreenMode) ??
                   HomeScreenMode.singleDB.toString(),
               items: HomeScreenMode.values.map((mode) {

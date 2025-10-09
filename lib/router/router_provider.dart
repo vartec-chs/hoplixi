@@ -1,5 +1,5 @@
 /// Библиотека провайдеров для роутера
-library router_provider;
+library;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
