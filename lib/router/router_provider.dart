@@ -57,12 +57,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.home;
       }
 
-      bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun);
-      if (isFirstRun == false && state.fullPath == AppRoutes.setup || 
-          isFirstRun == null && state.fullPath == AppRoutes.splash) {
+      bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun) ?? true;
+      if (isFirstRun == false && state.fullPath == AppRoutes.splash) {
         return AppRoutes
             .home; // Если настройка завершена, перенаправляем на домашний экран
-      } else if (isFirstRun == true && state.fullPath != AppRoutes.setup) {
+      } else if (isFirstRun == true && state.fullPath != AppRoutes.splash) {
         return AppRoutes
             .setup; // Если настройка не завершена, перенаправляем на экран настройки
       }
