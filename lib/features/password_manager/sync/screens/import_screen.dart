@@ -258,8 +258,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                 ),
               ),
 
-            const SizedBox(height: 16),
-
             // Поле для пароля (если архив защищён)
             if (_selectedArchivePath != null && _importedStoragePath == null)
               Card(
