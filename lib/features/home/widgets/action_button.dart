@@ -10,7 +10,7 @@ class ActionButton extends StatelessWidget {
     this.width = 150,
     this.description,
     this.height = 150,
-    this.borderRadius = 12,
+    this.borderRadius = 16,
     this.isWidthFull = false,
     super.key,
   });

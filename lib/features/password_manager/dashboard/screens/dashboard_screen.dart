@@ -153,12 +153,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       'Вы хотите закрыть приложение? Это закроет базу данных.',
                     ),
                     actions: [
-                      TextButton(
-                        child: const Text('Отмена'),
+                      SmoothButton(
+                        type: SmoothButtonType.text,
+                        label: 'Отмена',
                         onPressed: () => Navigator.pop(context, false),
                       ),
-                      TextButton(
-                        child: const Text('Закрыть'),
+                      SmoothButton(
+                        label: 'Закрыть',
                         onPressed: () => Navigator.pop(context, true),
                       ),
                     ],
@@ -264,173 +265,192 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       builder: (context, ref, child) {
         final currentEntityType = ref.watch(currentEntityTypeProvider);
         return Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              // Header
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.security,
-                      size: 48,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Hoplixi',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    Text(
-                      'Менеджер паролей',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withValues(alpha: 0.9),
+          child: SafeArea(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                // Header
+                DrawerHeader(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.security,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
-                    ),
-                    const SizedBox(height: 4),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Hoplixi',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      Text(
+                        'Менеджер паролей',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withValues(alpha: 0.9),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
 
-                    const ThemeSwitcher(size: 24),
-                  ],
+                      const ThemeSwitcher(size: 24),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Навигация по сущностям
-              ListTile(
-                leading: const Icon(Icons.dashboard),
-                title: const Text('Дашборд'),
-                selected: true,
-                onTap: () {
-                  Navigator.pop(context);
-                  logInfo('DashboardScreen: Уже на дашборде');
-                },
-              ),
+                // Навигация по сущностям
+                ListTile(
+                  leading: const Icon(Icons.dashboard),
+                  title: const Text('Дашборд'),
+                  selected: true,
+                  onTap: () {
+                    Navigator.pop(context);
+                    logInfo('DashboardScreen: Уже на дашборде');
+                  },
+                ),
 
-              const CloseDatabaseButton(useListTile: true),
+                const CloseDatabaseButton(useListTile: true),
 
-              const Divider(),
+                const Divider(),
 
-              // Управление паролями
-              ListTile(
-                leading: const Icon(Icons.password),
-                selected: currentEntityType == EntityType.password,
-                title: const Text('Пароли'),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref
-                      .read(entityTypeControllerProvider.notifier)
-                      .changeEntityType(EntityType.password);
-                  logInfo('DashboardScreen: Переход к паролям');
-                },
-              ),
+                // Управление паролями
+                ListTile(
+                  leading: const Icon(Icons.password),
+                  selected: currentEntityType == EntityType.password,
+                  title: const Text('Пароли'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ref
+                        .read(entityTypeControllerProvider.notifier)
+                        .changeEntityType(EntityType.password);
+                    logInfo('DashboardScreen: Переход к паролям');
+                  },
+                ),
 
-              // Управление заметками
-              ListTile(
-                leading: const Icon(Icons.note),
-                selected: currentEntityType == EntityType.note,
-                title: const Text('Заметки'),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref
-                      .read(entityTypeControllerProvider.notifier)
-                      .changeEntityType(EntityType.note);
-                  logInfo('DashboardScreen: Переход к заметкам');
-                },
-              ),
+                // Управление заметками
+                ListTile(
+                  leading: const Icon(Icons.note),
+                  selected: currentEntityType == EntityType.note,
+                  title: const Text('Заметки'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ref
+                        .read(entityTypeControllerProvider.notifier)
+                        .changeEntityType(EntityType.note);
+                    logInfo('DashboardScreen: Переход к заметкам');
+                  },
+                ),
 
-              // Управление OTP
-              ListTile(
-                leading: const Icon(Icons.security),
-                selected: currentEntityType == EntityType.otp,
-                title: const Text('OTP'),
-                onTap: () {
-                  Navigator.pop(context);
-                  ref
-                      .read(entityTypeControllerProvider.notifier)
-                      .changeEntityType(EntityType.otp);
-                  logInfo('DashboardScreen: Переход к OTP');
-                },
-              ),
+                // Управление OTP
+                ListTile(
+                  leading: const Icon(Icons.security),
+                  selected: currentEntityType == EntityType.otp,
+                  title: const Text('OTP'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    ref
+                        .read(entityTypeControllerProvider.notifier)
+                        .changeEntityType(EntityType.otp);
+                    logInfo('DashboardScreen: Переход к OTP');
+                  },
+                ),
 
-              const Divider(),
+                const Divider(),
 
-              // Управление категориями
-              ListTile(
-                leading: const Icon(Icons.folder),
-                title: const Text('Категории'),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push(AppRoutes.categoryManager);
-                  logInfo('DashboardScreen: Переход к категориям');
-                },
-              ),
+                // Управление категориями
+                ListTile(
+                  leading: const Icon(Icons.folder),
+                  title: const Text('Категории'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(AppRoutes.categoryManager);
+                    logInfo('DashboardScreen: Переход к категориям');
+                  },
+                ),
 
-              // Управление тегами
-              ListTile(
-                leading: const Icon(Icons.local_offer),
-                title: const Text('Теги'),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push(AppRoutes.tagsManager);
-                  logInfo('DashboardScreen: Переход к тегам');
-                },
-              ),
+                // Управление тегами
+                ListTile(
+                  leading: const Icon(Icons.local_offer),
+                  title: const Text('Теги'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(AppRoutes.tagsManager);
+                    logInfo('DashboardScreen: Переход к тегам');
+                  },
+                ),
 
-              // Управление иконками
-              ListTile(
-                leading: const Icon(Icons.image),
-                title: const Text('Иконки'),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push(AppRoutes.iconManager);
-                  logInfo('DashboardScreen: Переход к иконкам');
-                },
-              ),
+                // Управление иконками
+                ListTile(
+                  leading: const Icon(Icons.image),
+                  title: const Text('Иконки'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push(AppRoutes.iconManager);
+                    logInfo('DashboardScreen: Переход к иконкам');
+                  },
+                ),
 
-              const Divider(),
+                const Divider(),
 
-              // Настройки
-              ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('Настройки'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // context.go('/settings');
-                  logInfo('DashboardScreen: Переход к настройкам');
-                },
-              ),
+                // // Настройки
+                // ListTile(
+                //   leading: const Icon(Icons.settings),
+                //   title: const Text('Настройки'),
+                //   onTap: () {
+                //     Navigator.pop(context);
+                //     // context.go('/settings');
+                //     logInfo('DashboardScreen: Переход к настройкам');
+                //   },
+                // ),
 
-              // Помощь
-              ListTile(
-                leading: const Icon(Icons.help),
-                title: const Text('Помощь'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // context.go('/help');
-                  logInfo('DashboardScreen: Переход к помощи');
-                },
-              ),
+                // // Помощь
+                // ListTile(
+                //   leading: const Icon(Icons.help),
+                //   title: const Text('Помощь'),
+                //   onTap: () {
+                //     Navigator.pop(context);
+                //     // context.go('/help');
+                //     logInfo('DashboardScreen: Переход к помощи');
+                //   },
+                // ),
 
-              // О приложении
-              ListTile(
-                leading: const Icon(Icons.info),
-                title: const Text('О приложении'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // context.go('/about');
-                  logInfo('DashboardScreen: Переход к информации о приложении');
-                },
-              ),
-            ],
+                // О приложении
+                ListTile(
+                  leading: const Icon(Icons.info),
+                  title: const Text('О приложении'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    showAboutDialog(
+                      context: context,
+                      applicationName: 'Hoplixi',
+                      applicationVersion: '1.0.0',
+                      applicationLegalese: '© 2025 Hoplixi',
+                      applicationIcon: Image.asset(
+                        'assets/img/logo.png',
+                        width: 48,
+                        height: 48,
+                      ),
+                      children: [
+                        const Text(
+                          'Hoplixi - это безопасный и удобный менеджер паролей с открытым исходным кодом, разработанный для защиты ваших данных.',
+                        ),
+                      ],
+                    );
+                    logInfo(
+                      'DashboardScreen: Переход к информации о приложении',
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },

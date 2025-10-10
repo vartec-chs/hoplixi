@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/theme/index.dart';
+import 'package:hoplixi/features/global/providers/biometric_auto_open_provider.dart';
 import 'package:hoplixi/features/global/providers/biometric_provider.dart';
 import 'package:hoplixi/hoplixi_store/services/biometric_service.dart';
 import 'package:universal_platform/universal_platform.dart';
@@ -569,8 +570,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
   // Обработчики событий
   Future<void> _handleAutoOpen() async {
     // Проверяем настройку биометрии
-    final biometricEnabled =
-        Prefs.get<bool>(Keys.biometricForAutoOpen) ?? false;
+    final biometricEnabled = await ref.read(biometricAutoOpenProvider.future);
 
     if (biometricEnabled) {
       // Проверяем статус биометрии

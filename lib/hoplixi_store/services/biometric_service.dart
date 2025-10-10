@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../core/logger/app_logger.dart';
 import 'service_results.dart';
+import 'package:local_auth/error_codes.dart' as auth_error;
 
 /// Сервис для работы с биометрической аутентификацией
 class BiometricService {
