@@ -15,6 +15,13 @@ class Keys {
     isHiddenUI: false,
     isCanEdit: true,
   );
+
+  static const PrefKey<bool> biometricForAutoOpen = PrefKey<bool>(
+    'biometric_for_auto_open',
+    isHiddenUI: false,
+    isCanEdit: true,
+  );
+
   //theme
   static const PrefKey<String> themeMode = PrefKey<String>(
     'theme_mode',

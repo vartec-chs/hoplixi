@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/app_preferences/app_preferences.dart';
 import 'package:hoplixi/core/app_preferences/keys.dart';
+import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/global/providers/biometric_provider.dart';
 import 'package:hoplixi/features/global/widgets/index.dart';
+import 'package:hoplixi/hoplixi_store/services/biometric_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -12,76 +15,162 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  BiometricStatus? _biometricStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricStatus();
+  }
+
+  Future<void> _loadBiometricStatus() async {
+    final biometricService = ref.read(biometricServiceProvider);
+    final result = await biometricService.checkBiometricStatus();
+    setState(() {
+      _biometricStatus = result.success
+          ? result.data
+          : BiometricStatus.notSupported;
+      if (_biometricStatus != BiometricStatus.ready) {
+        Prefs.set(Keys.biometricForAutoOpen, false);
+      }
+    });
+  }
+
+  String _getBiometricStatusMessage() {
+    if (_biometricStatus == null) return 'Проверка...';
+    switch (_biometricStatus!) {
+      case BiometricStatus.notSupported:
+        return 'Биометрия не поддерживается устройством';
+      case BiometricStatus.notAvailable:
+        return 'Биометрия недоступна';
+      case BiometricStatus.noBiometricsEnrolled:
+        return 'Нет зарегистрированных биометрических данных';
+      case BiometricStatus.ready:
+        return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Настройки')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Автоматически открывать последний хранилище
-            SwitchListTile(
-              title: const Text('Автоматически открывать последний хранилище'),
-              value: Prefs.get<bool>(Keys.autoOpenLastStorage) ?? false,
-              onChanged: (value) {
-                Prefs.set(Keys.autoOpenLastStorage, value);
-                setState(() {});
-              },
-            ),
-            const SizedBox(height: 16),
-            // Режим темы
-            DropdownButtonFormField<String>(
-              initialValue:
-                  [
-                    'light',
-                    'dark',
-                    'system',
-                  ].contains(Prefs.get<String>(Keys.themeMode))
-                  ? Prefs.get<String>(Keys.themeMode)
-                  : 'system',
-              items: ['light', 'dark', 'system'].map((mode) {
-                return DropdownMenuItem(value: mode, child: Text(mode));
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  Prefs.set(Keys.themeMode, value);
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            spacing: 8,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Автоматически открывать последний хранилище
+              SwitchListTile(
+                title: const Text(
+                  'Автоматически открывать последний хранилище',
+                ),
+                value: Prefs.get<bool>(Keys.autoOpenLastStorage) ?? false,
+                onChanged: (value) async {
+                  if (Prefs.get<bool>(Keys.biometricForAutoOpen) ?? false) {
+                    final biometricService = ref.read(biometricServiceProvider);
+                    final result = await biometricService.authenticate(
+                      localizedReason:
+                          'Подтвердите изменение настройки автооткрытия',
+                    );
+                    if (!result.success || !result.data!) {
+                      ToastHelper.error(
+                        title: 'Ошибка',
+                        description:
+                            'Не удалось подтвердить изменение настройки',
+                      );
+                      return;
+                    }
+                  }
+                  Prefs.set(Keys.autoOpenLastStorage, value);
                   setState(() {});
-                }
-              },
-              decoration: primaryInputDecoration(
-                context,
-                labelText: 'Режим темы',
+                },
               ),
-            ),
-            const SizedBox(height: 16),
-            // Режим домашнего экрана
-            DropdownButtonFormField<String>(
-              initialValue:
-                  Prefs.get<String>(Keys.homeScreenMode) ??
-                  HomeScreenMode.singleDB.toString(),
-              items: HomeScreenMode.values.map((mode) {
-                return DropdownMenuItem(
-                  value: mode.toString(),
-                  child: Text(mode.name),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  Prefs.set(Keys.homeScreenMode, value);
-                  setState(() {});
-                }
-              },
-              decoration: primaryInputDecoration(
-                context,
-                labelText: 'Режим домашнего экрана',
+
+              // Использовать биометрию для подтверждения изменения автооткрытия
+              SwitchListTile(
+                title: const Text(
+                  'Использовать биометрию для подтверждения изменения автооткрытия',
+                ),
+                subtitle: _biometricStatus != BiometricStatus.ready
+                    ? Text(_getBiometricStatusMessage())
+                    : null,
+                value: Prefs.get<bool>(Keys.biometricForAutoOpen) ?? false,
+                onChanged: _biometricStatus == BiometricStatus.ready
+                    ? (value) async {
+                        final biometricService = ref.read(
+                          biometricServiceProvider,
+                        );
+                        final result = await biometricService.authenticate(
+                          localizedReason:
+                              'Подтвердите изменение настройки биометрии для автооткрытия',
+                        );
+                        if (!result.success || !result.data!) {
+                          ToastHelper.error(
+                            title: 'Ошибка',
+                            description:
+                                'Не удалось подтвердить изменение настройки',
+                          );
+                          return;
+                        }
+                        Prefs.set(Keys.biometricForAutoOpen, value);
+                        setState(() {});
+                      }
+                    : null,
               ),
-            ),
-            const SizedBox(height: 32),
-            // Настройки уведомлений
-            // const NotificationSettingsWidget(),
-          ],
+              // Режим темы
+              DropdownButtonFormField<String>(
+                initialValue:
+                    [
+                      'light',
+                      'dark',
+                      'system',
+                    ].contains(Prefs.get<String>(Keys.themeMode))
+                    ? Prefs.get<String>(Keys.themeMode)
+                    : 'system',
+                items: ['light', 'dark', 'system'].map((mode) {
+                  return DropdownMenuItem(value: mode, child: Text(mode));
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    Prefs.set(Keys.themeMode, value);
+                    setState(() {});
+                  }
+                },
+                decoration: primaryInputDecoration(
+                  context,
+                  labelText: 'Режим темы',
+                ),
+              ),
+
+              // Режим домашнего экрана
+              DropdownButtonFormField<String>(
+                initialValue:
+                    Prefs.get<String>(Keys.homeScreenMode) ??
+                    HomeScreenMode.singleDB.toString(),
+                items: HomeScreenMode.values.map((mode) {
+                  return DropdownMenuItem(
+                    value: mode.toString(),
+                    child: Text(mode.name),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    Prefs.set(Keys.homeScreenMode, value);
+                    setState(() {});
+                  }
+                },
+                decoration: primaryInputDecoration(
+                  context,
+                  labelText: 'Режим домашнего экрана',
+                ),
+              ),
+
+              // Настройки уведомлений
+              // const NotificationSettingsWidget(),
+            ],
+          ),
         ),
       ),
     );
