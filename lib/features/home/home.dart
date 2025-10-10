@@ -227,14 +227,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
   }
 
   /// Создает SliverAppBar с современным дизайном
-
-  /// Создает SliverAppBar с современным дизайном
-
-  /// Создает SliverAppBar с современным дизайном
-
-  /// Показывает нижнее меню быстрых действий
-
-  /// Создает SliverAppBar с современным дизайном
   Widget _buildAppBar() {
     return SliverAppBar(
       expandedHeight: 120,
@@ -591,7 +583,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         localizedReason: 'Подтвердите открытие базы данных биометрией',
       );
 
-      if (!authResult.success || !authResult.data!) {
+      if (!authResult.success ||
+          authResult.data != BiometricAuthResult.authenticated) {
         ToastHelper.error(
           title: 'Аутентификация неудачна',
           description:

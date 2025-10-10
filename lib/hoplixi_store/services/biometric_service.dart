@@ -121,7 +121,7 @@ class BiometricService {
   }
 
   /// Выполняет биометрическую аутентификацию
-  Future<ServiceResult<bool>> authenticate({
+  Future<ServiceResult<BiometricAuthResult>> authenticate({
     String localizedReason = 'Подтвердите свою личность',
     bool biometricOnly = false,
     bool useErrorDialogs = true,
@@ -145,7 +145,9 @@ class BiometricService {
       );
 
       return ServiceResult.success(
-        data: authenticated,
+        data: authenticated
+            ? BiometricAuthResult.authenticated
+            : BiometricAuthResult.failed,
         message: authenticated
             ? 'Аутентификация успешна'
             : 'Аутентификация отменена или неудачна',
@@ -156,6 +158,13 @@ class BiometricService {
         error: e,
         tag: 'BiometricService',
       );
+      if (e.code == auth_error.lockedOut) {
+        return ServiceResult.success(
+          data: BiometricAuthResult.lockedOut,
+          message:
+              'Биометрическая аутентификация временно заблокирована из-за слишком многих неудачных попыток. Попробуйте позже.',
+        );
+      }
       return ServiceResult.error('Ошибка аутентификации: ${e.message}');
     } catch (e, stackTrace) {
       logError(
@@ -169,7 +178,7 @@ class BiometricService {
   }
 
   /// Выполняет аутентификацию только с биометрией (без PIN/пароля)
-  Future<ServiceResult<bool>> authenticateWithBiometrics({
+  Future<ServiceResult<BiometricAuthResult>> authenticateWithBiometrics({
     String localizedReason = 'Используйте биометрию для подтверждения',
     bool useErrorDialogs = true,
     bool stickyAuth = false,
@@ -274,4 +283,19 @@ enum BiometricStatus {
 
   /// Биометрия готова к использованию
   ready,
+
+  /// Биометрия временно заблокирована из-за слишком многих неудачных попыток
+  lockedOut,
+}
+
+/// Результат биометрической аутентификации
+enum BiometricAuthResult {
+  /// Аутентификация успешна
+  authenticated,
+
+  /// Аутентификация неудачна
+  failed,
+
+  /// Биометрия заблокирована
+  lockedOut,
 }

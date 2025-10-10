@@ -33,11 +33,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _biometricStatus = result.success
           ? result.data
           : BiometricStatus.notSupported;
-      // if (_biometricStatus != BiometricStatus.ready) {
-      //   ref
-      //       .read(biometricAutoOpenProvider.notifier)
-      //       .setBiometricAutoOpen(false);
-      // }
     });
   }
 
@@ -48,8 +43,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return 'Биометрия не поддерживается устройством';
       case BiometricStatus.notAvailable:
         return 'Биометрия недоступна';
+
       case BiometricStatus.noBiometricsEnrolled:
         return 'Нет зарегистрированных биометрических данных';
+      case BiometricStatus.lockedOut:
+        return 'Биометрия заблокирована из-за слишком большого количества неудачных попыток. Попробуйте позже.';
       case BiometricStatus.ready:
         return '';
     }
@@ -96,7 +94,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             'Biometric auth result: ${result.data}',
                             tag: 'SettingsScreen',
                           );
-                          if (!result.success || !result.data!) {
+                          if (!result.success ||
+                              result.data !=
+                                  BiometricAuthResult.authenticated) {
                             ToastHelper.error(
                               title: 'Ошибка',
                               description:
@@ -129,7 +129,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     localizedReason:
                                         'Подтвердите изменение настройки биометрии для автооткрытия',
                                   );
-                              if (!result.success || !result.data!) {
+                              if (!result.success ||
+                                  result.data !=
+                                      BiometricAuthResult.authenticated) {
                                 ToastHelper.error(
                                   title: 'Ошибка',
                                   description:
