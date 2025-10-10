@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/app_preferences/app_preferences.dart';
+import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
 
@@ -36,4 +38,27 @@ class RouterRefreshNotifier extends Notifier<int> with ChangeNotifier {
 /// Провайдер для router refresh
 final routerRefreshProvider = NotifierProvider<RouterRefreshNotifier, int>(
   RouterRefreshNotifier.new,
+);
+
+class FirstRunNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    bool isFirstRun = Prefs.get<bool>(Keys.isFirstRun) ?? true;
+    state = isFirstRun;
+    return state;
+  }
+
+  Future<void> markFirstRunComplete() async {
+    state = false;
+    await Prefs.set<bool>(Keys.isFirstRun, false);
+    logInfo(
+      'Первый запуск завершен, обновлено состояние isFirstRun',
+      tag: 'FirstRunNotifier',
+      data: {'isFirstRun': state},
+    );
+  }
+}
+
+final firstRunProvider = NotifierProvider.autoDispose<FirstRunNotifier, bool>(
+  FirstRunNotifier.new,
 );

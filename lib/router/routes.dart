@@ -24,6 +24,7 @@ import 'package:hoplixi/features/password_manager/before_opening/open_store/open
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/features/settings/screens/settings_screen.dart';
 import 'package:hoplixi/router/router_provider.dart';
+import 'package:hoplixi/router/splash_screen.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'routes_path.dart';
 
@@ -167,87 +168,6 @@ final List<GoRoute> appRoutes = [
     builder: (context, state) => const SettingsScreen(),
   ),
 ];
-
-class SplashScreen extends StatefulWidget {
-  final String? title;
-  const SplashScreen({super.key, this.title});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat(reverse: true);
-    _animation = Tween<double>(
-      begin: 0.8,
-      end: 1.2,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedBuilder(
-                animation: _animation,
-                builder: (context, child) {
-                  return Opacity(
-                    opacity: _animation.value.clamp(0.0, 1.0),
-                    child: ScaleTransition(
-                      scale: _animation,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Theme.of(
-                                context,
-                              ).primaryColor.withOpacity(0.3),
-                              blurRadius: 40 * _animation.value,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                          borderRadius: BorderRadius.circular(60),
-                        ),
-                        child: Image.asset(
-                          'assets/img/logo_light.png',
-                          width: 150,
-                          height: 150,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 60),
-              const CircularProgressIndicator(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 enum InfoType { info, warning, error }
 
