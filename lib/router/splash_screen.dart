@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/router/router_refresh_provider.dart';
@@ -35,8 +36,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         if (!mounted) return;
         final isFirstRun = ref.read(firstRunProvider);
         if (isFirstRun) {
+          FlutterNativeSplash.remove();
           context.go(AppRoutes.setup);
         } else {
+          FlutterNativeSplash.remove();
+
           context.go(AppRoutes.home);
         }
       });
