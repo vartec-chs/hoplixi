@@ -26,4 +26,5 @@ class AppRoutes {
   static const String notesForm = '/dashboard/notes-form';
   static const String importOtpCodes = '/dashboard/import-otp-codes';
   static const String settings = '/settings';
+  static const String imageCrop = '/image-crop';
 }

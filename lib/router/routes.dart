@@ -23,6 +23,7 @@ import 'package:hoplixi/features/password_manager/tags_manager/tags_management_s
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/features/settings/screens/settings_screen.dart';
+import 'package:hoplixi/features/global/screens/image_crop_screen.dart';
 import 'package:hoplixi/router/router_provider.dart';
 import 'package:hoplixi/router/splash_screen.dart';
 import 'package:universal_platform/universal_platform.dart';
@@ -166,6 +167,21 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.settings,
     builder: (context, state) => const SettingsScreen(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.imageCrop,
+    builder: (context, state) {
+      if (state.extra is ImageCropData) {
+        final imageData = state.extra as ImageCropData;
+        return ImageCropScreen(imageData: imageData);
+      }
+      return const InfoScreen(
+        title: 'Ошибка: нет данных изображения',
+        info: 'Не переданы данные изображения для обрезки.',
+        type: InfoType.error,
+      );
+    },
   ),
 ];
 
