@@ -217,7 +217,7 @@ class RecentDatabaseCard extends StatelessWidget {
             SmoothButton(
               onPressed: isLoading ? null : onOpenManual,
               type: canAutoOpen
-                  ? SmoothButtonType.outlined
+                  ? SmoothButtonType.text
                   : SmoothButtonType.filled,
               label: canAutoOpen ? 'Другой пароль' : 'Открыть',
               icon: Icon(canAutoOpen ? Icons.key : Icons.lock_open, size: 18),
@@ -228,9 +228,7 @@ class RecentDatabaseCard extends StatelessWidget {
               onPressed: isLoading ? null : onRemove,
               icon: const Icon(Icons.delete, size: 20),
               tooltip: 'Удалить из истории',
-              style: IconButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-              ),
+              style: IconButton.styleFrom(foregroundColor: Colors.redAccent),
             ),
           ],
         ),

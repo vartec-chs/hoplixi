@@ -27,4 +27,7 @@ class AppRoutes {
   static const String importOtpCodes = '/dashboard/import-otp-codes';
   static const String settings = '/settings';
   static const String imageCrop = '/image-crop';
+  static const String exportStorage = '/export-storage';
+  static const String exportConfirm = '/export-storage/confirm';
+  static const String importStorage = '/import-storage';
 }

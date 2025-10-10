@@ -178,6 +178,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
             _buildAppBar(),
             _buildQuickActions(),
             ...widgets.map(_buildHomeWidget),
+
             // _buildErrorMessage(),
             !MainConstants.isProduction
                 ? SliverToBoxAdapter(
@@ -430,7 +431,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
       case HomeWidgetType.recentDatabase:
         return _buildRecentDatabaseWidget();
       case HomeWidgetType.quickActions:
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
+        return _buildQuickActionsWidget();
       case HomeWidgetType.statistics:
         return _buildStatisticsWidget();
       case HomeWidgetType.shortcuts:
@@ -454,7 +455,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           }
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -466,7 +467,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                   onOpenManual: _handleManualOpen,
                   onRemove: _handleRemove,
                 ),
-                const SizedBox(height: 24),
               ],
             ),
           );
@@ -538,6 +538,37 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           Text(label),
           Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsWidget() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.archive,
+                label: 'Экспорт хранилища',
+                onTap: () => context.push(AppRoutes.exportStorage),
+                isPrimary: false,
+                description: 'Создать архив хранилища для резервной копии',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.download,
+                label: 'Импорт хранилища',
+                onTap: () => context.push(AppRoutes.importStorage),
+                isPrimary: false,
+                description: 'Восстановить хранилище из архива',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

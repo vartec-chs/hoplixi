@@ -32,15 +32,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     // Логика навигации после splash
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
       Future.delayed(Duration(milliseconds: 200), () {
         if (!mounted) return;
         final isFirstRun = ref.read(firstRunProvider);
         if (isFirstRun) {
-          FlutterNativeSplash.remove();
           context.go(AppRoutes.setup);
         } else {
-          FlutterNativeSplash.remove();
-
           context.go(AppRoutes.home);
         }
       });
@@ -81,12 +79,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           ],
                           borderRadius: BorderRadius.circular(60),
                         ),
-                        child: Image.asset(
-                          'assets/img/logo_light.png',
-                          width: 150,
-                          height: 150,
-                          fit: BoxFit.cover,
-                        ),
+                        // child: Image.asset(
+                        //   'assets/img/logo_light.png',
+                        //   width: 150,
+                        //   height: 150,
+                        //   fit: BoxFit.cover,
+                        // ),
                       ),
                     ),
                   );
