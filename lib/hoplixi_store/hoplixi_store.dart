@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/errors/index.dart';
 
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -61,10 +62,11 @@ part 'hoplixi_store.g.dart';
   ],
 )
 class HoplixiStore extends _$HoplixiStore {
+  static const String _logTag = 'HoplixiStore';
   HoplixiStore(super.e);
 
   @override
-  int get schemaVersion => 1; // Keep as 1 for clean start
+  int get schemaVersion => MainConstants.dbSchemaVersion;
 
   @override
   MigrationStrategy get migration {
@@ -73,9 +75,9 @@ class HoplixiStore extends _$HoplixiStore {
         // Создание всех таблиц
         await m.createAll();
         // Создание триггеров после создания таблиц
-        logInfo('Создание SQL триггеров', tag: 'DatabaseMigration');
+        logInfo('Создание SQL триггеров', tag: _logTag);
         await DatabaseTriggers.createTriggers(this);
-        logInfo('SQL триггеры созданы успешно', tag: 'DatabaseMigration');
+        logInfo('SQL триггеры созданы успешно', tag: _logTag);
       },
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');
@@ -90,29 +92,23 @@ class HoplixiStore extends _$HoplixiStore {
         await DatabaseTriggers.dropTriggers(this);
         await DatabaseTriggers.createTriggers(this);
 
-        logInfo('Миграция завершена', tag: 'DatabaseMigration');
+        logInfo('Миграция завершена', tag: _logTag);
       },
     );
   }
 
   Future<void> updateModificationTime() async {
-    logDebug(
-      'Обновление времени модификации базы данных',
-      tag: 'EncryptedDatabase',
-    );
+    logDebug('Обновление времени модификации базы данных', tag: _logTag);
     try {
       await update(
         hoplixiMeta,
       ).write(HoplixiMetaCompanion(modifiedAt: Value(DateTime.now())));
-      logDebug(
-        'Время модификации базы данных обновлено',
-        tag: 'EncryptedDatabase',
-      );
+      logDebug('Время модификации базы данных обновлено', tag: _logTag);
     } catch (e) {
       logError(
         'Ошибка обновления времени модификации',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       throw DatabaseError.operationFailed(
@@ -125,12 +121,12 @@ class HoplixiStore extends _$HoplixiStore {
   }
 
   Future<HoplixiMetaData> getDatabaseMeta() async {
-    logDebug('Получение метаданных базы данных', tag: 'EncryptedDatabase');
+    logDebug('Получение метаданных базы данных', tag: _logTag);
     try {
       final meta = await select(hoplixiMeta).getSingle();
       logDebug(
         'Метаданные базы данных получены',
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         data: {'name': meta.name},
       );
       return meta;
@@ -138,7 +134,7 @@ class HoplixiStore extends _$HoplixiStore {
       logError(
         'Ошибка получения метаданных базы данных',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       throw DatabaseError.operationFailed(
@@ -152,19 +148,19 @@ class HoplixiStore extends _$HoplixiStore {
 
   // attachmentKey в Base64
   Future<String?> getAttachmentKey() async {
-    logDebug('Получение ключа вложений', tag: 'EncryptedDatabase');
+    logDebug('Получение ключа вложений', tag: _logTag);
     try {
       final result = await (selectOnly(
         hoplixiMeta,
       )..addColumns([hoplixiMeta.attachmentKey])).get();
       final meta = result.first.read(hoplixiMeta.attachmentKey);
-      logDebug('Ключ вложений получен', tag: 'EncryptedDatabase');
+      logDebug('Ключ вложений получен', tag: _logTag);
       return meta;
     } catch (e) {
       logError(
         'Ошибка получения ключа вложений',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       throw DatabaseError.operationFailed(
@@ -178,7 +174,7 @@ class HoplixiStore extends _$HoplixiStore {
 
   // set attachmentKey в Base64
   Future<void> setAttachmentKey(String key) async {
-    logDebug('Установка ключа вложений', tag: 'EncryptedDatabase');
+    logDebug('Установка ключа вложений', tag: _logTag);
     try {
       final meta = await getDatabaseMeta();
       await (update(hoplixiMeta)..where((tbl) => tbl.id.equals(meta.id))).write(
@@ -186,12 +182,12 @@ class HoplixiStore extends _$HoplixiStore {
       );
 
       // first
-      logDebug('Ключ вложений установлен', tag: 'EncryptedDatabase');
+      logDebug('Ключ вложений установлен', tag: _logTag);
     } catch (e) {
       logError(
         'Ошибка установки ключа вложений',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       throw DatabaseError.operationFailed(
@@ -204,15 +200,15 @@ class HoplixiStore extends _$HoplixiStore {
   }
 
   Future<void> closeDatabase() async {
-    logInfo('Закрытие базы данных', tag: 'EncryptedDatabase');
+    logInfo('Закрытие базы данных', tag: _logTag);
     try {
       await close();
-      logInfo('База данных закрыта', tag: 'EncryptedDatabase');
+      logInfo('База данных закрыта', tag: _logTag);
     } catch (e) {
       logError(
         'Ошибка закрытия базы данных',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       throw DatabaseError.closeError(
@@ -227,14 +223,14 @@ class HoplixiStore extends _$HoplixiStore {
 
   /// Проверяет, что все триггеры установлены корректно
   Future<bool> verifyTriggers() async {
-    logDebug('Проверка триггеров базы данных', tag: 'EncryptedDatabase');
+    logDebug('Проверка триггеров базы данных', tag: _logTag);
     try {
       return await TriggerManagementService.areTriggersInstalled(this);
     } catch (e) {
       logError(
         'Ошибка проверки триггеров',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       return false;
@@ -243,14 +239,14 @@ class HoplixiStore extends _$HoplixiStore {
 
   /// Получает список всех установленных триггеров
   Future<List<String>> getInstalledTriggers() async {
-    logDebug('Получение списка триггеров', tag: 'EncryptedDatabase');
+    logDebug('Получение списка триггеров', tag: _logTag);
     try {
       return await TriggerManagementService.getInstalledTriggers(this);
     } catch (e) {
       logError(
         'Ошибка получения списка триггеров',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       return [];
@@ -259,15 +255,15 @@ class HoplixiStore extends _$HoplixiStore {
 
   /// Пересоздает все триггеры (полезно для отладки)
   Future<void> recreateTriggers() async {
-    logInfo('Пересоздание триггеров', tag: 'EncryptedDatabase');
+    logInfo('Пересоздание триггеров', tag: _logTag);
     try {
       await TriggerManagementService.recreateTriggers(this);
-      logInfo('Триггеры пересозданы успешно', tag: 'EncryptedDatabase');
+      logInfo('Триггеры пересозданы успешно', tag: _logTag);
     } catch (e) {
       logError(
         'Ошибка пересоздания триггеров',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       throw DatabaseError.operationFailed(
@@ -281,14 +277,14 @@ class HoplixiStore extends _$HoplixiStore {
 
   /// Тестирует работу триггеров
   Future<Map<String, bool>> testTriggers() async {
-    logDebug('Тестирование триггеров', tag: 'EncryptedDatabase');
+    logDebug('Тестирование триггеров', tag: _logTag);
     try {
       return await TriggerManagementService.testTriggers(this);
     } catch (e) {
       logError(
         'Ошибка тестирования триггеров',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       return {};
@@ -297,14 +293,14 @@ class HoplixiStore extends _$HoplixiStore {
 
   /// Получает статистику по таблицам истории
   Future<Map<String, int>> getHistoryStatistics() async {
-    logDebug('Получение статистики истории', tag: 'EncryptedDatabase');
+    logDebug('Получение статистики истории', tag: _logTag);
     try {
       return await TriggerManagementService.getHistoryStatistics(this);
     } catch (e) {
       logError(
         'Ошибка получения статистики истории',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       return {};
@@ -313,23 +309,19 @@ class HoplixiStore extends _$HoplixiStore {
 
   /// Очищает старые записи истории
   Future<Map<String, int>> cleanupOldHistory({int daysToKeep = 365}) async {
-    logInfo('Очистка старой истории', tag: 'EncryptedDatabase');
+    logInfo('Очистка старой истории', tag: _logTag);
     try {
       final result = await TriggerManagementService.cleanupOldHistory(
         this,
         daysToKeep: daysToKeep,
       );
-      logInfo(
-        'Очистка истории завершена',
-        tag: 'EncryptedDatabase',
-        data: result,
-      );
+      logInfo('Очистка истории завершена', tag: _logTag, data: result);
       return result;
     } catch (e) {
       logError(
         'Ошибка очистки истории',
         error: e,
-        tag: 'EncryptedDatabase',
+        tag: _logTag,
         stackTrace: StackTrace.current,
       );
       throw DatabaseError.operationFailed(

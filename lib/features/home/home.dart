@@ -329,83 +329,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     );
   }
 
-  /// Создает плавающую кнопку действия
-  Widget _buildFloatingActionButton() {
-    return AnimatedBuilder(
-      animation: _fabAnimationController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _fabAnimationController.value,
-          child: FloatingActionButton.extended(
-            onPressed: () {
-              // Показываем меню быстрых действий
-              _showQuickActionsBottomSheet();
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Быстро'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          ),
-        );
-      },
-    );
-  }
-
   /// Показывает нижнее меню быстрых действий
-  void _showQuickActionsBottomSheet() {
-    showModalBottomSheet(
-      useSafeArea: true,
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Быстрые действия',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-            ListTile(
-              leading: const Icon(Icons.file_open),
-              title: const Text('Открыть хранилище'),
-              onTap: () {
-                Navigator.pop(context);
-                context.go(AppRoutes.openStore);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add_box),
-              title: const Text('Создать хранилище'),
-              onTap: () {
-                Navigator.pop(context);
-                context.go(AppRoutes.createStore);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Настройки'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push(AppRoutes.settings);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   /// Создает SliverAppBar с современным дизайном
   Widget _buildAppBar() {
@@ -803,9 +727,11 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           'Удалить "${recentDatabase?.name}" из истории недавно открытых баз данных?',
         ),
         actions: [
-          TextButton(
+          SmoothButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Отмена'),
+            label: 'Отмена',
+            icon: const Icon(Icons.close, size: 18),
+            type: SmoothButtonType.text,
           ),
           SmoothButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -820,60 +746,5 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
   void _navigateToDatabase() {
     context.go(AppRoutes.dashboard);
-  }
-}
-
-class ActionButton extends StatelessWidget {
-  const ActionButton({
-    required this.onPressed,
-    required this.child,
-    this.icon,
-    this.backgroundColor,
-    this.borderColor,
-    this.width = 150,
-    this.description,
-    this.height = 150,
-    this.borderRadius = 12,
-    this.isWidthFull = false,
-    super.key,
-  });
-
-  final VoidCallback onPressed;
-  final Widget child;
-  final String? description;
-  final double borderRadius;
-  final Widget? icon;
-  final Color? backgroundColor;
-  final double width;
-  final double height;
-  final bool isWidthFull;
-  final Color? borderColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: isWidthFull ? double.infinity : width,
-      height: height,
-      child: FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          padding: EdgeInsets.zero, // убирает лишние отступы
-          backgroundColor: backgroundColor ?? Colors.transparent,
-          textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            side: BorderSide(color: borderColor ?? Colors.transparent),
-          ),
-        ),
-        child: Center(
-          child: icon != null
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [icon!, const SizedBox(width: 8), child],
-                )
-              : child,
-        ), // текст/иконка по центру
-      ),
-    );
   }
 }

@@ -36,7 +36,7 @@
 
 
     <application
-        android:label="com.hoplixi.manager"
+        android:label="Hoplixi"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
 
