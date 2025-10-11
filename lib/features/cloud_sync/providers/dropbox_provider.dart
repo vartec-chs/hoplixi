@@ -34,13 +34,13 @@ class DropboxServiceState {
 }
 
 /// Провайдер сервиса Dropbox
-final dropboxServiceProvider = Provider<DropboxService>((ref)  {
+final dropboxServiceProvider = Provider<DropboxService>((ref) {
   // final credentialServiceAsync = await ref.watch(credentialServiceProvider.future);
   // Для синхронного провайдера мы не можем использовать async,
   // поэтому создаем сервис без зависимостей или используем другой подход
- 
+
   final service = DropboxService();
-  
+
   ref.onDispose(() {
     service.dispose();
   });
@@ -260,5 +260,82 @@ class DropboxServiceNotifier extends AsyncNotifier<DropboxServiceState> {
       await init(_credentialId!);
     }
     return _service.getMetadata(path);
+  }
+
+  /// Убедиться, что папка Hoplixi существует
+  Future<DropboxResult<void>> ensureHoplixiFolder() async {
+    if (_credentialId == null) {
+      throw Exception('Credential ID not set. Call init() first.');
+    }
+
+    final currentState = state.value;
+    if (currentState == null || !currentState.isInitialized) {
+      await init(_credentialId!);
+    }
+    return _service.ensureHoplixiFolder();
+  }
+
+  /// Загрузить хранилище в облако
+  Future<DropboxResult<String>> uploadStorage({
+    required String localPath,
+    required String storageName,
+  }) async {
+    if (_credentialId == null) {
+      throw Exception('Credential ID not set. Call init() first.');
+    }
+
+    final currentState = state.value;
+    if (currentState == null || !currentState.isInitialized) {
+      await init(_credentialId!);
+    }
+    return _service.uploadStorage(
+      localPath: localPath,
+      storageName: storageName,
+    );
+  }
+
+  /// Скачать хранилище из облака
+  Future<DropboxResult<String>> downloadStorage({
+    required String storageName,
+    required String localDir,
+  }) async {
+    if (_credentialId == null) {
+      throw Exception('Credential ID not set. Call init() first.');
+    }
+
+    final currentState = state.value;
+    if (currentState == null || !currentState.isInitialized) {
+      await init(_credentialId!);
+    }
+    return _service.downloadStorage(
+      storageName: storageName,
+      localDir: localDir,
+    );
+  }
+
+  /// Получить список хранилищ в облаке
+  Future<DropboxResult<List<DropboxFile>>> listStorages() async {
+    if (_credentialId == null) {
+      throw Exception('Credential ID not set. Call init() first.');
+    }
+
+    final currentState = state.value;
+    if (currentState == null || !currentState.isInitialized) {
+      await init(_credentialId!);
+    }
+    return _service.listStorages();
+  }
+
+  /// Удалить хранилище из облака
+  Future<DropboxResult<void>> deleteStorage(String storageName) async {
+    if (_credentialId == null) {
+      throw Exception('Credential ID not set. Call init() first.');
+    }
+
+    final currentState = state.value;
+    if (currentState == null || !currentState.isInitialized) {
+      await init(_credentialId!);
+    }
+    return _service.deleteStorage(storageName);
   }
 }

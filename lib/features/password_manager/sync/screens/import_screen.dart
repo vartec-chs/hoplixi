@@ -1,7 +1,11 @@
+import 'package:dropbox_api/dropbox_api.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
+import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
+import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -9,6 +13,7 @@ import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/sync/providers/storage_export_provider.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
+import 'package:intl/intl.dart';
 
 /// Экран импорта хранилища
 class ImportScreen extends ConsumerStatefulWidget {
@@ -25,11 +30,29 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   String? _selectedArchivePath;
   bool _requiresPassword = false;
   final _passwordController = TextEditingController();
+  List<CredentialApp> _cloudCredentials = [];
 
   @override
   void initState() {
     super.initState();
     _passwordController.text = '';
+    _loadCloudCredentials();
+  }
+
+  Future<void> _loadCloudCredentials() async {
+    try {
+      final service = await ref.read(credentialServiceProvider.future);
+      final result = await service.getAllCredentials();
+      if (result.success && result.data != null) {
+        setState(() {
+          _cloudCredentials = result.data!
+              .where((c) => c.type == CredentialOAuthType.dropbox)
+              .toList();
+        });
+      }
+    } catch (e) {
+      logError('Failed to load cloud credentials', error: e);
+    }
   }
 
   @override
@@ -163,6 +186,124 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
     // Переходим на экран открытия хранилища
     context.go(AppRoutes.openStore);
+  }
+
+  Future<void> _showCloudImportDialog() async {
+    if (_cloudCredentials.isEmpty) {
+      ToastHelper.warning(title: 'Нет настроенных облачных хранилищ');
+      return;
+    }
+
+    final credential = await showDialog<CredentialApp>(
+      context: context,
+      builder: (context) =>
+          _CloudCredentialDialog(credentials: _cloudCredentials),
+    );
+
+    if (credential != null) {
+      await _performCloudImport(credential);
+    }
+  }
+
+  Future<void> _performCloudImport(CredentialApp credential) async {
+    setState(() {
+      _isImporting = true;
+      _progress = 0.0;
+      _importedStoragePath = null;
+    });
+
+    try {
+      logInfo(
+        'Начало импорта из облака',
+        tag: 'ImportScreen',
+        data: {'credentialId': credential.id},
+      );
+
+      _updateProgress(0.2);
+
+      // Инициализируем Dropbox notifier
+      final notifier = ref.read(dropboxServiceStateProvider.notifier);
+      final initialized = await notifier.init(credential.id);
+
+      if (!initialized) {
+        ToastHelper.error(
+          title: 'Не удалось подключиться к облачному хранилищу',
+        );
+        return;
+      }
+
+      _updateProgress(0.4);
+
+      // Получаем список хранилищ
+      final storagesResult = await notifier.listStorages();
+      if (!storagesResult.success || storagesResult.data!.isEmpty) {
+        ToastHelper.warning(title: 'В облаке не найдено хранилищ');
+        return;
+      }
+
+      _updateProgress(0.5);
+
+      // Показываем диалог выбора хранилища
+      final selectedStorage = await showDialog<DropboxFile>(
+        context: mounted ? context : throw Exception('Context not mounted'),
+        builder: (context) =>
+            _CloudStorageListDialog(storages: storagesResult.data!),
+      );
+
+      if (selectedStorage == null) {
+        return;
+      }
+
+      _updateProgress(0.6);
+
+      // Скачиваем хранилище
+      final manager = await ref.read(hoplixiStoreManagerProvider.future);
+      final destinationDir = await manager.getDefaultDatabasePath();
+
+      final downloadResult = await notifier.downloadStorage(
+        storageName: selectedStorage.name,
+        localDir: destinationDir,
+      );
+
+      _updateProgress(1.0);
+
+      if (downloadResult.success && downloadResult.data != null) {
+        setState(() {
+          _importedStoragePath = downloadResult.data;
+        });
+
+        ToastHelper.success(
+          title: downloadResult.message ?? 'Импорт завершён успешно',
+        );
+
+        logInfo(
+          'Импорт из облака завершён успешно',
+          tag: 'ImportScreen',
+          data: {'storagePath': downloadResult.data},
+        );
+      } else {
+        ToastHelper.error(
+          title: downloadResult.message ?? 'Ошибка при импорте',
+        );
+        logError(
+          'Ошибка при импорте из облака',
+          tag: 'ImportScreen',
+          data: {'message': downloadResult.message},
+        );
+      }
+    } catch (e, st) {
+      logError(
+        'Исключение при импорте из облака',
+        error: e,
+        stackTrace: st,
+        tag: 'ImportScreen',
+      );
+      ToastHelper.error(title: 'Произошла ошибка при импорте');
+    } finally {
+      setState(() {
+        _isImporting = false;
+      });
+    }
   }
 
   @override
@@ -394,7 +535,9 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
               SmoothButton(
                 isFullWidth: true,
                 label: 'Импорт из облака',
-                onPressed: null, // Пока недоступно
+                onPressed: _cloudCredentials.isEmpty
+                    ? null
+                    : _showCloudImportDialog,
                 icon: const Icon(Icons.cloud_download),
                 type: SmoothButtonType.outlined,
               ),
@@ -428,6 +571,105 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Диалог выбора облачного credential
+class _CloudCredentialDialog extends StatelessWidget {
+  final List<CredentialApp> credentials;
+
+  const _CloudCredentialDialog({required this.credentials});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: const Text('Выберите облачное хранилище'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: credentials.length,
+          itemBuilder: (context, index) {
+            final credential = credentials[index];
+            return ListTile(
+              leading: Icon(Icons.cloud, color: theme.colorScheme.primary),
+              title: Text(_getTypeName(credential.type)),
+              subtitle: Text('ID: ${credential.clientId.substring(0, 10)}...'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).pop(credential),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+      ],
+    );
+  }
+
+  String _getTypeName(CredentialOAuthType type) {
+    switch (type) {
+      case CredentialOAuthType.dropbox:
+        return 'Dropbox';
+      case CredentialOAuthType.google:
+        return 'Google Drive';
+      case CredentialOAuthType.onedrive:
+        return 'OneDrive';
+      case CredentialOAuthType.icloud:
+        return 'iCloud';
+      case CredentialOAuthType.other:
+        return 'Другое';
+    }
+  }
+}
+
+/// Диалог выбора хранилища из облака
+class _CloudStorageListDialog extends StatelessWidget {
+  final List<DropboxFile> storages;
+
+  const _CloudStorageListDialog({required this.storages});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dateFormat = DateFormat('dd.MM.yyyy HH:mm');
+
+    return AlertDialog(
+      title: const Text('Выберите хранилище'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: storages.length,
+          itemBuilder: (context, index) {
+            final storage = storages.length - 1 - index; // Обратный порядок
+            final file = storages[storage];
+            return ListTile(
+              leading: Icon(Icons.storage, color: theme.colorScheme.primary),
+              title: Text(file.name),
+              subtitle: Text(
+                file.serverModified != null
+                    ? dateFormat.format(file.serverModified!)
+                    : 'Нет данных',
+              ),
+              trailing: const Icon(Icons.download),
+              onTap: () => Navigator.of(context).pop(file),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+      ],
     );
   }
 }

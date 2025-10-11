@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
+import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
+import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -30,11 +33,106 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
   String? _exportedArchivePath;
   bool _usePassword = false;
   final _passwordController = TextEditingController();
+  List<CredentialApp> _cloudCredentials = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCloudCredentials();
+  }
 
   @override
   void dispose() {
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCloudCredentials() async {
+    try {
+      final credentialService = await ref.read(
+        credentialServiceProvider.future,
+      );
+      final result = await credentialService.getAllCredentials();
+
+      if (result.success && result.data != null) {
+        setState(() {
+          _cloudCredentials = result.data!;
+        });
+        logInfo(
+          'Cloud credentials загружены',
+          tag: 'ExportConfirmScreen',
+          data: {'count': result.data!.length},
+        );
+      }
+    } catch (e, st) {
+      logError(
+        'Ошибка загрузки cloud credentials',
+        error: e,
+        stackTrace: st,
+        tag: 'ExportConfirmScreen',
+      );
+    }
+  }
+
+  Future<void> _showCloudExportDialog() async {
+    if (_exportedArchivePath == null) {
+      ToastHelper.error(title: 'Сначала создайте архив');
+      return;
+    }
+
+    if (_cloudCredentials.isEmpty) {
+      ToastHelper.error(title: 'Нет настроенных облачных аккаунтов');
+      return;
+    }
+
+    final credential = await showDialog<CredentialApp>(
+      context: context,
+      builder: (context) =>
+          _CloudCredentialDialog(credentials: _cloudCredentials),
+    );
+
+    if (credential != null && mounted) {
+      await _performCloudExport(credential);
+    }
+  }
+
+  Future<void> _performCloudExport(CredentialApp credential) async {
+    if (_exportedArchivePath == null) return;
+
+    try {
+      ToastHelper.info(title: 'Начинается загрузка в облако...');
+
+      // Инициализация сервиса
+      await ref.read(dropboxServiceStateProvider.notifier).init(credential.id);
+
+      // Загрузка файла (используем имя архива из пути)
+      final archiveName = p.basename(_exportedArchivePath!);
+      final result = await ref
+          .read(dropboxServiceStateProvider.notifier)
+          .uploadStorage(
+            localPath: _exportedArchivePath!,
+            storageName: archiveName,
+          );
+
+      if (result.success) {
+        ToastHelper.success(title: 'Архив успешно загружен в Dropbox');
+        logInfo(
+          'Архив экспортирован в облако',
+          tag: 'ExportConfirmScreen',
+          data: {'archiveName': archiveName, 'credentialId': credential.id},
+        );
+      } else {
+        ToastHelper.error(title: result.message ?? 'Ошибка загрузки в облако');
+      }
+    } catch (e, st) {
+      logError(
+        'Ошибка облачного экспорта',
+        error: e,
+        stackTrace: st,
+        tag: 'ExportConfirmScreen',
+      );
+      ToastHelper.error(title: 'Ошибка загрузки в облако');
+    }
   }
 
   Future<void> _performExport() async {
@@ -271,14 +369,10 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
                 children: [
                   SmoothButton(
                     isFullWidth: true,
-                    label: 'Синхронизировать через облако',
-                    onPressed: () {
-                      // TODO: Реализовать синхронизацию через облако
-                      ToastHelper.info(title: 'Функция в разработке');
-                    },
+                    label: 'Загрузить в облако',
+                    onPressed: _showCloudExportDialog,
                     icon: const Icon(Icons.cloud_upload),
                   ),
-
                   SmoothButton(
                     isFullWidth: true,
                     label: 'Готово',
@@ -335,5 +429,59 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
         ),
       ],
     );
+  }
+}
+
+/// Диалог выбора облачного аккаунта для экспорта
+class _CloudCredentialDialog extends StatelessWidget {
+  final List<CredentialApp> credentials;
+
+  const _CloudCredentialDialog({required this.credentials});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: const Text('Выберите облачный аккаунт'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: credentials.length,
+          itemBuilder: (context, index) {
+            final credential = credentials[index];
+            return ListTile(
+              leading: Icon(Icons.cloud, color: theme.colorScheme.primary),
+              title: Text(_getTypeName(credential.type)),
+              subtitle: Text('ID: ${credential.clientId.substring(0, 10)}...'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).pop(credential),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Отмена'),
+        ),
+      ],
+    );
+  }
+
+  String _getTypeName(CredentialOAuthType type) {
+    switch (type) {
+      case CredentialOAuthType.dropbox:
+        return 'Dropbox';
+      case CredentialOAuthType.google:
+        return 'Google Drive';
+      case CredentialOAuthType.onedrive:
+        return 'OneDrive';
+      case CredentialOAuthType.icloud:
+        return 'iCloud';
+      case CredentialOAuthType.other:
+        return 'Другое';
+    }
   }
 }

@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:dropbox_api/dropbox_api.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
+import 'package:path/path.dart' as path;
 
 /// Результат операции Dropbox сервиса
 class DropboxResult<T> {
@@ -22,6 +25,7 @@ class DropboxResult<T> {
 /// Сервис для работы с Dropbox API
 class DropboxService {
   final String _appPrefix = 'hoplixi_dropbox';
+  static const String _hoplixiFolder = '/Hoplixi';
 
   OAuth2Account? _account;
   DropboxApi? _api;
@@ -292,6 +296,173 @@ class DropboxService {
     } catch (e, stack) {
       logError('Failed to get metadata', error: e, stackTrace: stack);
       return DropboxResult.failure('Не удалось получить метаданные');
+    }
+  }
+
+  /// Убедиться, что папка Hoplixi существует
+  Future<DropboxResult<void>> ensureHoplixiFolder() async {
+    try {
+      if (_api == null) {
+        return DropboxResult.failure('API не инициализировано');
+      }
+
+      // Проверяем существование папки
+      final existsResult = await exists(_hoplixiFolder);
+      if (!existsResult.success) {
+        return DropboxResult.failure(existsResult.message!);
+      }
+
+      if (!existsResult.data!) {
+        // Папка не существует, создаем
+        final createResult = await createFolder(_hoplixiFolder);
+        if (!createResult.success) {
+          return DropboxResult.failure(
+            'Не удалось создать папку Hoplixi: ${createResult.message}',
+          );
+        }
+        logInfo('Hoplixi folder created in Dropbox');
+      }
+
+      return DropboxResult.success(message: 'Папка Hoplixi готова');
+    } catch (e, stack) {
+      logError('Failed to ensure Hoplixi folder', error: e, stackTrace: stack);
+      return DropboxResult.failure('Не удалось создать папку Hoplixi');
+    }
+  }
+
+  /// Загрузить хранилище в облако
+  Future<DropboxResult<String>> uploadStorage({
+    required String localPath,
+    required String storageName,
+  }) async {
+    try {
+      if (_api == null) {
+        return DropboxResult.failure('API не инициализировано');
+      }
+
+      // Убеждаемся, что папка Hoplixi существует
+      final ensureResult = await ensureHoplixiFolder();
+      if (!ensureResult.success) {
+        return DropboxResult.failure(ensureResult.message!);
+      }
+
+      // Формируем путь в облаке
+      final cloudPath = '$_hoplixiFolder/$storageName';
+
+      // Читаем локальный файл
+      final file = File(localPath);
+      if (!await file.exists()) {
+        return DropboxResult.failure('Локальный файл не найден');
+      }
+
+      final stream = file.openRead();
+
+      // Загружаем файл
+      final uploadResult = await uploadFile(cloudPath, stream);
+      if (!uploadResult.success) {
+        return DropboxResult.failure(uploadResult.message!);
+      }
+
+      logInfo('Storage uploaded to Dropbox', data: {'path': cloudPath});
+      return DropboxResult.success(
+        data: cloudPath,
+        message: 'Хранилище успешно загружено в облако',
+      );
+    } catch (e, stack) {
+      logError('Failed to upload storage', error: e, stackTrace: stack);
+      return DropboxResult.failure('Не удалось загрузить хранилище');
+    }
+  }
+
+  /// Скачать хранилище из облака
+  Future<DropboxResult<String>> downloadStorage({
+    required String storageName,
+    required String localDir,
+  }) async {
+    try {
+      if (_api == null) {
+        return DropboxResult.failure('API не инициализировано');
+      }
+
+      // Формируем пути
+      final cloudPath = '$_hoplixiFolder/$storageName';
+      final localPath = path.join(localDir, storageName);
+
+      // Скачиваем файл
+      final downloadResult = await downloadFile(cloudPath);
+      if (!downloadResult.success) {
+        return DropboxResult.failure(downloadResult.message!);
+      }
+
+      // Сохраняем в локальный файл
+      final file = File(localPath);
+      await file.parent.create(recursive: true);
+
+      final sink = file.openWrite();
+      await downloadResult.data!.pipe(sink);
+      await sink.close();
+
+      logInfo('Storage downloaded from Dropbox', data: {'path': localPath});
+      return DropboxResult.success(
+        data: localPath,
+        message: 'Хранилище успешно скачано из облака',
+      );
+    } catch (e, stack) {
+      logError('Failed to download storage', error: e, stackTrace: stack);
+      return DropboxResult.failure('Не удалось скачать хранилище');
+    }
+  }
+
+  /// Получить список хранилищ в облаке
+  Future<DropboxResult<List<DropboxFile>>> listStorages() async {
+    try {
+      if (_api == null) {
+        return DropboxResult.failure('API не инициализировано');
+      }
+
+      // Убеждаемся, что папка Hoplixi существует
+      final ensureResult = await ensureHoplixiFolder();
+      if (!ensureResult.success) {
+        return DropboxResult.failure(ensureResult.message!);
+      }
+
+      // Получаем список файлов в папке Hoplixi
+      final filesResult = await listFiles(path: _hoplixiFolder);
+      if (!filesResult.success) {
+        return DropboxResult.failure(filesResult.message!);
+      }
+
+      // Фильтруем только файлы (не папки)
+      final storages = filesResult.data!
+          .where((file) => file.tag == 'file')
+          .toList();
+
+      logInfo('Storages listed from Dropbox', data: {'count': storages.length});
+      return DropboxResult.success(data: storages);
+    } catch (e, stack) {
+      logError('Failed to list storages', error: e, stackTrace: stack);
+      return DropboxResult.failure('Не удалось получить список хранилищ');
+    }
+  }
+
+  /// Удалить хранилище из облака
+  Future<DropboxResult<void>> deleteStorage(String storageName) async {
+    try {
+      if (_api == null) {
+        return DropboxResult.failure('API не инициализировано');
+      }
+
+      final cloudPath = '$_hoplixiFolder/$storageName';
+      final deleteResult = await delete(cloudPath);
+
+      if (deleteResult.success) {
+        logInfo('Storage deleted from Dropbox', data: {'name': storageName});
+      }
+
+      return deleteResult;
+    } catch (e, stack) {
+      logError('Failed to delete storage', error: e, stackTrace: stack);
+      return DropboxResult.failure('Не удалось удалить хранилище');
     }
   }
 
