@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 // Универсальный радиус по умолчанию
 const BorderRadius defaultBorderRadiusValue = BorderRadius.all(
-  Radius.circular(12),
+  Radius.circular(16),
 );
 
 /// Возвращает стандартный InputDecoration, основанный на закомментированном коде.

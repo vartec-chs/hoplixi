@@ -8,13 +8,12 @@ import 'package:hoplixi/core/theme/theme_switcher.dart';
 import 'package:hoplixi/features/global/widgets/index.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
-import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_passwords_provider.dart';
+
 import 'package:hoplixi/features/password_manager/dashboard/widgets/dashboard_app_bar.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_list_view.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_fab.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
-
 
 /// Главный экран дашборда с полнофункциональным SliverAppBar
 /// Управляет отображением паролей, заметок и OTP с фильтрацией и поиском
@@ -73,7 +72,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               .changeEntityType(EntityType.otp);
         }, // drawer
         SingleActivator(LogicalKeyboardKey.keyD, control: true): () {
-          _scaffoldKey.currentState?.openDrawer();
+          if (_scaffoldKey.currentState != null) {
+            if (_scaffoldKey.currentState!.isDrawerOpen) {
+              _scaffoldKey.currentState?.closeDrawer();
+            } else {
+              _scaffoldKey.currentState?.openDrawer();
+            }
+          }
         }, // icon
         SingleActivator(LogicalKeyboardKey.keyI, control: true): () {
           context.push(AppRoutes.iconManager);
@@ -180,7 +185,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         onFilterApplied: () {
                           logInfo('DashboardScreen: Фильтры применены');
                         },
-                        expandedHeight: 180.0,
+                        expandedHeight: 173.0,
                         collapsedHeight: 60.0,
                         pinned: true,
                         floating: false,

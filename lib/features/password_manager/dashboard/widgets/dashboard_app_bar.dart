@@ -201,7 +201,6 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
             ),
           ),
         ],
-
         // Кнопка открытия модального окна фильтров
         IconButton(
           icon: Stack(
@@ -248,7 +247,7 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
             color: theme.colorScheme.surface,
             border: Border(
               bottom: BorderSide(
-                color: theme.colorScheme.outline.withValues(alpha: 0.2),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -256,19 +255,6 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
           child: SafeArea(
             child: Column(
               children: [
-                // Верхняя часть с заголовком (занимает место collapsed height)
-                // SizedBox(
-                //   height: widget.collapsedHeight,
-                //   child: Center(
-                //     child: Text(
-                //       'Менеджер паролей Hoplixi',
-                //       style: theme.textTheme.headlineSmall?.copyWith(
-                //         fontWeight: FontWeight.w700,
-                //         color: theme.colorScheme.onSurface,
-                //       ),
-                //     ),
-                //   ),
-                // ),
                 const SizedBox(height: 50),
 
                 // Нижняя часть с поиском и вкладками
@@ -282,7 +268,7 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
                       children: [
                         // Поле поиска
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
+                          padding: const EdgeInsets.only(bottom: 8.0),
                           child: PrimaryTextField(
                             controller: _searchController,
                             focusNode: _searchFocusNode,
@@ -315,12 +301,8 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
                         // Вкладки фильтров
                         if (availableTabs.isNotEmpty) ...[
                           FilterTabs(
-                            height: 42,
-                            borderRadius: 8,
-                            // labelPadding: const EdgeInsets.symmetric(
-                            //   horizontal: 12,
-                            //   vertical: 6,
-                            // ),
+                            height: 40,
+                            borderRadius: 16,
                             onTabChanged: (tab) {
                               logInfo(
                                 'DashboardSliverAppBar: Изменена вкладка: ${tab.label}',
