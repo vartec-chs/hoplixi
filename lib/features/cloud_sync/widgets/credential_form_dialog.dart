@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
 import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
+import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
+import 'package:hoplixi/features/cloud_sync/services/dropbox_service.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 
@@ -242,37 +244,71 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
       _isSubmitting = true;
     });
 
-    bool success;
+    try {
+      // Дополнительная валидация подключения для Dropbox
+      if (_selectedType == CredentialOAuthType.dropbox) {
+        final connectionValid = await _validateDropboxConnection();
+        if (!connectionValid) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Не удалось проверить подключение к Dropbox. Проверьте Client ID и Client Secret.',
+                ),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          setState(() {
+            _isSubmitting = false;
+          });
+          return;
+        }
+      }
 
-    if (_isEditing) {
-      final updated = widget.credential!.copyWith(
-        type: _selectedType,
-        clientId: _clientIdController.text.trim(),
-        clientSecret: _clientSecretController.text.trim(),
-        redirectUri: _redirectUriController.text.trim(),
-        expiresAt: _expiresAt,
-      );
-      success = await ref
-          .read(credentialListProvider.notifier)
-          .updateCredential(updated);
-    } else {
-      success = await ref
-          .read(credentialListProvider.notifier)
-          .createCredential(
-            type: _selectedType,
-            clientId: _clientIdController.text.trim(),
-            clientSecret: _clientSecretController.text.trim(),
-            redirectUri: _redirectUriController.text.trim(),
-            expiresAt: _expiresAt,
-          );
-    }
+      bool success;
 
-    setState(() {
-      _isSubmitting = false;
-    });
+      if (_isEditing) {
+        final updated = widget.credential!.copyWith(
+          type: _selectedType,
+          clientId: _clientIdController.text.trim(),
+          clientSecret: _clientSecretController.text.trim(),
+          redirectUri: _redirectUriController.text.trim(),
+          expiresAt: _expiresAt,
+        );
+        success = await ref
+            .read(credentialListProvider.notifier)
+            .updateCredential(updated);
+      } else {
+        success = await ref
+            .read(credentialListProvider.notifier)
+            .createCredential(
+              type: _selectedType,
+              clientId: _clientIdController.text.trim(),
+              clientSecret: _clientSecretController.text.trim(),
+              redirectUri: _redirectUriController.text.trim(),
+              expiresAt: _expiresAt,
+            );
+      }
 
-    if (mounted && success) {
-      Navigator.of(context).pop(true);
+      if (mounted && success) {
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -288,6 +324,36 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
         return Icons.cloud_done;
       case CredentialOAuthType.other:
         return Icons.cloud_outlined;
+    }
+  }
+
+  /// Валидация подключения к Dropbox
+  Future<bool> _validateDropboxConnection() async {
+    try {
+      // Создаем временный credential для проверки
+      final tempCredential = CredentialApp(
+        id: 'temp_validation',
+        type: CredentialOAuthType.dropbox,
+        clientId: _clientIdController.text.trim(),
+        clientSecret: _clientSecretController.text.trim(),
+        redirectUri: _redirectUriController.text.trim(),
+        expiresAt: _expiresAt,
+      );
+
+      // Инициализируем Dropbox сервис
+      final dropboxService = ref.read(dropboxServiceProvider);
+      final initResult = await dropboxService.init(tempCredential);
+
+      if (!initResult.success) {
+        return false;
+      }
+
+      // Проверяем подключение (без полного OAuth flow)
+      final checkResult = await dropboxService.check();
+      return checkResult.success;
+    } catch (e) {
+      // В случае ошибки валидации считаем подключение невалидным
+      return false;
     }
   }
 }

@@ -75,6 +75,20 @@ class CredentialService {
     required DateTime expiresAt,
   }) async {
     try {
+      // Валидация входных данных
+      final validationResult = await _validateCredentialData(
+        type: type,
+        clientId: clientId,
+        clientSecret: clientSecret,
+        redirectUri: redirectUri,
+        expiresAt: expiresAt,
+        isUpdate: false,
+      );
+
+      if (!validationResult.success) {
+        return ServiceResult.failure(validationResult.message!);
+      }
+
       final initResult = await _ensureInitialized();
       if (!initResult.success) {
         return ServiceResult.failure(initResult.message!);
@@ -172,6 +186,21 @@ class CredentialService {
     CredentialApp credential,
   ) async {
     try {
+      // Валидация входных данных
+      final validationResult = await _validateCredentialData(
+        type: credential.type,
+        clientId: credential.clientId,
+        clientSecret: credential.clientSecret,
+        redirectUri: credential.redirectUri,
+        expiresAt: credential.expiresAt,
+        isUpdate: true,
+        existingId: credential.id,
+      );
+
+      if (!validationResult.success) {
+        return ServiceResult.failure(validationResult.message!);
+      }
+
       final initResult = await _ensureInitialized();
       if (!initResult.success) {
         return ServiceResult.failure(initResult.message!);
@@ -286,5 +315,100 @@ class CredentialService {
       await _boxManager.closeBox(_boxName);
       _db = null;
     }
+  }
+
+  /// Валидация данных учетных данных
+  Future<ServiceResult<void>> _validateCredentialData({
+    required CredentialOAuthType type,
+    required String clientId,
+    required String clientSecret,
+    required String redirectUri,
+    required DateTime expiresAt,
+    bool isUpdate = false,
+    String? existingId,
+  }) async {
+    // Проверка обязательных полей
+    if (clientId.trim().isEmpty) {
+      return ServiceResult.failure('Client ID не может быть пустым');
+    }
+
+    if (clientSecret.trim().isEmpty) {
+      return ServiceResult.failure('Client Secret не может быть пустым');
+    }
+
+    if (redirectUri.trim().isEmpty) {
+      return ServiceResult.failure('Redirect URI не может быть пустым');
+    }
+
+    // Проверка формата redirectUri
+    try {
+      final uri = Uri.parse(redirectUri.trim());
+      if (!uri.hasScheme || !uri.hasAuthority) {
+        return ServiceResult.failure('Redirect URI должен быть валидным URL');
+      }
+    } catch (e) {
+      return ServiceResult.failure('Redirect URI имеет некорректный формат');
+    }
+
+    // Проверка даты истечения
+    if (expiresAt.isBefore(DateTime.now())) {
+      return ServiceResult.failure('Дата истечения не может быть в прошлом');
+    }
+
+    // Проверка уникальности clientId (только для новых записей или при изменении)
+    if (!isUpdate || existingId == null) {
+      final initResult = await _ensureInitialized();
+      if (initResult.success) {
+        final allCredentials = await _db!.getAll();
+        final duplicate = allCredentials.any(
+          (cred) => cred.clientId.trim() == clientId.trim(),
+        );
+        if (duplicate) {
+          return ServiceResult.failure(
+            'Учётные данные с таким Client ID уже существуют',
+          );
+        }
+      }
+    }
+
+    // Специфическая валидация для разных типов
+    switch (type) {
+      case CredentialOAuthType.dropbox:
+        // Для Dropbox clientId должен быть в определенном формате
+        if (clientId.length < 10) {
+          return ServiceResult.failure(
+            'Client ID Dropbox должен содержать минимум 10 символов',
+          );
+        }
+        if (clientSecret.length < 10) {
+          return ServiceResult.failure(
+            'Client Secret Dropbox должен содержать минимум 10 символов',
+          );
+        }
+        break;
+
+      case CredentialOAuthType.google:
+        // Для Google проверяем что redirectUri содержит google
+        if (!redirectUri.contains('google')) {
+          logInfo('Предупреждение: Redirect URI не содержит "google"');
+        }
+        break;
+
+      case CredentialOAuthType.onedrive:
+        // Для OneDrive проверяем что redirectUri содержит microsoft
+        if (!redirectUri.contains('microsoft') &&
+            !redirectUri.contains('live.com')) {
+          logInfo(
+            'Предупреждение: Redirect URI не содержит "microsoft" или "live.com"',
+          );
+        }
+        break;
+
+      default:
+        // Для других типов базовая валидация достаточна
+        break;
+    }
+
+    return ServiceResult.success();
   }
 }
