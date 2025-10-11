@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/core/app_preferences/app_preferences.dart';
-import 'package:hoplixi/core/app_preferences/keys.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/global/providers/biometric_auto_open_provider.dart';
 import 'package:hoplixi/features/global/providers/biometric_provider.dart';

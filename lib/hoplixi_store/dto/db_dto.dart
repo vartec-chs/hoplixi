@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import '../enums/entity_types.dart';
 
 part 'db_dto.freezed.dart';
+part 'db_dto.g.dart';
 
 @freezed
 abstract class CreateDatabaseDto with _$CreateDatabaseDto {
@@ -58,6 +59,9 @@ abstract class CreatePasswordDto with _$CreatePasswordDto {
     String? categoryId,
     @Default(false) bool isFavorite,
   }) = _CreatePasswordDto;
+
+  factory CreatePasswordDto.fromJson(Map<String, dynamic> json) =>
+      _$CreatePasswordDtoFromJson(json);
 }
 
 // card password dto
@@ -218,6 +222,25 @@ abstract class CreateCategoryDto with _$CreateCategoryDto {
     @Default('FFFFFF') String color,
     required CategoryType type,
   }) = _CreateCategoryDto;
+
+  factory CreateCategoryDto.fromJson(Map<String, dynamic> json) =>
+      _$CreateCategoryDtoFromJson(json);
+}
+
+@freezed
+abstract class CreateCategoryForMigrationDto
+    with _$CreateCategoryForMigrationDto {
+  const factory CreateCategoryForMigrationDto({
+    required String migrationId,
+    required String name,
+    String? description,
+    String? iconId,
+    @Default('FFFFFF') String color,
+    required CategoryType type,
+  }) = _CreateCategoryForMigrationDto;
+
+  factory CreateCategoryForMigrationDto.fromJson(Map<String, dynamic> json) =>
+      _$CreateCategoryForMigrationDtoFromJson(json);
 }
 
 @freezed

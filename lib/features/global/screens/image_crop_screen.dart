@@ -234,7 +234,7 @@ class _ImageCropScreenState extends ConsumerState<ImageCropScreen> {
       final crop = _cropController.crop;
 
       logDebug(
-        'Обрезка завершена: rect=${crop}, size=${cropSize}',
+        'Обрезка завершена: rect=$crop, size=$cropSize',
         tag: _logTag,
       );
 

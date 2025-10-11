@@ -9,6 +9,7 @@ class ExpandableFAB extends StatefulWidget {
     this.iconData,
 
     this.importOtpCodes,
+    this.migratePasswords,
 
     required this.onCreateEntity,
     required this.entityName,
@@ -23,6 +24,7 @@ class ExpandableFAB extends StatefulWidget {
   final String entityName;
   final IconData? iconData;
   final VoidCallback? importOtpCodes;
+  final VoidCallback? migratePasswords;
   final VoidCallback onCreateEntity;
   final VoidCallback onCreateCategory;
   final VoidCallback onCreateTag;
@@ -144,6 +146,14 @@ class _ExpandableFABState extends State<ExpandableFAB>
           onPressed: () => _executeAction(widget.importOtpCodes!),
           icon: const Icon(Icons.qr_code),
           label: 'Импортировать OTP коды',
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        ),
+      if (widget.migratePasswords != null)
+        ActionButton(
+          onPressed: () => _executeAction(widget.migratePasswords!),
+          icon: const Icon(Icons.sync),
+          label: 'Миграция паролей',
           backgroundColor: Theme.of(context).colorScheme.primaryContainer,
           foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
         ),

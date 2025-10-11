@@ -251,6 +251,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           context.push(AppRoutes.importOtpCodes);
                         }
                       : null,
+                  migratePasswords: currentEntityType == EntityType.password
+                      ? () {
+                          logInfo('DashboardScreen: Миграция паролей');
+                          context.push(AppRoutes.passwordMigration);
+                        }
+                      : null,
                 );
               },
             ),

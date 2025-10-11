@@ -76,6 +76,75 @@ class CategoriesService {
     }
   }
 
+  /// Создание новой категории с валидацией
+  Future<CategoryResult> createCategoryForMigration({
+    required String migrationId,
+    required String name,
+    String? description,
+    String? iconId,
+    required String color,
+    required CategoryType type,
+  }) async {
+    try {
+      logDebug(
+        'Создание категории',
+        tag: 'CategoriesService',
+        data: {'name': name, 'type': type.name},
+      );
+
+      // Валидация имени
+      if (name.trim().isEmpty) {
+        return CategoryResult.error('Имя категории не может быть пустым');
+      }
+
+      if (name.length > 100) {
+        return CategoryResult.error(
+          'Имя категории слишком длинное (максимум 100 символов)',
+        );
+      }
+
+      // Проверка существования категории с таким именем
+      final exists = await _categoriesDao.categoryExists(name.trim());
+      if (exists) {
+        return CategoryResult.error('Категория с таким именем уже существует');
+      }
+
+      // Создание DTO
+      final dto = CreateCategoryDto(
+        name: name.trim(),
+        description: description?.trim(),
+        iconId: iconId,
+        color: color,
+        type: type,
+      );
+
+      final categoryId = await _categoriesDao.createCategoryForMigration(
+        dto,
+        migrationId,
+      );
+
+      logDebug(
+        'Категория создана',
+        tag: 'CategoriesService',
+        data: {'id': categoryId, 'name': name},
+      );
+
+      return CategoryResult.success(
+        categoryId: categoryId,
+        message: 'Категория "$name" успешно создана',
+      );
+    } catch (e, s) {
+      logError(
+        'Ошибка создания категории',
+        error: e,
+        stackTrace: s,
+        tag: 'CategoriesService',
+        data: {'name': name},
+      );
+      return CategoryResult.error('Ошибка создания категории: ${e.toString()}');
+    }
+  }
+
   /// Обновление категории с валидацией
   Future<CategoryResult> updateCategory({
     required String id,

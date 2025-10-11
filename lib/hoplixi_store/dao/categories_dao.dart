@@ -34,6 +34,30 @@ class CategoriesDao extends DatabaseAccessor<HoplixiStore>
     return id;
   }
 
+  Future<String> createCategoryForMigration(
+    CreateCategoryDto dto,
+    String migrationId,
+  ) async {
+    // Генерируем UUID для новой записи
+    final id = migrationId;
+
+    final companion = CategoriesCompanion(
+      id: Value(id),
+      name: Value(dto.name),
+      description: Value(dto.description),
+      iconId: Value(dto.iconId),
+      color: Value(dto.color),
+      type: Value(dto.type),
+    );
+
+    await into(
+      attachedDatabase.categories,
+    ).insert(companion, mode: InsertMode.insertOrIgnore);
+
+    // Возвращаем сгенерированный UUID
+    return id;
+  }
+
   /// Обновление категории
   Future<bool> updateCategory(UpdateCategoryDto dto) async {
     final companion = CategoriesCompanion(

@@ -107,6 +107,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
         maxWidth: isMobile ? double.infinity : 600,
         maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
+
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -114,7 +115,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
           Flexible(
             child: SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: EdgeInsets.all(12.0),
                 child: _buildForm(),
               ),
             ),
@@ -331,7 +332,7 @@ class _CategoryFormModalState extends ConsumerState<CategoryFormModal> {
 
   Widget _buildActions(BuildContext context, bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 8 : 24),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
@@ -540,6 +541,7 @@ Future<void> showCategoryFormModal({
     await showDialog(
       context: context,
       builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         insetPadding: const EdgeInsets.all(8),
         child: CategoryFormModal(category: category, onSaved: onSaved),
       ),
