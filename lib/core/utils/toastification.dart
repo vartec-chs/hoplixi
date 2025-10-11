@@ -21,10 +21,6 @@ class ToastHelper {
       return;
     }
 
-    // final textColor = theme.colorScheme.brightness == Brightness.dark
-    //     ? Colors.black
-    //     : Colors.black;
-
     final primaryColor = Colors.green.shade500;
 
     toastification.show(
@@ -119,6 +115,50 @@ class ToastHelper {
                 ),
           ),
     );
+  }
+
+  static void infoDebug({
+    BuildContext? context,
+    required String title,
+    String? description,
+    Duration? autoCloseDuration,
+    ToastificationCallbacks? callbacks,
+  }) {
+    if (!MainConstants.isProduction) {
+      final contextToUse = context ?? navigatorKey.currentContext;
+      if (contextToUse == null) {
+        logError('No context available for toast notification');
+        return;
+      }
+
+      final primaryColor = Colors.grey.shade800;
+
+      toastification.show(
+        context: contextToUse,
+        type: ToastificationType.info,
+        style: toastificationStyle,
+        autoCloseDuration: autoCloseDuration ?? const Duration(seconds: 5),
+        title: Text(title),
+        description: description != null ? Text(description) : null,
+
+        direction: TextDirection.ltr,
+        animationDuration: const Duration(milliseconds: 300),
+        icon: const Icon(Icons.bug_report),
+        showIcon: true,
+        primaryColor: primaryColor,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        borderRadius: allBorderRadius,
+        borderSide: BorderSide(color: primaryColor, width: 1),
+        showProgressBar: true,
+        closeOnClick: false,
+        pauseOnHover: true,
+        dragToClose: true,
+        callbacks: callbacks ?? const ToastificationCallbacks(),
+      );
+    }
   }
 
   static void warning({
