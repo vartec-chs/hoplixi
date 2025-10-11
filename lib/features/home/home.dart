@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/index.dart';
-
 import 'package:hoplixi/core/theme/index.dart';
-
+import 'package:hoplixi/features/global/providers/biometric_auto_open_provider.dart';
+import 'package:hoplixi/features/global/providers/biometric_provider.dart';
+import 'package:hoplixi/hoplixi_store/services/biometric_service.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/features/global/widgets/text_field.dart';
+import 'package:hoplixi/features/global/widgets/password_field.dart';
+import 'package:hoplixi/features/global/widgets/slider_button.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'home_controller.dart';
 import 'widgets/index.dart';
+
+bool _hasShownAutoOpenDialog = false;
 
 /// Современный главный экран с поддержкой slivers и модульной архитектуры
 class ModernHomeScreen extends ConsumerStatefulWidget {
@@ -22,7 +29,6 @@ class ModernHomeScreen extends ConsumerStatefulWidget {
 
 class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
-  late PageController _pageController;
   late AnimationController _fabAnimationController;
 
   @override
@@ -31,7 +37,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
     _fabAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -51,8 +56,9 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog.adaptive(
-        constraints: BoxConstraints(maxWidth: 600),
+      builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.all(8),
+        constraints: BoxConstraints(maxWidth: 400),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -68,13 +74,40 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
             ),
           ],
         ),
-        content: Text(
-          'Найдена недавно открытая база данных "${recentDatabase?.name}" с сохраненным паролем. Открыть автоматически?',
+        // content: Text(
+        //   'Найдена недавно открытая база данных "${recentDatabase?.name}" с сохраненным паролем. Открыть автоматически?',
+        // ),
+        content: Column(
+          spacing: 12,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Недавняя база данных "${recentDatabase?.name}"',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            Text(
+              'Найдена база данных с сохраненным паролем. Открыть автоматически?',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
+
+            Text(
+              'Это можно отключить в настройках приложения.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
         ),
         actions: [
-          TextButton(
+          SmoothButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Пропустить'),
+            label: 'Пропустить',
+            icon: const Icon(Icons.close, size: 18),
+            type: SmoothButtonType.text,
           ),
           SmoothButton(
             onPressed: () {
@@ -91,7 +124,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
   @override
   void dispose() {
-    _pageController.dispose();
     _fabAnimationController.dispose();
 
     super.dispose();
@@ -103,8 +135,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
     return Consumer(
       builder: (context, ref, child) {
-        final selectedIndex = ref.watch(selectedBottomNavIndexProvider);
-
         // Проверяем возможность автооткрытия после инициализации
         ref.listen<AsyncValue<bool>>(canAutoOpenWithSettingsProvider, (
           previous,
@@ -112,7 +142,12 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         ) {
           next.whenOrNull(
             data: (canAutoOpen) {
-              if (canAutoOpen && mounted) {
+              if (canAutoOpen &&
+                  !_hasShownAutoOpenDialog &&
+                  mounted &&
+                  GoRouter.of(context).state.matchedLocation ==
+                      AppRoutes.home) {
+                _hasShownAutoOpenDialog = true;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   _showAutoOpenDialog();
                 });
@@ -127,26 +162,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           }
         });
 
-        return Scaffold(
-          body: SafeArea(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (index) {
-                ref
-                    .read(homeControllerProvider.notifier)
-                    .setBottomNavIndex(index);
-              },
-              children: [
-                _buildHomeView(),
-                _buildSearchView(),
-                _buildFavoritesView(),
-                _buildSettingsView(),
-              ],
-            ),
-          ),
-          // bottomNavigationBar: _buildModernBottomNav(selectedIndex),
-          // floatingActionButton: _buildFloatingActionButton(),
-        );
+        return Scaffold(body: SafeArea(child: _buildHomeView()));
       },
     );
   }
@@ -162,6 +178,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
             _buildAppBar(),
             _buildQuickActions(),
             ...widgets.map(_buildHomeWidget),
+
             // _buildErrorMessage(),
             !MainConstants.isProduction
                 ? SliverToBoxAdapter(
@@ -207,203 +224,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           ],
         );
       },
-    );
-  }
-
-  /// Создает представление поиска (заглушка)
-  Widget _buildSearchView() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.search, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('Поиск', style: TextStyle(fontSize: 24, color: Colors.grey)),
-          SizedBox(height: 8),
-          Text(
-            'Функция будет добавлена в будущих версиях',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Создает представление избранного (заглушка)
-  Widget _buildFavoritesView() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.favorite, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('Избранное', style: TextStyle(fontSize: 24, color: Colors.grey)),
-          SizedBox(height: 8),
-          Text(
-            'Функция будет добавлена в будущих версиях',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Создает представление настроек (заглушка)
-  Widget _buildSettingsView() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.settings, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('Настройки', style: TextStyle(fontSize: 24, color: Colors.grey)),
-          SizedBox(height: 8),
-          Text(
-            'Функция будет добавлена в будущих версиях',
-            style: TextStyle(color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Создает современную нижнюю навигацию
-  Widget _buildModernBottomNav(int selectedIndex) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: selectedIndex,
-          onTap: (index) {
-            ref.read(homeControllerProvider.notifier).setBottomNavIndex(index);
-            _pageController.animateToPage(
-              index,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          selectedItemColor: Theme.of(context).colorScheme.primary,
-          unselectedItemColor: Colors.grey,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Главная',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.lock_outline),
-              activeIcon: Icon(Icons.lock),
-              label: 'Аутентификация',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.send_outlined),
-              activeIcon: Icon(Icons.send),
-              label: 'LocalSend',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
-              label: 'Настройки',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Создает плавающую кнопку действия
-  Widget _buildFloatingActionButton() {
-    return AnimatedBuilder(
-      animation: _fabAnimationController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _fabAnimationController.value,
-          child: FloatingActionButton.extended(
-            onPressed: () {
-              // Показываем меню быстрых действий
-              _showQuickActionsBottomSheet();
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Быстро'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          ),
-        );
-      },
-    );
-  }
-
-  /// Показывает нижнее меню быстрых действий
-  void _showQuickActionsBottomSheet() {
-    showModalBottomSheet(
-      useSafeArea: true,
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Быстрые действия',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-            ListTile(
-              leading: const Icon(Icons.file_open),
-              title: const Text('Открыть хранилище'),
-              onTap: () {
-                Navigator.pop(context);
-                context.go(AppRoutes.openStore);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.add_box),
-              title: const Text('Создать хранилище'),
-              onTap: () {
-                Navigator.pop(context);
-                context.go(AppRoutes.createStore);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Настройки'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push(AppRoutes.settings);
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -488,12 +308,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Быстрые действия',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -617,7 +431,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
       case HomeWidgetType.recentDatabase:
         return _buildRecentDatabaseWidget();
       case HomeWidgetType.quickActions:
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
+        return _buildQuickActionsWidget();
       case HomeWidgetType.statistics:
         return _buildStatisticsWidget();
       case HomeWidgetType.shortcuts:
@@ -641,17 +455,10 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           }
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Text(
-                //   'Недавняя база данных',
-                //   style: Theme.of(
-                //     context,
-                //   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                // ),
-                // const SizedBox(height: 16),
                 RecentDatabaseCard(
                   database: homeState.recentDatabase!,
                   isLoading: homeState.isLoading,
@@ -660,7 +467,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                   onOpenManual: _handleManualOpen,
                   onRemove: _handleRemove,
                 ),
-                const SizedBox(height: 24),
               ],
             ),
           );
@@ -736,6 +542,37 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     );
   }
 
+  Widget _buildQuickActionsWidget() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.archive,
+                label: 'Экспорт хранилища',
+                onTap: () => context.push(AppRoutes.exportStorage),
+                isPrimary: false,
+                description: 'Создать архив хранилища для резервной копии',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.download,
+                label: 'Импорт хранилища',
+                onTap: () => context.push(AppRoutes.importStorage),
+                isPrimary: false,
+                description: 'Восстановить хранилище из архива',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Заглушки для остальных виджетов
   Widget _buildShortcutsWidget() {
     return const SliverToBoxAdapter(child: SizedBox.shrink());
@@ -755,6 +592,40 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
   // Обработчики событий
   Future<void> _handleAutoOpen() async {
+    // Проверяем настройку биометрии
+    final biometricEnabled = await ref.read(biometricAutoOpenProvider.future);
+
+    if (biometricEnabled) {
+      // Проверяем статус биометрии
+      final biometricService = ref.read(biometricServiceProvider);
+      final statusResult = await biometricService.checkBiometricStatus();
+
+      if (!statusResult.success || statusResult.data != BiometricStatus.ready) {
+        ToastHelper.error(
+          title: 'Биометрия недоступна',
+          description:
+              'Биометрическая аутентификация не настроена или недоступна. Отключите биометрию в настройках.',
+        );
+        return;
+      }
+
+      // Выполняем биометрическую аутентификацию
+      final authResult = await biometricService.authenticateWithBiometrics(
+        localizedReason: 'Подтвердите открытие базы данных биометрией',
+      );
+
+      if (!authResult.success ||
+          authResult.data != BiometricAuthResult.authenticated) {
+        ToastHelper.error(
+          title: 'Аутентификация неудачна',
+          description:
+              'Не удалось подтвердить личность. Попробуйте еще раз или отключите биометрию в настройках. Возможно превышен лимит попыток.',
+        );
+        return;
+      }
+    }
+
+    // Продолжаем с открытием базы данных
     final controller = ref.read(homeControllerProvider.notifier);
     final result = await controller.autoOpenRecentDatabase();
     if (result != null && context.mounted) {
@@ -803,9 +674,11 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           'Удалить "${recentDatabase?.name}" из истории недавно открытых баз данных?',
         ),
         actions: [
-          TextButton(
+          SmoothButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Отмена'),
+            label: 'Отмена',
+            icon: const Icon(Icons.close, size: 18),
+            type: SmoothButtonType.text,
           ),
           SmoothButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -820,60 +693,5 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
   void _navigateToDatabase() {
     context.go(AppRoutes.dashboard);
-  }
-}
-
-class ActionButton extends StatelessWidget {
-  const ActionButton({
-    required this.onPressed,
-    required this.child,
-    this.icon,
-    this.backgroundColor,
-    this.borderColor,
-    this.width = 150,
-    this.description,
-    this.height = 150,
-    this.borderRadius = 12,
-    this.isWidthFull = false,
-    super.key,
-  });
-
-  final VoidCallback onPressed;
-  final Widget child;
-  final String? description;
-  final double borderRadius;
-  final Widget? icon;
-  final Color? backgroundColor;
-  final double width;
-  final double height;
-  final bool isWidthFull;
-  final Color? borderColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: isWidthFull ? double.infinity : width,
-      height: height,
-      child: FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          padding: EdgeInsets.zero, // убирает лишние отступы
-          backgroundColor: backgroundColor ?? Colors.transparent,
-          textStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(borderRadius),
-            side: BorderSide(color: borderColor ?? Colors.transparent),
-          ),
-        ),
-        child: Center(
-          child: icon != null
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [icon!, const SizedBox(width: 8), child],
-                )
-              : child,
-        ), // текст/иконка по центру
-      ),
-    );
   }
 }

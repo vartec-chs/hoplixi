@@ -114,6 +114,9 @@ dependencies:
   zxing2: ^0.2.4
   protobuf: ^5.0.0
   flutter_confetti: ^0.5.1
+  local_auth: ^2.3.0
+  crop_image: ^1.0.16
+  flutter_native_splash: ^2.4.6
   
 
 

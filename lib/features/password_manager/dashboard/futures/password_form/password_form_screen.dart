@@ -319,275 +319,283 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
             const SizedBox(width: 8),
           ],
         ),
-        body: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Основная скроллируемая область с полями
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Карточка основной информации
-                      _buildSectionCard(
-                        context: context,
-                        title: 'Основная информация',
-                        icon: Icons.info_outline,
-                        delay: 0,
-                        children: [
-                          // Название
-                          PrimaryTextFormField(
-                            controller: _nameController,
-                            label: 'Название',
-                            hintText: 'Введите название пароля',
-                            validator: _requiredValidator,
-                            textInputAction: TextInputAction.next,
-                            autofocus: true,
-                            helperText: 'Обязательное поле',
-                          ),
-                          const SizedBox(height: 16),
-                          // Описание
-                          PrimaryTextFormField(
-                            controller: _descriptionController,
-                            label: 'Описание',
-                            hintText: 'Дополнительное описание (необязательно)',
-                            textInputAction: TextInputAction.next,
-                            maxLines: 2,
-                          ),
-                          const SizedBox(height: 16),
-                          // URL
-                          PrimaryTextFormField(
-                            controller: _urlController,
-                            label: 'URL сайта',
-                            hintText: 'https://example.com',
-                            validator: _urlValidator,
-                            keyboardType: TextInputType.url,
-                            textInputAction: TextInputAction.next,
-                          ),
-                        ],
-                      ),
+        body: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                // Основная скроллируемая область с полями
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Карточка основной информации
+                        _buildSectionCard(
+                          context: context,
+                          title: 'Основная информация',
+                          icon: Icons.info_outline,
+                          delay: 0,
+                          children: [
+                            // Название
+                            PrimaryTextFormField(
+                              controller: _nameController,
+                              label: 'Название',
+                              hintText: 'Введите название пароля',
+                              validator: _requiredValidator,
+                              textInputAction: TextInputAction.next,
+                              autofocus: true,
+                              helperText: 'Обязательное поле',
+                            ),
+                            const SizedBox(height: 16),
+                            // Описание
+                            PrimaryTextFormField(
+                              controller: _descriptionController,
+                              label: 'Описание',
+                              hintText:
+                                  'Дополнительное описание (необязательно)',
+                              textInputAction: TextInputAction.next,
+                              maxLines: 2,
+                            ),
+                            const SizedBox(height: 16),
+                            // URL
+                            PrimaryTextFormField(
+                              controller: _urlController,
+                              label: 'URL сайта',
+                              hintText: 'https://example.com',
+                              validator: _urlValidator,
+                              keyboardType: TextInputType.url,
+                              textInputAction: TextInputAction.next,
+                            ),
+                          ],
+                        ),
 
-                      const SizedBox(height: 16),
+                        const SizedBox(height: 16),
 
-                      // Карточка данных для входа
-                      _buildSectionCard(
-                        context: context,
-                        title: 'Данные для входа',
-                        icon: Icons.account_circle_outlined,
-                        delay: 100,
-                        children: [
-                          // Логин
-                          PrimaryTextFormField(
-                            controller: _loginController,
-                            label: 'Логин',
-                            hintText: 'Имя пользователя',
-                            textInputAction: TextInputAction.next,
-                            helperText:
-                                'Обязательное поле если не указан email',
-                          ),
-                          const SizedBox(height: 16),
-                          // Email
-                          PrimaryTextFormField(
-                            controller: _emailController,
-                            label: 'Email',
-                            hintText: 'user@example.com',
-                            validator: _emailValidator,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
-                            helperText:
-                                'Обязательное поле если не указан логин',
-                          ),
-                          const SizedBox(height: 16),
-                          // Пароль
-                          PrimaryTextFormField(
-                            controller: _passwordController,
-                            label: 'Пароль',
-                            hintText: 'Введите пароль',
-                            helperText: 'Обязательное поле',
-                            validator: _requiredValidator,
-                            obscureText: !formState.isPasswordVisible,
-                            textInputAction: TextInputAction.next,
-                            suffixIcon: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Кнопка генератора паролей
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(Icons.auto_awesome),
-                                    tooltip: 'Генератор паролей',
-                                    onPressed: () {
-                                      setState(() {
-                                        _showPasswordGenerator =
-                                            !_showPasswordGenerator;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                // Кнопка видимости пароля
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.secondary
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: IconButton(
-                                    icon: Icon(
-                                      formState.isPasswordVisible
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
+                        // Карточка данных для входа
+                        _buildSectionCard(
+                          context: context,
+                          title: 'Данные для входа',
+                          icon: Icons.account_circle_outlined,
+                          delay: 100,
+                          children: [
+                            // Логин
+                            PrimaryTextFormField(
+                              controller: _loginController,
+                              label: 'Логин',
+                              hintText: 'Имя пользователя',
+                              textInputAction: TextInputAction.next,
+                              helperText:
+                                  'Обязательное поле если не указан email',
+                            ),
+                            const SizedBox(height: 16),
+                            // Email
+                            PrimaryTextFormField(
+                              controller: _emailController,
+                              label: 'Email',
+                              hintText: 'user@example.com',
+                              validator: _emailValidator,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              helperText:
+                                  'Обязательное поле если не указан логин',
+                            ),
+                            const SizedBox(height: 16),
+                            // Пароль
+                            PrimaryTextFormField(
+                              controller: _passwordController,
+                              label: 'Пароль',
+                              hintText: 'Введите пароль',
+                              helperText: 'Обязательное поле',
+                              validator: _requiredValidator,
+                              obscureText: !formState.isPasswordVisible,
+                              textInputAction: TextInputAction.next,
+                              suffixIcon: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Кнопка генератора паролей
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    tooltip: formState.isPasswordVisible
-                                        ? 'Скрыть пароль'
-                                        : 'Показать пароль',
-                                    onPressed: () {
-                                      notifier.togglePasswordVisibility();
-                                    },
+                                    child: IconButton(
+                                      icon: const Icon(Icons.auto_awesome),
+                                      tooltip: 'Генератор паролей',
+                                      onPressed: () {
+                                        setState(() {
+                                          _showPasswordGenerator =
+                                              !_showPasswordGenerator;
+                                        });
+                                      },
+                                    ),
                                   ),
+                                  const SizedBox(width: 4),
+                                  // Кнопка видимости пароля
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.secondary
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: IconButton(
+                                      icon: Icon(
+                                        formState.isPasswordVisible
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                      ),
+                                      tooltip: formState.isPasswordVisible
+                                          ? 'Скрыть пароль'
+                                          : 'Показать пароль',
+                                      onPressed: () {
+                                        notifier.togglePasswordVisibility();
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // Генератор паролей (показывается при нажатии на кнопку)
+                        if (_showPasswordGenerator) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            child: _buildSectionCard(
+                              context: context,
+                              title: 'Генератор паролей',
+                              icon: Icons.security,
+                              delay: 200,
+                              backgroundColor: theme.colorScheme.surface,
+                              children: [
+                                PasswordGenerator(
+                                  onPasswordGenerated: (password) {
+                                    _passwordController.text = password;
+                                    setState(() {
+                                      _showPasswordGenerator = false;
+                                    });
+                                  },
                                 ),
-                                const SizedBox(width: 4),
                               ],
                             ),
                           ),
                         ],
-                      ),
 
-                      // Генератор паролей (показывается при нажатии на кнопку)
-                      if (_showPasswordGenerator) ...[
                         const SizedBox(height: 16),
-                        Container(
-                          child: _buildSectionCard(
-                            context: context,
-                            title: 'Генератор паролей',
-                            icon: Icons.security,
-                            delay: 200,
-                            backgroundColor: theme.colorScheme.surface,
-                            children: [
-                              PasswordGenerator(
-                                onPasswordGenerated: (password) {
-                                  _passwordController.text = password;
-                                  setState(() {
-                                    _showPasswordGenerator = false;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
 
-                      const SizedBox(height: 16),
-
-                      // Карточка дополнительной информации
-                      _buildSectionCard(
-                        context: context,
-                        title: 'Дополнительно',
-                        icon: Icons.notes_outlined,
-                        delay: 300,
-                        children: [
-                          // Заметки
-                          PrimaryTextFormField(
-                            controller: _notesController,
-                            label: 'Заметки',
-                            hintText: 'Дополнительные заметки (необязательно)',
-                            textInputAction: TextInputAction.done,
-                            maxLines: 3,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Карточка категоризации
-                      _buildSectionCard(
-                        context: context,
-                        title: 'Категория и теги',
-                        icon: Icons.label_outline,
-                        delay: 400,
-                        children: [
-                          // Выбор категории
-                          CategoriesPicker(
-                            categoryType: CategoryType.password,
-                            maxSelection: 1,
-                            selectedCategoryIds:
-                                formState.selectedCategoryId != null
-                                ? [formState.selectedCategoryId!]
-                                : [],
-                            onSelect: notifier.updateSelectedCategory,
-                            labelText: 'Категория пароля',
-                            hintText: 'Выберите категорию',
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Выбор тегов
-                          TagsPicker(
-                            tagType: TagType.password,
-                            maxSelection: 5,
-                            selectedTagIds: formState.selectedTagIds,
-                            onSelect: notifier.updateSelectedTags,
-                            labelText: 'Теги пароля',
-                            hintText: 'Выберите теги',
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Нижняя панель с кнопкой сохранения
-              Container(
-                padding: EdgeInsets.all(8),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: formState.isLoading || !formState.isFormValid
-                        ? null
-                        : LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              theme.colorScheme.primary,
-                              theme.colorScheme.primary.withOpacity(0.8),
-                            ],
-                          ),
-                    boxShadow: formState.isLoading || !formState.isFormValid
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                            BoxShadow(
-                              color: theme.colorScheme.primary.withOpacity(0.1),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
+                        // Карточка дополнительной информации
+                        _buildSectionCard(
+                          context: context,
+                          title: 'Дополнительно',
+                          icon: Icons.notes_outlined,
+                          delay: 300,
+                          children: [
+                            // Заметки
+                            PrimaryTextFormField(
+                              controller: _notesController,
+                              label: 'Заметки',
+                              hintText:
+                                  'Дополнительные заметки (необязательно)',
+                              textInputAction: TextInputAction.done,
+                              maxLines: 3,
                             ),
                           ],
-                  ),
-                  child: SmoothButton(
-                    label: notifier.saveButtonText,
-                    onPressed: formState.isLoading || !formState.isFormValid
-                        ? null
-                        : _savePassword,
-                    loading: formState.isLoading,
-                    type: SmoothButtonType.filled,
-                    size: SmoothButtonSize.medium,
-                    isFullWidth: true,
-                    bold: true,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Карточка категоризации
+                        _buildSectionCard(
+                          context: context,
+                          title: 'Категория и теги',
+                          icon: Icons.label_outline,
+                          delay: 400,
+                          children: [
+                            // Выбор категории
+                            CategoriesPicker(
+                              categoryType: CategoryType.password,
+                              maxSelection: 1,
+                              selectedCategoryIds:
+                                  formState.selectedCategoryId != null
+                                  ? [formState.selectedCategoryId!]
+                                  : [],
+                              onSelect: notifier.updateSelectedCategory,
+                              labelText: 'Категория пароля',
+                              hintText: 'Выберите категорию',
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Выбор тегов
+                            TagsPicker(
+                              tagType: TagType.password,
+                              maxSelection: 5,
+                              selectedTagIds: formState.selectedTagIds,
+                              onSelect: notifier.updateSelectedTags,
+                              labelText: 'Теги пароля',
+                              hintText: 'Выберите теги',
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 32),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+
+                // Нижняя панель с кнопкой сохранения
+                Container(
+                  padding: EdgeInsets.all(8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: formState.isLoading || !formState.isFormValid
+                          ? null
+                          : LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                theme.colorScheme.primary,
+                                theme.colorScheme.primary.withOpacity(0.8),
+                              ],
+                            ),
+                      boxShadow: formState.isLoading || !formState.isFormValid
+                          ? null
+                          : [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.3,
+                                ),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.1,
+                                ),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                    ),
+                    child: SmoothButton(
+                      label: notifier.saveButtonText,
+                      onPressed: formState.isLoading || !formState.isFormValid
+                          ? null
+                          : _savePassword,
+                      loading: formState.isLoading,
+                      type: SmoothButtonType.filled,
+                      size: SmoothButtonSize.medium,
+                      isFullWidth: true,
+                      bold: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -582,7 +582,7 @@ final canAutoOpenWithSettingsProvider = FutureProvider<bool>((ref) async {
   final homeState = ref.watch(homeControllerProvider);
 
   // Если контроллер еще инициализируется, возвращаем false
-  if (homeState.isLoading && homeState.recentDatabase == null) {
+  if (homeState.recentDatabase == null) {
     return false;
   }
 

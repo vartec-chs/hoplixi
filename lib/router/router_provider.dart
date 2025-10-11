@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_transitions/go_transitions.dart';
-import 'package:hoplixi/core/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/features/global/providers/notification_providers.dart';
@@ -55,15 +54,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ref.read(appLifecycleProvider.notifier).cleanup();
 
         return AppRoutes.home;
-      }
-
-      bool? isFirstRun = Prefs.get<bool>(Keys.isFirstRun) ?? true;
-      if (isFirstRun == false && state.fullPath == AppRoutes.splash) {
-        return AppRoutes
-            .home; // Если настройка завершена, перенаправляем на домашний экран
-      } else if (isFirstRun == true && state.fullPath != AppRoutes.splash) {
-        return AppRoutes
-            .setup; // Если настройка не завершена, перенаправляем на экран настройки
       }
 
       return null;

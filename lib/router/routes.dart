@@ -21,9 +21,14 @@ import 'package:hoplixi/features/password_manager/qr_scaner/qr_scaner_screen.dar
 import 'package:hoplixi/features/password_manager/qr_scaner/qr_test_screen.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
+import 'package:hoplixi/features/password_manager/sync/screens/export_screen.dart';
+import 'package:hoplixi/features/password_manager/sync/screens/export_confirm_screen.dart';
+import 'package:hoplixi/features/password_manager/sync/screens/import_screen.dart';
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/features/settings/screens/settings_screen.dart';
+import 'package:hoplixi/features/global/screens/image_crop_screen.dart';
 import 'package:hoplixi/router/router_provider.dart';
+import 'package:hoplixi/router/splash_screen.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'routes_path.dart';
 
@@ -166,24 +171,52 @@ final List<GoRoute> appRoutes = [
     path: AppRoutes.settings,
     builder: (context, state) => const SettingsScreen(),
   ),
+
+  GoRoute(
+    path: AppRoutes.imageCrop,
+    builder: (context, state) {
+      if (state.extra is ImageCropData) {
+        final imageData = state.extra as ImageCropData;
+        return ImageCropScreen(imageData: imageData);
+      }
+      return const InfoScreen(
+        title: 'Ошибка: нет данных изображения',
+        info: 'Не переданы данные изображения для обрезки.',
+        type: InfoType.error,
+      );
+    },
+  ),
+
+  GoRoute(
+    path: AppRoutes.exportStorage,
+    builder: (context, state) => const ExportScreen(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.exportConfirm,
+    builder: (context, state) {
+      if (state.extra is Map<String, dynamic>) {
+        final data = state.extra as Map<String, dynamic>;
+        final path = data['path'] as String?;
+        final name = data['name'] as String?;
+
+        if (path != null && name != null) {
+          return ExportConfirmScreen(storagePath: path, storageName: name);
+        }
+      }
+      return const InfoScreen(
+        title: 'Ошибка: нет данных',
+        info: 'Не переданы данные о хранилище.',
+        type: InfoType.error,
+      );
+    },
+  ),
+
+  GoRoute(
+    path: AppRoutes.importStorage,
+    builder: (context, state) => const ImportScreen(),
+  ),
 ];
-
-class SplashScreen extends StatelessWidget {
-  final String? title;
-  const SplashScreen({super.key, this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Hoplixi')),
-      body: SafeArea(
-        child: Center(
-          child: Text(title ?? '', style: const TextStyle(fontSize: 16)),
-        ),
-      ),
-    );
-  }
-}
 
 enum InfoType { info, warning, error }
 

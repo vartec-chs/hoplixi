@@ -640,8 +640,9 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
           logDebug(
             'Пользователь отменил запрос разрешения $permission на этапе PHASE_CLIENT_ALREADY_HIDDEN',
           );
-          if (mounted)
+          if (mounted) {
             ToastHelper.info(title: 'Запрос разрешения отменен пользователем');
+          }
         } else if (errorMessage.contains('onCancelled')) {
           // Общая отмена пользователем
           logDebug('Пользователь отменил запрос разрешения $permission');
@@ -649,15 +650,17 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
         } else if (errorMessage.contains('Permission denied')) {
           // Разрешение отклонено системой
           logDebug('Разрешение $permission отклонено системой');
-          if (mounted)
+          if (mounted) {
             ToastHelper.warning(title: 'Разрешение отклонено системой');
+          }
         } else {
           // Неизвестная ошибка
           logDebug(
             'Неизвестная ошибка при запросе разрешения $permission: $errorMessage',
           );
-          if (mounted)
+          if (mounted) {
             ToastHelper.error(title: 'Ошибка при запросе разрешения');
+          }
         }
       }
     }
@@ -701,15 +704,17 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
         logDebug(
           'Пользователь отменил запрос разрешений на этапе PHASE_CLIENT_ALREADY_HIDDEN',
         );
-        if (mounted)
+        if (mounted) {
           ToastHelper.info(title: 'Запрос разрешений отменен пользователем');
+        }
       } else if (errorMessage.contains('onCancelled')) {
         logDebug('Пользователь отменил запрос разрешений');
         if (mounted) ToastHelper.info(title: 'Запрос разрешений отменен');
       } else {
         logDebug('Неизвестная ошибка при запросе разрешений: $errorMessage');
-        if (mounted)
+        if (mounted) {
           ToastHelper.warning(title: 'Не все разрешения были обработаны');
+        }
       }
     }
   }

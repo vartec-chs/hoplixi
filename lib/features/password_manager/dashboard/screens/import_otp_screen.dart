@@ -28,6 +28,7 @@ import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:zxing2/qrcode.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/features/global/screens/image_crop_screen.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:otp/otp.dart';
 import 'dart:async';
@@ -116,37 +117,55 @@ class _ImportOtpScreenState extends ConsumerState<ImportOtpScreen> {
   }
 
   Future<void> _pickImageAndDecode() async {
+    // Шаг 1: Выбираем изображение из галереи
     final pickedFile = await ImagePicker().pickImage(
       source: ImageSource.gallery,
     );
-    if (pickedFile != null) {
+
+    if (pickedFile != null && mounted) {
       final bytes = await pickedFile.readAsBytes();
-      final image = img.decodeImage(bytes);
-      if (image != null) {
-        final source = RGBLuminanceSource(
-          image.width,
-          image.height,
-          image
-              .convert(numChannels: 4)
-              .getBytes(order: img.ChannelOrder.abgr)
-              .buffer
-              .asInt32List(),
-        );
-        final bitmap = BinaryBitmap(GlobalHistogramBinarizer(source));
-        final reader = QRCodeReader();
-        try {
-          final result = reader.decode(bitmap);
-          _importOtp(
-            Uint8List.fromList(Uint8List.fromList(result.text.codeUnits)),
+
+      // Шаг 2: Даём пользователю обрезать изображение
+      final cropResult = await context.push(
+        AppRoutes.imageCrop,
+        extra: ImageCropData(
+          imageBytes: bytes,
+          sourceName: 'QR-код для импорта OTP',
+        ),
+      );
+
+      if (cropResult != null && cropResult is CroppedImageResult && mounted) {
+        // Шаг 3: Декодируем QR из обрезанного изображения
+        final image = img.decodeImage(cropResult.croppedImageBytes);
+
+        if (image != null) {
+          final source = RGBLuminanceSource(
+            image.width,
+            image.height,
+            image
+                .convert(numChannels: 4)
+                .getBytes(order: img.ChannelOrder.abgr)
+                .buffer
+                .asInt32List(),
           );
-          setState(() {
-            _controller.text = result.text;
-          });
-        } catch (e) {
-          // Handle error, e.g., show toast
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Не удалось декодировать QR-код')),
-          );
+          final bitmap = BinaryBitmap(GlobalHistogramBinarizer(source));
+          final reader = QRCodeReader();
+
+          try {
+            final result = reader.decode(bitmap);
+            _importOtp(
+              Uint8List.fromList(Uint8List.fromList(result.text.codeUnits)),
+            );
+            setState(() {
+              _controller.text = result.text;
+            });
+          } catch (e) {
+            ToastHelper.error(
+              title: 'Не удалось декодировать QR-код',
+              description:
+                  'Попробуйте обрезать изображение точнее вокруг QR-кода',
+            );
+          }
         }
       }
     }

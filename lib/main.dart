@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app.dart';
 import 'package:hoplixi/core/app_preferences/app_preferences.dart';
@@ -24,7 +25,8 @@ Future<void> main() async {
   runZonedGuarded(
     () async {
       // Ensure Flutter binding is initialized
-      WidgetsFlutterBinding.ensureInitialized();
+      WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+      FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
       // Initialize AppLogger
       await AppLogger.instance.initialize(
