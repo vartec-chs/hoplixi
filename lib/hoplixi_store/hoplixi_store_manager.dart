@@ -14,7 +14,6 @@ import 'models/db_state.dart';
 import 'dto/db_dto.dart';
 import 'dto/database_file_info.dart';
 import 'hoplixi_store.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';
 import 'package:path/path.dart' as p;
 
@@ -469,18 +468,12 @@ class HoplixiStoreManager {
     return {'hash': hash, 'salt': salt, 'attachmentKey': attachmentKey};
   }
 
-  /// Получает путь для базы данных по умолчанию
-  Future<String> getDefaultDatabasePath() async {
-    final appDir = await getApplicationDocumentsDirectory();
-    return p.join(appDir.path, MainConstants.appFolderName, 'storages');
-  }
-
   /// Поиск файлов базы данных в папке по умолчанию
   Future<DatabaseFilesResult> findDatabaseFiles() async {
     const String operation = 'findDatabaseFiles';
 
     try {
-      final defaultPath = await getDefaultDatabasePath();
+      final defaultPath = await AppPaths.appStoragePath;
       final directory = Directory(defaultPath);
 
       logDebug(
@@ -581,7 +574,7 @@ class HoplixiStoreManager {
       // Возвращаем пустой результат в случае ошибки
       return DatabaseFilesResult(
         files: [],
-        searchPath: await getDefaultDatabasePath(),
+        searchPath: await AppPaths.appStoragePath,
       );
     }
   }
@@ -603,7 +596,7 @@ class HoplixiStoreManager {
         tag: 'EncryptedDatabaseManager',
       );
     } else {
-      basePath = await getDefaultDatabasePath();
+      basePath = await AppPaths.appStoragePath;
       logDebug(
         'Используется путь по умолчанию: $basePath',
         tag: 'EncryptedDatabaseManager',

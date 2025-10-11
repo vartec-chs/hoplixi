@@ -62,6 +62,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
           "AppLifecycleState: detached - resources cleared",
           tag: 'AppLifecycle',
         );
+        AppLogger.instance.endSession();
         break;
       case AppLifecycleState.inactive:
         logInfo("AppLifecycleState: inactive");

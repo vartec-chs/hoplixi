@@ -211,7 +211,7 @@ class AppLogger {
       var logMessage = tag != null ? '[$tag] $message' : message;
       if (additionalData != null &&
           additionalData.isNotEmpty &&
-          MainConstants.isProduction == false) {
+          !MainConstants.isProduction) {
         logMessage += ' | Data: $additionalData';
       }
 

@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
 import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
 import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
@@ -11,7 +12,6 @@ import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/sync/providers/storage_export_provider.dart';
-import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:intl/intl.dart';
 
@@ -119,8 +119,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       // Имитация прогресса
       _updateProgress(0.3);
 
-      final manager = await ref.read(hoplixiStoreManagerProvider.future);
-      final destinationDir = await manager.getDefaultDatabasePath();
+      final destinationDir = await AppPaths.appStoragePath;
 
       _updateProgress(0.5);
 
@@ -294,9 +293,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
       _updateProgress(0.6);
 
-      // Скачиваем хранилище
-      final manager = await ref.read(hoplixiStoreManagerProvider.future);
-      final destinationDir = await manager.getDefaultDatabasePath();
+      final destinationDir = await AppPaths.appStoragePath;
 
       final downloadResult = await notifier.downloadStorage(
         storageName: selectedStorage.name,
