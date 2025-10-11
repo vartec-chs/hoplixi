@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:hoplixi/core/index.dart';
 import 'package:intl/intl.dart';
 
 import 'package:hoplixi/core/constants/main_constants.dart';
@@ -15,24 +16,12 @@ class FileManager {
   FileManager(this.config);
 
   Future<void> initialize() async {
-    final appDocDir = await getApplicationDocumentsDirectory();
     _logDirectory = Directory(
-      path.join(
-        appDocDir.path,
-        MainConstants.appFolderName,
-        config.logDirectory,
-      ),
-    );
+      await AppPaths.appLogsPath,
+    ); // Use the updated method to get logs path
     _crashDirectory = Directory(
-      path.join(
-        appDocDir.path,
-        MainConstants.appFolderName,
-        config.crashReportDirectory,
-      ),
-    );
-
-    await _logDirectory.create(recursive: true);
-    await _crashDirectory.create(recursive: true);
+      await AppPaths.appCrashReportsPath,
+    ); // Use the updated method to get crash reports path
 
     if (config.autoCleanup) {
       await _cleanupOldFiles();

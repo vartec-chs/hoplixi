@@ -162,7 +162,7 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
 
     return SliverAppBar(
       systemOverlayStyle: SystemUiOverlayStyle(
-        statusBarColor: theme.colorScheme.surface,
+        statusBarColor: Colors.transparent,
         statusBarIconBrightness: theme.brightness == Brightness.dark
             ? Brightness.light
             : Brightness.dark,

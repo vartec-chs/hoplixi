@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_passwords_provider.dart';
@@ -12,11 +13,13 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/empty_
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/passwords_list.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/otps_list.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/notes_list.dart';
-import 'package:hoplixi/features/password_manager/dashboard/futures/otp_edit_modal.dart';
+import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/otp_edit_modal.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/router/routes_path.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 import 'package:flutter/scheduler.dart';
+
+const double _kScrollThreshold = 200.0; // Порог для пагинации при скролле
 
 /// Виджет для отображения списков различных сущностей с пагинацией
 class EntityListView extends ConsumerStatefulWidget {
@@ -40,18 +43,16 @@ class _EntityListViewState extends ConsumerState<EntityListView> {
 
   @override
   void dispose() {
-    if (widget.scrollController == null) {
-      _scrollController.dispose();
-    }
+    if (widget.scrollController == null) _scrollController.dispose();
+
     super.dispose();
   }
 
   void _onScroll() {
-    final entityType = ref.read(currentEntityTypeProvider);
-
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      // Загружаем больше данных когда до конца остается 200 пикселей
+        _scrollController.position.maxScrollExtent - _kScrollThreshold) {
+      final entityType = ref.read(currentEntityTypeProvider);
+
       switch (entityType) {
         case EntityType.password:
           ref.read(paginatedPasswordsProvider.notifier).loadMore();
@@ -400,10 +401,10 @@ class _ErrorSliverView extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 24),
-              ElevatedButton.icon(
+              SmoothButton(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Повторить'),
+                label: 'Повторить',
               ),
             ],
           ],

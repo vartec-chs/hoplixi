@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/constants/responsive_constants.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/features/global/providers/app_close_provider.dart';
 import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
 
 // import 'package:hoplixi/core/theme/theme.dart';
@@ -62,7 +63,7 @@ class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
           "AppLifecycleState: detached - resources cleared",
           tag: 'AppLifecycle',
         );
-        AppLogger.instance.endSession();
+        await ref.read(appCloseProvider.notifier).handleAppClose();
         break;
       case AppLifecycleState.inactive:
         logInfo("AppLifecycleState: inactive");

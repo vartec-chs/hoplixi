@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/features/global/providers/app_close_provider.dart';
 import 'package:hoplixi/features/global/widgets/close_database_button.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/theme/index.dart';
@@ -24,7 +25,6 @@ class _TitleBarState extends ConsumerState<TitleBar> {
   @override
   Widget build(BuildContext context) {
     final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
-    final dbNotifier = ref.read(hoplixiStoreProvider.notifier);
     final closeDbTimer = ref.watch(appInactivityTimeoutProvider);
     return DragToMoveArea(
       child: Container(
@@ -84,7 +84,6 @@ class _TitleBarState extends ConsumerState<TitleBar> {
                     ),
                   CloseDatabaseButton(),
                   ThemeSwitcher(size: 26),
-
                   IconButton(
                     padding: const EdgeInsets.all(6),
                     icon: Icon(Icons.remove, size: 20),
@@ -106,8 +105,9 @@ class _TitleBarState extends ConsumerState<TitleBar> {
                     constraints: constraints,
                     icon: Icon(Icons.close, size: 20),
                     onPressed: () async => {
-                      isDatabaseOpen ? await dbNotifier.closeDatabase() : null,
-                      await windowManager.close(),
+                      await ref
+                          .read(appCloseProvider.notifier)
+                          .handleAppClose(),
                     },
                   ),
                 ],

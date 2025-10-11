@@ -10,7 +10,6 @@ class LoggerConfig {
   final int maxFileSize; // bytes
   final int maxFileCount;
   final bool autoCleanup;
-  final String logDirectory;
 
   // Buffer settings
   final int bufferSize;
@@ -26,13 +25,11 @@ class LoggerConfig {
 
   // Crash reporting
   final bool enableCrashReports;
-  final String crashReportDirectory;
 
   const LoggerConfig({
     this.maxFileSize = 10 * 1024 * 1024, // 10MB
     this.maxFileCount = 10,
     this.autoCleanup = true,
-    this.logDirectory = 'logs',
     this.bufferSize = 100,
     this.bufferFlushInterval = const Duration(seconds: 30),
     this.enableDebug = true,
@@ -42,7 +39,6 @@ class LoggerConfig {
     this.enableConsoleOutput = true,
     this.enableFileOutput = true,
     this.enableCrashReports = true,
-    this.crashReportDirectory = 'crash_reports',
   });
 }
 

@@ -13,6 +13,8 @@ class LogBuffer {
     _startFlushTimer();
   }
 
+  Future<void> flush() async => _flush();
+
   void add(LogEntry entry) {
     _buffer.add(entry);
     if (_buffer.length >= config.bufferSize) {

@@ -1,16 +1,17 @@
 import 'dart:io';
+import 'dart:async';
 
+import 'package:hoplixi/core/index.dart';
+import 'package:logger/logger.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart';
+
 import 'package:hoplixi/core/constants/main_constants.dart';
 
 import 'file_manager.dart';
 import 'log_buffer.dart';
 import 'models.dart';
-import 'package:logger/logger.dart';
-import 'dart:async';
-
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 
 class AppLogger {
   static AppLogger? _instance;
@@ -44,25 +45,22 @@ class AppLogger {
           Level.info: 'ℹ️',
           Level.warning: '⚠️',
           Level.error: '❌',
-          Level.verbose: '🔍',
+          Level.trace: '🔍',
           Level.fatal: '🛑',
-          Level.wtf: '🤯',
           Level.off: '🔕',
         },
-
         errorMethodCount: 8,
         lineLength: 120,
         colors: true,
         printEmojis: true,
-
+        dateTimeFormat: DateTimeFormat.dateAndTime,
         levelColors: <Level, AnsiColor>{
           Level.debug: AnsiColor.fg(200),
           Level.info: AnsiColor.fg(100),
           Level.warning: AnsiColor.fg(226),
           Level.error: AnsiColor.fg(196),
-          Level.verbose: AnsiColor.fg(51),
+          Level.trace: AnsiColor.fg(51),
           Level.fatal: AnsiColor.fg(201),
-          Level.wtf: AnsiColor.fg(201),
           Level.off: AnsiColor.fg(240),
         },
       ),
@@ -87,6 +85,10 @@ class AppLogger {
 
     info('Logger initialized', tag: 'AppLogger');
   }
+
+  Future<void> flushLogs() async => {
+    if (_initialized) {await _logBuffer.flush()},
+  };
 
   void _setupCrashHandler() {
     FlutterError.onError = (FlutterErrorDetails details) {
@@ -255,12 +257,7 @@ class AppLogger {
 
   // Utility methods for getting log files
   Future<List<File>> getLogFiles() async {
-    final dir = Directory(
-      path.join(
-        (await getApplicationDocumentsDirectory()).path,
-        _config.logDirectory,
-      ),
-    );
+    final dir = Directory(await AppPaths.appLogsPath);
     return dir
         .listSync()
         .where((entity) => entity is File && entity.path.endsWith('.jsonl'))
@@ -269,12 +266,7 @@ class AppLogger {
   }
 
   Future<List<File>> getCrashReports() async {
-    final dir = Directory(
-      path.join(
-        (await getApplicationDocumentsDirectory()).path,
-        _config.crashReportDirectory,
-      ),
-    );
+    final dir = Directory(await AppPaths.appCrashReportsPath);
     return dir
         .listSync()
         .where((entity) => entity is File && entity.path.endsWith('.json'))

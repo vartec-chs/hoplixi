@@ -15,6 +15,7 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_f
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/router/routes_path.dart';
 
+
 /// Главный экран дашборда с полнофункциональным SliverAppBar
 /// Управляет отображением паролей, заметок и OTP с фильтрацией и поиском
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -31,26 +32,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    final entityType = ref.read(currentEntityTypeProvider);
-
-    // Пагинация только для паролей пока что
-    if (entityType != EntityType.password) return;
-
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      // Загружаем больше данных когда до конца остается 200 пикселей
-      ref.read(paginatedPasswordsProvider.notifier).loadMore();
-    }
   }
 
   @override
@@ -63,7 +50,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           final currentEntityType = ref.read(currentEntityTypeProvider);
           switch (currentEntityType) {
             case EntityType.password:
-              _onCreatePassword();
+              context.push(AppRoutes.passwordForm);
             case EntityType.note:
               context.push(AppRoutes.notesForm);
             case EntityType.otp:
@@ -117,6 +104,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   SmoothButton(
                     label: 'Закрыть',
                     onPressed: () => Navigator.pop(context, true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                    ),
                   ),
                 ],
               ),
@@ -133,6 +123,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         autofocus: true,
         child: PopScope(
           canPop: false, // если false → блокирует закрытие
+
           onPopInvokedWithResult: (didPop, result) async {
             if (didPop) {
               logInfo(
@@ -149,9 +140,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Подтверждение'),
-                    content: const Text(
-                      'Вы хотите закрыть приложение? Это закроет базу данных.',
-                    ),
+                    content: const Text('Вы хотите закрыть базу данных?'),
                     actions: [
                       SmoothButton(
                         type: SmoothButtonType.text,
@@ -161,6 +150,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       SmoothButton(
                         label: 'Закрыть',
                         onPressed: () => Navigator.pop(context, true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                        ),
                       ),
                     ],
                   ),
@@ -228,7 +220,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       : 'сущность',
                   onCreateEntity: () {
                     if (currentEntityType == EntityType.password) {
-                      _onCreatePassword();
+                      context.push(AppRoutes.passwordForm);
                     } else if (currentEntityType == EntityType.note) {
                       logInfo('DashboardScreen: Создание новой заметки');
                       context.push(AppRoutes.notesForm);
@@ -242,9 +234,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       );
                     }
                   },
-                  onCreateCategory: _onCreateCategory,
-                  onCreateTag: _onCreateTag,
-                  onIconCreate: _onCreateIcon,
+                  onCreateCategory: () {
+                    logInfo('DashboardScreen: Создание новой категории');
+                    context.push(AppRoutes.categoryManager);
+                  },
+                  onCreateTag: () {
+                    logInfo('DashboardScreen: Создание нового тега');
+                    context.push(AppRoutes.tagsManager);
+                  },
+                  onIconCreate: () {
+                    logInfo('DashboardScreen: Создание новой иконки');
+                    context.push(AppRoutes.iconManager);
+                  },
                   importOtpCodes: currentEntityType == EntityType.otp
                       ? () {
                           logInfo('DashboardScreen: Импорт OTP кодов');
@@ -406,28 +407,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 const Divider(),
 
-                // // Настройки
-                // ListTile(
-                //   leading: const Icon(Icons.settings),
-                //   title: const Text('Настройки'),
-                //   onTap: () {
-                //     Navigator.pop(context);
-                //     // context.go('/settings');
-                //     logInfo('DashboardScreen: Переход к настройкам');
-                //   },
-                // ),
-
-                // // Помощь
-                // ListTile(
-                //   leading: const Icon(Icons.help),
-                //   title: const Text('Помощь'),
-                //   onTap: () {
-                //     Navigator.pop(context);
-                //     // context.go('/help');
-                //     logInfo('DashboardScreen: Переход к помощи');
-                //   },
-                // ),
-
                 // О приложении
                 ListTile(
                   leading: const Icon(Icons.info),
@@ -461,25 +440,5 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         );
       },
     );
-  }
-
-  void _onCreatePassword() {
-    logInfo('DashboardScreen: Создание нового пароля');
-    context.push(AppRoutes.passwordForm);
-  }
-
-  void _onCreateCategory() {
-    logInfo('DashboardScreen: Переход к созданию категории');
-    context.push(AppRoutes.categoryManager);
-  }
-
-  void _onCreateTag() {
-    logInfo('DashboardScreen: Переход к созданию тега');
-    context.push(AppRoutes.tagsManager);
-  }
-
-  void _onCreateIcon() {
-    logInfo('DashboardScreen: Переход к созданию иконки');
-    context.push(AppRoutes.iconManager);
   }
 }

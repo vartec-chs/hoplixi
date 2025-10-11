@@ -223,10 +223,6 @@ class _PasswordFormScreenState extends ConsumerState<PasswordFormScreen>
             offset: const Offset(0, 2),
           ),
         ],
-        border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.08),
-          width: 1,
-        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(8),

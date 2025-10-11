@@ -11,6 +11,9 @@ class AppPaths {
   static Future<String> get boxDbPath async => await _getBoxDbPath();
   static Future<void> clearTempDirectory() async => await _clearTempDirectory();
   static Future<Directory> get appPath async => await _getAppPath();
+  static Future<String> get appLogsPath async => await _getAppLogsPath();
+  static Future<String> get appCrashReportsPath async =>
+      await _getAppCrashReportsPath();
 }
 
 /// Получение пути к директории приложения
@@ -27,10 +30,36 @@ Future<Directory> _getAppPath() async {
   return directory;
 }
 
+/// Logs directory
+Future<String> _getAppLogsPath() async {
+  final appDir = await _getAppPath();
+  final logPath = p.join(appDir.path, 'logs');
+
+  // Создаем директорию если её нет
+  final directory = Directory(logPath);
+  if (!await directory.exists()) {
+    await directory.create(recursive: true);
+  }
+  return logPath;
+}
+
+/// Crash reports directory extend logs
+Future<String> _getAppCrashReportsPath() async {
+  final appDir = await _getAppLogsPath();
+  final crashPath = p.join(appDir, 'crash_reports');
+
+  // Создаем директорию если её нет
+  final directory = Directory(crashPath);
+  if (!await directory.exists()) {
+    await directory.create(recursive: true);
+  }
+  return crashPath;
+}
+
 /// Получение пути к директории для хранения данных приложения
 Future<String> _getApplicationStoragePath() async {
   final appDir = await _getAppPath();
-  final basePath = p.join(appDir.path, MainConstants.appFolderName, 'storages');
+  final basePath = p.join(appDir.path, 'storages');
 
   // Создаем директорию если её нет
   final directory = Directory(basePath);
@@ -74,7 +103,7 @@ Future<void> _clearTempDirectory() async {
 /// Получение пути к директории для хранения базы данных Box
 Future<String> _getBoxDbPath() async {
   final appDir = await _getAppPath();
-  final basePath = p.join(appDir.path, MainConstants.appFolderName, 'box_db');
+  final basePath = p.join(appDir.path, 'box');
 
   // Создаем директорию если её нет
   final directory = Directory(basePath);
