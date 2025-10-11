@@ -13,7 +13,7 @@ class SkeletonCard extends StatelessWidget {
     return Container(
       height: height ?? 150,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: theme.colorScheme.outline.withOpacity(0.1)),
         boxShadow: [

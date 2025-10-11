@@ -171,6 +171,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             }
           },
           child: Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
             key: _scaffoldKey,
             body: SafeArea(
               child: CustomScrollView(

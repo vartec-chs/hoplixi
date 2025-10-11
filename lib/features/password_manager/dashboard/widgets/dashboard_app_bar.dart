@@ -161,22 +161,13 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
     });
 
     return SliverAppBar(
-      systemOverlayStyle: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: theme.brightness == Brightness.dark
-            ? Brightness.light
-            : Brightness.dark,
-        statusBarBrightness: theme.brightness == Brightness.dark
-            ? Brightness.dark
-            : Brightness.light,
-      ),
       expandedHeight: widget.expandedHeight,
       collapsedHeight: widget.collapsedHeight,
       pinned: widget.pinned,
       floating: widget.floating,
       snap: widget.snap,
       elevation: 0,
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
 
       // Кнопка открытия drawer слева
@@ -244,7 +235,7 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
           decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
+            color: Colors.transparent,
             border: Border(
               bottom: BorderSide(
                 color: theme.colorScheme.outline.withValues(alpha: 0.3),
