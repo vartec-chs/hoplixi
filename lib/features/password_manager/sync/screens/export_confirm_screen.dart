@@ -103,16 +103,22 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
       ToastHelper.info(title: 'Начинается загрузка в облако...');
 
       // Инициализация сервиса
-      await ref.read(dropboxServiceStateProvider.notifier).init(credential.id);
+      final notifier = ref.read(dropboxServiceStateProvider.notifier);
+      await notifier.init(credential.id);
+
+      // Проверка и авторизация
+      final isConnected = await notifier.check();
+      if (!isConnected) {
+        ToastHelper.error(title: 'Ошибка подключения к Dropbox');
+        return;
+      }
 
       // Загрузка файла (используем имя архива из пути)
       final archiveName = p.basename(_exportedArchivePath!);
-      final result = await ref
-          .read(dropboxServiceStateProvider.notifier)
-          .uploadStorage(
-            localPath: _exportedArchivePath!,
-            storageName: archiveName,
-          );
+      final result = await notifier.uploadStorage(
+        localPath: _exportedArchivePath!,
+        storageName: archiveName,
+      );
 
       if (result.success) {
         ToastHelper.success(title: 'Архив успешно загружен в Dropbox');

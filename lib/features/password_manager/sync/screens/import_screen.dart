@@ -31,11 +31,13 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   bool _requiresPassword = false;
   final _passwordController = TextEditingController();
   List<CredentialApp> _cloudCredentials = [];
+  final _cloudPasswordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _passwordController.text = '';
+    _cloudPasswordController.text = '';
     _loadCloudCredentials();
   }
 
@@ -58,6 +60,7 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   @override
   void dispose() {
     _passwordController.dispose();
+    _cloudPasswordController.dispose();
     super.dispose();
   }
 
@@ -205,6 +208,34 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     }
   }
 
+  Future<String?> _showPasswordDialog() async {
+    _cloudPasswordController.clear();
+    return await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Введите пароль'),
+        content: TextField(
+          controller: _cloudPasswordController,
+          obscureText: true,
+          decoration: const InputDecoration(hintText: 'Пароль архива'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () {
+              final password = _cloudPasswordController.text.trim();
+              Navigator.of(context).pop(password.isNotEmpty ? password : null);
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _performCloudImport(CredentialApp credential) async {
     setState(() {
       _isImporting = true;
@@ -226,9 +257,16 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
       final initialized = await notifier.init(credential.id);
 
       if (!initialized) {
-        ToastHelper.error(
-          title: 'Не удалось подключиться к облачному хранилищу',
-        );
+        ToastHelper.error(title: 'Не удалось инициализировать сервис');
+        return;
+      }
+
+      _updateProgress(0.3);
+
+      // Проверяем подключение
+      final isConnected = await notifier.check();
+      if (!isConnected) {
+        ToastHelper.error(title: 'Ошибка подключения к Dropbox');
         return;
       }
 
@@ -265,30 +303,52 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
         localDir: destinationDir,
       );
 
-      _updateProgress(1.0);
-
-      if (downloadResult.success && downloadResult.data != null) {
-        setState(() {
-          _importedStoragePath = downloadResult.data;
-        });
-
-        ToastHelper.success(
-          title: downloadResult.message ?? 'Импорт завершён успешно',
+      if (!downloadResult.success || downloadResult.data == null) {
+        ToastHelper.error(
+          title: downloadResult.message ?? 'Ошибка при скачивании',
         );
+        logError(
+          'Ошибка при скачивании из облака',
+          tag: 'ImportScreen',
+          data: {'message': downloadResult.message},
+        );
+        return;
+      }
 
+      _updateProgress(0.7);
+
+      // Спрашиваем пароль у пользователя
+      final password = await _showPasswordDialog();
+
+      _updateProgress(0.8);
+
+      // Распаковываем архив
+      final service = ref.read(storageExportServiceProvider);
+      final importResult = await service.importStorage(
+        archivePath: downloadResult.data!,
+        destinationDir: destinationDir,
+        password: password?.isNotEmpty == true ? password : null,
+      );
+
+      if (importResult.success && importResult.data != null) {
+        _updateProgress(1.0);
+        setState(() {
+          _importedStoragePath = importResult.data;
+        });
+        ToastHelper.success(
+          title: importResult.message ?? 'Импорт завершён успешно',
+        );
         logInfo(
           'Импорт из облака завершён успешно',
           tag: 'ImportScreen',
-          data: {'storagePath': downloadResult.data},
+          data: {'storagePath': importResult.data},
         );
       } else {
-        ToastHelper.error(
-          title: downloadResult.message ?? 'Ошибка при импорте',
-        );
+        ToastHelper.error(title: importResult.message ?? 'Ошибка при импорте');
         logError(
           'Ошибка при импорте из облака',
           tag: 'ImportScreen',
-          data: {'message': downloadResult.message},
+          data: {'message': importResult.message},
         );
       }
     } catch (e, st) {
