@@ -20,6 +20,8 @@ class LoggerConfig {
   final bool enableInfo;
   final bool enableWarning;
   final bool enableError;
+  final bool enableTrace;
+  final bool enableFatal;
   final bool enableConsoleOutput;
   final bool enableFileOutput;
 
@@ -36,6 +38,8 @@ class LoggerConfig {
     this.enableInfo = true,
     this.enableWarning = true,
     this.enableError = true,
+    this.enableTrace = true,
+    this.enableFatal = true,
     this.enableConsoleOutput = true,
     this.enableFileOutput = true,
     this.enableCrashReports = true,
@@ -260,7 +264,9 @@ enum LogLevel {
   debug('DEBUG'),
   info('INFO'),
   warning('WARNING'),
-  error('ERROR');
+  error('ERROR'),
+  trace('TRACE'),
+  fatal('FATAL');
 
   const LogLevel(this.name);
   final String name;

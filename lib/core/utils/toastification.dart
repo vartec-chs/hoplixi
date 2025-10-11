@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/global.dart';
 import 'package:toastification/toastification.dart';
@@ -42,7 +43,7 @@ class ToastHelper {
       foregroundColor: Colors.black,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: allBorderRadius,
       borderSide: BorderSide(color: primaryColor, width: 1),
       // applyBlurEffect: true,
       showProgressBar: true,
@@ -87,7 +88,7 @@ class ToastHelper {
       foregroundColor: Colors.black,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: allBorderRadius,
       borderSide: BorderSide(color: primaryColor, width: 1),
       showProgressBar: true,
       closeOnClick: false,
@@ -100,11 +101,6 @@ class ToastHelper {
             onTap: (value) =>
                 Clipboard.setData(ClipboardData(text: description ?? '')).then(
                   (value) {
-                    // ScaffoldMessenger.of(contextToUse).showSnackBar(
-                    //   SnackBar(
-                    //     content: Text('Ошибка скопирована в буфер обмена'),
-                    //   ),
-                    // );
                     ToastHelper.info(
                       context: contextToUse,
                       title: 'Скопировано',
@@ -113,9 +109,6 @@ class ToastHelper {
                     );
                   },
                   onError: (error) {
-                    // ScaffoldMessenger.of(contextToUse).showSnackBar(
-                    //   SnackBar(content: Text('Ошибка копирования: $error')),
-                    // );
                     ToastHelper.error(
                       context: contextToUse,
                       title: 'Ошибка',
@@ -160,7 +153,7 @@ class ToastHelper {
       foregroundColor: Colors.black,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: allBorderRadius,
       borderSide: BorderSide(color: primaryColor, width: 1),
       showProgressBar: true,
       closeOnClick: false,
@@ -202,7 +195,7 @@ class ToastHelper {
       foregroundColor: Colors.black,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: allBorderRadius,
       borderSide: BorderSide(color: primaryColor, width: 1),
       showProgressBar: true,
       closeOnClick: false,
@@ -252,7 +245,7 @@ class ToastHelper {
       foregroundColor: foregroundColor ?? theme.colorScheme.onSurface,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: allBorderRadius,
       showProgressBar: showProgressBar ?? true,
       closeOnClick: false,
       pauseOnHover: true,

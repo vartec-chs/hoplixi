@@ -19,3 +19,6 @@ const EdgeInsets screenPadding = EdgeInsets.symmetric(
   horizontal: 8.0,
   vertical: 8.0,
 );
+
+// border radius for cards and containers
+const BorderRadius allBorderRadius = BorderRadius.all(Radius.circular(16.0));

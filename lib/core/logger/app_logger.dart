@@ -154,6 +154,27 @@ class AppLogger {
     _log(LogLevel.warning, message, tag: tag, additionalData: data);
   }
 
+  void trace(String message, {String? tag, Map<String, dynamic>? data}) {
+    _log(LogLevel.trace, message, tag: tag, additionalData: data);
+  }
+
+  void fatal(
+    String message, {
+    String? tag,
+    Map<String, dynamic>? data,
+    dynamic error,
+    StackTrace? stackTrace,
+  }) {
+    _log(
+      LogLevel.fatal,
+      message,
+      tag: tag,
+      additionalData: data,
+      error: error,
+      stackTrace: stackTrace,
+    );
+  }
+
   void error(
     String message, {
     dynamic error,
@@ -195,6 +216,12 @@ class AppLogger {
       case LogLevel.error:
         if (!_config.enableError) return;
         break;
+      case LogLevel.trace:
+        if (!_config.enableTrace) return;
+        break;
+      case LogLevel.fatal:
+        if (!_config.enableFatal) return;
+        break;
     }
 
     final entry = LogEntry(
@@ -230,6 +257,11 @@ class AppLogger {
         case LogLevel.error:
           _consoleLogger.e(logMessage, error: error, stackTrace: stackTrace);
           break;
+        case LogLevel.trace:
+          _consoleLogger.t(logMessage, error: error, stackTrace: stackTrace);
+          break;
+        case LogLevel.fatal:
+          _consoleLogger.f(logMessage, error: error, stackTrace: stackTrace);
       }
     }
 
@@ -301,4 +333,27 @@ void logInfo(String message, {String? tag, Map<String, dynamic>? data}) {
 
 void logDebug(String message, {String? tag, Map<String, dynamic>? data}) {
   AppLogger.instance.debug(message, tag: tag, data: data);
+}
+
+// Функция для логирования трассировок
+void logTrace(String message, {String? tag, Map<String, dynamic>? data}) {
+  AppLogger.instance.trace(message, tag: tag, data: data);
+}
+
+
+// Функция для логирования фатальных ошибок
+void logFatal(
+  String message, {
+  String? tag,
+  Map<String, dynamic>? data,
+  dynamic error,
+  StackTrace? stackTrace,
+}) {
+  AppLogger.instance.fatal(
+    message,
+    tag: tag,
+    data: data,
+    error: error,
+    stackTrace: stackTrace,
+  );
 }

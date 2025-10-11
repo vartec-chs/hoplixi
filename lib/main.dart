@@ -7,6 +7,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app.dart';
 import 'package:hoplixi/core/app_preferences/app_preferences.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
@@ -31,11 +32,18 @@ Future<void> main() async {
       // Initialize AppLogger
       await AppLogger.instance.initialize(
         config: const LoggerConfig(
-          maxFileSize: 5 * 1024 * 1024, // 5MB
+          maxFileSize: 10 * 1024 * 1024, // 10MB
           maxFileCount: 5,
           bufferSize: 50,
           bufferFlushInterval: Duration(seconds: 15),
           enableDebug: true,
+          enableInfo: true,
+          enableWarning: true,
+          enableError: true,
+          enableTrace: MainConstants.isProduction
+              ? false
+              : true, // Disable trace logs in production
+          enableFatal: true,
           enableConsoleOutput: true,
           enableFileOutput: true,
           enableCrashReports: true,
@@ -96,6 +104,7 @@ Future<void> main() async {
           child: ToastificationWrapper(
             config: ToastificationConfig(
               maxTitleLines: 2,
+
               maxDescriptionLines: 5,
               maxToastLimit: 3,
               itemWidth: UniversalPlatform.isDesktop ? 400 : double.infinity,
