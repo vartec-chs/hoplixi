@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/cloud_sync/screens/manage_credential_screen.dart';
 import 'package:hoplixi/features/demo/notification_demo_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/localsend/models/connection_mode.dart';
@@ -196,6 +197,11 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.passwordMigration,
     builder: (context, state) => const MigrationScreen(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.manageCredential,
+    builder: (context, state) => const ManageCredentialScreen(),
   ),
 
   GoRoute(

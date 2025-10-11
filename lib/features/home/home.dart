@@ -174,7 +174,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
             _buildAppBar(),
             _buildQuickActions(),
             ...widgets.map(_buildHomeWidget),
-
+            _buildCredentialsActionsWidget(),
             // _buildErrorMessage(),
             !MainConstants.isProduction
                 ? SliverToBoxAdapter(
@@ -561,6 +561,37 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
                 onTap: () => context.push(AppRoutes.importStorage),
                 isPrimary: false,
                 description: 'Восстановить хранилище из архива',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCredentialsActionsWidget() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            // Expanded(
+            //   child: _buildQuickActionCard(
+            //     icon: Icons.archive,
+            //     label: 'Экспорт хранилища',
+            //     onTap: () => context.push(AppRoutes.exportStorage),
+            //     isPrimary: false,
+            //     description: 'Создать архив хранилища для резервной копии',
+            //   ),
+            // ),
+            // const SizedBox(width: 12),
+            Expanded(
+              child: _buildQuickActionCard(
+                icon: Icons.login,
+                label: 'Импорт учётных данных',
+                onTap: () => context.push(AppRoutes.manageCredential),
+                isPrimary: false,
+                description: 'Управление учётными данными для синхронизации',
               ),
             ),
           ],

@@ -47,6 +47,7 @@ class IndexEntry {
 }
 
 /// Простая коробка без сегментации - все данные в одном файле с индексом
+@Deprecated('Use SegmentedBox for better scalability and performance')
 class SimpleBox<T> {
   final Directory boxDirectory;
   final String boxName;
