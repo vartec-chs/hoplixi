@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/global.dart';
+import 'package:hoplixi/global_key.dart';
 import 'package:toastification/toastification.dart';
 
 class ToastHelper {

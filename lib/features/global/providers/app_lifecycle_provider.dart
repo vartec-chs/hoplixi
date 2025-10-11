@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/global.dart';
+import 'package:hoplixi/global_key.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 
 /// Провайдер для управления жизненным циклом приложения

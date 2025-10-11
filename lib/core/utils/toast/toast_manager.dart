@@ -3,7 +3,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/theme/index.dart';
 // import 'package:hoplixi/core/theme_old/theme_provider.dart';
 import 'package:hoplixi/core/utils/toast/ui.dart';
-import 'package:hoplixi/global.dart';
+import 'package:hoplixi/global_key.dart';
 
 import 'toast_item.dart';
 import 'package:flutter/material.dart';

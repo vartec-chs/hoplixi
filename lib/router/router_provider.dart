@@ -12,7 +12,7 @@ import 'package:hoplixi/features/global/providers/notification_providers.dart';
 
 import 'package:hoplixi/features/global/screens/error_screen.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
-import 'package:hoplixi/global.dart';
+import 'package:hoplixi/global_key.dart';
 import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
 import 'package:hoplixi/router/router_refresh_provider.dart';
 
