@@ -5,7 +5,7 @@ import 'package:hoplixi/features/global/providers/secure_storage_provider.dart';
 final boxDbProvider = FutureProvider<BoxManager>((ref) async {
   final secureStorage = ref.watch(secureStorageProvider);
   final boxManager = BoxManager(
-    basePath: await getBoxDbPath(),
+    basePath: await AppPaths.boxDbPath,
     secureStorage: secureStorage,
   );
 

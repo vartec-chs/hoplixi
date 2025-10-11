@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/base_filter.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
 /// Провайдер для управления базовым фильтром

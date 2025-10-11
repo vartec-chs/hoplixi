@@ -7,7 +7,6 @@ import '../dao/categories_dao.dart';
 import '../dao/tags_dao.dart';
 import '../dao/password_tags_dao.dart';
 import '../dto/db_dto.dart';
-import '../models/password_filter.dart';
 
 import '../enums/entity_types.dart';
 import 'service_results.dart';
@@ -402,7 +401,9 @@ class PasswordService {
   }
 
   //get field login or email by id
-  Future<ServiceResult<String>> getPasswordLoginOrEmailById(String passwordId) async {
+  Future<ServiceResult<String>> getPasswordLoginOrEmailById(
+    String passwordId,
+  ) async {
     try {
       final password = await _passwordsDao.getLoginOrEmail(passwordId);
       return ServiceResult.success(
@@ -833,65 +834,6 @@ class PasswordService {
     return _passwordTagsDao.watchPasswordsForTag(tagId);
   }
 
-  // ==================== ФИЛЬТРАЦИЯ ПАРОЛЕЙ ====================
-
-  /// Получение отфильтрованных паролей как карточек
-  Future<ServiceResult<List<CardPasswordDto>>> getFilteredPasswords(
-    PasswordFilter filter,
-  ) async {
-    try {
-      logDebug('Получение отфильтрованных паролей', tag: 'PasswordService');
-
-      final passwordCards = await _passwordsDao.getFilteredPasswords(filter);
-
-      return ServiceResult.success(
-        data: passwordCards,
-        message: 'Пароли отфильтрованы успешно',
-      );
-    } catch (e) {
-      logError(
-        'Ошибка получения отфильтрованных паролей: $e',
-        tag: 'PasswordService',
-      );
-      return ServiceResult.error('Ошибка фильтрации паролей: ${e.toString()}');
-    }
-  }
-
-  /// Подсчет количества паролей по фильтру
-  Future<ServiceResult<int>> countFilteredPasswords(
-    PasswordFilter filter,
-  ) async {
-    try {
-      final count = await _passwordsDao.countFilteredPasswords(filter);
-      return ServiceResult.success(
-        data: count,
-        message: 'Количество паролей подсчитано',
-      );
-    } catch (e) {
-      return ServiceResult.error('Ошибка подсчета паролей: ${e.toString()}');
-    }
-  }
-
-  /// Stream отфильтрованных паролей как карточек
-  Stream<List<CardPasswordDto>> watchFilteredPasswords(PasswordFilter filter) {
-    return _passwordsDao.watchFilteredPasswords(filter);
-  }
-
-  /// Быстрый поиск паролей
-  Future<ServiceResult<List<CardPasswordDto>>> quickSearchPasswords(
-    String query, {
-    int limit = 50,
-  }) async {
-    final filter = PasswordFilter.create(
-      query: query,
-      limit: limit,
-      sortField: PasswordSortField.modifiedAt,
-      sortDirection: SortDirection.desc,
-    );
-
-    return await getFilteredPasswords(filter);
-  }
-
   // ==================== УТИЛИТАРНЫЕ МЕТОДЫ ====================
 
   /// Очистка потерянных связей (orphaned relations)
@@ -1000,20 +942,5 @@ class PasswordStatistics {
     required this.favoriteCount,
     required this.countByCategory,
     required this.countByTag,
-  });
-}
-
-/// Результат поиска паролей с метаданными
-class PasswordSearchResult {
-  final List<PasswordWithDetails> passwords;
-  final int? totalCount;
-  final PasswordFilter filter;
-  final bool hasMore;
-
-  PasswordSearchResult({
-    required this.passwords,
-    this.totalCount,
-    required this.filter,
-    required this.hasMore,
   });
 }

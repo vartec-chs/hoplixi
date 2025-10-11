@@ -12,21 +12,7 @@ import 'package:hoplixi/hoplixi_store/models/db_state.dart';
 final hoplixiStoreManagerProvider = FutureProvider<HoplixiStoreManager>((
   ref,
 ) async {
-  // final boxManager = ref.read(boxDbProvider).asData?.value;
-  // final manager = HoplixiStoreManager(boxManager: boxManager!);
-
-  // // Cleanup on dispose
-  // ref.onDispose(() {
-  //   logInfo(
-  //     'Освобождение ресурсов databaseManagerProvider',
-  //     tag: 'DatabaseProviders',
-  //   );
-  //   manager.dispose();
-  //   boxManager.closeAll();
-  // });
-
-  // return manager;
-
+ 
   final boxManager = await ref.watch(boxDbProvider.future);
   final manager = HoplixiStoreManager(boxManager: boxManager);
 

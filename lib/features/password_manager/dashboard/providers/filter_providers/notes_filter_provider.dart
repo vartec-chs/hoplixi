@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/notes_filter.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/notes_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/base_filter.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'base_filter_provider.dart';
 

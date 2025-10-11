@@ -6,7 +6,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/theme/index.dart';
 import 'package:hoplixi/features/global/providers/biometric_auto_open_provider.dart';
 import 'package:hoplixi/features/global/providers/biometric_provider.dart';
-import 'package:hoplixi/hoplixi_store/services/biometric_service.dart';
+import 'package:hoplixi/features/global/services/biometric_service.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/router/routes_path.dart';

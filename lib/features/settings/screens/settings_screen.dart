@@ -4,7 +4,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/global/providers/biometric_auto_open_provider.dart';
 import 'package:hoplixi/features/global/providers/biometric_provider.dart';
 import 'package:hoplixi/features/global/widgets/index.dart';
-import 'package:hoplixi/hoplixi_store/services/biometric_service.dart';
+import 'package:hoplixi/features/global/services/biometric_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});

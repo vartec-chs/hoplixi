@@ -9,20 +9,9 @@ import 'package:hoplixi/hoplixi_store/tables/hoplixi_meta.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import 'package:hoplixi/hoplixi_store/sql/triggers.dart';
 import 'package:hoplixi/hoplixi_store/services/trigger_management_service.dart';
-import 'tables/categories.dart';
-import 'tables/icons.dart';
-import 'tables/tags.dart';
-import 'tables/passwords.dart';
-import 'tables/password_tags.dart';
-import 'tables/password_histories.dart';
-import 'tables/otps.dart';
-import 'tables/otp_tags.dart';
-import 'tables/otp_histories.dart';
-import 'tables/attachments.dart';
-import 'tables/notes.dart';
-import 'tables/note_tags.dart';
-import 'tables/note_histories.dart';
+
 import 'dao/index.dart';
+import 'tables/index.dart';
 
 part 'hoplixi_store.g.dart';
 
@@ -37,7 +26,6 @@ part 'hoplixi_store.g.dart';
     PasswordHistories,
     Otps,
     OtpTags,
-    OtpHistories,
     Attachments,
     Notes,
     NoteTags,

@@ -33,6 +33,9 @@ class ClearAllNotifier extends AsyncNotifier<void> {
         iconsServiceProvider,
         tagsServiceProvider,
         passwordsServiceProvider,
+        otpTagsDaoProvider,
+        attachmentsDaoProvider,
+        noteFilterDaoProvider,
         // fileEncryptorProvider,
       };
 

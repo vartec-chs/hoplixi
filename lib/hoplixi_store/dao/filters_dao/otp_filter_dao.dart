@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/otp_filter.dart'
+import 'package:hoplixi/hoplixi_store/models/filter_models/otp_filter.dart'
     hide OtpType; // Скрываем OtpType из модели фильтра
-import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/base_filter.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import '../../hoplixi_store.dart';
 import '../../tables/otps.dart';

@@ -1,58 +1,96 @@
 import 'dart:io';
-import 'package:hoplixi/core/constants/main_constants.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-
-import 'package:hoplixi/core/lib/box_db/simple_box_manager.dart';
-import 'package:hoplixi/core/lib/box_db/simple_box.dart';
-import '../../core/logger/app_logger.dart';
+import 'package:hoplixi/core/index.dart';
 import '../models/database_entry.dart';
+import '../repository/service_results.dart';
 
-/// Сервис для управления историей подключений к базам данных
-class DatabaseHistoryService {
+/// Результат операции с историей базы данных
+class DatabaseHistoryResult extends ServiceResult<DatabaseEntry> {
+  final DatabaseEntry? entry;
+
+  DatabaseHistoryResult({required super.success, super.message, this.entry})
+    : super(data: entry);
+
+  DatabaseHistoryResult.success({DatabaseEntry? entry, super.message})
+    : entry = entry,
+      super.success(data: entry);
+
+  DatabaseHistoryResult.error(super.message) : entry = null, super.error();
+}
+
+/// Сервис для управления историей подключений к базам данных (v2 на основе box_db_new)
+class DatabaseHistoryServiceV2 {
   static const String _boxName = 'database_history';
-  SimpleBox<DatabaseEntry>? _historyBox;
-  SimpleBoxManager? _boxManager;
+  BoxDB<DatabaseEntry>? _historyBox;
+  final BoxManager _boxManager;
+
+  DatabaseHistoryServiceV2({required BoxManager boxManager})
+    : _boxManager = boxManager;
 
   /// Инициализация сервиса
-  Future<void> initialize() async {
+  Future<ServiceResult<void>> initialize() async {
     try {
-      // Получаем директорию для хранения истории
-      final appDir = await getApplicationDocumentsDirectory();
-      final historyDir = Directory(
-        p.join(appDir.path, MainConstants.appFolderName, 'box'),
-      );
+      // Проверяем, не открыт ли уже бокс
+      if (_boxManager.isBoxOpen(_boxName)) {
+        _historyBox = _boxManager.getBox<DatabaseEntry>(_boxName);
+        logDebug(
+          'DatabaseHistoryServiceV2: бокс уже открыт',
+          tag: 'DatabaseHistoryServiceV2',
+        );
+        return ServiceResult.success(message: 'Сервис уже инициализирован');
+      }
 
-      // Инициализируем менеджер коробок
-      _boxManager = await SimpleBoxManager.getInstance(
-        baseDirectory: historyDir,
-      );
+      // Проверяем, существует ли бокс
+      final boxPath = '${_boxManager.basePath}/$_boxName';
+      final boxExists = await Directory(boxPath).exists();
 
-      // Открываем коробку для истории
-      _historyBox = await _boxManager!.openBox<DatabaseEntry>(
-        boxName: _boxName,
-        fromMap: _databaseEntryFromMap,
-        toMap: _databaseEntryToMap,
-        encrypted: true, // Шифруем историю для безопасности
-      );
+      if (boxExists) {
+        // Открываем существующий бокс
+        _historyBox = await _boxManager.openBox<DatabaseEntry>(
+          name: _boxName,
 
-      logDebug(
-        'DatabaseHistoryService инициализирован',
-        tag: 'DatabaseHistoryService',
+          fromJson: DatabaseEntry.fromJson,
+          toJson: (entry) => entry.toJson(),
+          getId: _pathToKey,
+        );
+        logDebug(
+          'DatabaseHistoryServiceV2: существующий бокс открыт',
+          tag: 'DatabaseHistoryServiceV2',
+        );
+      } else {
+        // Создаем новый бокс
+        final key = await EncryptionService.generate();
+        _historyBox = await _boxManager.createBox<DatabaseEntry>(
+          name: _boxName,
+          password: await key.exportKey(),
+          fromJson: DatabaseEntry.fromJson,
+          toJson: (entry) => entry.toJson(),
+          getId: _pathToKey,
+        );
+        logDebug(
+          'DatabaseHistoryServiceV2: новый бокс создан',
+          tag: 'DatabaseHistoryServiceV2',
+        );
+      }
+
+      return ServiceResult.success(
+        message: 'DatabaseHistoryServiceV2 инициализирован',
       );
     } catch (e, stackTrace) {
       logError(
-        'Ошибка инициализации DatabaseHistoryService',
+        'Ошибка инициализации DatabaseHistoryServiceV2',
         error: e,
         stackTrace: stackTrace,
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
       );
-      rethrow;
+      return ServiceResult.error(
+        'Не удалось инициализировать сервис истории: ${e.toString()}',
+      );
     }
   }
 
   /// Записывает доступ к базе данных в историю
-  Future<void> recordDatabaseAccess({
+  Future<DatabaseHistoryResult> recordDatabaseAccess({
     required String path,
     required String name,
     String? description,
@@ -60,15 +98,20 @@ class DatabaseHistoryService {
     bool saveMasterPassword = false,
   }) async {
     if (_historyBox == null) {
-      await initialize();
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return DatabaseHistoryResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
     }
 
     try {
       final now = DateTime.now();
-      final key = _pathToKey(path);
+      final id = _pathStringToKey(path);
 
       // Проверяем, есть ли уже запись с таким путем
-      final existingEntry = await _historyBox!.get(key);
+      final existingEntry = await _historyBox!.get(id);
 
       final DatabaseEntry entry;
       if (existingEntry != null) {
@@ -80,13 +123,12 @@ class DatabaseHistoryService {
           masterPassword: saveMasterPassword ? masterPassword : null,
           saveMasterPassword: saveMasterPassword,
           lastAccessed: now,
-          createdAt:
-              existingEntry.createdAt, // Сохраняем исходную дату создания
+          createdAt: existingEntry.createdAt, // Сохраняем исходную дату
         );
-        await _historyBox!.updateInPlace(key, entry);
+        await _historyBox!.update(entry);
         logDebug(
           'Обновление существующей записи в истории для пути: $path',
-          tag: 'DatabaseHistoryService',
+          tag: 'DatabaseHistoryServiceV2',
         );
       } else {
         // Создаем новую запись
@@ -97,205 +139,369 @@ class DatabaseHistoryService {
           masterPassword: saveMasterPassword ? masterPassword : null,
           saveMasterPassword: saveMasterPassword,
           lastAccessed: now,
-          createdAt:
-              now, // Устанавливаем дату создания только для новых записей
+          createdAt: now, // Устанавливаем дату создания только для новых
         );
-
+        await _historyBox!.insert(entry);
         logDebug(
           'Создание новой записи в истории для пути: $path',
-          tag: 'DatabaseHistoryService',
+          tag: 'DatabaseHistoryServiceV2',
         );
-        await _historyBox!.put(key, entry);
       }
-
-      // Сохраняем запись
 
       logDebug(
         'Запись о доступе к БД добавлена в историю',
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
         data: {
           'path': path,
           'name': name,
           'saveMasterPassword': saveMasterPassword,
         },
       );
+
+      return DatabaseHistoryResult.success(
+        entry: entry,
+        message: 'Запись успешно сохранена',
+      );
     } catch (e, stackTrace) {
       logError(
         'Ошибка записи доступа к БД в историю',
         error: e,
         stackTrace: stackTrace,
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
         data: {'path': path, 'name': name},
       );
-      rethrow;
+      return DatabaseHistoryResult.error(
+        'Не удалось записать доступ к БД: ${e.toString()}',
+      );
     }
   }
 
   /// Получает все записи истории, отсортированные по дате последнего доступа
-  Future<List<DatabaseEntry>> getAllHistory() async {
+  Future<ServiceResult<List<DatabaseEntry>>> getAllHistory() async {
     if (_historyBox == null) {
-      await initialize();
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return ServiceResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
     }
 
     try {
-      final entriesList = <DatabaseEntry>[];
-
-      // Получаем все записи через поток
-      await for (final entry in _historyBox!.getAll()) {
-        entriesList.add(entry);
-      }
-
-      // Сортируем по дате последнего доступа (новые сначала)
-      entriesList.sort((a, b) {
-        final aDate = a.lastAccessed ?? a.createdAt ?? DateTime(1970);
-        final bDate = b.lastAccessed ?? b.createdAt ?? DateTime(1970);
-        return bDate.compareTo(aDate);
-      });
+      // Получаем все записи, уже отсортированные по времени (новые сначала)
+      final entriesList = await _historyBox!.getAllSortedByTime(
+        ascending: false,
+      );
 
       logDebug(
         'Получена история БД: ${entriesList.length} записей',
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
       );
 
-      return entriesList;
+      return ServiceResult.success(
+        data: entriesList,
+        message: 'История успешно получена',
+      );
     } catch (e, stackTrace) {
       logError(
         'Ошибка получения истории БД',
         error: e,
         stackTrace: stackTrace,
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
       );
-      return [];
+      return ServiceResult.error(
+        'Не удалось получить историю: ${e.toString()}',
+      );
     }
   }
 
   /// Получает запись по пути к базе данных
-  Future<DatabaseEntry?> getEntryByPath(String path) async {
+  Future<DatabaseHistoryResult> getEntryByPath(String path) async {
     if (_historyBox == null) {
-      await initialize();
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return DatabaseHistoryResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
     }
 
     try {
-      final key = _pathToKey(path);
-      return await _historyBox!.get(key);
+      final id = _pathStringToKey(path);
+      final entry = await _historyBox!.get(id);
+
+      if (entry == null) {
+        return DatabaseHistoryResult.error('Запись не найдена');
+      }
+
+      return DatabaseHistoryResult.success(
+        entry: entry,
+        message: 'Запись успешно получена',
+      );
     } catch (e, stackTrace) {
       logError(
         'Ошибка получения записи БД по пути',
         error: e,
         stackTrace: stackTrace,
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
         data: {'path': path},
       );
-      return null;
+      return DatabaseHistoryResult.error(
+        'Не удалось получить запись: ${e.toString()}',
+      );
     }
   }
 
   /// Удаляет запись из истории
-  Future<void> removeEntry(String path) async {
+  Future<ServiceResult<void>> removeEntry(String path) async {
     if (_historyBox == null) {
-      await initialize();
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return ServiceResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
     }
 
     try {
-      final key = _pathToKey(path);
-      final success = await _historyBox!.delete(key);
+      final id = _pathStringToKey(path);
+      await _historyBox!.delete(id);
 
       logDebug(
-        'Запись ${success ? "удалена" : "не найдена"} из истории БД',
-        tag: 'DatabaseHistoryService',
-        data: {'path': path, 'success': success},
+        'Запись удалена из истории БД',
+        tag: 'DatabaseHistoryServiceV2',
+        data: {'path': path},
       );
+
+      return ServiceResult.success(message: 'Запись успешно удалена');
     } catch (e, stackTrace) {
       logError(
         'Ошибка удаления записи из истории БД',
         error: e,
         stackTrace: stackTrace,
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
         data: {'path': path},
       );
-      rethrow;
+      return ServiceResult.error('Не удалось удалить запись: ${e.toString()}');
     }
   }
 
   /// Очищает всю историю
-  Future<void> clearHistory() async {
+  Future<ServiceResult<void>> clearHistory() async {
     if (_historyBox == null) {
-      await initialize();
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return ServiceResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
     }
 
     try {
       await _historyBox!.clear();
 
-      logInfo('История БД очищена', tag: 'DatabaseHistoryService');
+      logInfo('История БД очищена', tag: 'DatabaseHistoryServiceV2');
+
+      return ServiceResult.success(message: 'История успешно очищена');
     } catch (e, stackTrace) {
       logError(
         'Ошибка очистки истории БД',
         error: e,
         stackTrace: stackTrace,
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
       );
-      rethrow;
+      return ServiceResult.error(
+        'Не удалось очистить историю: ${e.toString()}',
+      );
     }
   }
 
   /// Получает записи с сохраненными паролями
-  Future<List<DatabaseEntry>> getEntriesWithSavedPasswords() async {
-    final allEntries = await getAllHistory();
-    return allEntries
-        .where(
-          (entry) =>
-              entry.saveMasterPassword &&
-              entry.masterPassword != null &&
-              entry.masterPassword!.isNotEmpty,
-        )
-        .toList();
+  Future<ServiceResult<List<DatabaseEntry>>>
+  getEntriesWithSavedPasswords() async {
+    final result = await getAllHistory();
+
+    if (!result.success || result.data == null) {
+      return ServiceResult.error(
+        result.message ?? 'Не удалось получить историю',
+      );
+    }
+
+    try {
+      final entriesWithPasswords = result.data!
+          .where(
+            (entry) =>
+                entry.saveMasterPassword &&
+                entry.masterPassword != null &&
+                entry.masterPassword!.isNotEmpty,
+          )
+          .toList();
+
+      return ServiceResult.success(
+        data: entriesWithPasswords,
+        message: 'Записи с паролями получены',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка фильтрации записей с паролями',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'DatabaseHistoryServiceV2',
+      );
+      return ServiceResult.error(
+        'Не удалось отфильтровать записи: ${e.toString()}',
+      );
+    }
   }
 
   /// Обновляет информацию о базе данных
-  Future<void> updateDatabaseInfo({
+  Future<DatabaseHistoryResult> updateDatabaseInfo({
     required String path,
     String? name,
     String? description,
   }) async {
     if (_historyBox == null) {
-      await initialize();
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return DatabaseHistoryResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
     }
 
     try {
-      final key = _pathToKey(path);
-      final existingEntry = await _historyBox!.get(key);
+      final id = _pathStringToKey(path);
+      final existingEntry = await _historyBox!.get(id);
 
-      if (existingEntry != null) {
-        final updatedEntry = existingEntry.copyWith(
-          name: name ?? existingEntry.name,
-          description: description ?? existingEntry.description,
-          lastAccessed: DateTime.now(),
-        );
-
-        await _historyBox!.updateInPlace(key, updatedEntry);
-
-        logDebug(
-          'Информация о БД обновлена',
-          tag: 'DatabaseHistoryService',
-          data: {'path': path, 'name': name},
-        );
+      if (existingEntry == null) {
+        return DatabaseHistoryResult.error('Запись не найдена');
       }
+
+      final updatedEntry = existingEntry.copyWith(
+        name: name ?? existingEntry.name,
+        description: description ?? existingEntry.description,
+        lastAccessed: DateTime.now(),
+      );
+
+      await _historyBox!.update(updatedEntry);
+
+      logDebug(
+        'Информация о БД обновлена',
+        tag: 'DatabaseHistoryServiceV2',
+        data: {'path': path, 'name': name},
+      );
+
+      return DatabaseHistoryResult.success(
+        entry: updatedEntry,
+        message: 'Информация успешно обновлена',
+      );
     } catch (e, stackTrace) {
       logError(
         'Ошибка обновления информации о БД',
         error: e,
         stackTrace: stackTrace,
-        tag: 'DatabaseHistoryService',
+        tag: 'DatabaseHistoryServiceV2',
         data: {'path': path},
       );
-      rethrow;
+      return DatabaseHistoryResult.error(
+        'Не удалось обновить информацию: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Получает недавние записи
+  ///
+  /// [limit] - максимальное количество записей (по умолчанию 10)
+  /// [since] - получить записи после указанного времени (опционально)
+  Future<ServiceResult<List<DatabaseEntry>>> getRecent({
+    int limit = 10,
+    DateTime? since,
+  }) async {
+    if (_historyBox == null) {
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return ServiceResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
+    }
+
+    try {
+      final entries = await _historyBox!.getRecent(limit: limit, since: since);
+
+      logDebug(
+        'Получено ${entries.length} недавних записей',
+        tag: 'DatabaseHistoryServiceV2',
+      );
+
+      return ServiceResult.success(
+        data: entries,
+        message: 'Недавние записи получены',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения недавних записей',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'DatabaseHistoryServiceV2',
+      );
+      return ServiceResult.error(
+        'Не удалось получить недавние записи: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Получает записи за указанный период времени
+  Future<ServiceResult<List<DatabaseEntry>>> getByTimeRange({
+    required DateTime from,
+    DateTime? to,
+  }) async {
+    if (_historyBox == null) {
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return ServiceResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
+    }
+
+    try {
+      final entries = await _historyBox!.getByTimeRange(from: from, to: to);
+
+      logDebug(
+        'Получено ${entries.length} записей за период',
+        tag: 'DatabaseHistoryServiceV2',
+      );
+
+      return ServiceResult.success(
+        data: entries,
+        message: 'Записи за период получены',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения записей за период',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'DatabaseHistoryServiceV2',
+      );
+      return ServiceResult.error(
+        'Не удалось получить записи за период: ${e.toString()}',
+      );
     }
   }
 
   /// Получает статистику истории
-  Future<Map<String, dynamic>> getHistoryStats() async {
+  Future<ServiceResult<Map<String, dynamic>>> getHistoryStats() async {
     try {
-      final allEntries = await getAllHistory();
+      final result = await getAllHistory();
+
+      if (!result.success || result.data == null) {
+        return ServiceResult.error(
+          result.message ?? 'Не удалось получить историю',
+        );
+      }
+
+      final allEntries = result.data!;
       final entriesWithPasswords = allEntries
           .where((e) => e.saveMasterPassword)
           .length;
@@ -327,79 +533,155 @@ class DatabaseHistoryService {
         }
       }
 
-      return {
+      final stats = {
         'totalEntries': allEntries.length,
         'entriesWithSavedPasswords': entriesWithPasswords,
         'oldestEntry': oldestDate,
         'newestEntry': newestDate,
       };
-    } catch (e) {
+
+      return ServiceResult.success(data: stats, message: 'Статистика получена');
+    } catch (e, stackTrace) {
       logError(
         'Ошибка получения статистики истории',
         error: e,
-        tag: 'DatabaseHistoryService',
+        stackTrace: stackTrace,
+        tag: 'DatabaseHistoryServiceV2',
       );
-      return {
-        'totalEntries': 0,
-        'entriesWithSavedPasswords': 0,
-        'oldestEntry': null,
-        'newestEntry': null,
-      };
+      return ServiceResult.error(
+        'Не удалось получить статистику: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Получает количество записей в истории
+  Future<ServiceResult<int>> getCount() async {
+    if (_historyBox == null) {
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return ServiceResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
+    }
+
+    try {
+      final count = await _historyBox!.count();
+
+      return ServiceResult.success(
+        data: count,
+        message: 'Количество записей получено',
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка получения количества записей',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'DatabaseHistoryServiceV2',
+      );
+      return ServiceResult.error(
+        'Не удалось получить количество: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Выполняет компактификацию хранилища (удаление помеченных записей)
+  Future<ServiceResult<void>> compact() async {
+    if (_historyBox == null) {
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return ServiceResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
+    }
+
+    try {
+      await _historyBox!.compact();
+
+      logInfo(
+        'Компактификация истории БД выполнена',
+        tag: 'DatabaseHistoryServiceV2',
+      );
+
+      return ServiceResult.success(message: 'Компактификация выполнена');
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка компактификации истории БД',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'DatabaseHistoryServiceV2',
+      );
+      return ServiceResult.error(
+        'Не удалось выполнить компактификацию: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Создает резервную копию истории
+  Future<ServiceResult<void>> createBackup() async {
+    if (_historyBox == null) {
+      final initResult = await initialize();
+      if (!initResult.success) {
+        return ServiceResult.error(
+          initResult.message ?? 'Ошибка инициализации',
+        );
+      }
+    }
+
+    try {
+      await _historyBox!.backup();
+
+      logInfo(
+        'Резервная копия истории БД создана',
+        tag: 'DatabaseHistoryServiceV2',
+      );
+
+      return ServiceResult.success(message: 'Резервная копия создана');
+    } catch (e, stackTrace) {
+      logError(
+        'Ошибка создания резервной копии истории БД',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'DatabaseHistoryServiceV2',
+      );
+      return ServiceResult.error(
+        'Не удалось создать резервную копию: ${e.toString()}',
+      );
     }
   }
 
   /// Закрывает сервис и освобождает ресурсы
   Future<void> dispose() async {
     try {
-      if (_boxManager != null) {
-        await _boxManager!.closeBox(_boxName);
-        _boxManager = null;
+      if (_historyBox != null) {
+        await _boxManager.closeBox(_boxName);
+        _historyBox = null;
       }
-      _historyBox = null;
 
-      logDebug('DatabaseHistoryService закрыт', tag: 'DatabaseHistoryService');
-    } catch (e) {
+      logDebug(
+        'DatabaseHistoryServiceV2 закрыт',
+        tag: 'DatabaseHistoryServiceV2',
+      );
+    } catch (e, stackTrace) {
       logError(
-        'Ошибка закрытия DatabaseHistoryService',
+        'Ошибка закрытия DatabaseHistoryServiceV2',
         error: e,
-        tag: 'DatabaseHistoryService',
+        stackTrace: stackTrace,
+        tag: 'DatabaseHistoryServiceV2',
       );
     }
   }
 
-  /// Преобразует путь в ключ для хранения
-  String _pathToKey(String path) {
+  /// Преобразует путь в ключ для хранения (для getId callback)
+  String _pathToKey(DatabaseEntry entry) {
+    // Нормализуем путь и используем его как ключ
+    return p.normalize(entry.path).toLowerCase();
+  }
+
+  /// Преобразует путь строку в ключ для хранения
+  String _pathStringToKey(String path) {
     // Нормализуем путь и используем его как ключ
     return p.normalize(path).toLowerCase();
-  }
-
-  /// Преобразует DatabaseEntry в Map для хранения
-  Map<String, dynamic> _databaseEntryToMap(DatabaseEntry entry) {
-    return {
-      'path': entry.path,
-      'name': entry.name,
-      'description': entry.description,
-      'masterPassword': entry.masterPassword,
-      'saveMasterPassword': entry.saveMasterPassword,
-      'lastAccessed': entry.lastAccessed?.toIso8601String(),
-      'createdAt': entry.createdAt?.toIso8601String(),
-    };
-  }
-
-  /// Преобразует Map в DatabaseEntry
-  DatabaseEntry _databaseEntryFromMap(Map<String, dynamic> map) {
-    return DatabaseEntry(
-      path: map['path'] as String,
-      name: map['name'] as String,
-      description: map['description'] as String?,
-      masterPassword: map['masterPassword'] as String?,
-      saveMasterPassword: map['saveMasterPassword'] as bool? ?? false,
-      lastAccessed: map['lastAccessed'] != null
-          ? DateTime.parse(map['lastAccessed'] as String)
-          : null,
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'] as String)
-          : null,
-    );
   }
 }

@@ -13,7 +13,7 @@ import 'dart:convert';
 
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/hoplixi_store/services/service_results.dart';
+import 'package:hoplixi/hoplixi_store/repository/service_results.dart';
 
 /// Форма для добавления или редактирования иконки
 class IconFormWidget extends ConsumerStatefulWidget {

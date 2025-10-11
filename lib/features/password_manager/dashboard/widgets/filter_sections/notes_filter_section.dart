@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/notes_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/notes_filter.dart';
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 
 /// Секция для настройки специфических фильтров заметок

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
-import 'package:hoplixi/hoplixi_store/services/service_results.dart';
+import 'package:hoplixi/hoplixi_store/repository/service_results.dart';
 
 class JsonParserForMigration {
   /// Парсит JSON из файла и возвращает списки паролей и категорий

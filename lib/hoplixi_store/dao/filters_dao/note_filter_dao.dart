@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/notes_filter.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/notes_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/base_filter.dart';
 import '../../hoplixi_store.dart';
 import '../../tables/notes.dart';
 import '../../tables/categories.dart';

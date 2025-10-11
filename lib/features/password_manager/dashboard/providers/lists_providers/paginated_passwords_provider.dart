@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/base_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/password_filter.dart';
 import 'package:hoplixi/hoplixi_store/providers/dao_providers.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';

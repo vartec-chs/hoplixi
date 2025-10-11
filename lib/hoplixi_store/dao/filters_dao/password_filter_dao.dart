@@ -1,8 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/password_filter.dart';
-import 'package:hoplixi/hoplixi_store/models/filter/base_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/password_filter.dart';
+import 'package:hoplixi/hoplixi_store/models/filter_models/base_filter.dart';
 import '../../hoplixi_store.dart';
 import '../../tables/passwords.dart';
 import '../../tables/categories.dart';

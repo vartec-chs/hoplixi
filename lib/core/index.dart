@@ -23,4 +23,4 @@ export 'utils/window_manager.dart';
 // Flutter Secure Storage Implementation
 export 'flutter_secure_storage/flutter_secure_storage_impl.dart';
 export 'lib/box_db_new/index.dart';
-export 'app_files.dart';
+export 'app_paths.dart' show AppPaths;

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
-import 'package:hoplixi/hoplixi_store/services/tags_service.dart';
+import 'package:hoplixi/hoplixi_store/repository/tags_service.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 
 /// Состояние управления тегами
