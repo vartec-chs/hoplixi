@@ -167,8 +167,8 @@ class _DashboardSliverAppBarState extends ConsumerState<DashboardSliverAppBar>
       floating: widget.floating,
       snap: widget.snap,
       elevation: 0,
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
+      backgroundColor: theme.colorScheme.surface,
+      surfaceTintColor: theme.colorScheme.surface,
 
       // Кнопка открытия drawer слева
       leading: IconButton(
