@@ -190,22 +190,22 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     context.go(AppRoutes.openStore);
   }
 
-  Future<void> _showCloudImportDialog() async {
-    if (_cloudCredentials.isEmpty) {
-      ToastHelper.warning(title: 'Нет настроенных облачных хранилищ');
-      return;
-    }
+  // Future<void> _showCloudImportDialog() async {
+  //   if (_cloudCredentials.isEmpty) {
+  //     ToastHelper.warning(title: 'Нет настроенных облачных хранилищ');
+  //     return;
+  //   }
 
-    final credential = await showDialog<CredentialApp>(
-      context: context,
-      builder: (context) =>
-          _CloudCredentialDialog(credentials: _cloudCredentials),
-    );
+  //   final credential = await showDialog<CredentialApp>(
+  //     context: context,
+  //     builder: (context) =>
+  //         _CloudCredentialDialog(credentials: _cloudCredentials),
+  //   );
 
-    if (credential != null) {
-      await _performCloudImport(credential);
-    }
-  }
+  //   if (credential != null) {
+  //     await _performCloudImport(credential);
+  //   }
+  // }
 
   Future<String?> _showPasswordDialog() async {
     _cloudPasswordController.clear();
@@ -235,133 +235,133 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     );
   }
 
-  Future<void> _performCloudImport(CredentialApp credential) async {
-    setState(() {
-      _isImporting = true;
-      _progress = 0.0;
-      _importedStoragePath = null;
-    });
+  // Future<void> _performCloudImport(CredentialApp credential) async {
+  //   setState(() {
+  //     _isImporting = true;
+  //     _progress = 0.0;
+  //     _importedStoragePath = null;
+  //   });
 
-    try {
-      logInfo(
-        'Начало импорта из облака',
-        tag: 'ImportScreen',
-        data: {'credentialId': credential.id},
-      );
+  //   try {
+  //     logInfo(
+  //       'Начало импорта из облака',
+  //       tag: 'ImportScreen',
+  //       data: {'credentialId': credential.id},
+  //     );
 
-      _updateProgress(0.2);
+  //     _updateProgress(0.2);
 
-      // Инициализируем Dropbox notifier
-      final notifier = ref.read(dropboxServiceStateProvider.notifier);
-      final initialized = await notifier.init(credential.id);
+  //     // Инициализируем Dropbox notifier
+  //     final notifier = ref.read(dropboxServiceStateProvider.notifier);
+  //     final initialized = await notifier.init(credential.id);
 
-      if (!initialized) {
-        ToastHelper.error(title: 'Не удалось инициализировать сервис');
-        return;
-      }
+  //     if (!initialized) {
+  //       ToastHelper.error(title: 'Не удалось инициализировать сервис');
+  //       return;
+  //     }
 
-      _updateProgress(0.3);
+  //     _updateProgress(0.3);
 
-      // Проверяем подключение
-      final isConnected = await notifier.check();
-      if (!isConnected) {
-        ToastHelper.error(title: 'Ошибка подключения к Dropbox');
-        return;
-      }
+  //     // Проверяем подключение
+  //     final isConnected = await notifier.check();
+  //     if (!isConnected) {
+  //       ToastHelper.error(title: 'Ошибка подключения к Dropbox');
+  //       return;
+  //     }
 
-      _updateProgress(0.4);
+  //     _updateProgress(0.4);
 
-      // Получаем список хранилищ
-      final storagesResult = await notifier.listStorages();
-      if (!storagesResult.success || storagesResult.data!.isEmpty) {
-        ToastHelper.warning(title: 'В облаке не найдено хранилищ');
-        return;
-      }
+  //     // Получаем список хранилищ
+  //     final storagesResult = await notifier.listStorages();
+  //     if (!storagesResult.success || storagesResult.data!.isEmpty) {
+  //       ToastHelper.warning(title: 'В облаке не найдено хранилищ');
+  //       return;
+  //     }
 
-      _updateProgress(0.5);
+  //     _updateProgress(0.5);
 
-      // Показываем диалог выбора хранилища
-      final selectedStorage = await showDialog<DropboxFile>(
-        context: mounted ? context : throw Exception('Context not mounted'),
-        builder: (context) =>
-            _CloudStorageListDialog(storages: storagesResult.data!),
-      );
+  //     // Показываем диалог выбора хранилища
+  //     final selectedStorage = await showDialog<DropboxFile>(
+  //       context: mounted ? context : throw Exception('Context not mounted'),
+  //       builder: (context) =>
+  //           _CloudStorageListDialog(storages: storagesResult.data!),
+  //     );
 
-      if (selectedStorage == null) {
-        return;
-      }
+  //     if (selectedStorage == null) {
+  //       return;
+  //     }
 
-      _updateProgress(0.6);
+  //     _updateProgress(0.6);
 
-      final destinationDir = await AppPaths.appStoragePath;
+  //     final destinationDir = await AppPaths.appStoragePath;
 
-      final downloadResult = await notifier.downloadStorage(
-        storageName: selectedStorage.name,
-        localDir: destinationDir,
-      );
+  //     final downloadResult = await notifier.downloadStorage(
+  //       storageName: selectedStorage.name,
+  //       localDir: destinationDir,
+  //     );
 
-      if (!downloadResult.success || downloadResult.data == null) {
-        ToastHelper.error(
-          title: downloadResult.message ?? 'Ошибка при скачивании',
-        );
-        logError(
-          'Ошибка при скачивании из облака',
-          tag: 'ImportScreen',
-          data: {'message': downloadResult.message},
-        );
-        return;
-      }
+  //     if (!downloadResult.success || downloadResult.data == null) {
+  //       ToastHelper.error(
+  //         title: downloadResult.message ?? 'Ошибка при скачивании',
+  //       );
+  //       logError(
+  //         'Ошибка при скачивании из облака',
+  //         tag: 'ImportScreen',
+  //         data: {'message': downloadResult.message},
+  //       );
+  //       return;
+  //     }
 
-      _updateProgress(0.7);
+  //     _updateProgress(0.7);
 
-      // Спрашиваем пароль у пользователя
-      final password = await _showPasswordDialog();
+  //     // Спрашиваем пароль у пользователя
+  //     final password = await _showPasswordDialog();
 
-      _updateProgress(0.8);
+  //     _updateProgress(0.8);
 
-      // Распаковываем архив
-      final service = ref.read(storageExportServiceProvider);
-      final importResult = await service.importStorage(
-        archivePath: downloadResult.data!,
-        destinationDir: destinationDir,
-        password: password?.isNotEmpty == true ? password : null,
-      );
+  //     // Распаковываем архив
+  //     final service = ref.read(storageExportServiceProvider);
+  //     final importResult = await service.importStorage(
+  //       archivePath: downloadResult.data!,
+  //       destinationDir: destinationDir,
+  //       password: password?.isNotEmpty == true ? password : null,
+  //     );
 
-      if (importResult.success && importResult.data != null) {
-        _updateProgress(1.0);
-        setState(() {
-          _importedStoragePath = importResult.data;
-        });
-        ToastHelper.success(
-          title: importResult.message ?? 'Импорт завершён успешно',
-        );
-        logInfo(
-          'Импорт из облака завершён успешно',
-          tag: 'ImportScreen',
-          data: {'storagePath': importResult.data},
-        );
-      } else {
-        ToastHelper.error(title: importResult.message ?? 'Ошибка при импорте');
-        logError(
-          'Ошибка при импорте из облака',
-          tag: 'ImportScreen',
-          data: {'message': importResult.message},
-        );
-      }
-    } catch (e, st) {
-      logError(
-        'Исключение при импорте из облака',
-        error: e,
-        stackTrace: st,
-        tag: 'ImportScreen',
-      );
-      ToastHelper.error(title: 'Произошла ошибка при импорте');
-    } finally {
-      setState(() {
-        _isImporting = false;
-      });
-    }
-  }
+  //     if (importResult.success && importResult.data != null) {
+  //       _updateProgress(1.0);
+  //       setState(() {
+  //         _importedStoragePath = importResult.data;
+  //       });
+  //       ToastHelper.success(
+  //         title: importResult.message ?? 'Импорт завершён успешно',
+  //       );
+  //       logInfo(
+  //         'Импорт из облака завершён успешно',
+  //         tag: 'ImportScreen',
+  //         data: {'storagePath': importResult.data},
+  //       );
+  //     } else {
+  //       ToastHelper.error(title: importResult.message ?? 'Ошибка при импорте');
+  //       logError(
+  //         'Ошибка при импорте из облака',
+  //         tag: 'ImportScreen',
+  //         data: {'message': importResult.message},
+  //       );
+  //     }
+  //   } catch (e, st) {
+  //     logError(
+  //       'Исключение при импорте из облака',
+  //       error: e,
+  //       stackTrace: st,
+  //       tag: 'ImportScreen',
+  //     );
+  //     ToastHelper.error(title: 'Произошла ошибка при импорте');
+  //   } finally {
+  //     setState(() {
+  //       _isImporting = false;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -589,15 +589,15 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              SmoothButton(
-                isFullWidth: true,
-                label: 'Импорт из облака',
-                onPressed: _cloudCredentials.isEmpty
-                    ? null
-                    : _showCloudImportDialog,
-                icon: const Icon(Icons.cloud_download),
-                type: SmoothButtonType.outlined,
-              ),
+              // SmoothButton(
+              //   isFullWidth: true,
+              //   label: 'Импорт из облака',
+              //   onPressed: _cloudCredentials.isEmpty
+              //       ? null
+              //       : _showCloudImportDialog,
+              //   icon: const Icon(Icons.cloud_download),
+              //   type: SmoothButtonType.outlined,
+              // ),
             ],
 
             if (_importedStoragePath != null)

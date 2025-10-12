@@ -74,72 +74,72 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
     }
   }
 
-  Future<void> _showCloudExportDialog() async {
-    if (_exportedArchivePath == null) {
-      ToastHelper.error(title: 'Сначала создайте архив');
-      return;
-    }
+  // Future<void> _showCloudExportDialog() async {
+  //   if (_exportedArchivePath == null) {
+  //     ToastHelper.error(title: 'Сначала создайте архив');
+  //     return;
+  //   }
 
-    if (_cloudCredentials.isEmpty) {
-      ToastHelper.error(title: 'Нет настроенных облачных аккаунтов');
-      return;
-    }
+  //   if (_cloudCredentials.isEmpty) {
+  //     ToastHelper.error(title: 'Нет настроенных облачных аккаунтов');
+  //     return;
+  //   }
 
-    final credential = await showDialog<CredentialApp>(
-      context: context,
-      builder: (context) =>
-          _CloudCredentialDialog(credentials: _cloudCredentials),
-    );
+  //   final credential = await showDialog<CredentialApp>(
+  //     context: context,
+  //     builder: (context) =>
+  //         _CloudCredentialDialog(credentials: _cloudCredentials),
+  //   );
 
-    if (credential != null && mounted) {
-      await _performCloudExport(credential);
-    }
-  }
+  //   if (credential != null && mounted) {
+  //     await _performCloudExport(credential);
+  //   }
+  // }
 
-  Future<void> _performCloudExport(CredentialApp credential) async {
-    if (_exportedArchivePath == null) return;
+  // Future<void> _performCloudExport(CredentialApp credential) async {
+  //   if (_exportedArchivePath == null) return;
 
-    try {
-      ToastHelper.info(title: 'Начинается загрузка в облако...');
+  //   try {
+  //     ToastHelper.info(title: 'Начинается загрузка в облако...');
 
-      // Инициализация сервиса
-      final notifier = ref.read(dropboxServiceStateProvider.notifier);
-      await notifier.init(credential.id);
+  //     // Инициализация сервиса
+  //     final notifier = ref.read(dropboxServiceStateProvider.notifier);
+  //     await notifier.init(credential.id);
 
-      // Проверка и авторизация
-      final isConnected = await notifier.check();
-      if (!isConnected) {
-        ToastHelper.error(title: 'Ошибка подключения к Dropbox');
-        return;
-      }
+  //     // Проверка и авторизация
+  //     final isConnected = await notifier.check();
+  //     if (!isConnected) {
+  //       ToastHelper.error(title: 'Ошибка подключения к Dropbox');
+  //       return;
+  //     }
 
-      // Загрузка файла (используем имя архива из пути)
-      final archiveName = p.basename(_exportedArchivePath!);
-      final result = await notifier.uploadStorage(
-        localPath: _exportedArchivePath!,
-        storageName: archiveName,
-      );
+  //     // Загрузка файла (используем имя архива из пути)
+  //     final archiveName = p.basename(_exportedArchivePath!);
+  //     final result = await notifier.uploadStorage(
+  //       localPath: _exportedArchivePath!,
+  //       storageName: archiveName,
+  //     );
 
-      if (result.success) {
-        ToastHelper.success(title: 'Архив успешно загружен в Dropbox');
-        logInfo(
-          'Архив экспортирован в облако',
-          tag: 'ExportConfirmScreen',
-          data: {'archiveName': archiveName, 'credentialId': credential.id},
-        );
-      } else {
-        ToastHelper.error(title: result.message ?? 'Ошибка загрузки в облако');
-      }
-    } catch (e, st) {
-      logError(
-        'Ошибка облачного экспорта',
-        error: e,
-        stackTrace: st,
-        tag: 'ExportConfirmScreen',
-      );
-      ToastHelper.error(title: 'Ошибка загрузки в облако');
-    }
-  }
+  //     if (result.success) {
+  //       ToastHelper.success(title: 'Архив успешно загружен в Dropbox');
+  //       logInfo(
+  //         'Архив экспортирован в облако',
+  //         tag: 'ExportConfirmScreen',
+  //         data: {'archiveName': archiveName, 'credentialId': credential.id},
+  //       );
+  //     } else {
+  //       ToastHelper.error(title: result.message ?? 'Ошибка загрузки в облако');
+  //     }
+  //   } catch (e, st) {
+  //     logError(
+  //       'Ошибка облачного экспорта',
+  //       error: e,
+  //       stackTrace: st,
+  //       tag: 'ExportConfirmScreen',
+  //     );
+  //     ToastHelper.error(title: 'Ошибка загрузки в облако');
+  //   }
+  // }
 
   Future<void> _performExport() async {
     setState(() {
@@ -373,12 +373,12 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
               Column(
                 spacing: 12,
                 children: [
-                  SmoothButton(
-                    isFullWidth: true,
-                    label: 'Загрузить в облако',
-                    onPressed: _showCloudExportDialog,
-                    icon: const Icon(Icons.cloud_upload),
-                  ),
+                  // SmoothButton(
+                  //   isFullWidth: true,
+                  //   label: 'Загрузить в облако',
+                  //   onPressed: _showCloudExportDialog,
+                  //   icon: const Icon(Icons.cloud_upload),
+                  // ),
                   SmoothButton(
                     isFullWidth: true,
                     label: 'Готово',

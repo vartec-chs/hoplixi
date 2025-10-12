@@ -129,7 +129,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
                       const SizedBox(width: 12),
                       SmoothButton(
                         label: _isEditing ? 'Сохранить' : 'Добавить',
-                        onPressed: _isSubmitting ? null : _handleSubmit,
+                        onPressed: null,
                         loading: _isSubmitting,
                       ),
                     ],
@@ -235,82 +235,82 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     }
   }
 
-  Future<void> _handleSubmit() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+  // Future<void> _handleSubmit() async {
+  //   if (!_formKey.currentState!.validate()) {
+  //     return;
+  //   }
 
-    setState(() {
-      _isSubmitting = true;
-    });
+  //   setState(() {
+  //     _isSubmitting = true;
+  //   });
 
-    try {
-      // Дополнительная валидация подключения для Dropbox
-      if (_selectedType == CredentialOAuthType.dropbox) {
-        final connectionValid = await _validateDropboxConnection();
-        if (!connectionValid) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Не удалось проверить подключение к Dropbox. Проверьте Client ID и Client Secret.',
-                ),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-          setState(() {
-            _isSubmitting = false;
-          });
-          return;
-        }
-      }
+  //   try {
+  //     // Дополнительная валидация подключения для Dropbox
+  //     if (_selectedType == CredentialOAuthType.dropbox) {
+  //       final connectionValid = await _validateDropboxConnection();
+  //       if (!connectionValid) {
+  //         if (mounted) {
+  //           ScaffoldMessenger.of(context).showSnackBar(
+  //             const SnackBar(
+  //               content: Text(
+  //                 'Не удалось проверить подключение к Dropbox. Проверьте Client ID и Client Secret.',
+  //               ),
+  //               backgroundColor: Colors.orange,
+  //             ),
+  //           );
+  //         }
+  //         setState(() {
+  //           _isSubmitting = false;
+  //         });
+  //         return;
+  //       }
+  //     }
 
-      bool success;
+  //     bool success;
 
-      if (_isEditing) {
-        final updated = widget.credential!.copyWith(
-          type: _selectedType,
-          clientId: _clientIdController.text.trim(),
-          clientSecret: _clientSecretController.text.trim(),
-          redirectUri: _redirectUriController.text.trim(),
-          expiresAt: _expiresAt,
-        );
-        success = await ref
-            .read(credentialListProvider.notifier)
-            .updateCredential(updated);
-      } else {
-        success = await ref
-            .read(credentialListProvider.notifier)
-            .createCredential(
-              type: _selectedType,
-              clientId: _clientIdController.text.trim(),
-              clientSecret: _clientSecretController.text.trim(),
-              redirectUri: _redirectUriController.text.trim(),
-              expiresAt: _expiresAt,
-            );
-      }
+  //     if (_isEditing) {
+  //       final updated = widget.credential!.copyWith(
+  //         type: _selectedType,
+  //         clientId: _clientIdController.text.trim(),
+  //         clientSecret: _clientSecretController.text.trim(),
+  //         redirectUri: _redirectUriController.text.trim(),
+  //         expiresAt: _expiresAt,
+  //       );
+  //       success = await ref
+  //           .read(credentialListProvider.notifier)
+  //           .updateCredential(updated);
+  //     } else {
+  //       success = await ref
+  //           .read(credentialListProvider.notifier)
+  //           .createCredential(
+  //             type: _selectedType,
+  //             clientId: _clientIdController.text.trim(),
+  //             clientSecret: _clientSecretController.text.trim(),
+  //             redirectUri: _redirectUriController.text.trim(),
+  //             expiresAt: _expiresAt,
+  //           );
+  //     }
 
-      if (mounted && success) {
-        Navigator.of(context).pop(true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
+  //     if (mounted && success) {
+  //       Navigator.of(context).pop(true);
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Ошибка: ${e.toString()}'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() {
+  //         _isSubmitting = false;
+  //       });
+  //     }
+  //   }
+  // }
 
   IconData _getTypeIcon(CredentialOAuthType type) {
     switch (type) {
@@ -328,32 +328,32 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
   }
 
   /// Валидация подключения к Dropbox
-  Future<bool> _validateDropboxConnection() async {
-    try {
-      // Создаем временный credential для проверки
-      final tempCredential = CredentialApp(
-        id: 'temp_validation',
-        type: CredentialOAuthType.dropbox,
-        clientId: _clientIdController.text.trim(),
-        clientSecret: _clientSecretController.text.trim(),
-        redirectUri: _redirectUriController.text.trim(),
-        expiresAt: _expiresAt,
-      );
+  // Future<bool> _validateDropboxConnection() async {
+  //   try {
+  //     // Создаем временный credential для проверки
+  //     final tempCredential = CredentialApp(
+  //       id: 'temp_validation',
+  //       type: CredentialOAuthType.dropbox,
+  //       clientId: _clientIdController.text.trim(),
+  //       clientSecret: _clientSecretController.text.trim(),
+  //       redirectUri: _redirectUriController.text.trim(),
+  //       expiresAt: _expiresAt,
+  //     );
 
-      // Инициализируем Dropbox сервис
-      final dropboxService = ref.read(dropboxServiceProvider);
-      final initResult = await dropboxService.init(tempCredential);
+  //     // Инициализируем Dropbox сервис
+  //     final dropboxService = ref.read(dropboxServiceProvider);
+  //     final initResult = await dropboxService.init(tempCredential);
 
-      if (!initResult.success) {
-        return false;
-      }
+  //     if (!initResult.success) {
+  //       return false;
+  //     }
 
-      // Проверяем подключение (без полного OAuth flow)
-      final checkResult = await dropboxService.check();
-      return checkResult.success;
-    } catch (e) {
-      // В случае ошибки валидации считаем подключение невалидным
-      return false;
-    }
-  }
+  //     // Проверяем подключение (без полного OAuth flow)
+  //     final checkResult = await dropboxService.check();
+  //     return checkResult.success;
+  //   } catch (e) {
+  //     // В случае ошибки валидации считаем подключение невалидным
+  //     return false;
+  //   }
+  // }
 }

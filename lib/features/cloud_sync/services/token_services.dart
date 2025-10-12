@@ -60,36 +60,70 @@ class TokenServices implements OAuth2TokenStorage {
   }
 
   @override
-  Future<String?> load(String key) {
-    // TODO: implement load
-    throw UnimplementedError();
+  Future<String?> load(String key) async {
+    try {
+      await _ensureInitialized();
+
+      final tokenData = await _db!.get(key);
+      if (tokenData == null) {
+        logDebug('Token not found for key: $key', tag: _tag);
+        return null;
+      }
+
+      // Преобразуем TokenOAuth обратно в OAuth2TokenF JSON строку
+      final token = OAuth2TokenF({
+        'access_token': tokenData.accessToken,
+        'refresh_token': tokenData.refreshToken,
+        'id_token':
+            '', // OAuth2TokenF попытается декодировать, но для userName/iss используем прямые значения
+        'expiry': '9999-12-31T23:59:59.999Z', // Значения по умолчанию
+        'refresh_token_expiry': '9999-12-31T23:59:59.999Z',
+      });
+
+      logDebug('Token loaded for key: $key', tag: _tag);
+      return token.toJsonString();
+    } catch (e) {
+      logError('Failed to load token for key "$key": $e', tag: _tag);
+      return null;
+    }
   }
 
   @override
-  Future<Map<String, String>> loadAll({String? keyPrefix}) {
-    // TODO: implement loadAll
-    throw UnimplementedError();
+  Future<Map<String, String>> loadAll({String? keyPrefix}) async {
+    try {
+      await _ensureInitialized();
+
+      final allTokens = await _db!.getAll();
+      final Map<String, String> result = {};
+
+      for (final tokenData in allTokens) {
+        // Если указан префикс, фильтруем по нему
+        if (keyPrefix != null && !tokenData.id.startsWith(keyPrefix)) {
+          continue;
+        }
+
+        // Преобразуем TokenOAuth обратно в OAuth2TokenF JSON строку
+        final token = OAuth2TokenF({
+          'access_token': tokenData.accessToken,
+          'refresh_token': tokenData.refreshToken,
+          'id_token': '',
+          'expiry': '9999-12-31T23:59:59.999Z',
+          'refresh_token_expiry': '9999-12-31T23:59:59.999Z',
+        });
+
+        result[tokenData.id] = token.toJsonString();
+      }
+
+      logDebug(
+        'Loaded ${result.length} tokens${keyPrefix != null ? ' with prefix "$keyPrefix"' : ''}',
+        tag: _tag,
+      );
+      return result;
+    } catch (e) {
+      logError('Failed to load all tokens: $e', tag: _tag);
+      return {};
+    }
   }
-
-  // @override
-  // Future<String?> load(String key) async {
-  //   try {
-  //     await _ensureInitialized();
-
-  //     final data = await _db!.get(key);
-  //     if (data == null) {
-  //       logDebug('Token not found for key: $key', tag: _tag);
-  //       return null;
-  //     }
-
-  //     final value = data['_value'];
-  //     logDebug('Token loaded for key: $key', tag: _tag);
-  //     return value;
-  //   } catch (e) {
-  //     logError('Failed to load token for key "$key": $e', tag: _tag);
-  //     return null;
-  //   }
-  // }
 
   @override
   Future<void> save(String key, String value) async {
@@ -135,66 +169,36 @@ class TokenServices implements OAuth2TokenStorage {
     }
   }
 
-  // @override
-  // Future<Map<String, String>> loadAll({String? keyPrefix}) async {
-  //   try {
-  //     await _ensureInitialized();
+  /// Закрыть хранилище токенов
+  Future<void> close() async {
+    if (_db != null) {
+      await _boxManager.closeBox(_boxName);
+      _db = null;
+      logInfo('Token storage closed', tag: _tag);
+    }
+  }
 
-  //     final allData = await _db!.getAll();
-  //     final result = <String, String>{};
+  /// Очистить все токены
+  Future<void> clear() async {
+    try {
+      await _ensureInitialized();
+      await _db!.clear();
+      logInfo('All tokens cleared', tag: _tag);
+    } catch (e) {
+      logError('Failed to clear tokens: $e', tag: _tag);
+      rethrow;
+    }
+  }
 
-  //     for (final data in allData) {
-  //       final key = data['_key'];
-  //       final value = data['_value'];
-
-  //       if (key != null && value != null) {
-  //         if (keyPrefix == null || key.startsWith(keyPrefix)) {
-  //           result[key] = value;
-  //         }
-  //       }
-  //     }
-
-  //     logDebug(
-  //       'Loaded ${result.length} tokens${keyPrefix != null ? ' with prefix "$keyPrefix"' : ''}',
-  //       tag: _tag,
-  //     );
-  //     return result;
-  //   } catch (e) {
-  //     logError('Failed to load all tokens: $e', tag: _tag);
-  //     return {};
-  //   }
-  // }
-
-  // /// Закрыть хранилище токенов
-  // Future<void> close() async {
-  //   if (_db != null) {
-  //     await _boxManager.closeBox(_boxName);
-  //     _db = null;
-  //     logInfo('Token storage closed', tag: _tag);
-  //   }
-  // }
-
-  // /// Очистить все токены
-  // Future<void> clear() async {
-  //   try {
-  //     await _ensureInitialized();
-  //     await _db!.clear();
-  //     logInfo('All tokens cleared', tag: _tag);
-  //   } catch (e) {
-  //     logError('Failed to clear tokens: $e', tag: _tag);
-  //     rethrow;
-  //   }
-  // }
-
-  // /// Получить количество сохранённых токенов
-  // Future<int> count() async {
-  //   try {
-  //     await _ensureInitialized();
-  //     final count = await _db!.count();
-  //     return count;
-  //   } catch (e) {
-  //     logError('Failed to count tokens: $e', tag: _tag);
-  //     return 0;
-  //   }
-  // }
+  /// Получить количество сохранённых токенов
+  Future<int> count() async {
+    try {
+      await _ensureInitialized();
+      final count = await _db!.count();
+      return count;
+    } catch (e) {
+      logError('Failed to count tokens: $e', tag: _tag);
+      return 0;
+    }
+  }
 }
