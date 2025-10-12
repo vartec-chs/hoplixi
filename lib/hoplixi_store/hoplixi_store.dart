@@ -26,6 +26,7 @@ part 'hoplixi_store.g.dart';
     PasswordHistories,
     Otps,
     OtpTags,
+    OtpHistories,
     Attachments,
     Notes,
     NoteTags,
