@@ -72,9 +72,10 @@ final state = ref.watch(credentialListProvider);
 - `activeCredentialsProvider` - только активные типы
 - `credentialsByTypeProvider` - группировка по типам
 
-### 3. ManageCredentialScreen
+### 3. Экраны
 
-Экран управления учётными данными.
+#### ManageCredentialScreen
+Экран управления учётными данными OAuth.
 
 **Функциональность:**
 - Список всех credentials
@@ -83,38 +84,99 @@ final state = ref.watch(credentialListProvider);
 - Удаление с подтверждением
 - Pull-to-refresh
 - Индикаторы истёкших credentials
-- Пустое состояние
-- Обработка ошибок
+
+#### AuthManagerScreen
+Экран для добавления OAuth авторизаций.
+
+**Функциональность:**
+- Выбор credential через CredentialPicker
+- Отображение информации о credential
+- Выполнение OAuth авторизации
+- Просмотр активных авторизаций
+- Удаление авторизаций
+
+#### TokenListScreen  
+Экран просмотра всех сохранённых OAuth токенов.
+
+**Функциональность:**
+- Список всех токенов с деталями
+- Статистика (количество токенов)
+- Удаление отдельных токенов
+- Очистка всех токенов
+- Детальная информация о токене
+- Копирование токенов
+- Индикаторы состояния (активен, требует обновления и т.д.)
 
 ### 4. Виджеты
 
 **CredentialCard** - карточка credential:
 - Иконка по типу
 - Название типа
-- Маскированный Client ID
-- Redirect URI
-- Дата истечения с предупреждением
-- Кнопки редактирования и удаления
+- Маскированный Client ID и Secret
+- Redirect URI (Mobile/Desktop)
 - Индикатор неактивного типа
+- Кнопки редактирования и удаления
 
 **CredentialFormDialog** - диалог формы:
 - Выбор типа (dropdown)
-- Поля: Client ID, Client Secret, Redirect URI
-- Выбор даты истечения
+- Поля: Client ID, Client Secret
+- Отображение Redirect URI
 - Валидация полей
 - Режимы создания/редактирования
-- Индикатор загрузки
+
+**CredentialPicker** - селектор credential:
+- Текстовое поле с выбором из списка
+- Фильтрация по активным типам
+- Модальный лист со списком
+- Отображение типа и Client ID
+
+**AuthModal** - модальное окно выбора провайдера:
+- Постепенная анимированная загрузка кнопок (по одной)
+- Фильтрация по наличию credentials
+- Выбор credential при нескольких вариантах
+- Выполнение OAuth авторизации
+- Визуальная обратная связь
+- Пустое состояние и обработка ошибок
 
 ## Использование
 
-### Навигация к экрану
+### Навигация к экранам
 
 ```dart
-// Добавить в router
+// Управление credentials
 GoRoute(
   path: '/credentials',
   builder: (context, state) => const ManageCredentialScreen(),
 ),
+
+// Добавление авторизации
+GoRoute(
+  path: '/auth-manager',
+  builder: (context, state) => const AuthManagerScreen(),
+),
+
+// Просмотр токенов
+GoRoute(
+  path: '/tokens',
+  builder: (context, state) => const TokenListScreen(),
+),
+```
+
+### Использование AuthModal
+
+```dart
+// Вызов модалки выбора провайдера
+final authKey = await showAuthModal(context);
+if (authKey != null) {
+  print('Авторизация успешна: $authKey');
+}
+
+// В кнопке
+SmoothButton(
+  label: 'Подключить облако',
+  onPressed: () => showAuthModal(context),
+  icon: const Icon(Icons.cloud),
+)
 ```
 
 ### Работа с сервисом напрямую
@@ -188,18 +250,19 @@ await ref.read(credentialListProvider.notifier).createCredential(
 await ref.read(credentialListProvider.notifier).deleteCredential(id);
 ```
 
-## Модель данных
+## Модели данных
+
+### CredentialApp
 
 ```dart
 @freezed
 class CredentialApp with _$CredentialApp {
   const factory CredentialApp({
     required String id,
+    required String name,
     required CredentialOAuthType type,
     required String clientId,
     required String clientSecret,
-    required String redirectUri,
-    required DateTime expiresAt,
   }) = _CredentialApp;
 }
 
@@ -207,19 +270,44 @@ enum CredentialOAuthType {
   google,     // Неактивен
   onedrive,   // Неактивен
   dropbox,    // Активен
+  yandex,     // Активен
   icloud,     // Неактивен
   other,      // Неактивен
 }
 ```
 
+### TokenOAuth
+
+```dart
+@freezed
+class TokenOAuth with _$TokenOAuth {
+  const factory TokenOAuth({
+    required String id,
+    required String accessToken,
+    required String refreshToken,
+    required String userName,
+    required String iss,
+    required bool timeToRefresh,
+    required bool canRefresh,
+    required bool timeToLogin,
+  }) = _TokenOAuth;
+}
+```
+
 ## Хранение
 
+### Credentials
 Данные хранятся в **BoxDB** (зашифрованная локальная БД):
-- Имя бокса: `credentials`
-- Автоматическое шифрование Client ID, Client Secret, Redirect URI
+- Имя бокса: `credential_apps`
+- Автоматическое шифрование Client ID, Client Secret
 - Ключ шифрования хранится в SecureStorage
-- Поддержка backup/restore
-- Автоматическая компактификация
+
+### Токены
+Токены хранятся в **BoxDB**:
+- Имя бокса: `oauth2_tokens`
+- Реализует интерфейс `OAuth2TokenStorage`
+- Автоматическое шифрование Access/Refresh токенов
+- Поддержка множественных токенов для разных провайдеров
 
 ## Безопасность
 

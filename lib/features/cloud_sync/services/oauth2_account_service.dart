@@ -5,6 +5,8 @@ import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
+import 'package:hoplixi/features/cloud_sync/models/token_oauth.dart';
+import 'package:hoplixi/features/cloud_sync/providers/token_provider.dart';
 import 'package:hoplixi/features/cloud_sync/services/token_services.dart';
 
 const List<String> _dropboxScopes = <String>[
@@ -15,17 +17,30 @@ const List<String> _dropboxScopes = <String>[
   'files.metadata.read',
 ];
 
-enum ProviderType { dropbox, google, microsoft, unknown }
+const List<String> _yandexScopes = <String>[
+  'login:email',
+  'login:info',
+  'login:avatar',
+  'cloud_api:disk.read',
+  'cloud_api:disk.write',
+  'cloud_api:disk.app_folder',
+  'cloud_api:disk.info',
+];
+
+enum ProviderType { dropbox, google, microsoft, yandex, unknown }
 
 extension ProviderTypeX on ProviderType {
   String get name {
     switch (this) {
       case ProviderType.dropbox:
-        return 'dropbox';
+        return 'Dropbox';
       case ProviderType.google:
-        return 'google';
+        return 'Google';
       case ProviderType.microsoft:
-        return 'microsoft';
+        return 'Microsoft';
+      case ProviderType.yandex:
+        return 'Yandex';
+
       case ProviderType.unknown:
         return 'unknown';
     }
@@ -39,18 +54,28 @@ extension ProviderTypeX on ProviderType {
         return ProviderType.google;
       case 'microsoft':
         return ProviderType.microsoft;
+      case 'yandex':
+        return ProviderType.yandex;
       default:
         throw ArgumentError('Unknown provider name: $name');
     }
   }
 
   static ProviderType fromKey(String key) {
-    if (key.toLowerCase().contains('dropbox')) {
+    if (key.toLowerCase().contains(ProviderType.dropbox.name.toLowerCase())) {
       return ProviderType.dropbox;
-    } else if (key.toLowerCase().contains('google')) {
+    } else if (key.toLowerCase().contains(
+      ProviderType.google.name.toLowerCase(),
+    )) {
       return ProviderType.google;
-    } else if (key.toLowerCase().contains('microsoft')) {
+    } else if (key.toLowerCase().contains(
+      ProviderType.microsoft.name.toLowerCase(),
+    )) {
       return ProviderType.microsoft;
+    } else if (key.toLowerCase().contains(
+      ProviderType.yandex.name.toLowerCase(),
+    )) {
+      return ProviderType.yandex;
     } else {
       return ProviderType.unknown;
     }
@@ -76,6 +101,101 @@ class OAuth2AccountService {
 
   OAuth2Account get account => _account;
 
+  // общий метод авторизации
+  Future<ServiceResult<String>> authorize(
+    CredentialApp credential, {
+    void Function(String error)? onError,
+  }) async {
+    switch (credential.type) {
+      case CredentialOAuthType.dropbox:
+        final token = await _tokenServices.findOneBySuffix(
+          ProviderType.dropbox.name.toLowerCase(),
+        );
+
+        try {
+          if (token != null) {
+            logInfo(
+              'Found existing Dropbox token, attempting to use it',
+              tag: _tag,
+            );
+            final tokenInfo = TokenInfo(key: token.id, token: token);
+            return await authorizeWithToken(tokenInfo);
+          }
+        } catch (e, stack) {
+          logError(
+            'Failed to authorize with existing Dropbox token',
+            error: e,
+            stackTrace: stack,
+            tag: _tag,
+          );
+        }
+
+        return await authorizeWithDropbox(credential, onError: onError);
+      case CredentialOAuthType.yandex:
+        final token = await _tokenServices.findOneBySuffix(
+          ProviderType.yandex.name.toLowerCase(),
+        );
+
+        try {
+          if (token != null) {
+            logInfo(
+              'Found existing Yandex token, attempting to use it',
+              tag: _tag,
+            );
+            final tokenInfo = TokenInfo(key: token.id, token: token);
+            return await authorizeWithToken(tokenInfo);
+          }
+        } catch (e, stack) {
+          logError(
+            'Failed to authorize with existing Yandex token',
+            error: e,
+            stackTrace: stack,
+            tag: _tag,
+          );
+        }
+        return await authorizeWithYandex(credential, onError: onError);
+      case CredentialOAuthType.google:
+      case CredentialOAuthType.onedrive:
+      case CredentialOAuthType.icloud:
+      case CredentialOAuthType.other:
+        return ServiceResult.failure(
+          'Авторизация для ${credential.type.name} не реализована',
+        );
+    }
+  }
+
+  // authroize with token TokenInfo
+
+  Future<ServiceResult<String>> authorizeWithToken(TokenInfo tokenInfo) async {
+    logInfo('Authorizing with existing token', tag: _tag);
+    final provider = ProviderTypeX.fromKey(tokenInfo.key);
+    final TokenOAuth tokenOAuth = tokenInfo.token;
+    final OAuth2Token token = OAuth2TokenF.fromJsonString(tokenOAuth.tokenJson);
+
+    switch (provider) {
+      case ProviderType.dropbox:
+        final key = tokenInfo.key;
+        final client = await _account.createClient(token);
+        _clients[key] = client;
+        return ServiceResult.success(data: key);
+
+      case ProviderType.google:
+        return ServiceResult.failure('Not implemented');
+
+      case ProviderType.microsoft:
+        return ServiceResult.failure('Not implemented');
+
+      case ProviderType.yandex:
+        final key = tokenInfo.key;
+        final client = await _account.createClient(token);
+        _clients[key] = client;
+        return ServiceResult.success(data: key);
+
+      case ProviderType.unknown:
+        return ServiceResult.failure('Not implemented');
+    }
+  }
+
   Future<ServiceResult<String>> authorizeWithDropbox(
     CredentialApp credential, {
     void Function(String error)? onError,
@@ -87,10 +207,6 @@ class OAuth2AccountService {
 
       if (!credential.type.isActive) {
         return ServiceResult.failure('Поддержка Dropbox сейчас недоступна');
-      }
-
-      if (credential.expiresAt.isBefore(DateTime.now())) {
-        return ServiceResult.failure('Срок действия учётных данных истёк');
       }
 
       final redirectUri = _resolveRedirectUri();
@@ -138,6 +254,68 @@ class OAuth2AccountService {
         tag: _tag,
       );
       return ServiceResult.failure('Ошибка авторизации Dropbox');
+    }
+  }
+
+  // with Yandex
+  Future<ServiceResult<String>> authorizeWithYandex(
+    CredentialApp credential, {
+    void Function(String error)? onError,
+  }) async {
+    try {
+      if (credential.type != CredentialOAuthType.yandex) {
+        return ServiceResult.failure('Указан неверный тип учётных данных');
+      }
+
+      if (!credential.type.isActive) {
+        return ServiceResult.failure('Поддержка Yandex сейчас недоступна');
+      }
+
+      final redirectUri = _resolveRedirectUri();
+
+      late Yandex yandexProvider;
+
+      if (credential.clientSecret.isNotEmpty) {
+        yandexProvider = Yandex(
+          clientId: credential.clientId,
+          clientSecret: credential.clientSecret,
+
+          redirectUri: redirectUri,
+          scopes: _yandexScopes,
+        );
+      } else {
+        yandexProvider = Yandex(
+          clientId: credential.clientId,
+          redirectUri: redirectUri,
+          scopes: _yandexScopes,
+        );
+      }
+
+      _account.addProvider(yandexProvider);
+
+      final token = await _account.newLogin(
+        yandexProvider.name,
+        errorCallback: onError,
+      );
+      if (token == null) {
+        return ServiceResult.failure('Авторизация Yandex не завершена');
+      }
+
+      final key = _account.keyFor(yandexProvider.name, token.userName);
+
+      final client = await _account.createClient(token);
+
+      _clients[key] = client;
+
+      return ServiceResult.success(data: key);
+    } catch (e, stack) {
+      logError(
+        'Не удалось выполнить авторизацию Yandex',
+        error: e,
+        stackTrace: stack,
+        tag: _tag,
+      );
+      return ServiceResult.failure('Ошибка авторизации Yandex');
     }
   }
 

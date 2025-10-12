@@ -21,7 +21,7 @@ class ServiceResult<T> {
 
 /// Сервис для управления credential приложениями
 class CredentialService {
-  static const String _boxName = 'credentials';
+  static const String _boxName = 'credential_apps';
   final BoxManager _boxManager;
   BoxDB<CredentialApp>? _db;
 
@@ -70,9 +70,8 @@ class CredentialService {
   Future<ServiceResult<CredentialApp>> createCredential({
     required CredentialOAuthType type,
     required String clientId,
+    required String name,
     required String clientSecret,
-    required String redirectUri,
-    required DateTime expiresAt,
   }) async {
     try {
       // Валидация входных данных
@@ -80,8 +79,7 @@ class CredentialService {
         type: type,
         clientId: clientId,
         clientSecret: clientSecret,
-        redirectUri: redirectUri,
-        expiresAt: expiresAt,
+
         isUpdate: false,
       );
 
@@ -97,10 +95,9 @@ class CredentialService {
       final credential = CredentialApp(
         id: const Uuid().v4(),
         type: type,
+        name: name,
         clientId: clientId,
         clientSecret: clientSecret,
-        redirectUri: redirectUri,
-        expiresAt: expiresAt,
       );
 
       await _db!.insert(credential);
@@ -191,8 +188,6 @@ class CredentialService {
         type: credential.type,
         clientId: credential.clientId,
         clientSecret: credential.clientSecret,
-        redirectUri: credential.redirectUri,
-        expiresAt: credential.expiresAt,
         isUpdate: true,
         existingId: credential.id,
       );
@@ -247,32 +242,6 @@ class CredentialService {
     }
   }
 
-  /// Проверить истёкшие credentials
-  Future<ServiceResult<List<CredentialApp>>> getExpiredCredentials() async {
-    try {
-      final result = await getAllCredentials();
-      if (!result.success) {
-        return result;
-      }
-
-      final now = DateTime.now();
-      final expired = result.data!
-          .where((credential) => credential.expiresAt.isBefore(now))
-          .toList();
-
-      return ServiceResult.success(data: expired);
-    } catch (e, stack) {
-      logError(
-        'Failed to get expired credentials',
-        error: e,
-        stackTrace: stack,
-      );
-      return ServiceResult.failure(
-        'Не удалось получить истёкшие учётные данные',
-      );
-    }
-  }
-
   /// Очистить все credentials
   Future<ServiceResult<void>> clearAll() async {
     try {
@@ -322,8 +291,7 @@ class CredentialService {
     required CredentialOAuthType type,
     required String clientId,
     required String clientSecret,
-    String? redirectUri,
-    required DateTime expiresAt,
+
     bool isUpdate = false,
     String? existingId,
   }) async {
@@ -334,23 +302,6 @@ class CredentialService {
 
     if (clientSecret.trim().isEmpty) {
       return ServiceResult.failure('Client Secret не может быть пустым');
-    }
-
-    // Проверка формата redirectUri
-    if (redirectUri == null) {
-      try {
-        final uri = Uri.parse(redirectUri!.trim());
-        if (!uri.hasScheme || !uri.hasAuthority) {
-          return ServiceResult.failure('Redirect URI должен быть валидным URL');
-        }
-      } catch (e) {
-        return ServiceResult.failure('Redirect URI имеет некорректный формат');
-      }
-    }
-
-    // Проверка даты истечения
-    if (expiresAt.isBefore(DateTime.now())) {
-      return ServiceResult.failure('Дата истечения не может быть в прошлом');
     }
 
     // Проверка уникальности clientId (только для новых записей или при изменении)
@@ -387,19 +338,19 @@ class CredentialService {
 
       case CredentialOAuthType.google:
         // Для Google проверяем что redirectUri содержит google
-        if (!redirectUri.contains('google')) {
-          logInfo('Предупреждение: Redirect URI не содержит "google"');
-        }
+        // if (!redirectUri.contains('google')) {
+        //   logInfo('Предупреждение: Redirect URI не содержит "google"');
+        // }
         break;
 
       case CredentialOAuthType.onedrive:
         // Для OneDrive проверяем что redirectUri содержит microsoft
-        if (!redirectUri.contains('microsoft') &&
-            !redirectUri.contains('live.com')) {
-          logInfo(
-            'Предупреждение: Redirect URI не содержит "microsoft" или "live.com"',
-          );
-        }
+        // if (!redirectUri.contains('microsoft') &&
+        //     !redirectUri.contains('live.com')) {
+        //   logInfo(
+        //     'Предупреждение: Redirect URI не содержит "microsoft" или "live.com"',
+        //   );
+        // }
         break;
 
       default:

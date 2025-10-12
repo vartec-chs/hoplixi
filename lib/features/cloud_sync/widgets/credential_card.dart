@@ -17,11 +17,10 @@ class CredentialCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isExpired = credential.expiresAt.isBefore(DateTime.now());
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 2,
+      elevation: 0,
       child: InkWell(
         onTap: onEdit,
         borderRadius: BorderRadius.circular(12),
@@ -39,18 +38,24 @@ class CredentialCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          credential.type.name,
+                          credential.name,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        if (isExpired)
-                          Text(
-                            'Истёк',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.error,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              credential.type.name,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -106,12 +111,6 @@ class CredentialCard extends StatelessWidget {
                 selectable: true,
               ),
               const SizedBox(height: 4),
-              _buildInfoRow(
-                context,
-                'Истекает',
-                DateFormat('dd.MM.yyyy HH:mm').format(credential.expiresAt),
-                isWarning: isExpired,
-              ),
             ],
           ),
         ),
@@ -139,6 +138,10 @@ class CredentialCard extends StatelessWidget {
       case CredentialOAuthType.icloud:
         icon = Icons.cloud_done;
         color = Colors.cyan;
+        break;
+      case CredentialOAuthType.yandex:
+        icon = Icons.cloud_sync;
+        color = Colors.orange;
         break;
       case CredentialOAuthType.other:
         icon = Icons.cloud_outlined;

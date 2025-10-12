@@ -484,6 +484,8 @@ class _CloudCredentialDialog extends StatelessWidget {
         return 'Google Drive';
       case CredentialOAuthType.onedrive:
         return 'OneDrive';
+      case CredentialOAuthType.yandex:
+        return 'Yandex Disk';
       case CredentialOAuthType.icloud:
         return 'iCloud';
       case CredentialOAuthType.other:

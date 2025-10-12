@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 /// Цветовые схемы приложения
 abstract final class AppColors {
   /// Светлая цветовая схема
-  static const FlexSchemeColor lightColors = FlexSchemeColor(
+  static FlexSchemeColor lightColors = FlexSchemeColor(
     primary: Color(0xFF005BFF),
     primaryContainer: Color(0xFF005BFF),
     secondary: Color(0xFFEDEDED),
@@ -12,12 +12,12 @@ abstract final class AppColors {
     tertiary: Color(0xFFEDEDED),
     tertiaryContainer: Color(0xFFEDEDED),
     appBarColor: Color(0xFFEDEDED),
-    error: Color(0xFFBA1A1A),
-    errorContainer: Color(0xFFFFDAD6),
+    error: Colors.redAccent,
+    errorContainer: Colors.redAccent,
   );
 
   /// Тёмная цветовая схема
-  static const FlexSchemeColor darkColors = FlexSchemeColor(
+  static FlexSchemeColor darkColors = FlexSchemeColor(
     primary: Color(0xFF005BFF),
     primaryContainer: Color(0xFF005BFF),
     primaryLightRef: Color(0xFF005BFF), // The color of light mode primary
@@ -28,8 +28,8 @@ abstract final class AppColors {
     tertiaryContainer: Color(0xFF393939),
     tertiaryLightRef: Color(0xFFEDEDED), // The color of light mode tertiary
     appBarColor: Color(0xFFEDEDED),
-    error: Color(0xFFFBA49A),
-    errorContainer: Color(0xFFC20A17),
+    error: Colors.redAccent,
+    errorContainer: Colors.redAccent,
   );
 
   /// Цвет поверхности для тёмной темы

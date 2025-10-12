@@ -247,6 +247,14 @@ class BoxDB<T> {
     return items;
   }
 
+  Future<List<String>> getAllIndex() async {
+    _checkOpen();
+
+    final ids = _index.getAllIds();
+
+    return ids;
+  }
+
   /// Проверить существование записи
   Future<bool> exists(String id) async {
     _checkOpen();

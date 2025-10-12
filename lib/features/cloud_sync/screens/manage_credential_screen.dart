@@ -5,6 +5,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
 import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
 import 'package:hoplixi/features/cloud_sync/screens/token_list_screen.dart';
+import 'package:hoplixi/features/cloud_sync/widgets/auth_modal.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/credential_form_dialog.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/credential_card.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
@@ -21,14 +22,18 @@ class ManageCredentialScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Управление учётными данными'),
         actions: [
-          if (asyncValue.hasValue && asyncValue.value!.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                ref.read(credentialListProvider.notifier).refresh();
-              },
-              tooltip: 'Обновить',
-            ),
+          // if (asyncValue.hasValue && asyncValue.value!.isNotEmpty)
+          //   IconButton(
+          //     icon: const Icon(Icons.refresh),
+          //     onPressed: () {
+          //       ref.read(credentialListProvider.notifier).refresh();
+          //     },
+          //     tooltip: 'Обновить',
+          //   ),
+          IconButton(
+            onPressed: () => showAuthModal(context),
+            icon: const Icon(Icons.login),
+          ),
           const SizedBox(width: 8),
           IconButton(
             onPressed: () => context.push(AppRoutes.authManager),
@@ -124,7 +129,7 @@ class ManageCredentialScreen extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => ref.read(credentialListProvider.notifier).refresh(),
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(8),
             itemCount: credentials.length,
             itemBuilder: (context, index) {
               final credential = credentials[index];

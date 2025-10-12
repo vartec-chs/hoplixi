@@ -22,6 +22,7 @@ abstract class TokenOAuth with _$TokenOAuth {
     required bool timeToRefresh,
     required bool canRefresh,
     required bool timeToLogin,
+    required String tokenJson,
   }) = _TokenOAuth;
 
   // fromJson

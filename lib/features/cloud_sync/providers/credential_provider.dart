@@ -77,17 +77,17 @@ class CredentialListNotifier extends AsyncNotifier<List<CredentialApp>> {
     required CredentialOAuthType type,
     required String clientId,
     required String clientSecret,
-    required String redirectUri,
-    required DateTime expiresAt,
+    required String name,
+  
   }) async {
     state = const AsyncValue.loading();
     try {
       final result = await _service.createCredential(
         type: type,
         clientId: clientId,
+        name: name,
         clientSecret: clientSecret,
-        redirectUri: redirectUri,
-        expiresAt: expiresAt,
+  
       );
 
       if (result.success) {
@@ -148,12 +148,6 @@ class CredentialListNotifier extends AsyncNotifier<List<CredentialApp>> {
       state = AsyncValue.error(e, StackTrace.current);
       return false;
     }
-  }
-
-  /// Получить истёкшие credentials
-  Future<List<CredentialApp>> getExpiredCredentials() async {
-    final result = await _service.getExpiredCredentials();
-    return result.data ?? [];
   }
 
   /// Очистить все

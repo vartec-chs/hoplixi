@@ -19,15 +19,15 @@ class TokenListScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('OAuth Токены'),
         actions: [
-          if (asyncValue.hasValue && asyncValue.value!.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                ref.read(tokenListProvider.notifier).refresh();
-                ref.invalidate(tokenCountProvider);
-              },
-              tooltip: 'Обновить',
-            ),
+          // if (asyncValue.hasValue && asyncValue.value!.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              ref.read(tokenListProvider.notifier).refresh();
+              ref.invalidate(tokenCountProvider);
+            },
+            tooltip: 'Обновить',
+          ),
         ],
       ),
       body: SafeArea(
@@ -46,7 +46,7 @@ class TokenListScreen extends ConsumerWidget {
               onPressed: () => _confirmClearAll(context, ref),
               icon: const Icon(Icons.delete_sweep),
               label: const Text('Очистить всё'),
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: Colors.redAccent,
             )
           : null,
     );
@@ -92,7 +92,7 @@ class TokenListScreen extends ConsumerWidget {
                     error: (_, __) => Text(
                       'Ошибка подсчёта',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.error,
+                        color: Colors.redAccent,
                       ),
                     ),
                   ),
@@ -116,11 +116,7 @@ class TokenListScreen extends ConsumerWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Theme.of(context).colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
             const SizedBox(height: 16),
             Text(
               'Ошибка загрузки токенов',
@@ -216,9 +212,7 @@ class TokenListScreen extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             child: const Text('Удалить'),
           ),
         ],
@@ -254,9 +248,7 @@ class TokenListScreen extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             child: const Text('Удалить всё'),
           ),
         ],
@@ -308,7 +300,7 @@ class _TokenCard extends StatelessWidget {
     String statusText;
 
     if (needsLogin) {
-      statusColor = theme.colorScheme.error;
+      statusColor = Colors.redAccent;
       statusIcon = Icons.error_outline;
       statusText = 'Требуется повторный вход';
     } else if (needsRefresh) {
@@ -373,7 +365,7 @@ class _TokenCard extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
                     onPressed: onDelete,
-                    color: theme.colorScheme.error,
+                    color: Colors.redAccent,
                   ),
                 ],
               ),
@@ -435,7 +427,7 @@ class _TokenCard extends StatelessWidget {
           child: Text(
             value,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: isWarning ? theme.colorScheme.error : null,
+              color: isWarning ? Colors.redAccent : null,
               fontWeight: isWarning ? FontWeight.bold : null,
             ),
           ),

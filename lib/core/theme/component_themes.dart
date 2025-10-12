@@ -25,7 +25,7 @@ abstract final class ComponentThemes {
     alignedDropdown: true,
     tooltipSchemeColor: SchemeColor.secondary,
     tooltipOpacity: 0.9,
-    dialogRadius: 31.0,
+    // dialogRadius: 31.0,
     timePickerElementRadius: defaultBorderRadius,
     snackBarElevation: 4,
     snackBarBackgroundSchemeColor: SchemeColor.secondary,
@@ -53,7 +53,7 @@ abstract final class ComponentThemes {
     alignedDropdown: true,
     tooltipSchemeColor: SchemeColor.secondary,
     tooltipOpacity: 0.9,
-    dialogRadius: 31.0,
+    // dialogRadius: 31.0,
     timePickerElementRadius: defaultBorderRadius,
     snackBarElevation: 4,
     snackBarBackgroundSchemeColor: SchemeColor.secondary,
@@ -65,6 +65,7 @@ abstract final class ComponentThemes {
     searchBarRadius: defaultBorderRadius,
     searchViewRadius: defaultBorderRadius,
     navigationRailUseIndicator: true,
+
     adaptiveAppBarScrollUnderOff: FlexAdaptive.all(),
   );
 }

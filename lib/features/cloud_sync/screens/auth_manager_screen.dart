@@ -120,7 +120,6 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
 
   Widget _buildSelectedCredentialInfo(ThemeData theme) {
     final credential = _selectedCredential!;
-    final isExpired = credential.expiresAt.isBefore(DateTime.now());
 
     return Card(
       child: Padding(
@@ -137,13 +136,13 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        credential.type.name,
+                        credential.name,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'Client ID: ${_maskString(credential.clientId)}',
+                        '${credential.type.name}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),
@@ -153,37 +152,6 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
                 ),
               ],
             ),
-            if (isExpired) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      color: theme.colorScheme.error,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Срок действия учётных данных истёк',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -191,10 +159,7 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
   }
 
   Widget _buildAuthButton(OAuth2AccountService service) {
-    final canAuthorize =
-        _selectedCredential != null &&
-        !_isAuthorizing &&
-        !_selectedCredential!.expiresAt.isBefore(DateTime.now());
+    final canAuthorize = _selectedCredential != null && !_isAuthorizing;
 
     return SmoothButton(
       label: 'Авторизовать',
@@ -356,7 +321,7 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
     });
 
     try {
-      final result = await service.authorizeWithDropbox(
+      final result = await service.authorize(
         _selectedCredential!,
         onError: (error) {
           if (mounted) {
@@ -450,6 +415,10 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
       case CredentialOAuthType.icloud:
         icon = Icons.cloud_done;
         color = Colors.cyan;
+        break;
+      case CredentialOAuthType.yandex:
+        icon = Icons.cloud_sync;
+        color = Colors.orange;
         break;
       case CredentialOAuthType.other:
         icon = Icons.cloud_outlined;

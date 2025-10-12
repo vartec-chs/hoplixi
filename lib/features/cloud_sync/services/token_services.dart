@@ -62,6 +62,53 @@ class TokenServices implements OAuth2TokenStorage {
     }
   }
 
+  // get all with suffix
+
+  Future<List<String>> getAllWithSuffix(String suffix) async {
+    try {
+      await _ensureInitialized();
+
+      final allIds = await _db!.getAllIndex();
+      final filteredIds = allIds.where((id) => id.contains(suffix)).toList();
+
+      logDebug(
+        'Found ${filteredIds.length} tokens with suffix "$suffix"',
+        tag: _tag,
+      );
+      return filteredIds;
+    } catch (e) {
+      logError('Failed to get tokens with suffix "$suffix": $e', tag: _tag);
+      return [];
+    }
+  }
+
+  // find one by suffix
+  Future<TokenOAuth?> findOneBySuffix(String suffix) async {
+    try {
+      await _ensureInitialized();
+
+      final allIds = await _db!.getAllIndex();
+      final matchedId = allIds.firstWhere(
+        (id) => id.contains(suffix),
+        orElse: () => '',
+      );
+
+      if (matchedId.isEmpty) {
+        logDebug('No token found with suffix "$suffix"', tag: _tag);
+        return null;
+      }
+      final tokenData = await _db!.get(matchedId);
+      if (tokenData == null) {
+        logDebug('Token data not found for id: $matchedId', tag: _tag);
+        return null;
+      }
+      return tokenData;
+    } catch (e) {
+      logError('Failed to find token with suffix "$suffix": $e', tag: _tag);
+      return null;
+    }
+  }
+
   @override
   Future<String?> load(String key) async {
     try {
@@ -143,6 +190,7 @@ class TokenServices implements OAuth2TokenStorage {
         timeToRefresh: data.timeToRefresh,
         canRefresh: data.canRefresh,
         timeToLogin: data.timeToLogin,
+        tokenJson: value,
       );
 
       final exists = await _db!.exists(key);

@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
 import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
-import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
-import 'package:hoplixi/features/cloud_sync/services/dropbox_service.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/text_field.dart';
 
@@ -24,7 +22,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
   late CredentialOAuthType _selectedType;
   late TextEditingController _clientIdController;
   late TextEditingController _clientSecretController;
-  late DateTime _expiresAt;
+  late TextEditingController _nameController;
   bool _isSubmitting = false;
 
   @override
@@ -37,9 +35,10 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     _clientSecretController = TextEditingController(
       text: widget.credential?.clientSecret ?? '',
     );
-    _expiresAt =
-        widget.credential?.expiresAt ??
-        DateTime.now().add(const Duration(days: 365));
+
+    _nameController = TextEditingController(
+      text: widget.credential?.name ?? '',
+    );
   }
 
   bool _isValid = false;
@@ -56,6 +55,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
   void dispose() {
     _clientIdController.dispose();
     _clientSecretController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -77,6 +77,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
               autovalidateMode: AutovalidateMode.onUserInteraction,
               key: _formKey,
               child: Column(
+                spacing: 12,
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -86,9 +87,23 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
                         : 'Добавить учётные данные',
                     style: theme.textTheme.headlineSmall,
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
+
                   _buildTypeSelector(),
-                  const SizedBox(height: 16),
+
+                  _buildTextField(
+                    controller: _nameController,
+                    label: 'Название',
+                    helpText: 'Имя приложения которого вы создали для OAuth',
+                    hint: 'Например "Dropbox App"',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Обязательное поле';
+                      }
+                      return null;
+                    },
+                  ),
+
                   _buildTextField(
                     controller: _clientIdController,
                     label: 'Client ID',
@@ -100,7 +115,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+
                   _buildTextField(
                     controller: _clientSecretController,
                     label: 'Client Secret',
@@ -113,19 +128,18 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+
                   _buildReadOnlyField(
                     label: 'Redirect URI Mobile',
                     value: AuthConstants.redirectUriMobile,
                   ),
-                  const SizedBox(height: 8),
+
                   _buildReadOnlyField(
                     label: 'Redirect URI Desktop',
                     value: AuthConstants.redirectUriDesktop,
                   ),
-                  const SizedBox(height: 16),
-                  _buildDatePicker(context),
-                  const SizedBox(height: 24),
+
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -196,6 +210,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     required TextEditingController controller,
     required String label,
     required String hint,
+    String? helpText,
     String? Function(String?)? validator,
     bool obscureText = false,
   }) {
@@ -205,7 +220,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
         context,
         labelText: label,
         hintText: hint,
-      ),
+      ).copyWith(helperText: helpText),
       obscureText: obscureText,
       validator: validator,
     );
@@ -255,40 +270,6 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     );
   }
 
-  Widget _buildDatePicker(BuildContext context) {
-    return InkWell(
-      onTap: _pickDate,
-      borderRadius: BorderRadius.circular(16),
-      child: InputDecorator(
-        decoration: primaryInputDecoration(context, labelText: 'Срок действия'),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${_expiresAt.day.toString().padLeft(2, '0')}.${_expiresAt.month.toString().padLeft(2, '0')}.${_expiresAt.year}',
-            ),
-            const Icon(Icons.calendar_today, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _expiresAt,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _expiresAt = picked;
-      });
-    }
-  }
-
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -308,7 +289,6 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
           type: _selectedType,
           clientId: _clientIdController.text.trim(),
           clientSecret: _clientSecretController.text.trim(),
-          expiresAt: _expiresAt,
         );
         success = await ref
             .read(credentialListProvider.notifier)
@@ -317,11 +297,11 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
         success = await ref
             .read(credentialListProvider.notifier)
             .createCredential(
+              name: _nameController.text.trim(),
               type: _selectedType,
               clientId: _clientIdController.text.trim(),
               clientSecret: _clientSecretController.text.trim(),
-              expiresAt: _expiresAt,
-              redirectUri: '',
+              
             );
       }
 
@@ -356,6 +336,8 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
         return Icons.cloud_queue;
       case CredentialOAuthType.icloud:
         return Icons.cloud_done;
+      case CredentialOAuthType.yandex:
+        return Icons.cloud_sync;
       case CredentialOAuthType.other:
         return Icons.cloud_outlined;
     }
