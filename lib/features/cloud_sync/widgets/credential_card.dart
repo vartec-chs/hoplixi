@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
+import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:intl/intl.dart';
 
 class CredentialCard extends StatelessWidget {
@@ -84,7 +85,26 @@ class CredentialCard extends StatelessWidget {
                 _maskString(credential.clientId),
               ),
               const SizedBox(height: 4),
-              _buildInfoRow(context, 'Redirect URI', credential.redirectUri),
+              _buildInfoRow(
+                context,
+                'Client Secret',
+                _maskString(credential.clientSecret),
+                selectable: true,
+              ),
+              const SizedBox(height: 4),
+              _buildInfoRow(
+                context,
+                'Redirect URI Mobile',
+                AuthConstants.redirectUriMobile,
+                selectable: true,
+              ),
+              const SizedBox(height: 4),
+              _buildInfoRow(
+                context,
+                'Redirect URI Desktop',
+                AuthConstants.redirectUriDesktop,
+                selectable: true,
+              ),
               const SizedBox(height: 4),
               _buildInfoRow(
                 context,
@@ -141,6 +161,7 @@ class CredentialCard extends StatelessWidget {
     String label,
     String value, {
     bool isWarning = false,
+    bool selectable = false,
   }) {
     final theme = Theme.of(context);
 
@@ -157,13 +178,21 @@ class CredentialCard extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Text(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: isWarning ? theme.colorScheme.error : null,
-              fontWeight: isWarning ? FontWeight.bold : null,
-            ),
-          ),
+          child: selectable
+              ? SelectableText(
+                  value,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isWarning ? theme.colorScheme.error : null,
+                    fontWeight: isWarning ? FontWeight.bold : null,
+                  ),
+                )
+              : Text(
+                  value,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isWarning ? theme.colorScheme.error : null,
+                    fontWeight: isWarning ? FontWeight.bold : null,
+                  ),
+                ),
         ),
       ],
     );

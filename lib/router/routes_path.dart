@@ -32,4 +32,6 @@ class AppRoutes {
   static const String exportConfirm = '/export-storage/confirm';
   static const String importStorage = '/import-storage';
   static const String manageCredential = '/manage-credential';
+  static const String authManager = '/auth-manager';
+
 }

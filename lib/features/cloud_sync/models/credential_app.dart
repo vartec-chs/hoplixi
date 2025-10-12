@@ -75,7 +75,7 @@ abstract class CredentialApp with _$CredentialApp {
     required CredentialOAuthType type,
     required String clientId,
     required String clientSecret,
-    required String redirectUri,
+    String? redirectUri,
     required DateTime expiresAt,
   }) = _CredentialApp;
 

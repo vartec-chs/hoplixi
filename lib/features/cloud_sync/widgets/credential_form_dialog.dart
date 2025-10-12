@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hoplixi/core/constants/main_constants.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
 import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
 import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
@@ -22,7 +24,6 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
   late CredentialOAuthType _selectedType;
   late TextEditingController _clientIdController;
   late TextEditingController _clientSecretController;
-  late TextEditingController _redirectUriController;
   late DateTime _expiresAt;
   bool _isSubmitting = false;
 
@@ -36,19 +37,25 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     _clientSecretController = TextEditingController(
       text: widget.credential?.clientSecret ?? '',
     );
-    _redirectUriController = TextEditingController(
-      text: widget.credential?.redirectUri ?? '',
-    );
     _expiresAt =
         widget.credential?.expiresAt ??
         DateTime.now().add(const Duration(days: 365));
+  }
+
+  bool _isValid = false;
+
+  void _onChanged() {
+    // Проверяем форму при каждом изменении
+    final valid = _formKey.currentState?.validate() ?? false;
+    if (valid != _isValid) {
+      setState(() => _isValid = valid);
+    }
   }
 
   @override
   void dispose() {
     _clientIdController.dispose();
     _clientSecretController.dispose();
-    _redirectUriController.dispose();
     super.dispose();
   }
 
@@ -59,12 +66,15 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     final theme = Theme.of(context);
 
     return Dialog(
+      insetPadding: const EdgeInsets.all(8),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500),
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Form(
+              onChanged: _onChanged,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -104,16 +114,14 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  _buildTextField(
-                    controller: _redirectUriController,
-                    label: 'Redirect URI',
-                    hint: 'Введите Redirect URI',
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Обязательное поле';
-                      }
-                      return null;
-                    },
+                  _buildReadOnlyField(
+                    label: 'Redirect URI Mobile',
+                    value: AuthConstants.redirectUriMobile,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildReadOnlyField(
+                    label: 'Redirect URI Desktop',
+                    value: AuthConstants.redirectUriDesktop,
                   ),
                   const SizedBox(height: 16),
                   _buildDatePicker(context),
@@ -129,7 +137,9 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
                       const SizedBox(width: 12),
                       SmoothButton(
                         label: _isEditing ? 'Сохранить' : 'Добавить',
-                        onPressed: null,
+                        onPressed: _isValid && !_isSubmitting
+                            ? _handleSubmit
+                            : null,
                         loading: _isSubmitting,
                       ),
                     ],
@@ -201,10 +211,54 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     );
   }
 
+  Widget _buildReadOnlyField({required String label, required String value}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            spacing: 8,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SelectableText(
+                value,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              IconButton(
+                onPressed: () => {
+                  Clipboard.setData(ClipboardData(text: value)),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Скопировано в буфер обмена'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  ),
+                },
+                icon: const Icon(Icons.copy, size: 18),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDatePicker(BuildContext context) {
     return InkWell(
       onTap: _pickDate,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(16),
       child: InputDecorator(
         decoration: primaryInputDecoration(context, labelText: 'Срок действия'),
         child: Row(
@@ -235,82 +289,62 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     }
   }
 
-  // Future<void> _handleSubmit() async {
-  //   if (!_formKey.currentState!.validate()) {
-  //     return;
-  //   }
+  Future<void> _handleSubmit() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-  //   setState(() {
-  //     _isSubmitting = true;
-  //   });
+    setState(() {
+      _isSubmitting = true;
+    });
 
-  //   try {
-  //     // Дополнительная валидация подключения для Dropbox
-  //     if (_selectedType == CredentialOAuthType.dropbox) {
-  //       final connectionValid = await _validateDropboxConnection();
-  //       if (!connectionValid) {
-  //         if (mounted) {
-  //           ScaffoldMessenger.of(context).showSnackBar(
-  //             const SnackBar(
-  //               content: Text(
-  //                 'Не удалось проверить подключение к Dropbox. Проверьте Client ID и Client Secret.',
-  //               ),
-  //               backgroundColor: Colors.orange,
-  //             ),
-  //           );
-  //         }
-  //         setState(() {
-  //           _isSubmitting = false;
-  //         });
-  //         return;
-  //       }
-  //     }
+    try {
+      // Дополнительная валидация подключения для Dropbox
 
-  //     bool success;
+      bool success;
 
-  //     if (_isEditing) {
-  //       final updated = widget.credential!.copyWith(
-  //         type: _selectedType,
-  //         clientId: _clientIdController.text.trim(),
-  //         clientSecret: _clientSecretController.text.trim(),
-  //         redirectUri: _redirectUriController.text.trim(),
-  //         expiresAt: _expiresAt,
-  //       );
-  //       success = await ref
-  //           .read(credentialListProvider.notifier)
-  //           .updateCredential(updated);
-  //     } else {
-  //       success = await ref
-  //           .read(credentialListProvider.notifier)
-  //           .createCredential(
-  //             type: _selectedType,
-  //             clientId: _clientIdController.text.trim(),
-  //             clientSecret: _clientSecretController.text.trim(),
-  //             redirectUri: _redirectUriController.text.trim(),
-  //             expiresAt: _expiresAt,
-  //           );
-  //     }
+      if (_isEditing) {
+        final updated = widget.credential!.copyWith(
+          type: _selectedType,
+          clientId: _clientIdController.text.trim(),
+          clientSecret: _clientSecretController.text.trim(),
+          expiresAt: _expiresAt,
+        );
+        success = await ref
+            .read(credentialListProvider.notifier)
+            .updateCredential(updated);
+      } else {
+        success = await ref
+            .read(credentialListProvider.notifier)
+            .createCredential(
+              type: _selectedType,
+              clientId: _clientIdController.text.trim(),
+              clientSecret: _clientSecretController.text.trim(),
+              expiresAt: _expiresAt,
+              redirectUri: '',
+            );
+      }
 
-  //     if (mounted && success) {
-  //       Navigator.of(context).pop(true);
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(
-  //           content: Text('Ошибка: ${e.toString()}'),
-  //           backgroundColor: Colors.red,
-  //         ),
-  //       );
-  //     }
-  //   } finally {
-  //     if (mounted) {
-  //       setState(() {
-  //         _isSubmitting = false;
-  //       });
-  //     }
-  //   }
-  // }
+      if (mounted && success) {
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
 
   IconData _getTypeIcon(CredentialOAuthType type) {
     switch (type) {
@@ -336,7 +370,6 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
   //       type: CredentialOAuthType.dropbox,
   //       clientId: _clientIdController.text.trim(),
   //       clientSecret: _clientSecretController.text.trim(),
-  //       redirectUri: _redirectUriController.text.trim(),
   //       expiresAt: _expiresAt,
   //     );
 

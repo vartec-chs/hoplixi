@@ -322,7 +322,7 @@ class CredentialService {
     required CredentialOAuthType type,
     required String clientId,
     required String clientSecret,
-    required String redirectUri,
+    String? redirectUri,
     required DateTime expiresAt,
     bool isUpdate = false,
     String? existingId,
@@ -336,18 +336,16 @@ class CredentialService {
       return ServiceResult.failure('Client Secret не может быть пустым');
     }
 
-    if (redirectUri.trim().isEmpty) {
-      return ServiceResult.failure('Redirect URI не может быть пустым');
-    }
-
     // Проверка формата redirectUri
-    try {
-      final uri = Uri.parse(redirectUri.trim());
-      if (!uri.hasScheme || !uri.hasAuthority) {
-        return ServiceResult.failure('Redirect URI должен быть валидным URL');
+    if (redirectUri == null) {
+      try {
+        final uri = Uri.parse(redirectUri!.trim());
+        if (!uri.hasScheme || !uri.hasAuthority) {
+          return ServiceResult.failure('Redirect URI должен быть валидным URL');
+        }
+      } catch (e) {
+        return ServiceResult.failure('Redirect URI имеет некорректный формат');
       }
-    } catch (e) {
-      return ServiceResult.failure('Redirect URI имеет некорректный формат');
     }
 
     // Проверка даты истечения

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
 import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
+import 'package:hoplixi/features/cloud_sync/screens/token_list_screen.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/credential_form_dialog.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/credential_card.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/router/routes_path.dart';
 
 class ManageCredentialScreen extends ConsumerWidget {
   const ManageCredentialScreen({super.key});
@@ -26,6 +29,24 @@ class ManageCredentialScreen extends ConsumerWidget {
               },
               tooltip: 'Обновить',
             ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: () => context.push(AppRoutes.authManager),
+            icon: const Icon(Icons.add),
+            tooltip: 'Добавить авторизацию',
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: () => {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const TokenListScreen(),
+                ),
+              ),
+            },
+            icon: const Icon(Icons.vpn_key),
+            tooltip: 'Управление токенами',
+          ),
         ],
       ),
       body: SafeArea(child: _buildBody(context, ref, asyncValue)),

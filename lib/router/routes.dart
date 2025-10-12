@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/cloud_sync/screens/auth_manager_screen.dart';
 import 'package:hoplixi/features/cloud_sync/screens/manage_credential_screen.dart';
 import 'package:hoplixi/features/demo/notification_demo_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
@@ -101,6 +102,11 @@ final List<GoRoute> appRoutes = [
       final passwordId = state.pathParameters['passwordId'];
       return PasswordHistoryScreen(passwordId: passwordId!);
     },
+  ),
+
+  GoRoute(
+    path: AppRoutes.authManager,
+    builder: (context, state) => const AuthManagerScreen(),
   ),
 
   GoRoute(

@@ -29,6 +29,9 @@ class TokenServices implements OAuth2TokenStorage {
 
   TokenServices(this._boxManager);
 
+  /// Публичный доступ к базе данных токенов
+  BoxDB<TokenOAuth>? get db => _db;
+
   /// Инициализация базы данных
   Future<void> _ensureInitialized() async {
     if (_db != null) return;
