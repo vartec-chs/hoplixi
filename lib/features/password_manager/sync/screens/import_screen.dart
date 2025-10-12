@@ -6,6 +6,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/auth_modal.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/features/global/widgets/index.dart';
 import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
@@ -329,45 +330,53 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   }
 
   Future<String?> _showPasswordDialog() async {
-    final passwordController = TextEditingController();
+    String? result;
 
-    final password = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Пароль архива'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Если архив защищён паролем, введите его:'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: 'Пароль (необязательно)',
-                border: OutlineInputBorder(),
+    try {
+      final dialogResult = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Пароль архива'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Если архив защищён паролем, введите его:'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: primaryInputDecoration(
+                  context,
+                  labelText: 'Пароль',
+                  helperText: 'Пароль (необязательно если его нет)',
+                ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Пропустить'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('OK'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(null),
-            child: const Text('Пропустить'),
-          ),
-          TextButton(
-            onPressed: () {
-              final pwd = passwordController.text.trim();
-              Navigator.of(context).pop(pwd.isNotEmpty ? pwd : null);
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+      );
 
-    passwordController.dispose();
-    return password;
+      // Извлекаем значение ПОСЛЕ закрытия диалога, но ДО dispose
+      if (dialogResult == true) {
+        final pwd = _passwordController.text.trim();
+        result = pwd.isNotEmpty ? pwd : null;
+      }
+
+      return result;
+    } finally {
+      // Dispose контроллера только после извлечения значения
+      _passwordController.text = '';
+    }
   }
 
   @override
@@ -376,261 +385,263 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Импорт хранилища')),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Иконка
-            Icon(
-              _importedStoragePath != null
-                  ? Icons.check_circle
-                  : Icons.download,
-              size: 80,
-              color: _importedStoragePath != null
-                  ? Colors.green
-                  : theme.colorScheme.primary,
-            ),
-            const SizedBox(height: 24),
-
-            // Заголовок
-            Text(
-              _importedStoragePath != null
-                  ? 'Импорт завершён'
-                  : 'Импорт хранилища',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Иконка
+              Icon(
+                _importedStoragePath != null
+                    ? Icons.check_circle
+                    : Icons.download,
+                size: 80,
+                color: _importedStoragePath != null
+                    ? Colors.green
+                    : theme.colorScheme.primary,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-            // Описание
-            if (_importedStoragePath == null)
+              // Заголовок
               Text(
-                'Выберите способ импорта хранилища',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade600,
+                _importedStoragePath != null
+                    ? 'Импорт завершён'
+                    : 'Импорт хранилища',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 16),
 
-            const SizedBox(height: 32),
+              // Описание
+              if (_importedStoragePath == null)
+                Text(
+                  'Выберите способ импорта хранилища',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
 
-            // Информация о выбранном архиве
-            if (_selectedArchivePath != null && _importedStoragePath == null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.archive,
-                        color: theme.colorScheme.primary,
-                        size: 32,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 32),
+
+              // Информация о выбранном архиве
+              if (_selectedArchivePath != null && _importedStoragePath == null)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.archive,
+                          color: theme.colorScheme.primary,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Выбранный архив',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _selectedArchivePath!.split('\\').last,
+                                style: theme.textTheme.bodyMedium,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              _selectedArchivePath = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Поле для пароля (если архив защищён)
+              if (_selectedArchivePath != null && _importedStoragePath == null)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              'Выбранный архив',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.grey.shade600,
+                            Icon(
+                              Icons.lock,
+                              size: 20,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Архив защищён паролем?',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _selectedArchivePath!.split('\\').last,
-                              style: theme.textTheme.bodyMedium,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                            Switch(
+                              value: _requiresPassword,
+                              onChanged: _isImporting
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _requiresPassword = value;
+                                        if (!value) {
+                                          _passwordController.clear();
+                                        }
+                                      });
+                                    },
                             ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          setState(() {
-                            _selectedArchivePath = null;
-                          });
-                        },
-                      ),
-                    ],
+                        if (_requiresPassword) ...[
+                          const SizedBox(height: 16),
+                          CustomPasswordField(
+                            controller: _passwordController,
+                            label: 'Пароль для распаковки',
+                            hintText: 'Введите пароль',
+                            enabled: !_isImporting,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Введите пароль, который был установлен при создании архива.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-            // Поле для пароля (если архив защищён)
-            if (_selectedArchivePath != null && _importedStoragePath == null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.lock,
-                            size: 20,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Архив защищён паролем?',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
+              // Информация об импортированном хранилище
+              if (_importedStoragePath != null)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.storage,
+                              color: theme.colorScheme.primary,
+                              size: 32,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Хранилище импортировано',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _importedStoragePath!.split('\\').last,
+                                    style: theme.textTheme.bodyMedium,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                          Switch(
-                            value: _requiresPassword,
-                            onChanged: _isImporting
-                                ? null
-                                : (value) {
-                                    setState(() {
-                                      _requiresPassword = value;
-                                      if (!value) {
-                                        _passwordController.clear();
-                                      }
-                                    });
-                                  },
-                          ),
-                        ],
-                      ),
-                      if (_requiresPassword) ...[
-                        const SizedBox(height: 16),
-                        CustomPasswordField(
-                          controller: _passwordController,
-                          label: 'Пароль для распаковки',
-                          hintText: 'Введите пароль',
-                          enabled: !_isImporting,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Введите пароль, который был установлен при создании архива.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
+                          ],
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
 
-            // Информация об импортированном хранилище
-            if (_importedStoragePath != null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.storage,
-                            color: theme.colorScheme.primary,
-                            size: 32,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Хранилище импортировано',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _importedStoragePath!.split('\\').last,
-                                  style: theme.textTheme.bodyMedium,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+              const SizedBox(height: 24),
+
+              // Прогресс
+              if (_isImporting) ...[
+                LinearProgressIndicator(value: _progress),
+                const SizedBox(height: 16),
+                Text(
+                  'Импорт хранилища... ${(_progress * 100).toInt()}%',
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+
+              const Spacer(),
+
+              // Кнопки
+              if (_importedStoragePath == null && !_isImporting) ...[
+                SmoothButton(
+                  isFullWidth: true,
+                  label: 'Импорт из архива',
+                  onPressed: _selectedArchivePath == null
+                      ? _pickArchive
+                      : _performImport,
+                  icon: Icon(
+                    _selectedArchivePath == null
+                        ? Icons.folder_zip
+                        : Icons.upload,
                   ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                SmoothButton(
+                  isFullWidth: true,
+                  label: 'Импорт из облака',
+                  onPressed: _showCloudImportDialog,
+                  icon: const Icon(Icons.cloud_download),
+                  type: SmoothButtonType.outlined,
+                ),
+              ],
 
-            const SizedBox(height: 24),
+              if (_importedStoragePath != null)
+                Column(
+                  children: [
+                    SmoothButton(
+                      isFullWidth: true,
+                      label: 'Открыть хранилище',
+                      onPressed: _openImportedStorage,
+                      icon: const Icon(Icons.folder_open),
+                    ),
+                    const SizedBox(height: 12),
+                    SmoothButton(
+                      isFullWidth: true,
+                      label: 'Закрыть',
+                      onPressed: () => context.pop(),
+                      icon: const Icon(Icons.close),
+                      type: SmoothButtonType.outlined,
+                    ),
+                  ],
+                ),
 
-            // Прогресс
-            if (_isImporting) ...[
-              LinearProgressIndicator(value: _progress),
-              const SizedBox(height: 16),
-              Text(
-                'Импорт хранилища... ${(_progress * 100).toInt()}%',
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
+              if (_isImporting)
+                const SizedBox(
+                  height: 56,
+                  child: Center(child: Text('Пожалуйста, подождите...')),
+                ),
             ],
-
-            const Spacer(),
-
-            // Кнопки
-            if (_importedStoragePath == null && !_isImporting) ...[
-              SmoothButton(
-                isFullWidth: true,
-                label: 'Импорт из архива',
-                onPressed: _selectedArchivePath == null
-                    ? _pickArchive
-                    : _performImport,
-                icon: Icon(
-                  _selectedArchivePath == null
-                      ? Icons.folder_zip
-                      : Icons.upload,
-                ),
-              ),
-              const SizedBox(height: 12),
-              SmoothButton(
-                isFullWidth: true,
-                label: 'Импорт из облака',
-                onPressed: _showCloudImportDialog,
-                icon: const Icon(Icons.cloud_download),
-                type: SmoothButtonType.outlined,
-              ),
-            ],
-
-            if (_importedStoragePath != null)
-              Column(
-                children: [
-                  SmoothButton(
-                    isFullWidth: true,
-                    label: 'Открыть хранилище',
-                    onPressed: _openImportedStorage,
-                    icon: const Icon(Icons.folder_open),
-                  ),
-                  const SizedBox(height: 12),
-                  SmoothButton(
-                    isFullWidth: true,
-                    label: 'Закрыть',
-                    onPressed: () => context.pop(),
-                    icon: const Icon(Icons.close),
-                    type: SmoothButtonType.outlined,
-                  ),
-                ],
-              ),
-
-            if (_isImporting)
-              const SizedBox(
-                height: 56,
-                child: Center(child: Text('Пожалуйста, подождите...')),
-              ),
-          ],
+          ),
         ),
       ),
     );

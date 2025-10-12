@@ -18,7 +18,7 @@ class AppPaths {
 
 /// Получение пути к директории приложения
 Future<Directory> _getAppPath() async {
-  final appDir = await getApplicationDocumentsDirectory();
+  final appDir = await getApplicationSupportDirectory();
   final basePath = p.join(appDir.path, MainConstants.appFolderName);
 
   // Создаем директорию если её нет

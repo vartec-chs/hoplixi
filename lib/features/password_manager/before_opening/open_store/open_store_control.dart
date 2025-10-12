@@ -290,7 +290,9 @@ final openStoreReadyProvider = Provider<bool>((ref) {
 });
 
 /// Провайдер для поиска файлов БД в папке по умолчанию
-final databaseFilesProvider = FutureProvider<DatabaseFilesResult>((ref) async {
+final databaseFilesProvider = FutureProvider.autoDispose<DatabaseFilesResult>((
+  ref,
+) async {
   final manager = await ref.read(hoplixiStoreManagerProvider.future);
   return await manager.findDatabaseFiles();
 });
