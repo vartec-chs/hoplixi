@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
-import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
 import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
+import 'package:hoplixi/features/cloud_sync/widgets/auth_modal.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -29,17 +28,11 @@ class ExportConfirmScreen extends ConsumerStatefulWidget {
 
 class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
   bool _isExporting = false;
+  bool _isUploadingToCloud = false;
   double _progress = 0.0;
   String? _exportedArchivePath;
   bool _usePassword = false;
   final _passwordController = TextEditingController();
-  List<CredentialApp> _cloudCredentials = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCloudCredentials();
-  }
 
   @override
   void dispose() {
@@ -47,99 +40,127 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
     super.dispose();
   }
 
-  Future<void> _loadCloudCredentials() async {
-    try {
-      final credentialService = await ref.read(
-        credentialServiceProvider.future,
-      );
-      final result = await credentialService.getAllCredentials();
+  /// Показывает модальное окно выбора облачного провайдера и выполняет экспорт
+  Future<void> _showCloudExportDialog() async {
+    if (_exportedArchivePath == null) {
+      ToastHelper.error(title: 'Ошибка', description: 'Сначала создайте архив');
+      return;
+    }
 
-      if (result.success && result.data != null) {
-        setState(() {
-          _cloudCredentials = result.data!;
-        });
+    if (!mounted) return;
+
+    // Показываем AuthModal для выбора провайдера и авторизации
+    final clientKey = await showAuthModal(context);
+
+    if (clientKey == null) {
+      // Пользователь отменил или произошла ошибка
+      logDebug(
+        'Авторизация отменена или не удалась',
+        tag: 'ExportConfirmScreen',
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Выполняем экспорт в облако
+    await _performCloudExport(clientKey);
+  }
+
+  /// Выполняет экспорт архива в облако используя clientKey
+  Future<void> _performCloudExport(String clientKey) async {
+    if (_exportedArchivePath == null) return;
+
+    setState(() {
+      _isUploadingToCloud = true;
+    });
+
+    try {
+      logInfo(
+        'Начало экспорта в облако',
+        tag: 'ExportConfirmScreen',
+        data: {'clientKey': clientKey, 'archivePath': _exportedArchivePath},
+      );
+
+      ToastHelper.info(
+        title: 'Загрузка в облако',
+        description: 'Инициализация подключения...',
+      );
+
+      // Получаем сервис Dropbox через провайдер
+      final dropboxServiceAsync = ref.read(
+        dropboxServiceProvider(clientKey).future,
+      );
+      final dropboxService = await dropboxServiceAsync;
+
+      // Инициализируем Dropbox (создаем папки и т.д.)
+      final initResult = await dropboxService.initialize();
+      if (!initResult.success) {
+        ToastHelper.error(
+          title: 'Ошибка инициализации',
+          description:
+              initResult.message ?? 'Не удалось подключиться к Dropbox',
+        );
+        return;
+      }
+
+      logInfo('Dropbox инициализирован успешно', tag: 'ExportConfirmScreen');
+
+      ToastHelper.info(
+        title: 'Загрузка в облако',
+        description: 'Отправка архива...',
+      );
+
+      // Экспортируем архив
+      final exportResult = await dropboxService.export(_exportedArchivePath!);
+
+      if (exportResult.success) {
+        ToastHelper.success(
+          title: 'Успешно',
+          description: 'Архив загружен в Dropbox',
+        );
+
         logInfo(
-          'Cloud credentials загружены',
+          'Архив успешно экспортирован в облако',
           tag: 'ExportConfirmScreen',
-          data: {'count': result.data!.length},
+          data: {
+            'clientKey': clientKey,
+            'cloudPath': exportResult.data,
+            'archiveName': p.basename(_exportedArchivePath!),
+          },
+        );
+      } else {
+        ToastHelper.error(
+          title: 'Ошибка экспорта',
+          description: exportResult.message ?? 'Не удалось загрузить архив',
+        );
+
+        logError(
+          'Ошибка экспорта в облако',
+          tag: 'ExportConfirmScreen',
+          data: {'message': exportResult.message},
         );
       }
     } catch (e, st) {
       logError(
-        'Ошибка загрузки cloud credentials',
+        'Исключение при экспорте в облако',
         error: e,
         stackTrace: st,
         tag: 'ExportConfirmScreen',
       );
+
+      ToastHelper.error(
+        title: 'Ошибка',
+        description: 'Произошла ошибка при загрузке в облако',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingToCloud = false;
+        });
+      }
     }
   }
-
-  // Future<void> _showCloudExportDialog() async {
-  //   if (_exportedArchivePath == null) {
-  //     ToastHelper.error(title: 'Сначала создайте архив');
-  //     return;
-  //   }
-
-  //   if (_cloudCredentials.isEmpty) {
-  //     ToastHelper.error(title: 'Нет настроенных облачных аккаунтов');
-  //     return;
-  //   }
-
-  //   final credential = await showDialog<CredentialApp>(
-  //     context: context,
-  //     builder: (context) =>
-  //         _CloudCredentialDialog(credentials: _cloudCredentials),
-  //   );
-
-  //   if (credential != null && mounted) {
-  //     await _performCloudExport(credential);
-  //   }
-  // }
-
-  // Future<void> _performCloudExport(CredentialApp credential) async {
-  //   if (_exportedArchivePath == null) return;
-
-  //   try {
-  //     ToastHelper.info(title: 'Начинается загрузка в облако...');
-
-  //     // Инициализация сервиса
-  //     final notifier = ref.read(dropboxServiceStateProvider.notifier);
-  //     await notifier.init(credential.id);
-
-  //     // Проверка и авторизация
-  //     final isConnected = await notifier.check();
-  //     if (!isConnected) {
-  //       ToastHelper.error(title: 'Ошибка подключения к Dropbox');
-  //       return;
-  //     }
-
-  //     // Загрузка файла (используем имя архива из пути)
-  //     final archiveName = p.basename(_exportedArchivePath!);
-  //     final result = await notifier.uploadStorage(
-  //       localPath: _exportedArchivePath!,
-  //       storageName: archiveName,
-  //     );
-
-  //     if (result.success) {
-  //       ToastHelper.success(title: 'Архив успешно загружен в Dropbox');
-  //       logInfo(
-  //         'Архив экспортирован в облако',
-  //         tag: 'ExportConfirmScreen',
-  //         data: {'archiveName': archiveName, 'credentialId': credential.id},
-  //       );
-  //     } else {
-  //       ToastHelper.error(title: result.message ?? 'Ошибка загрузки в облако');
-  //     }
-  //   } catch (e, st) {
-  //     logError(
-  //       'Ошибка облачного экспорта',
-  //       error: e,
-  //       stackTrace: st,
-  //       tag: 'ExportConfirmScreen',
-  //     );
-  //     ToastHelper.error(title: 'Ошибка загрузки в облако');
-  //   }
-  // }
 
   Future<void> _performExport() async {
     setState(() {
@@ -373,16 +394,29 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
               Column(
                 spacing: 12,
                 children: [
-                  // SmoothButton(
-                  //   isFullWidth: true,
-                  //   label: 'Загрузить в облако',
-                  //   onPressed: _showCloudExportDialog,
-                  //   icon: const Icon(Icons.cloud_upload),
-                  // ),
+                  SmoothButton(
+                    isFullWidth: true,
+                    label: _isUploadingToCloud
+                        ? 'Загрузка в облако...'
+                        : 'Загрузить в облако',
+                    onPressed: _isUploadingToCloud
+                        ? null
+                        : _showCloudExportDialog,
+                    icon: _isUploadingToCloud
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.cloud_upload),
+                  ),
                   SmoothButton(
                     isFullWidth: true,
                     label: 'Готово',
-                    onPressed: () => context.pop(),
+                    onPressed: _isUploadingToCloud ? null : () => context.pop(),
                     icon: const Icon(Icons.check),
                   ),
                 ],
@@ -435,61 +469,5 @@ class _ExportConfirmScreenState extends ConsumerState<ExportConfirmScreen> {
         ),
       ],
     );
-  }
-}
-
-/// Диалог выбора облачного аккаунта для экспорта
-class _CloudCredentialDialog extends StatelessWidget {
-  final List<CredentialApp> credentials;
-
-  const _CloudCredentialDialog({required this.credentials});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      title: const Text('Выберите облачный аккаунт'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: ListView.builder(
-          shrinkWrap: true,
-          itemCount: credentials.length,
-          itemBuilder: (context, index) {
-            final credential = credentials[index];
-            return ListTile(
-              leading: Icon(Icons.cloud, color: theme.colorScheme.primary),
-              title: Text(_getTypeName(credential.type)),
-              subtitle: Text('ID: ${credential.clientId.substring(0, 10)}...'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).pop(credential),
-            );
-          },
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Отмена'),
-        ),
-      ],
-    );
-  }
-
-  String _getTypeName(CredentialOAuthType type) {
-    switch (type) {
-      case CredentialOAuthType.dropbox:
-        return 'Dropbox';
-      case CredentialOAuthType.google:
-        return 'Google Drive';
-      case CredentialOAuthType.onedrive:
-        return 'OneDrive';
-      case CredentialOAuthType.yandex:
-        return 'Yandex Disk';
-      case CredentialOAuthType.icloud:
-        return 'iCloud';
-      case CredentialOAuthType.other:
-        return 'Другое';
-    }
   }
 }

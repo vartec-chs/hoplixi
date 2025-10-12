@@ -39,12 +39,18 @@ class DropboxService {
       logInfo('Инициализация Dropbox сервиса', tag: _tag);
 
       // Проверяем подключение
-      final account = await _dropboxApi.getCurrentAccount();
-      logInfo(
-        'Подключение к Dropbox установлено',
-        tag: _tag,
-        data: {'accountId': account.accountId},
-      );
+      // final folders = await _dropboxApi.listFolder('/');
+      // if (folders != null) {
+      //   logInfo(
+      //     'Подключение к Dropbox установлено',
+      //     tag: _tag,
+      //     data: {'rootFolder': folders.entries.length},
+      //   );
+      // } else {
+      //   return ServiceResult.error('Не удалось получить список папок');
+      // }
+
+      logInfo('Проверка и создание необходимых папок', tag: _tag);
 
       // Создаем корневую папку если не существует
       try {

@@ -3,17 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/core/lib/dropbox_api/dropbox_api.dart';
-import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
-import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
 import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
+import 'package:hoplixi/features/cloud_sync/widgets/auth_modal.dart';
 import 'package:hoplixi/features/global/widgets/button.dart';
 import 'package:hoplixi/features/global/widgets/password_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/sync/providers/storage_export_provider.dart';
 import 'package:hoplixi/router/routes_path.dart';
-import 'package:intl/intl.dart';
 
 /// Экран импорта хранилища
 class ImportScreen extends ConsumerStatefulWidget {
@@ -30,37 +27,16 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
   String? _selectedArchivePath;
   bool _requiresPassword = false;
   final _passwordController = TextEditingController();
-  List<CredentialApp> _cloudCredentials = [];
-  final _cloudPasswordController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _passwordController.text = '';
-    _cloudPasswordController.text = '';
-    _loadCloudCredentials();
-  }
-
-  Future<void> _loadCloudCredentials() async {
-    try {
-      final service = await ref.read(credentialServiceProvider.future);
-      final result = await service.getAllCredentials();
-      if (result.success && result.data != null) {
-        setState(() {
-          _cloudCredentials = result.data!
-              .where((c) => c.type == CredentialOAuthType.dropbox)
-              .toList();
-        });
-      }
-    } catch (e) {
-      logError('Failed to load cloud credentials', error: e);
-    }
   }
 
   @override
   void dispose() {
     _passwordController.dispose();
-    _cloudPasswordController.dispose();
     super.dispose();
   }
 
@@ -190,178 +166,209 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
     context.go(AppRoutes.openStore);
   }
 
-  // Future<void> _showCloudImportDialog() async {
-  //   if (_cloudCredentials.isEmpty) {
-  //     ToastHelper.warning(title: 'Нет настроенных облачных хранилищ');
-  //     return;
-  //   }
+  /// Показывает модальное окно выбора облачного провайдера и выполняет импорт
+  Future<void> _showCloudImportDialog() async {
+    if (!mounted) return;
 
-  //   final credential = await showDialog<CredentialApp>(
-  //     context: context,
-  //     builder: (context) =>
-  //         _CloudCredentialDialog(credentials: _cloudCredentials),
-  //   );
+    // Показываем AuthModal для выбора провайдера и авторизации
+    final clientKey = await showAuthModal(context);
 
-  //   if (credential != null) {
-  //     await _performCloudImport(credential);
-  //   }
-  // }
+    if (clientKey == null) {
+      // Пользователь отменил или произошла ошибка
+      logDebug('Авторизация отменена или не удалась', tag: 'ImportScreen');
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Выполняем импорт из облака
+    await _performCloudImport(clientKey);
+  }
+
+  /// Выполняет импорт архива из облака используя clientKey
+  Future<void> _performCloudImport(String clientKey) async {
+    setState(() {
+      _isImporting = true;
+      _progress = 0.0;
+      _importedStoragePath = null;
+    });
+
+    try {
+      logInfo(
+        'Начало импорта из облака',
+        tag: 'ImportScreen',
+        data: {'clientKey': clientKey},
+      );
+
+      ToastHelper.info(
+        title: 'Импорт из облака',
+        description: 'Инициализация подключения...',
+      );
+
+      _updateProgress(0.2);
+
+      // Получаем сервис Dropbox через провайдер
+      final dropboxServiceAsync = ref.read(
+        dropboxServiceProvider(clientKey).future,
+      );
+      final dropboxService = await dropboxServiceAsync;
+
+      // Инициализируем Dropbox
+      final initResult = await dropboxService.initialize();
+      if (!initResult.success) {
+        ToastHelper.error(
+          title: 'Ошибка инициализации',
+          description:
+              initResult.message ?? 'Не удалось подключиться к Dropbox',
+        );
+        return;
+      }
+
+      logInfo('Dropbox инициализирован успешно', tag: 'ImportScreen');
+
+      _updateProgress(0.4);
+
+      ToastHelper.info(
+        title: 'Импорт из облака',
+        description: 'Загрузка архива...',
+      );
+
+      // Получаем путь для сохранения
+      final destinationDir = await AppPaths.appStoragePath;
+
+      // Импортируем самый новый архив из облака
+      final importResult = await dropboxService.import(destinationDir);
+
+      if (!importResult.success || importResult.data == null) {
+        ToastHelper.error(
+          title: 'Ошибка импорта',
+          description: importResult.message ?? 'Не удалось загрузить архив',
+        );
+        return;
+      }
+
+      _updateProgress(0.7);
+
+      final downloadedArchivePath = importResult.data!;
+
+      logInfo(
+        'Архив загружен из облака',
+        tag: 'ImportScreen',
+        data: {'archivePath': downloadedArchivePath},
+      );
+
+      // Спрашиваем пароль, если архив может быть защищён
+      String? password;
+      if (mounted) {
+        password = await _showPasswordDialog();
+      }
+
+      _updateProgress(0.8);
+
+      ToastHelper.info(
+        title: 'Импорт из облака',
+        description: 'Распаковка архива...',
+      );
+
+      // Распаковываем архив
+      final service = ref.read(storageExportServiceProvider);
+      final extractResult = await service.importStorage(
+        archivePath: downloadedArchivePath,
+        destinationDir: destinationDir,
+        password: password?.isNotEmpty == true ? password : null,
+      );
+
+      _updateProgress(1.0);
+
+      if (extractResult.success && extractResult.data != null) {
+        setState(() {
+          _importedStoragePath = extractResult.data;
+        });
+
+        ToastHelper.success(
+          title: 'Успешно',
+          description: 'Хранилище импортировано из облака',
+        );
+
+        logInfo(
+          'Импорт из облака завершён успешно',
+          tag: 'ImportScreen',
+          data: {'clientKey': clientKey, 'storagePath': extractResult.data},
+        );
+      } else {
+        ToastHelper.error(
+          title: 'Ошибка распаковки',
+          description: extractResult.message ?? 'Не удалось распаковать архив',
+        );
+
+        logError(
+          'Ошибка распаковки архива',
+          tag: 'ImportScreen',
+          data: {'message': extractResult.message},
+        );
+      }
+    } catch (e, st) {
+      logError(
+        'Исключение при импорте из облака',
+        error: e,
+        stackTrace: st,
+        tag: 'ImportScreen',
+      );
+
+      ToastHelper.error(
+        title: 'Ошибка',
+        description: 'Произошла ошибка при импорте из облака',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isImporting = false;
+        });
+      }
+    }
+  }
 
   Future<String?> _showPasswordDialog() async {
-    _cloudPasswordController.clear();
-    return await showDialog<String>(
+    final passwordController = TextEditingController();
+
+    final password = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Введите пароль'),
-        content: TextField(
-          controller: _cloudPasswordController,
-          obscureText: true,
-          decoration: const InputDecoration(hintText: 'Пароль архива'),
+        title: const Text('Пароль архива'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Если архив защищён паролем, введите его:'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                hintText: 'Пароль (необязательно)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
+            onPressed: () => Navigator.of(context).pop(null),
+            child: const Text('Пропустить'),
           ),
           TextButton(
             onPressed: () {
-              final password = _cloudPasswordController.text.trim();
-              Navigator.of(context).pop(password.isNotEmpty ? password : null);
+              final pwd = passwordController.text.trim();
+              Navigator.of(context).pop(pwd.isNotEmpty ? pwd : null);
             },
             child: const Text('OK'),
           ),
         ],
       ),
     );
+
+    passwordController.dispose();
+    return password;
   }
-
-  // Future<void> _performCloudImport(CredentialApp credential) async {
-  //   setState(() {
-  //     _isImporting = true;
-  //     _progress = 0.0;
-  //     _importedStoragePath = null;
-  //   });
-
-  //   try {
-  //     logInfo(
-  //       'Начало импорта из облака',
-  //       tag: 'ImportScreen',
-  //       data: {'credentialId': credential.id},
-  //     );
-
-  //     _updateProgress(0.2);
-
-  //     // Инициализируем Dropbox notifier
-  //     final notifier = ref.read(dropboxServiceStateProvider.notifier);
-  //     final initialized = await notifier.init(credential.id);
-
-  //     if (!initialized) {
-  //       ToastHelper.error(title: 'Не удалось инициализировать сервис');
-  //       return;
-  //     }
-
-  //     _updateProgress(0.3);
-
-  //     // Проверяем подключение
-  //     final isConnected = await notifier.check();
-  //     if (!isConnected) {
-  //       ToastHelper.error(title: 'Ошибка подключения к Dropbox');
-  //       return;
-  //     }
-
-  //     _updateProgress(0.4);
-
-  //     // Получаем список хранилищ
-  //     final storagesResult = await notifier.listStorages();
-  //     if (!storagesResult.success || storagesResult.data!.isEmpty) {
-  //       ToastHelper.warning(title: 'В облаке не найдено хранилищ');
-  //       return;
-  //     }
-
-  //     _updateProgress(0.5);
-
-  //     // Показываем диалог выбора хранилища
-  //     final selectedStorage = await showDialog<DropboxFile>(
-  //       context: mounted ? context : throw Exception('Context not mounted'),
-  //       builder: (context) =>
-  //           _CloudStorageListDialog(storages: storagesResult.data!),
-  //     );
-
-  //     if (selectedStorage == null) {
-  //       return;
-  //     }
-
-  //     _updateProgress(0.6);
-
-  //     final destinationDir = await AppPaths.appStoragePath;
-
-  //     final downloadResult = await notifier.downloadStorage(
-  //       storageName: selectedStorage.name,
-  //       localDir: destinationDir,
-  //     );
-
-  //     if (!downloadResult.success || downloadResult.data == null) {
-  //       ToastHelper.error(
-  //         title: downloadResult.message ?? 'Ошибка при скачивании',
-  //       );
-  //       logError(
-  //         'Ошибка при скачивании из облака',
-  //         tag: 'ImportScreen',
-  //         data: {'message': downloadResult.message},
-  //       );
-  //       return;
-  //     }
-
-  //     _updateProgress(0.7);
-
-  //     // Спрашиваем пароль у пользователя
-  //     final password = await _showPasswordDialog();
-
-  //     _updateProgress(0.8);
-
-  //     // Распаковываем архив
-  //     final service = ref.read(storageExportServiceProvider);
-  //     final importResult = await service.importStorage(
-  //       archivePath: downloadResult.data!,
-  //       destinationDir: destinationDir,
-  //       password: password?.isNotEmpty == true ? password : null,
-  //     );
-
-  //     if (importResult.success && importResult.data != null) {
-  //       _updateProgress(1.0);
-  //       setState(() {
-  //         _importedStoragePath = importResult.data;
-  //       });
-  //       ToastHelper.success(
-  //         title: importResult.message ?? 'Импорт завершён успешно',
-  //       );
-  //       logInfo(
-  //         'Импорт из облака завершён успешно',
-  //         tag: 'ImportScreen',
-  //         data: {'storagePath': importResult.data},
-  //       );
-  //     } else {
-  //       ToastHelper.error(title: importResult.message ?? 'Ошибка при импорте');
-  //       logError(
-  //         'Ошибка при импорте из облака',
-  //         tag: 'ImportScreen',
-  //         data: {'message': importResult.message},
-  //       );
-  //     }
-  //   } catch (e, st) {
-  //     logError(
-  //       'Исключение при импорте из облака',
-  //       error: e,
-  //       stackTrace: st,
-  //       tag: 'ImportScreen',
-  //     );
-  //     ToastHelper.error(title: 'Произошла ошибка при импорте');
-  //   } finally {
-  //     setState(() {
-  //       _isImporting = false;
-  //     });
-  //   }
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -589,15 +596,13 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              // SmoothButton(
-              //   isFullWidth: true,
-              //   label: 'Импорт из облака',
-              //   onPressed: _cloudCredentials.isEmpty
-              //       ? null
-              //       : _showCloudImportDialog,
-              //   icon: const Icon(Icons.cloud_download),
-              //   type: SmoothButtonType.outlined,
-              // ),
+              SmoothButton(
+                isFullWidth: true,
+                label: 'Импорт из облака',
+                onPressed: _showCloudImportDialog,
+                icon: const Icon(Icons.cloud_download),
+                type: SmoothButtonType.outlined,
+              ),
             ],
 
             if (_importedStoragePath != null)
@@ -628,107 +633,6 @@ class _ImportScreenState extends ConsumerState<ImportScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Диалог выбора облачного credential
-class _CloudCredentialDialog extends StatelessWidget {
-  final List<CredentialApp> credentials;
-
-  const _CloudCredentialDialog({required this.credentials});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      title: const Text('Выберите облачное хранилище'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: ListView.builder(
-          shrinkWrap: true,
-          itemCount: credentials.length,
-          itemBuilder: (context, index) {
-            final credential = credentials[index];
-            return ListTile(
-              leading: Icon(Icons.cloud, color: theme.colorScheme.primary),
-              title: Text(_getTypeName(credential.type)),
-              subtitle: Text('ID: ${credential.clientId.substring(0, 10)}...'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).pop(credential),
-            );
-          },
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Отмена'),
-        ),
-      ],
-    );
-  }
-
-  String _getTypeName(CredentialOAuthType type) {
-    switch (type) {
-      case CredentialOAuthType.dropbox:
-        return 'Dropbox';
-      case CredentialOAuthType.google:
-        return 'Google Drive';
-      case CredentialOAuthType.onedrive:
-        return 'OneDrive';
-      case CredentialOAuthType.icloud:
-        return 'iCloud';
-      case CredentialOAuthType.yandex:
-        return 'Yandex';
-      case CredentialOAuthType.other:
-        return 'Другое';
-    }
-  }
-}
-
-/// Диалог выбора хранилища из облака
-class _CloudStorageListDialog extends StatelessWidget {
-  final List<DropboxFile> storages;
-
-  const _CloudStorageListDialog({required this.storages});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final dateFormat = DateFormat('dd.MM.yyyy HH:mm');
-
-    return AlertDialog(
-      title: const Text('Выберите хранилище'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: ListView.builder(
-          shrinkWrap: true,
-          itemCount: storages.length,
-          itemBuilder: (context, index) {
-            final storage = storages.length - 1 - index; // Обратный порядок
-            final file = storages[storage];
-            return ListTile(
-              leading: Icon(Icons.storage, color: theme.colorScheme.primary),
-              title: Text(file.name),
-              subtitle: Text(
-                file.serverModified != null
-                    ? dateFormat.format(file.serverModified!)
-                    : 'Нет данных',
-              ),
-              trailing: const Icon(Icons.download),
-              onTap: () => Navigator.of(context).pop(file),
-            );
-          },
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Отмена'),
-        ),
-      ],
     );
   }
 }
