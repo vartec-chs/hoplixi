@@ -303,6 +303,17 @@ class _AuthModalState extends ConsumerState<AuthModal> {
         selectedCredential,
         onError: (error) {
           logError('OAuth authorization error', error: error, tag: 'AuthModal');
+          if (!mounted) return;
+
+          ToastHelper.error(
+            title: 'Ошибка авторизации',
+            description: error.toString(),
+          );
+
+          setState(() {
+            _isAuthorizing = false;
+            _authorizingType = null;
+          });
         },
       );
 

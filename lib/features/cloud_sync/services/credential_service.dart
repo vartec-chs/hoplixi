@@ -44,12 +44,14 @@ class CredentialService {
         );
       } catch (e) {
         // Если не удалось открыть, создаём новый
+        final key = await EncryptionService.generate();
         logInfo('Creating new credentials box');
         _db = await _boxManager.createBox<CredentialApp>(
           name: _boxName,
           fromJson: CredentialApp.fromJson,
           toJson: (credential) => credential.toJson(),
           getId: (credential) => credential.id,
+          password: await key.exportKey(),
         );
       }
 

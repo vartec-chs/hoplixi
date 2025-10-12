@@ -48,11 +48,13 @@ class TokenServices implements OAuth2TokenStorage {
     } catch (e) {
       // Если БД не существует, создать новую
       try {
+        final key = await EncryptionService.generate();
         _db = await _boxManager.createBox<TokenOAuth>(
           name: _boxName,
           fromJson: (json) => TokenOAuth.fromJson(json),
           toJson: (data) => data.toJson(),
           getId: (data) => data.id,
+          password: await key.exportKey(),
         );
         logInfo('Token storage created successfully', tag: _tag);
       } catch (createError) {

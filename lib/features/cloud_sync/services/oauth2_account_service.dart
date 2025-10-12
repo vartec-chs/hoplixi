@@ -88,7 +88,7 @@ class OAuth2AccountService {
   late OAuth2Account _account;
   final TokenServices _tokenServices;
 
-  final Map<String, OAuth2RestClient> _clients = {};
+  final Map<String, OAuth2RestClient> _clients = {}; // key - provider_key
   Map<String, OAuth2RestClient> get clients => _clients;
 
   OAuth2AccountService(TokenServices tokenStorage)
