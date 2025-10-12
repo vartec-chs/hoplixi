@@ -1,7 +1,8 @@
 import 'dart:io';
 
-import 'package:dropbox_api/dropbox_api.dart';
 import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/core/lib/dropbox_api/dropbox_api.dart';
+import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
 import 'package:path/path.dart' as path;
 

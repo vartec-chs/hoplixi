@@ -29,3 +29,8 @@ class MainConstants {
 
   static const int dbSchemaVersion = 1;
 }
+
+class AuthConstants {
+  static const String redirectUriMobile = 'hoplixiauth://callback';
+  static const String redirectUriDesktop = 'http://localhost:8569/callback';
+}
