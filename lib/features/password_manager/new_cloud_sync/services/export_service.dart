@@ -155,7 +155,7 @@ class ExportDropboxService {
         exportedAt: DateTime.fromMicrosecondsSinceEpoch(exportTime),
       );
 
-      final stream = Stream.value(await File(exportPath).readAsBytes());
+      final stream = File(exportPath).openRead();
 
       onProgress?.call(0.6, 'Загрузка архива в Dropbox...');
 
@@ -163,20 +163,12 @@ class ExportDropboxService {
         '$exportCloudPath/$exportTime.zip',
         stream,
         onProgress: (uploaded, total) {
-          logTrace(
-            'Upload progress',
-            tag: tag,
-            data: {'uploaded': uploaded, 'total': total},
-          );
           if (total != null && total > 0) {
             final progress = 0.6 + (uploaded / total) * 0.3;
             final uploadedMB = (uploaded / 1024 / 1024).toStringAsFixed(2);
             final totalMB = (total / 1024 / 1024).toStringAsFixed(2);
             final percent = ((uploaded / total) * 100).toStringAsFixed(1);
-            logDebug(
-              'Upload progress: $percent% ($uploadedMB MB / $totalMB MB)',
-              tag: tag,
-            );
+
             onProgress?.call(
               progress,
               'Загрузка: $uploadedMB МБ / $totalMB МБ ($percent%)',
