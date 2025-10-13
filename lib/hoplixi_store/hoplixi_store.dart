@@ -87,29 +87,6 @@ class HoplixiStore extends _$HoplixiStore {
     );
   }
 
-  Future<void> updateModificationTime() async {
-    logDebug('Обновление времени модификации базы данных', tag: _logTag);
-    try {
-      await update(
-        hoplixiMeta,
-      ).write(HoplixiMetaCompanion(modifiedAt: Value(DateTime.now())));
-      logDebug('Время модификации базы данных обновлено', tag: _logTag);
-    } catch (e) {
-      logError(
-        'Ошибка обновления времени модификации',
-        error: e,
-        tag: _logTag,
-        stackTrace: StackTrace.current,
-      );
-      throw DatabaseError.operationFailed(
-        operation: 'updateModificationTime',
-        details: e.toString(),
-        message: 'Ошибка обновления времени модификации',
-        stackTrace: StackTrace.current,
-      );
-    }
-  }
-
   Future<HoplixiMetaData> getDatabaseMeta() async {
     logDebug('Получение метаданных базы данных', tag: _logTag);
     try {
@@ -325,6 +302,7 @@ class HoplixiStore extends _$HoplixiStore {
     }
   }
 
+  /// Получает метаданные базы данных для синхронизации
   Future<DatabaseMetaForSync> getDatabaseMetaForSync() async {
     logDebug(
       'Получение метаданных базы данных для синхронизации',

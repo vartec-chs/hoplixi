@@ -126,6 +126,47 @@ class HoplixiStoreManager {
     }
   }
 
+  /// Получает метаданные базы данных для синхронизации
+  Future<DatabaseMetaForSync> getDatabaseMetaForSync() async {
+    const String operation = 'getDatabaseMetaForSync';
+
+    if (!hasOpenDatabase) {
+      logError(
+        'Попытка получить метаданные БД при закрытой БД',
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+      throw const DatabaseError.operationFailed(
+        operation: operation,
+        details: 'Database is not open',
+        message: 'База данных не открыта',
+      );
+    }
+
+    try {
+      final meta = await _database!.getDatabaseMetaForSync();
+
+      return meta;
+    } catch (e, s) {
+      if (e is DatabaseError) rethrow;
+
+      logError(
+        'Ошибка получения метаданных БД для синхронизации',
+        error: e,
+        stackTrace: s,
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+
+      throw DatabaseError.operationFailed(
+        operation: operation,
+        stackTrace: s,
+        details: e.toString(),
+        message: 'Не удалось получить метаданные базы данных для синхронизации',
+      );
+    }
+  }
+
   //set attachmentsKey
   Future<String> setAttachmentKey(String key) async {
     const String operation = 'setAttachmentKey';

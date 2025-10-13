@@ -1,5 +1,7 @@
 library;
 
+import 'package:path/path.dart' as p;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -12,7 +14,6 @@ import 'package:hoplixi/hoplixi_store/models/db_state.dart';
 final hoplixiStoreManagerProvider = FutureProvider<HoplixiStoreManager>((
   ref,
 ) async {
- 
   final boxManager = await ref.watch(boxDbProvider.future);
   final manager = HoplixiStoreManager(boxManager: boxManager);
 
@@ -146,6 +147,9 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   // Утилиты
   DatabaseState? get currentState => state.asData?.value;
   bool get isDatabaseOpen => state.asData?.value.isOpen ?? false;
+  String? get databaseFilePath => state.asData?.value.path;
+
+  String? get databaseDir => p.dirname(databaseFilePath ?? '');
 
   HoplixiStore get currentDatabase {
     final db = _manager.database;
