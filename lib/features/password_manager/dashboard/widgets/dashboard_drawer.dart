@@ -5,6 +5,7 @@ import 'package:hoplixi/app/router/routes_path.dart';
 import 'package:hoplixi/app/theme/theme_switcher.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/password_manager/dashboard/dashboard.dart';
+import 'package:hoplixi/features/password_manager/new_cloud_sync/widgets/export_storage_modal.dart';
 import 'package:hoplixi/shared/widgets/close_database_button.dart';
 
 class DashboardDrawer extends ConsumerWidget {
@@ -110,6 +111,23 @@ class DashboardDrawer extends ConsumerWidget {
                     .read(entityTypeControllerProvider.notifier)
                     .changeEntityType(EntityType.otp);
                 logInfo('DashboardScreen: Переход к OTP');
+              },
+            ),
+
+            const Divider(),
+
+            // Синхронизация хранилища
+            ListTile(
+              leading: const Icon(Icons.cloud_sync),
+              title: const Text('Синхронизация'),
+              onTap: () async {
+                Navigator.pop(context);
+                final result = await showExportStorageModal(context);
+                if (result == true) {
+                  logInfo(
+                    'DashboardScreen: Экспорт хранилища завершён успешно',
+                  );
+                }
               },
             ),
 

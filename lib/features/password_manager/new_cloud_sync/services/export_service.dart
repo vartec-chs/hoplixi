@@ -44,67 +44,192 @@ class ExportDropboxService {
     DatabaseMetaForSync metadata,
     String clientKey,
     String pathToDbFolder,
-    String? encryptionKeyArchive,
-  ) async {
-    final account = _accountService.clients[clientKey];
-    if (account == null) {
-      return ServiceResult.failure('No Dropbox account found for the key');
-    }
-    _dropbox = DropboxRestApi(account);
+    String? encryptionKeyArchive, {
+    void Function(double progress, String message)? onProgress,
+    void Function(String error)? onError,
+  }) async {
+    try {
+      onProgress?.call(0.0, 'Инициализация подключения к Dropbox...');
 
-    await _dropbox.createFolder(storagesRoot);
+      final account = _accountService.clients[clientKey];
+      if (account == null) {
+        final errorMsg = 'No Dropbox account found for the key';
+        onError?.call(errorMsg);
+        return ServiceResult.failure(errorMsg);
+      }
+      _dropbox = DropboxRestApi(account);
 
-    final storeFolderName =
-        '${metadata.name.replaceAll(' ', '_')}_${metadata.id}';
-    final exportCloudPath = '$storagesRoot/$storeFolderName';
+      onProgress?.call(0.1, 'Проверка папок в облаке...');
 
-    await _dropbox.createFolder(exportCloudPath);
+      // Создаём корневую папку для хранилищ (игнорируем если уже существует)
+      try {
+        await _dropbox.createFolder(storagesRoot);
+        logInfo(
+          'Создана корневая папка для хранилищ',
+          tag: tag,
+          data: {'path': storagesRoot},
+        );
+      } catch (e) {
+        // Игнорируем ошибку 409 (папка уже существует)
+        if (e.toString().contains('409') || e.toString().contains('Conflict')) {
+          logInfo(
+            'Корневая папка для хранилищ уже существует',
+            tag: tag,
+            data: {'path': storagesRoot},
+          );
+        } else {
+          final errorMsg = 'Ошибка создания корневой папки: ${e.toString()}';
+          logError(
+            'Ошибка создания корневой папки',
+            error: e,
+            tag: tag,
+            data: {'path': storagesRoot},
+          );
+          onError?.call(errorMsg);
+          rethrow;
+        }
+      }
 
-    final exportTime = DateTime.now().microsecondsSinceEpoch;
+      onProgress?.call(0.15, 'Создание папки для хранилища...');
 
-    final exportPathDir = await AppPaths.exportStoragesPath;
-    final exportPath = p.join(exportPathDir, '$exportTime.zip');
+      final storeFolderName =
+          '${metadata.name.replaceAll(' ', '_')}_${metadata.id}';
+      final exportCloudPath = '$storagesRoot/$storeFolderName';
 
-    final archiveResult = await createArchive(
-      storagePath: pathToDbFolder,
-      destinationPath: exportPath,
-      password: encryptionKeyArchive,
-    );
+      // Создаём папку для конкретного хранилища (игнорируем если уже существует)
+      try {
+        await _dropbox.createFolder(exportCloudPath);
+        logInfo(
+          'Создана папка для хранилища',
+          tag: tag,
+          data: {'path': exportCloudPath},
+        );
+      } catch (e) {
+        // Игнорируем ошибку 409 (папка уже существует)
+        if (e.toString().contains('409') || e.toString().contains('Conflict')) {
+          logInfo(
+            'Папка для хранилища уже существует',
+            tag: tag,
+            data: {'path': exportCloudPath},
+          );
+        } else {
+          final errorMsg =
+              'Ошибка создания папки для хранилища: ${e.toString()}';
+          logError(
+            'Ошибка создания папки для хранилища',
+            error: e,
+            tag: tag,
+            data: {'path': exportCloudPath},
+          );
+          onError?.call(errorMsg);
+          rethrow;
+        }
+      }
 
-    if (!archiveResult.success || archiveResult.data == null) {
-      return ServiceResult.failure(
-        'Failed to create archive: ${archiveResult.message}',
+      onProgress?.call(0.2, 'Создание архива хранилища...');
+
+      final exportTime = DateTime.now().microsecondsSinceEpoch;
+
+      final exportPathDir = await AppPaths.exportStoragesPath;
+      final exportPath = p.join(exportPathDir, '$exportTime.zip');
+
+      final archiveResult = await createArchive(
+        storagePath: pathToDbFolder,
+        destinationPath: exportPath,
+        password: encryptionKeyArchive,
       );
+
+      if (!archiveResult.success || archiveResult.data == null) {
+        final errorMsg = 'Failed to create archive: ${archiveResult.message}';
+        onError?.call(errorMsg);
+        return ServiceResult.failure(errorMsg);
+      }
+
+      onProgress?.call(0.5, 'Подготовка к загрузке в облако...');
+
+      final CloudSyncDataItem newItem = CloudSyncDataItem(
+        id: metadata.id,
+        name: metadata.name,
+        path: pathToDbFolder,
+        checksum: archiveResult.data?.$2 ?? '',
+        exportedAt: DateTime.fromMicrosecondsSinceEpoch(exportTime),
+      );
+
+      final stream = Stream.value(await File(exportPath).readAsBytes());
+
+      onProgress?.call(0.6, 'Загрузка архива в Dropbox...');
+
+      final uploadResult = await _dropbox.upload(
+        '$exportCloudPath/$exportTime.zip',
+        stream,
+        onProgress: (uploaded, total) {
+          logTrace(
+            'Upload progress',
+            tag: tag,
+            data: {'uploaded': uploaded, 'total': total},
+          );
+          if (total != null && total > 0) {
+            final progress = 0.6 + (uploaded / total) * 0.3;
+            final uploadedMB = (uploaded / 1024 / 1024).toStringAsFixed(2);
+            final totalMB = (total / 1024 / 1024).toStringAsFixed(2);
+            final percent = ((uploaded / total) * 100).toStringAsFixed(1);
+            logDebug(
+              'Upload progress: $percent% ($uploadedMB MB / $totalMB MB)',
+              tag: tag,
+            );
+            onProgress?.call(
+              progress,
+              'Загрузка: $uploadedMB МБ / $totalMB МБ ($percent%)',
+            );
+          } else {
+            final progress =
+                0.6 + (uploaded / 1000000) * 0.001; // Примерный прогресс
+            onProgress?.call(progress, 'Загрузка архива в Dropbox...');
+          }
+        },
+      );
+
+      if (uploadResult.name.isEmpty) {
+        final errorMsg = 'Failed to upload archive to Dropbox';
+        onError?.call(errorMsg);
+        return ServiceResult.failure(errorMsg);
+      }
+
+      onProgress?.call(0.9, 'Завершение экспорта...');
+
+      await _cloudSyncDataService.updateOrCreate(newItem);
+
+      try {
+        await File(exportPath).delete();
+      } catch (e) {
+        logError(
+          'Ошибка удаления временного архива',
+          error: e,
+          tag: tag,
+          data: {'path': exportPath},
+        );
+      }
+
+      logInfo(
+        'Cloud sync item exported to Dropbox',
+        tag: tag,
+        data: {'id': metadata.id},
+      );
+
+      onProgress?.call(1.0, 'Экспорт успешно завершён');
+
+      return ServiceResult.success(data: uploadResult.name);
+    } catch (e, st) {
+      final errorMsg = 'Ошибка при экспорте в Dropbox: ${e.toString()}';
+      logError(
+        'Критическая ошибка при экспорте',
+        error: e,
+        stackTrace: st,
+        tag: tag,
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
     }
-
-    final CloudSyncDataItem newItem = CloudSyncDataItem(
-      id: metadata.id,
-      name: metadata.name,
-      path: pathToDbFolder,
-      checksum: archiveResult.data?.$2 ?? '',
-      exportedAt: DateTime.fromMicrosecondsSinceEpoch(exportTime),
-    );
-
-    final stream = Stream.value(await File(exportPath).readAsBytes());
-
-    final uploadResult = await _dropbox.upload(
-      '$exportCloudPath$exportTime.zip',
-      stream,
-    );
-
-    if (uploadResult.name.isEmpty) {
-      return ServiceResult.failure('Failed to upload archive to Dropbox');
-    }
-
-    await _cloudSyncDataService.updateOrCreate(newItem);
-
-    logInfo(
-      'Cloud sync item exported to Dropbox',
-      tag: tag,
-      data: {'id': metadata.id},
-    );
-
-    return ServiceResult.success(data: uploadResult.name);
   }
 
   /// Экспортирует хранилище в архив

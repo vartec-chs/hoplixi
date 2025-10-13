@@ -56,6 +56,7 @@ class DropboxRestApi implements DropboxApi {
     Stream<List<int>> dataStream, {
     String mode = 'add',
     bool autorename = true,
+    OAuth2ProgressCallback? onProgress,
   }) async {
     // Stream을 List<List<int>>로 변환
     final chunks = await dataStream.toList();
@@ -80,6 +81,7 @@ class DropboxRestApi implements DropboxApi {
       url,
       body: fileBody,
       headers: {'Content-Type': 'application/octet-stream'},
+      onProgress: onProgress,
     );
     return DropboxFile.fromJson(response);
   }

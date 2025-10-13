@@ -388,6 +388,7 @@ class HttpOAuth2RestClient implements OAuth2RestClient {
       body: body,
       queryParams: queryParams,
       headers: headers,
+      onProgress: onProgress,
     );
     var json = jsonDecode(jsonString);
     return json as Map<String, dynamic>;

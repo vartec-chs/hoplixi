@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
+
 import 'models/models.dart';
 
 /// Dropbox API 클라이언트 인터페이스입니다.
@@ -32,6 +34,7 @@ abstract class DropboxApi {
     Stream<List<int>> dataStream, {
     String mode = 'add',
     bool autorename = true,
+    OAuth2ProgressCallback? onProgress,
   });
 
   /// 파일이나 폴더를 삭제합니다.
