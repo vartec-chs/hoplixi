@@ -34,7 +34,7 @@ class AppRoutes {
 
 ``````dart
 
-import 'package:hoplixi/features/cloud_sync/screens/manage_credential_screen.dart';
+import 'package:hoplixi/features/auth/screens/manage_credential_screen.dart';
 
 ## Шаг 2: Добавить импорты в routes.dart```
 
@@ -46,9 +46,9 @@ import 'package:hoplixi/features/cloud_sync/screens/manage_credential_screen.dar
 
 ```dartДобавьте новый маршрут в список `appRoutes`:
 
-import 'package:hoplixi/features/cloud_sync/screens/manage_credential_screen.dart';
+import 'package:hoplixi/features/auth/screens/manage_credential_screen.dart';
 
-import 'package:hoplixi/features/cloud_sync/screens/auth_manager_screen.dart';```dart
+import 'package:hoplixi/features/auth/screens/auth_manager_screen.dart';```dart
 
 ```final List<GoRoute> appRoutes = [
 
@@ -200,9 +200,9 @@ class AppRoutes {
 
 ```dart
 
-import 'package:hoplixi/features/cloud_sync/screens/manage_credential_screen.dart'; // НОВЫЙ ИМПОРТИли как кнопку:
+import 'package:hoplixi/features/auth/screens/manage_credential_screen.dart'; // НОВЫЙ ИМПОРТИли как кнопку:
 
-import 'package:hoplixi/features/cloud_sync/screens/auth_manager_screen.dart'; // НОВЫЙ ИМПОРТ
+import 'package:hoplixi/features/auth/screens/auth_manager_screen.dart'; // НОВЫЙ ИМПОРТ
 
 ```dart
 

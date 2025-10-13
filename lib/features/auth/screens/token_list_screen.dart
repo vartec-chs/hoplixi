@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/cloud_sync/providers/token_provider.dart';
-import 'package:hoplixi/features/cloud_sync/services/oauth2_account_service.dart';
+import 'package:hoplixi/features/auth/providers/token_provider.dart';
+import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 
 /// Экран для отображения всех OAuth токенов

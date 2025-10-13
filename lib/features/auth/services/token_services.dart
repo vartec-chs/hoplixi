@@ -1,7 +1,7 @@
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/src/token/oauth2_token_storage.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/cloud_sync/models/token_oauth.dart';
+import 'package:hoplixi/features/auth/models/token_oauth.dart';
 
 class ServiceResult<T> {
   final bool success;

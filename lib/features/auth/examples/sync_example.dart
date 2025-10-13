@@ -1,5 +1,5 @@
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
-import 'package:hoplixi/features/cloud_sync/services/services.dart';
+import 'package:hoplixi/features/auth/services/services.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 
 /// Пример использования сервисов синхронизации архивов

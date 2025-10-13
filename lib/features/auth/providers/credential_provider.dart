@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
-import 'package:hoplixi/features/cloud_sync/services/credential_service.dart';
+import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:hoplixi/features/auth/services/credential_service.dart';
 import 'package:hoplixi/core/providers/box_db_provider.dart';
 
 /// Провайдер сервиса credential

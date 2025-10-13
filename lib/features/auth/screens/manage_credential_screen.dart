@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
-import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
-import 'package:hoplixi/features/cloud_sync/screens/token_list_screen.dart';
-import 'package:hoplixi/features/cloud_sync/widgets/auth_modal.dart';
-import 'package:hoplixi/features/cloud_sync/widgets/credential_form_dialog.dart';
-import 'package:hoplixi/features/cloud_sync/widgets/credential_card.dart';
+import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:hoplixi/features/auth/providers/credential_provider.dart';
+import 'package:hoplixi/features/auth/screens/token_list_screen.dart';
+import 'package:hoplixi/features/auth/widgets/auth_modal.dart';
+import 'package:hoplixi/features/auth/widgets/credential_form_dialog.dart';
+import 'package:hoplixi/features/auth/widgets/credential_card.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
 

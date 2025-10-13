@@ -1,4 +1,4 @@
-import 'package:hoplixi/features/cloud_sync/providers/oauth2_account_provider.dart';
+import 'package:hoplixi/features/auth/providers/oauth2_account_provider.dart';
 
 import '../services/dropbox_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

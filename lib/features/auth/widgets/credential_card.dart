@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
+import 'package:hoplixi/features/auth/models/credential_app.dart';
 
 class CredentialCard extends StatelessWidget {
   final CredentialApp credential;

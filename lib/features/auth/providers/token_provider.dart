@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/cloud_sync/models/token_oauth.dart';
-import 'package:hoplixi/features/cloud_sync/providers/token_services_provider.dart';
-import 'package:hoplixi/features/cloud_sync/services/token_services.dart';
+import 'package:hoplixi/features/auth/models/token_oauth.dart';
+import 'package:hoplixi/features/auth/providers/token_services_provider.dart';
+import 'package:hoplixi/features/auth/services/token_services.dart';
 
 /// Информация о токене для отображения
 class TokenInfo {

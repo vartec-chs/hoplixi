@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
-import 'package:hoplixi/features/cloud_sync/providers/oauth2_account_provider.dart';
-import 'package:hoplixi/features/cloud_sync/services/oauth2_account_service.dart';
-import 'package:hoplixi/features/cloud_sync/widgets/credential_picker.dart';
+import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:hoplixi/features/auth/providers/oauth2_account_provider.dart';
+import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
+import 'package:hoplixi/features/auth/widgets/credential_picker.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 
 /// Экран для добавления OAuth авторизаций

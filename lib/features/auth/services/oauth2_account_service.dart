@@ -4,10 +4,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
-import 'package:hoplixi/features/cloud_sync/models/token_oauth.dart';
-import 'package:hoplixi/features/cloud_sync/providers/token_provider.dart';
-import 'package:hoplixi/features/cloud_sync/services/token_services.dart';
+import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:hoplixi/features/auth/models/token_oauth.dart';
+import 'package:hoplixi/features/auth/providers/token_provider.dart';
+import 'package:hoplixi/features/auth/services/token_services.dart';
 
 const List<String> _dropboxScopes = <String>[
   'account_info.read',

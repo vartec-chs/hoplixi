@@ -52,13 +52,13 @@
 
 **Файл:** `lib/features/cloud_sync/services/services.dart`
 ```dart
-export 'dropbox_service.dart';
-export 'sync_metadata_service.dart';
+export '../cloud_sync/dropbox_service.dart';
+export '../cloud_sync/sync_metadata_service.dart';
 ```
 
 **Файл:** `lib/features/cloud_sync/models/models.dart`
 ```dart
-export 'sync_metadata.dart';
+export '../cloud_sync/sync_metadata.dart';
 ```
 
 ### 5. Документация

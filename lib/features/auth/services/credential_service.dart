@@ -1,5 +1,5 @@
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
+import 'package:hoplixi/features/auth/models/credential_app.dart';
 import 'package:uuid/uuid.dart';
 
 /// Результат операции сервиса
