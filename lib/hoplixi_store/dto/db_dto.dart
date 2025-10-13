@@ -18,6 +18,19 @@ abstract class CreateDatabaseDto with _$CreateDatabaseDto {
   }) = _CreateDatabaseDto;
 }
 
+// db meta for sync
+@freezed
+abstract class DatabaseMetaForSync with _$DatabaseMetaForSync {
+  const factory DatabaseMetaForSync({
+    required String id,
+    required String name,
+    required DateTime lastModified,
+  }) = _DatabaseMetaForSync;
+
+	factory DatabaseMetaForSync.fromJson(Map<String, dynamic> json) =>
+			_$DatabaseMetaForSyncFromJson(json);
+}
+
 @freezed
 abstract class OpenDatabaseDto with _$OpenDatabaseDto {
   const factory OpenDatabaseDto({

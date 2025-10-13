@@ -4,6 +4,7 @@ import 'package:hoplixi/core/errors/index.dart';
 
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dao/filters_dao/otp_filter_dao.dart';
+import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/tables/hoplixi_meta.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
@@ -188,6 +189,8 @@ class HoplixiStore extends _$HoplixiStore {
     }
   }
 
+  //
+
   Future<void> closeDatabase() async {
     logInfo('Закрытие базы данных', tag: _logTag);
     try {
@@ -317,6 +320,41 @@ class HoplixiStore extends _$HoplixiStore {
         operation: 'cleanupOldHistory',
         details: e.toString(),
         message: 'Ошибка очистки истории',
+        stackTrace: StackTrace.current,
+      );
+    }
+  }
+
+  Future<DatabaseMetaForSync> getDatabaseMetaForSync() async {
+    logDebug(
+      'Получение метаданных базы данных для синхронизации',
+      tag: _logTag,
+    );
+    try {
+      final meta = await getDatabaseMeta();
+      final processedName = meta.name.toLowerCase().replaceAll(' ', '_');
+      final result = DatabaseMetaForSync(
+        id: meta.id,
+        name: processedName,
+        lastModified: meta.modifiedAt,
+      );
+      logDebug(
+        'Метаданные для синхронизации получены',
+        tag: _logTag,
+        data: {'id': result.id, 'name': result.name},
+      );
+      return result;
+    } catch (e) {
+      logError(
+        'Ошибка получения метаданных для синхронизации',
+        error: e,
+        tag: _logTag,
+        stackTrace: StackTrace.current,
+      );
+      throw DatabaseError.operationFailed(
+        operation: 'getDatabaseMetaForSync',
+        details: e.toString(),
+        message: 'Ошибка получения метаданных для синхронизации',
         stackTrace: StackTrace.current,
       );
     }
