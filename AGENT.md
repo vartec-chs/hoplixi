@@ -1,74 +1,59 @@
-## Hoplixi – Быстрые инструкции для AI агентов
+# Hoplixi — Быстрый онбординг для AI
 
-Flutter пароль-менеджер: локально зашифрованная SQLite (SQLCipher + Drift) + сервисный слой + Riverpod v3 (Notifier API only). Секреты никогда не логируем.
+Flutter пароль-менеджер: локально зашифрованная SQLite (SQLCipher + Drift) + сервисный слой + Riverpod v3 Notifier API. Секреты или расшифрованные данные никогда не попадают в логи.
 
-### Архитектурный срез
+## Архитектура и потоки данных
 
-1. Поток данных: UI -> Riverpod Notifier **(не DAO!)** -> Service (`lib/hoplixi_store/repository/*_service.dart`) -> DAO (`lib/hoplixi_store/dao`) -> Drift (SQLCipher).
-2. `ServiceResult<T>` (`repository/service_results.dart`) единственный наружный контракт (success/message/data). Исключения перехватываются внутри сервиса с логированием.
-3. История изменений (пароли/ноты/otp) поддерживается SQL триггерами (`hoplixi_store/sql/triggers.dart`) пересоздаётся при миграции (`hoplixi_store.dart`).
-4. Шифрование полей/секретов: см. `core/lib/box_db/crypto_box.dart` (AES-GCM + auto nonce) и чтение/валидация в DAO/box. Для новых секретных колонок повторить контейнер {payload, nonce, mac}.
-5. Низкоуровневое файловое хранилище (вне Drift) – `simple_box.dart` (deprecated) / сегментированные боксы (если появятся) с checksum + auto compaction; не смешивать с паролями (основные сущности идут через Drift).
+1. UI (`lib/features/...`) общается только с Riverpod Notifier/AsyncNotifier/StreamNotifier провайдерами (`<domain><Role>Provider`).
+2. Нотифайеры делегируют действия сервисам в `lib/hoplixi_store/repository/*_service.dart`, которые возвращают `ServiceResult<T>` (`lib/hoplixi_store/repository/service_results.dart`).
+3. Сервисы валидируют входные ID, логируют через `core/logger/app_logger.dart`, оформляют транзакции и никогда не пробрасывают исключения наружу.
+4. DAO из `lib/hoplixi_store/dao` инкапсулируют запросы Drift (`lib/hoplixi_store/hoplixi_store.dart`), а SQL триггеры истории (`lib/hoplixi_store/sql/triggers.dart`) автоматически ведут аудит паролей/нот/otp.
 
-### Паттерн сервиса (пример)
+## Шифрование и хранение
 
-```dart
-final r = await ref.read(totpServiceProvider).getTotpById(id);
-if (!r.success) ToastHelper.error(title: 'Ошибка', description: r.message); else use(r.data);
-```
-В сервисах: валидация входных ID (существуют ли категории/теги), работа транзакциями при связках (см. `PasswordService.deletePassword`), автоматическая история через триггеры – не дублировать вручную.
+- Для полей с секретами используйте `lib/core/lib/box_db/crypto_box.dart` (AES-GCM с auto nonce). Новые зашифрованные столбцы держат `{payload, nonce, mac}`.
+- Низкоуровневое файловое хранилище (`lib/core/lib/box_db_new/*`) отдельно от Drift; `simple_box.dart` считается deprecated.
+- Все ID генерируются как UUID v4; plaintext нельзя логировать или возвращать в `ServiceResult.message`.
 
-### Добавление новой сущности
+## UI и общие паттерны
 
-1. Таблица: `hoplixi_store/tables/<entity>.dart`.
-2. DAO: `hoplixi_store/dao/<entity>_dao.dart`.
-3. Включить в `@DriftDatabase` (`hoplixi_store.dart`).
-4. Кодоген: `build_runner.bat`.
-5. Сервис: `hoplixi_store/repository/<entity>_service.dart` (ориентироваться на `password_service.dart` / `totp_service.dart`).
-6. При необходимости: триггеры истории (+ обновление `sql/triggers.dart`).
+- Общие виджеты лежат в `lib/common/` (`SmoothButton`, `PasswordField`, `SliderButton`); придерживайтесь их вместо Material по умолчанию.
+- Навигация управляется GoRouter в `lib/router`; новые экраны регистрируются там, переходы централизованы.
+- Toast/ошибки показываются через `ToastHelper` (`core/utils/toastification.dart`), а глобальные сообщения — `ScaffoldMessengerManager` (`lib/core/utils/scaffold_messenger_manager`).
 
-### Riverpod / UI
+## Расширение доменных сущностей
 
-- Только Notifier / AsyncNotifier / StreamNotifier. Имена провайдеров: `<domain><Role>Provider`.
-- UI использует кастомные контролы из `lib/common/` (`SmoothButton`, `PasswordField`, `SliderButton`).
-- Новые экраны регистрировать в `lib/router/` (GoRouter, анимации централизованы).
+1. Таблица → `lib/hoplixi_store/tables/<entity>.dart`.
+2. DAO → `lib/hoplixi_store/dao/<entity>_dao.dart` (следовать примерам PasswordsDao/TotpsDao по сложным фильтрам и stream'ам).
+3. Добавить в `@DriftDatabase` в `lib/hoplixi_store/hoplixi_store.dart` и обновить связанные триггеры при необходимости.
+4. Сервис → `lib/hoplixi_store/repository/<entity>_service.dart`; смотрите `password_service.dart` и `totp_service.dart` для транзакций и работы с тегами/категориями.
 
-### Логирование и ошибки
+## Рабочие процессы разработчика
 
-- Использовать `logInfo/logDebug/logError` (`core/logger/app_logger.dart`), tag указывать (например 'PasswordService'). Не логировать расшифрованные секреты / пароли / OTP.
-- UI уведомления через `ToastHelper` (`core/utils/toastification.dart`).
-- Сообщения в `ServiceResult` – безопасные и краткие.
+- Генерация: после изменений Drift/Freezed/DTO запустите `build_runner.bat` (выполняет `dart run build_runner build --delete-conflicting-outputs`).
+- Тесты: `flutter test --no-pub` (unit/feature тесты живут в `test/features/...`).
+- Запуск: `flutter run -d windows` для десктопа, `flutter build apk` или `flutter build windows` для релиза, `release.bat` собирает production-пакет.
+- Следите за SQLCipher зависимостями: DB инициализируется через сервисы, UI не должен открывать соединения напрямую.
 
-### Шифрование / ключи
+## Логирование и соблюдение безопасности
 
-- UUID v4 для всех новых ID.
-- AES-GCM: при шифровании создавать auto nonce (`encryptUtf8WithAutoNonce`) и сохранять вместе с mac.
-- Никогда не писать plaintext в логгер или `ServiceResult.message`.
+- Используйте только `logInfo/logDebug/logError` с тэгом компонента; никакие пароли/OTP/secret payload не выводятся и не передаются наружу.
+- При работе с тегами/иконками/вложениями опирайтесь на Metadata сервис (`lib/hoplixi_store/repository/metadata_service.dart`) вместо прямых DAO вызовов.
 
-### Кодоген, сборка, релиз
+## Замечания
 
-- Любое изменение таблиц / Freezed / сериализации → `build_runner.bat` (или `dart run build_runner build --delete-conflicting-outputs`). Не коммитить устаревший `*.g.dart`.
-- Desktop/Android сборки: `flutter build windows` / `flutter build apk`. Прод-обёртка: `release.bat`.
-- Web осознанно отключён – не включать.
+- При создании freezed классов используйте аннотацию `@freezed`, и добавляйте классу abstract class, а не обычный класс. Это необходимо для корректной работы генерации кода и обеспечения неизменяемости объектов.
 
-### Запрещено
+## Чек перед коммитом
 
-- Прямой доступ UI/Notifier к DAO.
-- Сырые SQL вне Drift (кроме централизованных триггеров).
-- Логирование секретов / обход шифрования / хранение plaintext.
-- Legacy Riverpod Consumer* API.
+[] Структура UI → Notifier → Service → DAO соблюдена; нет прямых DAO вызовов из UI.
+[] Все публичные операции возвращают `ServiceResult` и оборачивают ошибки.
+[] `build_runner` прогнан только если менялись таблицы/Freezed/генерируемый код; нет устаревших `*.g.dart`.
+[] Логи и сообщения проверены на отсутствие секретов.
 
-### Быстрый чек перед коммитом
+## MCP Servers
 
-[] build_runner успешен (запускать только после изменений в таблицах/Freezed, в других случаях не трогать!!)
-[] Все новые операции возвращают `ServiceResult`
-[] Нет прямых DAO вызовов из UI/Notifier
-[] Провайдеры используют Notifier API
+- Для получения актуальной документации библиотек обращайтесь к MCP серверу context7.
+- Для сложных многошаговых сценариев используйте SequentialThinking MCP (гарантия порядка, удержание долгих задач, метрики).
 
-Нужен пример (новый сервис/триггер/провайдер) – сформулируйте сущность и цель, можно ссылаясь на ближайший аналог.
-
-### MCP Servers
-
-- To obtain accurate data about libraries, use mcp server context7;
-- Use an MCP server for the SequentialThinking model when you need reliable, ordered orchestration of multi-step reasoning — e.g., to manage long-running, stateful chains of inference, coordinate parallel subtasks, or persist and resume multi-turn workflows.
-Also use it when you need centralized routing, authentication, load-balancing and observability (logging/metrics) for many clients or models so ordering, fault tolerance and scalable performance are maintained.
+Нужны дополнительные примеры (новый сервис/триггер/провайдер) — сформулируйте сущность и цель и укажите ближайший аналог в коде.
