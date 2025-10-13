@@ -1,6 +1,5 @@
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/src/token/oauth2_token_storage.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/cloud_sync/models/token_oauth.dart';
 

@@ -6,7 +6,6 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dao/filters_dao/otp_filter_dao.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
-import 'package:hoplixi/hoplixi_store/tables/hoplixi_meta.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import 'package:hoplixi/hoplixi_store/sql/triggers.dart';
 import 'package:hoplixi/hoplixi_store/services/trigger_management_service.dart';

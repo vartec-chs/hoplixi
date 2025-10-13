@@ -142,7 +142,7 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
                         ),
                       ),
                       Text(
-                        '${credential.type.name}',
+                        credential.type.name,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withOpacity(0.6),
                         ),

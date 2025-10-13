@@ -6,7 +6,6 @@ import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 
 import 'provider/oauth2_provider.dart';
 import 'rest_client/http_oauth2_rest_client.dart';
-import 'token/oauth2_token.dart';
 import 'token/oauth2_token_storage.dart';
 
 class OAuth2Account {

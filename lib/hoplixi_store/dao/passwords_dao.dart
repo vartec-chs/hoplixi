@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:hoplixi/hoplixi_store/dao/index.dart';
 import 'package:hoplixi/hoplixi_store/utils/uuid_generator.dart';
 import '../hoplixi_store.dart';
 import '../tables/passwords.dart';
@@ -29,17 +28,16 @@ class _PasswordDataFromRow {
   _PasswordDataFromRow({
     required this.id,
     required this.name,
-    this.description,
-    this.login,
-    this.email,
-    this.url,
-
-    this.categoryId,
     required this.isFavorite,
     required this.usedCount,
     required this.isArchived,
     required this.createdAt,
     required this.modifiedAt,
+    this.description,
+    this.login,
+    this.email,
+    this.url,
+    this.categoryId,
     this.lastAccessed,
   });
 }

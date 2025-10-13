@@ -169,7 +169,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
 
   Widget _buildTypeSelector() {
     return DropdownButtonFormField<CredentialOAuthType>(
-      value: _selectedType,
+      initialValue: _selectedType,
       decoration: primaryInputDecoration(context, labelText: 'Тип'),
       items: CredentialOAuthType.values
           .map(

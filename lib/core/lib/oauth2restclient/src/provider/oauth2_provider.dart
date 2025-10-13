@@ -79,8 +79,9 @@ class OAuth2ProviderF implements OAuth2Provider {
   Future<OAuth2Token?> login({
     void Function(String error)? errorCallback,
   }) async {
-    if (Platform.isAndroid || Platform.isIOS)
+    if (Platform.isAndroid || Platform.isIOS) {
       return loginFromMobile(errorCallback);
+    }
     return loginFromDesktop(errorCallback);
   }
 

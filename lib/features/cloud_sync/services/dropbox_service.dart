@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/lib/dropbox_api/dropbox_api.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/repository/service_results.dart';
 import '../models/sync_metadata.dart';
 import 'sync_metadata_service.dart';

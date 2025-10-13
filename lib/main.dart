@@ -6,14 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app.dart';
-import 'package:hoplixi/app/app_preferences/app_preferences.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/logger/models.dart';
-import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/core/services/notification_helpers.dart';
 import 'package:toastification/toastification.dart';
-import 'package:hoplixi/core/utils/window_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
 
 Future<void> main() async {
