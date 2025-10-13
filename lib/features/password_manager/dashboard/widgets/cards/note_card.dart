@@ -6,6 +6,8 @@ import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 
+import 'shared_card_widgets.dart';
+
 class NoteCard extends ConsumerStatefulWidget {
   final CardNoteDto note;
   final VoidCallback onFavoriteToggle;
@@ -250,7 +252,7 @@ class _NoteCardState extends ConsumerState<NoteCard>
                           ),
                         ...?widget.note.tags?.map(
                           (tag) =>
-                              _TagChip(name: tag.name, colorHex: tag.color),
+                              TagChip(name: tag.name, colorHex: tag.color),
                         ),
                       ],
                     ),
@@ -403,37 +405,4 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _TagChip extends StatelessWidget {
-  final String name;
-  final String? colorHex;
 
-  const _TagChip({required this.name, this.colorHex});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseColor = parseHexColor(colorHex, theme.colorScheme.primary);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: baseColor.withAlpha(0x1A),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.tag, size: 16, color: baseColor),
-          const SizedBox(width: 4),
-          Text(
-            name,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: baseColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

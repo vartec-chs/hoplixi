@@ -3,10 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
+
+import 'shared_card_widgets.dart';
 
 class PasswordCard extends ConsumerStatefulWidget {
   final CardPasswordDto password;
@@ -197,7 +198,7 @@ class _PasswordCardState extends ConsumerState<PasswordCard>
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: (widget.password.categories ?? [])
                                 .map<Widget>(
-                                  (category) => _CategoryChip(
+                                  (category) => CategoryChip(
                                     name: category.name,
                                     colorHex: category.color,
                                   ),
@@ -279,7 +280,7 @@ class _PasswordCardState extends ConsumerState<PasswordCard>
                         children: (widget.password.tags ?? [])
                             .map<Widget>(
                               (tag) =>
-                                  _TagChip(name: tag.name, colorHex: tag.color),
+                                  TagChip(name: tag.name, colorHex: tag.color),
                             )
                             .toList(),
                       ),
@@ -455,72 +456,3 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-class _CategoryChip extends StatelessWidget {
-  final String name;
-  final String? colorHex;
-
-  const _CategoryChip({required this.name, this.colorHex});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseColor = parseHexColor(colorHex, theme.colorScheme.primary);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: baseColor.withAlpha(0x1A),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.folder, size: 16, color: baseColor),
-          const SizedBox(width: 4),
-          Text(
-            name,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: baseColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TagChip extends StatelessWidget {
-  final String name;
-  final String? colorHex;
-
-  const _TagChip({required this.name, this.colorHex});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseColor = parseHexColor(colorHex, theme.colorScheme.primary);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: baseColor.withAlpha(0x1A),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.tag, size: 16, color: baseColor),
-          const SizedBox(width: 4),
-          Text(
-            name,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: baseColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
