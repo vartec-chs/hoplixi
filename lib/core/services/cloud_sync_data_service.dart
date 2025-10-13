@@ -25,7 +25,12 @@ class ServiceResult<T> {
 
 /// Service that persists cloud sync state in a JSON file
 class CloudSyncDataService {
-  CloudSyncDataService();
+  static final CloudSyncDataService _instance =
+      CloudSyncDataService._internal();
+
+  factory CloudSyncDataService() => _instance;
+
+  CloudSyncDataService._internal();
 
   static const _fileName = 'cloud_sync_data.json';
   static const _tag = 'CloudSyncDataService';
@@ -136,6 +141,18 @@ class CloudSyncDataService {
         stackTrace: stack,
       );
       return ServiceResult.failure('Failed to update cloud sync item');
+    }
+  }
+
+  /// Update an existing entry or create if not exists
+  Future<ServiceResult<CloudSyncDataItem>> updateOrCreate(
+    CloudSyncDataItem item,
+  ) async {
+    final updateResult = await updateItem(item);
+    if (updateResult.success) {
+      return updateResult;
+    } else {
+      return await createItem(item);
     }
   }
 

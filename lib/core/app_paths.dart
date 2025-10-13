@@ -14,6 +14,8 @@ class AppPaths {
   static Future<String> get appLogsPath async => await _getAppLogsPath();
   static Future<String> get appCrashReportsPath async =>
       await _getAppCrashReportsPath();
+  static Future<String> get exportStoragesPath async =>
+      await _getExportStoragesPath();
 }
 
 /// Получение пути к директории приложения
@@ -60,6 +62,20 @@ Future<String> _getAppCrashReportsPath() async {
 Future<String> _getApplicationStoragePath() async {
   final appDir = await _getAppPath();
   final basePath = p.join(appDir.path, 'storages');
+
+  // Создаем директорию если её нет
+  final directory = Directory(basePath);
+  if (!await directory.exists()) {
+    await directory.create(recursive: true);
+  }
+
+  return basePath;
+}
+
+// export storages path
+Future<String> _getExportStoragesPath() async {
+  final appDir = Directory(await _getApplicationStoragePath());
+  final basePath = p.join(appDir.path, 'exports');
 
   // Создаем директорию если её нет
   final directory = Directory(basePath);
