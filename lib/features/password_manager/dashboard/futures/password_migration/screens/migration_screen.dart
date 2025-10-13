@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
-import 'package:hoplixi/features/global/widgets/text_field.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/text_field.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';

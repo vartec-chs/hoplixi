@@ -30,7 +30,7 @@ import 'package:hoplixi/features/password_manager/sync/screens/import_screen.dar
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/features/settings/screens/settings_screen.dart';
 import 'package:hoplixi/features/global/screens/image_crop_screen.dart';
-import 'package:hoplixi/router/router_provider.dart';
+import 'package:hoplixi/app/router/router_provider.dart';
 import 'package:hoplixi/features/global/screens/splash_screen.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'routes_path.dart';

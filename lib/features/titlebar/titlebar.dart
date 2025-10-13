@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/global/providers/app_close_provider.dart';
-import 'package:hoplixi/features/global/widgets/close_database_button.dart';
-import 'package:hoplixi/core/constants/main_constants.dart';
-import 'package:hoplixi/core/theme/index.dart';
+import 'package:hoplixi/core/providers/app_close_provider.dart';
+import 'package:hoplixi/shared/widgets/close_database_button.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
+import 'package:hoplixi/app/theme/index.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
-import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
+import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 class TitleBar extends ConsumerStatefulWidget {

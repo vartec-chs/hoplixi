@@ -1,14 +1,14 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:hoplixi/core/errors/db_errors.dart';
-import 'package:hoplixi/core/errors/error.dart';
+import 'package:hoplixi/app/errors/db_errors.dart';
+import 'package:hoplixi/app/errors/error.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:hoplixi/core/constants/main_constants.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:file_picker/file_picker.dart';
 
 /// Состояние формы создания хранилища

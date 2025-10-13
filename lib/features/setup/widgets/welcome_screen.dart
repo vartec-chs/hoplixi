@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/theme/colors.dart';
+import 'package:hoplixi/app/theme/colors.dart';
 import 'package:hoplixi/features/setup/providers/setup_provider.dart';
 
 /// Экран приветствия с анимациями

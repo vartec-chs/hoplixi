@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/core/app_preferences/index.dart';
+import 'package:hoplixi/app/app_preferences/index.dart';
 
 import 'package:hoplixi/core/logger/app_logger.dart';
 

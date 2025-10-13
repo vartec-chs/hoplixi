@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:hoplixi/core/constants/main_constants.dart';
-import 'package:hoplixi/core/errors/index.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
+import 'package:hoplixi/app/errors/index.dart';
 
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dao/filters_dao/otp_filter_dao.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/core/constants/responsive_constants.dart';
+import 'package:hoplixi/app/constants/responsive_constants.dart';
 import 'package:hoplixi/features/test/widgets/test_scaffold_messenger.dart';
-import 'package:hoplixi/router/router_provider.dart';
+import 'package:hoplixi/app/router/router_provider.dart';
 
 class TestScreen extends StatelessWidget {
   const TestScreen({super.key});

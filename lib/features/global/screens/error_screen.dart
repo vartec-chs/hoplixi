@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
 
 class ErrorScreen extends StatelessWidget {
   final String errorMessage;

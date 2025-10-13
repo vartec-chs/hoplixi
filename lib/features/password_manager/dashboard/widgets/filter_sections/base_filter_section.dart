@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/core/constants/main_constants.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/hoplixi_store/models/filter_models/base_filter.dart';
-import 'package:hoplixi/features/global/widgets/text_field.dart';
+import 'package:hoplixi/shared/widgets/text_field.dart';
 
 /// Переиспользуемая секция для настройки базовых фильтров
 /// Содержит общие поля для всех типов фильтров

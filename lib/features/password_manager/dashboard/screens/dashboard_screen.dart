@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/features/global/widgets/close_database_button.dart';
+import 'package:hoplixi/shared/widgets/close_database_button.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/theme/theme_switcher.dart';
-import 'package:hoplixi/features/global/widgets/index.dart';
+import 'package:hoplixi/app/theme/theme_switcher.dart';
+import 'package:hoplixi/shared/widgets/index.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
 
@@ -13,7 +13,7 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/dashboard_ap
 import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_list_view.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_fab.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 
 /// Главный экран дашборда с полнофункциональным SliverAppBar
 /// Управляет отображением паролей, заметок и OTP с фильтрацией и поиском

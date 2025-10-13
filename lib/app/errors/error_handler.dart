@@ -1,5 +1,5 @@
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/errors/db_errors.dart';
+import 'package:hoplixi/app/errors/db_errors.dart';
 
 /// Централизованный обработчик ошибок
 ///

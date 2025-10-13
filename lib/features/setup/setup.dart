@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/core/app_preferences/index.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/app_preferences/index.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/theme/colors.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/app/theme/colors.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/features/setup/providers/setup_provider.dart';
 import 'package:hoplixi/features/setup/widgets/welcome_screen.dart';
 import 'package:hoplixi/features/setup/widgets/theme_selection_screen.dart';

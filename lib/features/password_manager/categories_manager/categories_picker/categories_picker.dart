@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
-import 'package:hoplixi/features/global/widgets/text_field.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/text_field.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as db;
 import 'package:hoplixi/hoplixi_store/providers/dao_providers.dart';

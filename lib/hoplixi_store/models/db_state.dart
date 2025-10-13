@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:hoplixi/core/errors/db_errors.dart';
+import 'package:hoplixi/app/errors/db_errors.dart';
 
 part 'db_state.freezed.dart';
 

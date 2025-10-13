@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:hoplixi/core/errors/index.dart';
+import 'package:hoplixi/app/errors/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
 /// Реализация сервиса валидации базы данных

@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/global/widgets/text_field.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/text_field.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/utils.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/data_refresh_trigger_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';
 import 'package:hoplixi/hoplixi_store/providers/service_providers.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_picker/categories_picker.dart';
 import 'package:otp/otp.dart';
 

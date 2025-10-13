@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/constants/main_constants.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/hoplixi_store/repository/service_results.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';

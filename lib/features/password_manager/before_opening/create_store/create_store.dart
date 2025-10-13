@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store_control.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_1_basic_info.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_2_security.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_3_storage_path.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/widgets/step_4_confirmation.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/hoplixi_store/models/db_state.dart';
 

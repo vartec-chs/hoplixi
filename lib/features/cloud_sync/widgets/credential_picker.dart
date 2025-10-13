@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
 import 'package:hoplixi/features/cloud_sync/providers/credential_provider.dart';
-import 'package:hoplixi/features/global/widgets/text_field.dart';
+import 'package:hoplixi/shared/widgets/text_field.dart';
 
 /// Текстовое поле, позволяющее выбрать credential из списка.
 class CredentialPicker extends ConsumerStatefulWidget {

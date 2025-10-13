@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 
 class QrTestScreen extends StatefulWidget {
   const QrTestScreen({super.key});

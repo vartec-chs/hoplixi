@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoplixi/router/router_refresh_provider.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/router/router_refresh_provider.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   final String? title;

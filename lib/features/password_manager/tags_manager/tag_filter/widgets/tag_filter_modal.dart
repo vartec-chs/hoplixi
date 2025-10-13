@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/global/widgets/text_field.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
-import 'package:hoplixi/features/global/widgets/debouncer.dart';
-import 'package:hoplixi/features/global/widgets/shimmer_effect.dart';
-import 'package:hoplixi/core/theme/colors.dart';
+import 'package:hoplixi/shared/widgets/text_field.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/debouncer.dart';
+import 'package:hoplixi/shared/widgets/shimmer_effect.dart';
+import 'package:hoplixi/app/theme/colors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/parse_hex_color.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart' as store;

@@ -5,7 +5,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/hoplixi_store/dto/database_file_info.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 import 'package:intl/intl.dart';
 
 /// Экран выбора хранилища для экспорта

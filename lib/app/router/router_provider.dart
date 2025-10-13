@@ -8,13 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_transitions/go_transitions.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
-import 'package:hoplixi/features/global/providers/notification_providers.dart';
+import 'package:hoplixi/core/providers/notification_providers.dart';
 
 import 'package:hoplixi/features/global/screens/error_screen.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global_key.dart';
-import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
-import 'package:hoplixi/router/router_refresh_provider.dart';
+import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
+import 'package:hoplixi/app/router/router_refresh_provider.dart';
 
 import 'package:universal_platform/universal_platform.dart';
 

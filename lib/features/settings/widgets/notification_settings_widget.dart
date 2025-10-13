@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../global/widgets/button.dart';
-import '../../global/providers/notification_providers.dart';
+import '../../../shared/widgets/button.dart';
+import '../../../core/providers/notification_providers.dart';
 import '../../../core/utils/toastification.dart';
 import '../../../core/logger/app_logger.dart';
 

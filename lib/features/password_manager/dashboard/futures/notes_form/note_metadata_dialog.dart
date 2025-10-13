@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
-import 'package:hoplixi/features/global/widgets/text_field.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/text_field.dart';
 import 'package:hoplixi/features/password_manager/categories_manager/categories_picker/categories_picker.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_picker/tags_picker.dart';
 import 'package:hoplixi/hoplixi_store/enums/entity_types.dart';

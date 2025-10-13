@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:hoplixi/core/index.dart';
 import 'package:intl/intl.dart';
 
-import 'package:hoplixi/core/constants/main_constants.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';

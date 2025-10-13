@@ -14,7 +14,7 @@ import 'models/db_state.dart';
 import 'dto/db_dto.dart';
 import 'dto/database_file_info.dart';
 import 'hoplixi_store.dart';
-import 'package:hoplixi/core/errors/db_errors.dart';
+import 'package:hoplixi/app/errors/db_errors.dart';
 import 'package:path/path.dart' as p;
 
 class HoplixiStoreManager {

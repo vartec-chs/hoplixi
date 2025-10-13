@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/global/providers/biometric_auto_open_provider.dart';
-import 'package:hoplixi/features/global/providers/biometric_provider.dart';
-import 'package:hoplixi/features/global/widgets/index.dart';
-import 'package:hoplixi/features/global/services/biometric_service.dart';
+import 'package:hoplixi/core/providers/biometric_auto_open_provider.dart';
+import 'package:hoplixi/core/providers/biometric_provider.dart';
+import 'package:hoplixi/shared/widgets/index.dart';
+import 'package:hoplixi/core/services/biometric_service.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});

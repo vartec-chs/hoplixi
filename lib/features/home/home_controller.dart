@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/core/app_preferences/index.dart';
+import 'package:hoplixi/app/app_preferences/index.dart';
 
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';

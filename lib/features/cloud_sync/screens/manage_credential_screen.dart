@@ -8,8 +8,8 @@ import 'package:hoplixi/features/cloud_sync/screens/token_list_screen.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/auth_modal.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/credential_form_dialog.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/credential_card.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 
 class ManageCredentialScreen extends ConsumerWidget {
   const ManageCredentialScreen({super.key});

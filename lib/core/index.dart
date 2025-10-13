@@ -2,11 +2,11 @@
 library;
 
 // Preferences
-export 'app_preferences/index.dart';
+export '../app/app_preferences/index.dart';
 
 // Constants
-export 'constants/main_constants.dart';
-export 'constants/responsive_constants.dart';
+export '../app/constants/main_constants.dart';
+export '../app/constants/responsive_constants.dart';
 
 // Logger
 export 'logger/app_logger.dart';

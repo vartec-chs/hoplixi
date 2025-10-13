@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart';
 
-import 'package:hoplixi/core/constants/main_constants.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
 
 import 'file_manager.dart';
 import 'log_buffer.dart';

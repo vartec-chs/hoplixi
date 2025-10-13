@@ -3,9 +3,9 @@ library;
 import 'package:path/path.dart' as p;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/core/errors/db_errors.dart';
+import 'package:hoplixi/app/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/global/providers/box_db_provider.dart';
+import 'package:hoplixi/core/providers/box_db_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';

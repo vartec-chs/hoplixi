@@ -5,13 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/cloud_sync/providers/dropbox_provider.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/auth_modal.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
-import 'package:hoplixi/features/global/widgets/index.dart';
-import 'package:hoplixi/features/global/widgets/password_field.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/index.dart';
+import 'package:hoplixi/shared/widgets/password_field.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
 import 'package:hoplixi/features/password_manager/sync/providers/storage_export_provider.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 
 /// Экран импорта хранилища
 class ImportScreen extends ConsumerStatefulWidget {

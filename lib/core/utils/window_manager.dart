@@ -1,4 +1,4 @@
-import 'package:hoplixi/core/constants/main_constants.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 
 import 'package:universal_platform/universal_platform.dart';

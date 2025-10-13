@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/core/app_preferences/keys.dart';
+import 'package:hoplixi/app/app_preferences/keys.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/global/providers/secure_storage_provider.dart';
+import 'package:hoplixi/core/providers/secure_storage_provider.dart';
 
 class BiometricAutoOpenNotifier extends AsyncNotifier<bool> {
   @override

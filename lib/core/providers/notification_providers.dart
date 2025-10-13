@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/services/notification_service.dart';
-import '../../../core/services/notification_helpers.dart';
-import '../../../core/logger/app_logger.dart';
+import '../services/notification_service.dart';
+import '../services/notification_helpers.dart';
+import '../logger/app_logger.dart';
 
 /// Провайдер для сервиса уведомлений
 final notificationServiceProvider = Provider<NotificationService>((ref) {

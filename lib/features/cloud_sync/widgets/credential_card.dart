@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hoplixi/features/cloud_sync/models/credential_app.dart';
-import 'package:hoplixi/core/constants/main_constants.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:intl/intl.dart';
 
 class CredentialCard extends StatelessWidget {

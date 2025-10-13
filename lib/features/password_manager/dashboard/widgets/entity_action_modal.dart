@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
-import 'package:hoplixi/features/global/widgets/slider_button.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/slider_button.dart';
 
 /// Типы действий над сущностями
 enum EntityActionType { edit, delete }

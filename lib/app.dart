@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/core/constants/main_constants.dart';
-import 'package:hoplixi/core/constants/responsive_constants.dart';
+import 'package:hoplixi/app/constants/main_constants.dart';
+import 'package:hoplixi/app/constants/responsive_constants.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/global/providers/app_close_provider.dart';
-import 'package:hoplixi/features/global/providers/app_lifecycle_provider.dart';
+import 'package:hoplixi/core/providers/app_close_provider.dart';
+import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
 
 // import 'package:hoplixi/core/theme/theme.dart';
 import 'package:hoplixi/core/utils/toast/toast_manager.dart';
-import 'package:hoplixi/router/router_provider.dart';
+import 'package:hoplixi/app/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
-import 'package:hoplixi/core/theme/index.dart';
+import 'package:hoplixi/app/theme/index.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

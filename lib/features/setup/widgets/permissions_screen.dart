@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/theme/colors.dart';
+import 'package:hoplixi/app/theme/colors.dart';
 import 'package:hoplixi/core/utils/toastification.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
 
 /// Модель разрешения
 class PermissionItem {

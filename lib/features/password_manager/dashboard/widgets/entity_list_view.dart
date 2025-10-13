@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/features/global/widgets/button.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/lists_providers/paginated_passwords_provider.dart';
@@ -15,7 +15,7 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/otps_l
 import 'package:hoplixi/features/password_manager/dashboard/widgets/lists/notes_list.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/otp_edit_modal.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
-import 'package:hoplixi/router/routes_path.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 import 'package:flutter/scheduler.dart';
 
