@@ -159,7 +159,7 @@ class _PasswordCardState extends ConsumerState<PasswordCard>
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
+        color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: theme.colorScheme.outline.withOpacity(0.1)),
         boxShadow: [

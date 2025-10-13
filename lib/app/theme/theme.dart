@@ -28,6 +28,8 @@ abstract final class AppTheme {
       useMaterial3: true,
       transparentStatusBar: true,
       fontFamily: GoogleFonts.nunito().fontFamily,
+      error: Color(0xFFDE372F),
+      errorContainer: Color(0xFFD50000),
     );
 
     return _withNunito(
@@ -63,8 +65,8 @@ abstract final class AppTheme {
       useMaterial3: true,
       transparentStatusBar: true,
       fontFamily: GoogleFonts.nunito().fontFamily,
-      
-
+      error: Color(0xFFE53935),
+      errorContainer: Color(0xFFB81D28),
     );
 
     return _withNunito(
