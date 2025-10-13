@@ -8,6 +8,18 @@
 2. **Автоматическое заполнение `created_at` и `modified_at`** при создании записей
 3. **Автоматическое ведение истории** изменений и удалений
 
+## Структура исходников
+
+Исходный код триггеров разделён по тематическим наборам и размещён в `lib/hoplixi_store/sql/triggers/`:
+
+- `modified_at_triggers.dart` — автообновление `modified_at`
+- `insert_timestamp_triggers.dart` — заполнение `created_at`/`modified_at` при `INSERT`
+- `history_update_triggers.dart` — запись истории для изменённых записей
+- `history_delete_triggers.dart` — запись истории для удалённых записей
+- `meta_touch_triggers.dart` — синхронизация `hoplixi_meta`
+
+Класс `DatabaseTriggers` в `lib/hoplixi_store/sql/triggers.dart` агрегирует эти списки и отвечает за создание/удаление триггеров при миграциях.
+
 ## Типы триггеров
 
 ### 1. Триггеры обновления modified_at
@@ -21,18 +33,19 @@ FOR EACH ROW
 WHEN NEW.modified_at = OLD.modified_at
 BEGIN
   UPDATE passwords 
-  SET modified_at = datetime('now') 
+  SET modified_at = strftime('%s','now') 
   WHERE id = NEW.id;
 END;
 ```
 
 **Таблицы с этими триггерами:**
+
 - `hoplixi_meta`
 - `categories`
 - `icons`
 - `tags`
 - `passwords`
-- `totps`
+- `otps`
 - `notes`
 - `attachments`
 
@@ -48,8 +61,8 @@ WHEN NEW.created_at IS NULL OR NEW.modified_at IS NULL
 BEGIN
   UPDATE passwords 
   SET 
-    created_at = COALESCE(NEW.created_at, datetime('now')),
-    modified_at = COALESCE(NEW.modified_at, datetime('now'))
+    created_at = COALESCE(NEW.created_at, strftime('%s','now')),
+    modified_at = COALESCE(NEW.modified_at, strftime('%s','now'))
   WHERE id = NEW.id;
 END;
 ```
@@ -57,6 +70,7 @@ END;
 ### 3. Триггеры истории изменений
 
 #### При UPDATE
+
 Автоматически сохраняют старую версию записи в таблицы истории при изменении:
 
 ```sql
@@ -74,12 +88,13 @@ BEGIN
   ) VALUES (
     -- UUID генерация
     lower(hex(randomblob(4))) || '-' || ...,
-    OLD.id, 'modified', OLD.name, OLD.password, ..., datetime('now')
+    OLD.id, 'modified', OLD.name, OLD.password, ..., strftime('%s','now')
   );
 END;
 ```
 
 #### При DELETE
+
 Автоматически сохраняют удаляемую запись в таблицы истории:
 
 ```sql
@@ -91,7 +106,7 @@ BEGIN
     id, original_password_id, action, ..., action_at
   ) VALUES (
     -- UUID генерация
-    ..., OLD.id, 'deleted', ..., datetime('now')
+    ..., OLD.id, 'deleted', ..., strftime('%s','now')
   );
 END;
 ```
@@ -132,11 +147,11 @@ final testResults = await database.testTriggers();
 ```dart
 // Получить статистику по таблицам истории
 final stats = await database.getHistoryStatistics();
-// Результат: {'password_history': 150, 'totp_history': 50, 'note_history': 30}
+// Результат: {'password_history': 150, 'otp_history': 50, 'note_history': 30}
 
 // Очистить старую историю (старше 1 года)
 final deleted = await database.cleanupOldHistory(daysToKeep: 365);
-// Результат: {'password_history': 50, 'totp_history': 20, 'note_history': 10}
+// Результат: {'password_history': 50, 'otp_history': 20, 'note_history': 10}
 ```
 
 ### Пересоздание триггеров
