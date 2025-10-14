@@ -8,16 +8,18 @@ import 'package:hoplixi/features/password_manager/new_cloud_sync/providers/cloud
 /// Показывает прогресс экспорта/импорта и предупреждает пользователя
 /// о необходимости не закрывать приложение во время синхронизации
 class CloudSyncProgressDialog extends ConsumerWidget {
-  const CloudSyncProgressDialog({super.key});
+  const CloudSyncProgressDialog({super.key, this.onClose});
+
+  final VoidCallback? onClose;
 
   /// Показывает диалог прогресса синхронизации
   ///
   /// Возвращает Future<void>, который завершается при закрытии диалога
-  static Future<void> show(BuildContext context) {
+  static Future<void> show(BuildContext context, {VoidCallback? onClose}) {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // Запрещаем закрытие по клику вне диалога
-      builder: (context) => const CloudSyncProgressDialog(),
+      builder: (context) => CloudSyncProgressDialog(onClose: onClose),
     );
   }
 
@@ -238,7 +240,10 @@ class CloudSyncProgressDialog extends ConsumerWidget {
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              onClose?.call();
+              Navigator.of(context).pop();
+            },
             icon: const Icon(Icons.close),
             label: const Text('Закрыть'),
           ),
@@ -276,7 +281,10 @@ class CloudSyncProgressDialog extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                onClose?.call();
+                Navigator.of(context).pop();
+              },
               child: const Text('Закрыть'),
             ),
           ],

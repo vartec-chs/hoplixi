@@ -330,7 +330,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        CloudSyncProgressDialog.show(context);
+        CloudSyncProgressDialog.show(
+          context,
+          onClose: () => _isSyncDialogShown = false,
+        );
       }
     });
   }

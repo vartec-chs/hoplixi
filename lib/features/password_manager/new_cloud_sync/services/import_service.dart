@@ -162,6 +162,18 @@ class ImportDropboxService {
       return ServiceResult.failure(errorMsg);
     }
 
+    // if entries 0
+    if (cloudFiles.entries.isEmpty) {
+      final errorMsg = 'В облаке нет файлов для импорта';
+      logWarning(
+        'Нет файлов для импорта',
+        tag: tag,
+        data: {'path': exportCloudPath},
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    }
+
     // file naming 1760473744499894.zip timestamp
 
     // Ищем самый новый файл по имени
@@ -287,10 +299,22 @@ class ImportDropboxService {
       logInfo(
         'Начало распаковки архива',
         tag: tag,
-        data: {
-          'path': pathToDbFolder,
-          'filesInArchive': archive.length,
-        },
+        data: {'path': pathToDbFolder, 'filesInArchive': archive.length},
+      );
+
+      // Находим корневую папку в архиве (первый сегмент пути)
+      String? rootFolderInArchive;
+      for (final archiveFile in archive) {
+        if (archiveFile.name.contains('/')) {
+          rootFolderInArchive = archiveFile.name.split('/').first;
+          break;
+        }
+      }
+
+      logInfo(
+        'Найдена корневая папка в архиве',
+        tag: tag,
+        data: {'rootFolder': rootFolderInArchive ?? 'не найдена'},
       );
 
       for (final archiveFile in archive) {
@@ -305,28 +329,40 @@ class ImportDropboxService {
           continue;
         }
 
-        // Получаем путь без префикса папки (если есть)
+        // Получаем путь без префикса корневой папки архива
         String relativePath = archiveFile.name;
-        
-        // Если путь начинается с имени папки, убираем его
-        if (relativePath.contains('/')) {
-          final parts = relativePath.split('/');
-          // Пропускаем первую часть если это корневая папка архива
-          if (parts.length > 1) {
-            relativePath = parts.sublist(1).join('/');
-          }
+
+        // Убираем корневую папку из архива, чтобы распаковать содержимое
+        // напрямую в pathToDbFolder
+        if (rootFolderInArchive != null &&
+            relativePath.startsWith('$rootFolderInArchive/')) {
+          relativePath = relativePath.substring(rootFolderInArchive.length + 1);
         }
 
-        // Пропускаем пустые пути
-        if (relativePath.isEmpty) {
+        // Добавляем префикс "imported" к корневой директории
+        relativePath = '${DateTime.now().microsecondsSinceEpoch} $relativePath';
+
+        // Пропускаем пустые пути и сами папки (они создадутся автоматически)
+        if (relativePath.isEmpty || relativePath.endsWith('/')) {
           continue;
         }
 
-        final filePath = p.join(pathToDbFolder, relativePath);
+        final filePath = p.join(storagesDir, relativePath);
+
+        logDebug(
+          'Распаковка файла из архива',
+          tag: 'xxxtracting',
+          data: {
+            'archivePath': archiveFile.name,
+            'relativePath': relativePath,
+            'outputPath': filePath,
+            'size': archiveFile.size,
+          },
+        );
 
         if (archiveFile.isFile) {
           final outFile = File(filePath);
-          
+
           // Создаём родительскую директорию если нужно
           final parentDir = outFile.parent;
           if (!await parentDir.exists()) {
@@ -344,23 +380,14 @@ class ImportDropboxService {
             tag: tag,
             data: {
               'archivePath': archiveFile.name,
+              'relativePath': relativePath,
               'outputPath': filePath,
               'size': archiveFile.size,
             },
           );
-        } else {
-          final dir = Directory(filePath);
-          if (!await dir.exists()) {
-            await dir.create(recursive: true);
-            logDebug(
-              'Папка из архива успешно создана',
-              tag: tag,
-              data: {'path': filePath},
-            );
-          }
         }
       }
-      
+
       logInfo(
         'Архив успешно распакован',
         tag: tag,
