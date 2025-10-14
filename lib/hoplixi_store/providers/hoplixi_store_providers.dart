@@ -96,7 +96,32 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   Future<void> openDatabase(OpenDatabaseDto dto) async {
     try {
       state = const AsyncValue.loading();
+      final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud);
+
       final newState = await _manager.openDatabase(dto);
+
+      final metaDataForSync = await _manager.getDatabaseMetaForSync();
+
+      if (isCloudSyncEnabled == true &&
+          metaDataForSync != null &&
+          newState.isOpen) {
+        logInfo(
+          'База данных открыта с включённой облачной синхронизацией',
+          tag: 'DatabaseAsyncNotifier',
+          data: {
+            'storageId': metaDataForSync.id,
+            'storageName': metaDataForSync.name,
+            'path': dto.path,
+          },
+        );
+        // Запускаем синхронизацию в фоне
+        unawaited(
+          ref
+              .read(cloudSyncProvider.notifier)
+              .importFromDropbox(metadata: metaDataForSync),
+        );
+      }
+
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.initialize();
 
@@ -127,7 +152,7 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   }
 
   /// Закрыть текущую базу
-  Future<void> closeDatabase() async {
+  Future<void> closeDatabase({bool? imported}) async {
     try {
       final path = state.asData?.value.path;
       final modifiedAtBeforeOpen =
@@ -147,7 +172,10 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud);
       await _manager.closeDatabase();
 
-      if (isModified && isCloudSyncEnabled! && metaDataForSync != null) {
+      if (isModified &&
+          isCloudSyncEnabled! &&
+          metaDataForSync != null &&
+          (imported == null || imported == false)) {
         logInfo(
           'Database modified at $modifiedAtCurrent, before open at $modifiedAtBeforeOpen. Starting cloud sync...',
           tag: 'DatabaseAsyncNotifier',
@@ -182,6 +210,32 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       state = const AsyncValue.data(
         DatabaseState(status: DatabaseStatus.closed),
       );
+    }
+  }
+
+  /// Удалить текущую базу данных вместе с папкой и записью из истории
+  Future<void> deleteCurrentDatabase() async {
+    try {
+      state = const AsyncValue.loading();
+      await _manager.deleteCurrentDatabase();
+      state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));
+      logInfo('База данных удалена успешно', tag: 'DatabaseAsyncNotifier');
+    } catch (e, st) {
+      logError(
+        'Ошибка удаления базы данных',
+        error: e,
+        stackTrace: st,
+        tag: 'DatabaseAsyncNotifier',
+      );
+      final dbError = e is DatabaseError
+          ? e
+          : DatabaseError.unknown(
+              message: 'Unknown database error',
+              stackTrace: st,
+              details: e.toString(),
+            );
+      state = AsyncValue.error(dbError, st);
+      rethrow;
     }
   }
 

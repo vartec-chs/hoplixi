@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/features/password_manager/dashboard/widgets/dashboard_drawer.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/features/password_manager/new_cloud_sync/models/cloud_sync_state.dart';
 import 'package:hoplixi/shared/widgets/index.dart';
 import 'package:hoplixi/features/password_manager/dashboard/models/entety_type.dart';
 import 'package:hoplixi/features/password_manager/dashboard/providers/filter_providers/entety_type_provider.dart';
@@ -12,6 +13,8 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_list_
 import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_fab.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
+import 'package:hoplixi/features/password_manager/new_cloud_sync/providers/cloud_sync_provider.dart';
+import 'package:hoplixi/features/home/widgets/cloud_sync_progress_dialog.dart';
 
 /// Главный экран дашборда с полнофункциональным SliverAppBar
 /// Управляет отображением паролей, заметок и OTP с фильтрацией и поиском
@@ -25,6 +28,7 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _isSyncDialogShown = false;
 
   @override
   void initState() {
@@ -41,6 +45,50 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
     final dbNotifier = ref.read(hoplixiStoreProvider.notifier);
+
+    // Отслеживаем состояние синхронизации с облаком (импорт)
+    ref.listen(cloudSyncProvider, (previous, next) {
+      next.when(
+        idle: () {
+          // Закрываем диалог если он был открыт и предыдущее состояние не было success/error
+          if (_isSyncDialogShown && previous != null) {
+            final wasSuccessOrError = previous.maybeWhen(
+              success: (_) => true,
+              error: (_) => true,
+              orElse: () => false,
+            );
+            if (!wasSuccessOrError) {
+              _isSyncDialogShown = false;
+              _closeSyncDialog();
+            }
+          }
+        },
+        exporting: (_) {
+          // Показываем диалог при начале экспорта
+          if (!_isSyncDialogShown) {
+            _isSyncDialogShown = true;
+            _showSyncDialog();
+          }
+        },
+        importing: (_) {
+          // Показываем диалог при начале импорта
+          if (!_isSyncDialogShown) {
+            _isSyncDialogShown = true;
+            _showSyncDialog();
+          }
+        },
+        success: (_) async {
+          await ref.read(clearAllProvider.notifier).clearAll();
+          await dbNotifier.deleteCurrentDatabase();
+          if (context.mounted) context.go(AppRoutes.openStore);
+        },
+        error: (_) {
+          // Диалог останется открытым, покажет ошибку с кнопкой закрытия
+          // Пользователь должен сам закрыть диалог
+        },
+      );
+    });
+
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         SingleActivator(LogicalKeyboardKey.keyA, control: true): () {
@@ -274,5 +322,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ),
       ),
     );
+  }
+
+  /// Показывает диалог прогресса синхронизации
+  void _showSyncDialog() {
+    if (!mounted) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        CloudSyncProgressDialog.show(context);
+      }
+    });
+  }
+
+  /// Закрывает диалог прогресса синхронизации
+  void _closeSyncDialog() {
+    if (!mounted) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    });
   }
 }

@@ -36,7 +36,7 @@ class ImportDropboxService {
 
   ImportDropboxService(this._accountService);
 
-  late final DropboxApi _dropbox;
+  DropboxApi? _dropbox;
 
   /// Импорт базы данных из Dropbox
   ///
@@ -58,13 +58,13 @@ class ImportDropboxService {
       onError?.call(errorMsg);
       return ServiceResult.failure(errorMsg);
     }
-    _dropbox = DropboxRestApi(account);
+    _dropbox = _dropbox ?? DropboxRestApi(account);
 
     onProgress?.call(0.1, 'Проверка папок в облаке...');
 
     // Создаём корневую папку для хранилищ (игнорируем если уже существует)
     try {
-      await _dropbox.createFolder(storagesRoot);
+      await _dropbox!.createFolder(storagesRoot);
       // Если выполнилось без исключения — считаем это ненормальным
       final errorMsg =
           'Ожидался ответ 409 (папка уже существует), но createFolder завершился успешно';
@@ -105,7 +105,7 @@ class ImportDropboxService {
 
     // Создаём папку для конкретного хранилища (игнорируем если уже существует)
     try {
-      await _dropbox.createFolder(exportCloudPath);
+      await _dropbox!.createFolder(exportCloudPath);
       // Если выполнилось без исключения — считаем это ненормальным
       final errorMsg =
           'Ожидался ответ 409 (папка уже существует), но createFolder завершился успешно';
@@ -143,7 +143,7 @@ class ImportDropboxService {
     // Получаем список файлов в папке хранилища
     DropboxFolderContents cloudFiles;
     try {
-      cloudFiles = await _dropbox.listFolder(exportCloudPath);
+      cloudFiles = await _dropbox!.listFolder(exportCloudPath);
       logInfo(
         'Список файлов в облаке получен',
         tag: tag,
@@ -211,7 +211,7 @@ class ImportDropboxService {
     final downloadPath = p.join(storagesDir, fileName);
     Stream<List<int>> fileStream;
     try {
-      fileStream = await _dropbox.download(
+      fileStream = await _dropbox!.download(
         '${exportCloudPath}/${cloudFiles.entries.first.name}',
       );
       logInfo(
@@ -284,33 +284,104 @@ class ImportDropboxService {
       final bytes = file.readAsBytesSync();
       final archive = ZipDecoder().decodeBytes(bytes);
 
-      for (final file in archive) {
-        final filename = p.basename(file.name);
-        final filePath = p.join(pathToDbFolder, filename);
-        if (file.isFile) {
+      logInfo(
+        'Начало распаковки архива',
+        tag: tag,
+        data: {
+          'path': pathToDbFolder,
+          'filesInArchive': archive.length,
+        },
+      );
+
+      for (final archiveFile in archive) {
+        // Пропускаем служебные файлы macOS
+        if (archiveFile.name.startsWith('__MACOSX') ||
+            archiveFile.name.contains('.DS_Store')) {
+          logDebug(
+            'Пропуск служебного файла',
+            tag: tag,
+            data: {'name': archiveFile.name},
+          );
+          continue;
+        }
+
+        // Получаем путь без префикса папки (если есть)
+        String relativePath = archiveFile.name;
+        
+        // Если путь начинается с имени папки, убираем его
+        if (relativePath.contains('/')) {
+          final parts = relativePath.split('/');
+          // Пропускаем первую часть если это корневая папка архива
+          if (parts.length > 1) {
+            relativePath = parts.sublist(1).join('/');
+          }
+        }
+
+        // Пропускаем пустые пути
+        if (relativePath.isEmpty) {
+          continue;
+        }
+
+        final filePath = p.join(pathToDbFolder, relativePath);
+
+        if (archiveFile.isFile) {
           final outFile = File(filePath);
-          await outFile.create(recursive: true);
-          await outFile.writeAsBytes(file.content as List<int>);
+          
+          // Создаём родительскую директорию если нужно
+          final parentDir = outFile.parent;
+          if (!await parentDir.exists()) {
+            await parentDir.create(recursive: true);
+            logDebug(
+              'Создана родительская директория',
+              tag: tag,
+              data: {'path': parentDir.path},
+            );
+          }
+
+          await outFile.writeAsBytes(archiveFile.content as List<int>);
           logInfo(
             'Файл из архива успешно распакован',
             tag: tag,
-            data: {'path': filePath},
+            data: {
+              'archivePath': archiveFile.name,
+              'outputPath': filePath,
+              'size': archiveFile.size,
+            },
           );
         } else {
           final dir = Directory(filePath);
-          await dir.create(recursive: true);
-          logInfo(
-            'Папка из архива успешно создана',
-            tag: tag,
-            data: {'path': filePath},
-          );
+          if (!await dir.exists()) {
+            await dir.create(recursive: true);
+            logDebug(
+              'Папка из архива успешно создана',
+              tag: tag,
+              data: {'path': filePath},
+            );
+          }
         }
       }
+      
       logInfo(
         'Архив успешно распакован',
         tag: tag,
-        data: {'path': pathToDbFolder},
+        data: {'path': pathToDbFolder, 'filesExtracted': archive.length},
       );
+
+      // Удаляем скачанный архив после успешной распаковки
+      try {
+        await file.delete();
+        logDebug(
+          'Скачанный архив удалён',
+          tag: tag,
+          data: {'path': downloadPath},
+        );
+      } catch (e) {
+        logWarning(
+          'Не удалось удалить временный архив (не критично)',
+          tag: tag,
+          data: {'path': downloadPath, 'error': e.toString()},
+        );
+      }
     } catch (e, st) {
       final errorMsg = 'Ошибка при распаковке архива: $e';
       logError(

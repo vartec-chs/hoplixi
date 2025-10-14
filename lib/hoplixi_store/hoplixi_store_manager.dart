@@ -19,6 +19,7 @@ import 'package:path/path.dart' as p;
 
 class HoplixiStoreManager {
   HoplixiStore? _database;
+  String? _currentDatabasePath;
 
   DatabaseHistoryServiceV2? _historyService;
   final BoxManager _boxManager;
@@ -421,6 +422,7 @@ class HoplixiStoreManager {
     try {
       await DatabaseConnectionService.closeConnection(_database);
       _database = null;
+      _currentDatabasePath = null;
 
       logInfo('База данных успешно закрыта', tag: 'EncryptedDatabaseManager');
       return const DatabaseState(status: DatabaseStatus.closed);
@@ -433,6 +435,7 @@ class HoplixiStoreManager {
       );
 
       _database = null;
+      _currentDatabasePath = null;
 
       return const DatabaseState(status: DatabaseStatus.closed);
     }
@@ -448,6 +451,7 @@ class HoplixiStoreManager {
       if (_database != null) {
         await DatabaseConnectionService.closeConnection(_database);
         _database = null;
+        _currentDatabasePath = null;
         logDebug(
           'База данных закрыта при освобождении ресурсов',
           tag: 'EncryptedDatabaseManager',
@@ -483,6 +487,7 @@ class HoplixiStoreManager {
       );
       // Все равно пытаемся очистить состояние
       _database = null;
+      _currentDatabasePath = null;
       _historyService = null;
     }
   }
@@ -664,6 +669,7 @@ class HoplixiStoreManager {
     //   passwordData['salt']!,
     // );
     _database = database;
+    _currentDatabasePath = dbPath;
 
     // Записываем информацию о базе данных в историю
     await _recordDatabaseEntry(
@@ -683,6 +689,7 @@ class HoplixiStoreManager {
   ) async {
     // _passwordKey = _cryptoService.deriveKey(dto.masterPassword, meta.salt);
     _database = database;
+    _currentDatabasePath = dto.path;
 
     // Записываем/обновляем информацию о базе данных в истории
     try {
@@ -907,6 +914,144 @@ class HoplixiStoreManager {
         tag: 'HoplixiStoreManager',
       );
       return [];
+    }
+  }
+
+  /// Удалить текущую базу данных вместе с папкой и записью из истории
+  Future<void> deleteCurrentDatabase() async {
+    const String operation = 'deleteCurrentDatabase';
+
+    if (!hasOpenDatabase || _currentDatabasePath == null) {
+      logError(
+        'Попытка удалить базу данных, когда она не открыта',
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+      throw const DatabaseError.operationFailed(
+        operation: operation,
+        details: 'Database is not open',
+        message: 'База данных не открыта',
+      );
+    }
+
+    try {
+      // Сохраняем путь к файлу БД до закрытия
+      final dbFilePath = _currentDatabasePath!;
+
+      logInfo(
+        'Начало удаления базы данных',
+        tag: 'HoplixiStoreManager',
+        data: {'path': dbFilePath, 'operation': operation},
+      );
+
+      // Получаем путь к директории БД (убираем расширение из пути к файлу)
+      final dbDirPath = p.dirname(dbFilePath);
+
+      // Закрываем соединение с БД
+      await DatabaseConnectionService.closeConnection(_database);
+      _database = null;
+      _currentDatabasePath = null;
+
+      logDebug(
+        'База данных закрыта перед удалением',
+        tag: 'HoplixiStoreManager',
+        data: {'path': dbFilePath},
+      );
+
+      // Даём системе время освободить файловые дескрипторы
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Удаляем директорию БД вместе со всем содержимым с повторными попытками
+      final dbDir = Directory(dbDirPath);
+      if (await dbDir.exists()) {
+        bool deleted = false;
+        int attempts = 0;
+        const maxAttempts = 5;
+
+        while (!deleted && attempts < maxAttempts) {
+          try {
+            attempts++;
+            await dbDir.delete(recursive: true);
+            deleted = true;
+            logInfo(
+              'Директория базы данных удалена',
+              tag: 'HoplixiStoreManager',
+              data: {'path': dbDirPath, 'attempts': attempts},
+            );
+          } catch (e) {
+            if (attempts >= maxAttempts) {
+              logError(
+                'Не удалось удалить директорию БД после $maxAttempts попыток',
+                error: e,
+                tag: 'HoplixiStoreManager',
+                data: {'path': dbDirPath},
+              );
+              rethrow;
+            }
+            logWarning(
+              'Попытка $attempts удаления директории БД не удалась, повторная попытка через 500мс',
+              tag: 'HoplixiStoreManager',
+              data: {'path': dbDirPath, 'error': e.toString()},
+            );
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+        }
+      } else {
+        logWarning(
+          'Директория базы данных не найдена',
+          tag: 'HoplixiStoreManager',
+          data: {'path': dbDirPath},
+        );
+      }
+
+      // Удаляем запись из истории
+      try {
+        final service = await getHistoryService();
+        final result = await service.removeEntry(dbFilePath);
+
+        if (result.success) {
+          logInfo(
+            'Запись удалена из истории БД',
+            tag: 'HoplixiStoreManager',
+            data: {'path': dbFilePath},
+          );
+        } else {
+          logWarning(
+            'Не удалось удалить запись из истории БД (не критично): ${result.message}',
+            tag: 'HoplixiStoreManager',
+            data: {'path': dbFilePath},
+          );
+        }
+      } catch (historyError) {
+        logWarning(
+          'Ошибка удаления записи из истории (не критично): $historyError',
+          tag: 'HoplixiStoreManager',
+          data: {'path': dbFilePath, 'error': historyError.toString()},
+        );
+      }
+
+      logInfo(
+        'База данных успешно удалена',
+        tag: 'HoplixiStoreManager',
+        data: {'path': dbFilePath, 'operation': operation},
+      );
+    } catch (e, s) {
+      if (e is DatabaseError) rethrow;
+
+      logError(
+        'Ошибка удаления базы данных',
+        error: e,
+        stackTrace: s,
+        tag: 'HoplixiStoreManager',
+        data: {'operation': operation},
+      );
+
+      throw DatabaseError.operationFailed(
+        operation: operation,
+        stackTrace: s,
+        details: e.toString(),
+        message: 'Не удалось удалить базу данных',
+      );
     }
   }
 }
