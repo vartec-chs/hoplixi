@@ -10,6 +10,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/services/notification_helpers.dart';
 import 'package:toastification/toastification.dart';
 import 'package:universal_platform/universal_platform.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 Future<void> main() async {
   if (UniversalPlatform.isWeb) {
@@ -23,6 +24,7 @@ Future<void> main() async {
       // Ensure Flutter binding is initialized
       WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
       FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+      await dotenv.load(fileName: ".env");
 
       // Initialize AppLogger
       await AppLogger.instance.initialize(

@@ -119,6 +119,7 @@ dependencies:
   flutter_native_splash: ^2.4.6
   open_app_file: ^4.0.4
   app_links: ^6.4.1
+  flutter_dotenv: ^6.0.0
   
 
 
@@ -156,6 +157,7 @@ flutter:
   assets:
     - assets/
     - assets/img/
+    - .env
   
 
   # To add assets to your application, add an assets section, like this:

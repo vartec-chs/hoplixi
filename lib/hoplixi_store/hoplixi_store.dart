@@ -86,6 +86,48 @@ class HoplixiStore extends _$HoplixiStore {
     );
   }
 
+  // get modifiedAt
+  Future<int> getModifiedAt() async {
+    try {
+      final result = await (selectOnly(
+        hoplixiMeta,
+      )..addColumns([hoplixiMeta.modifiedAt])).get();
+
+      final modifiedAt = result.first.read(hoplixiMeta.modifiedAt);
+      if (modifiedAt == null) {
+        throw DatabaseError.operationFailed(
+          operation: 'getModifiedAt',
+          details: 'modifiedAt is null',
+          message: 'Ошибка получения modifiedAt',
+          stackTrace: StackTrace.current,
+        );
+      }
+
+      final rs = modifiedAt.microsecondsSinceEpoch;
+
+      logDebug(
+        'modifiedAt получен: $rs',
+        tag: _logTag,
+        data: {'modifiedAt': modifiedAt.toIso8601String()},
+      );
+
+      return rs;
+    } catch (e) {
+      logError(
+        'Ошибка получения modifiedAt',
+        error: e,
+        tag: _logTag,
+        stackTrace: StackTrace.current,
+      );
+      throw DatabaseError.operationFailed(
+        operation: 'getModifiedAt',
+        details: e.toString(),
+        message: 'Ошибка получения modifiedAt',
+        stackTrace: StackTrace.current,
+      );
+    }
+  }
+
   Future<HoplixiMetaData> getDatabaseMeta() async {
     logDebug('Получение метаданных базы данных', tag: _logTag);
     try {

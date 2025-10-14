@@ -1,5 +1,6 @@
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:uuid/uuid.dart';
 
 /// Результат операции сервиса
@@ -146,6 +147,16 @@ class CredentialService {
 
       final credentials = await _db!.getAll();
 
+      // Добавляем встроенные credentials из env, если включено
+      if (dotenv.env['USED_BUILTIN_AUTH_APPS'] == 'true') {
+        final builtinCredentials = await _getBuiltinCredentials();
+        for (final builtin in builtinCredentials) {
+          if (!credentials.any((c) => c.id == builtin.id)) {
+            credentials.add(builtin);
+          }
+        }
+      }
+
       return ServiceResult.success(data: credentials);
     } catch (e, stack) {
       logError('Failed to get all credentials', error: e, stackTrace: stack);
@@ -286,6 +297,40 @@ class CredentialService {
       await _boxManager.closeBox(_boxName);
       _db = null;
     }
+  }
+
+  /// Получить встроенные credentials из env
+  Future<List<CredentialApp>> _getBuiltinCredentials() async {
+    final builtinCredentials = <CredentialApp>[];
+
+    for (final type in CredentialOAuthType.values) {
+      if (type == CredentialOAuthType.other) continue;
+
+      final enabledKey = '${type.identifier.toUpperCase()}_BUILTIN_ENABLED';
+      if (dotenv.env[enabledKey] == 'true') {
+        final appNameKey = '${type.identifier.toUpperCase()}_APP_NAME';
+        final clientIdKey = '${type.identifier.toUpperCase()}_CLIENT_ID';
+        final clientSecretKey =
+            '${type.identifier.toUpperCase()}_CLIENT_SECRET';
+
+        final appName = dotenv.env[appNameKey];
+        final clientId = dotenv.env[clientIdKey];
+        final clientSecret = dotenv.env[clientSecretKey];
+
+        if (appName != null && clientId != null && clientSecret != null) {
+          final builtinCredential = CredentialApp(
+            id: 'builtin_${type.identifier}',
+            name: appName,
+            type: type,
+            clientId: clientId,
+            clientSecret: clientSecret,
+          );
+          builtinCredentials.add(builtinCredential);
+        }
+      }
+    }
+
+    return builtinCredentials;
   }
 
   /// Валидация данных учетных данных

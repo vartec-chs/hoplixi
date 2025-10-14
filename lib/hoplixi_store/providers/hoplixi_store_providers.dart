@@ -95,6 +95,7 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       final newState = await _manager.openDatabase(dto);
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.initialize();
+      await _manager.database?.getModifiedAt();
       state = AsyncValue.data(newState);
       logInfo(
         'База данных открыта успешно',
@@ -125,6 +126,7 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   Future<void> closeDatabase() async {
     try {
       state = const AsyncValue.loading();
+      await _manager.database?.getModifiedAt();
       await _manager.closeDatabase();
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.cleanup();

@@ -5,6 +5,8 @@ part 'credential_app.g.dart';
 
 enum CredentialOAuthType { google, onedrive, dropbox, yandex, icloud, other }
 
+
+
 extension CredentialOAuthTypeX on CredentialOAuthType {
   String get name {
     switch (this) {

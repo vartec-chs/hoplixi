@@ -5,6 +5,7 @@ import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:hoplixi/features/auth/models/models.dart';
 import 'package:hoplixi/features/auth/models/token_oauth.dart';
 import 'package:hoplixi/features/auth/providers/token_provider.dart';
 import 'package:hoplixi/features/auth/services/token_services.dart';
@@ -26,61 +27,6 @@ const List<String> _yandexScopes = <String>[
   'cloud_api:disk.app_folder',
   'cloud_api:disk.info',
 ];
-
-enum ProviderType { dropbox, google, microsoft, yandex, unknown }
-
-extension ProviderTypeX on ProviderType {
-  String get name {
-    switch (this) {
-      case ProviderType.dropbox:
-        return 'Dropbox';
-      case ProviderType.google:
-        return 'Google';
-      case ProviderType.microsoft:
-        return 'Microsoft';
-      case ProviderType.yandex:
-        return 'Yandex';
-
-      case ProviderType.unknown:
-        return 'unknown';
-    }
-  }
-
-  static ProviderType fromName(String name) {
-    switch (name.toLowerCase()) {
-      case 'dropbox':
-        return ProviderType.dropbox;
-      case 'google':
-        return ProviderType.google;
-      case 'microsoft':
-        return ProviderType.microsoft;
-      case 'yandex':
-        return ProviderType.yandex;
-      default:
-        throw ArgumentError('Unknown provider name: $name');
-    }
-  }
-
-  static ProviderType fromKey(String key) {
-    if (key.toLowerCase().contains(ProviderType.dropbox.name.toLowerCase())) {
-      return ProviderType.dropbox;
-    } else if (key.toLowerCase().contains(
-      ProviderType.google.name.toLowerCase(),
-    )) {
-      return ProviderType.google;
-    } else if (key.toLowerCase().contains(
-      ProviderType.microsoft.name.toLowerCase(),
-    )) {
-      return ProviderType.microsoft;
-    } else if (key.toLowerCase().contains(
-      ProviderType.yandex.name.toLowerCase(),
-    )) {
-      return ProviderType.yandex;
-    } else {
-      return ProviderType.unknown;
-    }
-  }
-}
 
 class OAuth2AccountService {
   static const String _tag = 'OAuth2AccountService';
