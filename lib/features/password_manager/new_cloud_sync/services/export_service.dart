@@ -46,6 +46,8 @@ class ExportDropboxService {
     String pathToDbFolder,
     String? encryptionKeyArchive, {
     void Function(double progress, String message)? onProgress,
+    // on progress file send
+    void Function(String progress, String message)? onFileProgress,
     void Function(String error)? onError,
   }) async {
     try {
@@ -171,6 +173,12 @@ class ExportDropboxService {
 
             onProgress?.call(
               progress,
+              'Загрузка: $uploadedMB МБ / $totalMB МБ ($percent%)',
+            );
+
+            final fileProgress = percent;
+            onFileProgress?.call(
+              fileProgress,
               'Загрузка: $uploadedMB МБ / $totalMB МБ ($percent%)',
             );
           } else {

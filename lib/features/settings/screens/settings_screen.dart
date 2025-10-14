@@ -16,12 +16,12 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   BiometricStatus? _biometricStatus;
-  List<String> _selectedProviders = [];
+  String _selectedProvider = '';
 
   @override
   void initState() {
     super.initState();
-    _selectedProviders = Prefs.get<List<String>>(Keys.autoSyncProviders) ?? [];
+    _selectedProvider = Prefs.get<String>(Keys.autoSyncProvider) ?? '';
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadBiometricStatus();
     });
@@ -207,31 +207,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       },
                     ),
 
-                    // Провайдеры для синхронизации
-                    ExpansionTile(
-                      title: const Text('Провайдеры для синхронизации'),
-                      children: ProviderType.values
+                    // Выбор провайдера для синхронизации
+                    DropdownButtonFormField<String>(
+                      value: _selectedProvider.isNotEmpty
+                          ? _selectedProvider
+                          : null,
+                      items: ProviderType.values
                           .where((p) => p != ProviderType.unknown)
                           .map((provider) {
-                            return CheckboxListTile(
-                              title: Text(provider.name),
-                              value: _selectedProviders.contains(provider.name),
-                              onChanged: (value) {
-                                setState(() {
-                                  if (value == true) {
-                                    _selectedProviders.add(provider.name);
-                                  } else {
-                                    _selectedProviders.remove(provider.name);
-                                  }
-                                  Prefs.set(
-                                    Keys.autoSyncProviders,
-                                    _selectedProviders,
-                                  );
-                                });
-                              },
+                            return DropdownMenuItem(
+                              value: provider.name,
+                              child: Text(provider.name),
                             );
                           })
                           .toList(),
+                      onChanged: (Prefs.get<bool>(Keys.autoSyncCloud) ?? false)
+                          ? (value) {
+                              if (value != null) {
+                                Prefs.set(Keys.autoSyncProvider, value);
+                                setState(() {
+                                  _selectedProvider = value;
+                                });
+                              }
+                            }
+                          : null,
+                      decoration: primaryInputDecoration(
+                        context,
+                        labelText: 'Провайдер для синхронизации',
+                      ),
+                      disabledHint: const Text('Включите авто-синхронизацию'),
                     ),
 
                     // Настройки уведомлений

@@ -56,8 +56,8 @@ class Keys {
   );
 
   // list auto sync providers
-  static const PrefKey<List<String>> autoSyncProviders = PrefKey<List<String>>(
-    'auto_sync_providers',
+  static const PrefKey<String> autoSyncProvider = PrefKey<String>(
+    'auto_sync_provider',
     isHiddenUI: false,
     isCanEdit: true,
   );

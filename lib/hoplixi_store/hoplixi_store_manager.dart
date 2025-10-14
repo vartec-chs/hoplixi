@@ -312,6 +312,7 @@ class HoplixiStoreManager {
       path: newDbPath,
       name: dto.name,
       status: DatabaseStatus.open,
+      modifiedAt: DateTime.now(),
     );
 
     logDebug(
@@ -384,6 +385,9 @@ class HoplixiStoreManager {
             ? meta.name
             : p.basenameWithoutExtension(dto.path),
         status: DatabaseStatus.open,
+        modifiedAt: DateTime.fromMillisecondsSinceEpoch(
+          await database.getModifiedAt(),
+        ),
       );
     } catch (e, s) {
       logError(

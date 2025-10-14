@@ -12,6 +12,7 @@ abstract class DatabaseState with _$DatabaseState {
     String? name,
     @Default(DatabaseStatus.closed) DatabaseStatus status,
     DatabaseError? error,
+    DateTime? modifiedAt,
   }) = _DatabaseState;
 
   const DatabaseState._();

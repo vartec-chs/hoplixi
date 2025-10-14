@@ -1,5 +1,6 @@
 library;
 
+import 'package:hoplixi/core/index.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,7 +96,7 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       final newState = await _manager.openDatabase(dto);
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.initialize();
-      await _manager.database?.getModifiedAt();
+
       state = AsyncValue.data(newState);
       logInfo(
         'База данных открыта успешно',
@@ -126,8 +127,24 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   Future<void> closeDatabase() async {
     try {
       state = const AsyncValue.loading();
-      await _manager.database?.getModifiedAt();
+      final modifiedAtBeforeOpen =
+          state.asData?.value.modifiedAt ?? DateTime.now();
+      final modifiedAtCurrent = DateTime.fromMillisecondsSinceEpoch(
+        await currentDatabase.getModifiedAt(),
+      );
+      final isModified = modifiedAtCurrent.isAfter(modifiedAtBeforeOpen);
+      final metaDataForSync = _manager.getDatabaseMetaForSync();
+      final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud);
       await _manager.closeDatabase();
+
+      // if (isModified && isCloudSyncEnabled && metaDataForSync != null) {
+      //   // Запускаем синхронизацию в фоне
+      //   unawaited(
+      //     ref
+      //         .read(cloudSyncProvider.notifier)
+      //         .syncDatabaseIfNeeded(metaDataForSync),
+      //   );
+      // }
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.cleanup();
       state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));

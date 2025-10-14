@@ -70,7 +70,9 @@ class TokenServices implements OAuth2TokenStorage {
       await _ensureInitialized();
 
       final allIds = await _db!.getAllIndex();
-      final filteredIds = allIds.where((id) => id.contains(suffix)).toList();
+      final filteredIds = allIds
+          .where((id) => id.contains(suffix.toLowerCase()))
+          .toList();
 
       logDebug(
         'Found ${filteredIds.length} tokens with suffix "$suffix"',
