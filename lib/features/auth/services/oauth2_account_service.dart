@@ -121,7 +121,35 @@ class OAuth2AccountService {
     switch (provider) {
       case ProviderType.dropbox:
         final key = tokenInfo.key;
-        final client = await _account.createClient(token);
+        late OAuth2RestClient client;
+        try {
+          client = await _account.createClient(token);
+        } catch (e, stack) {
+          final newToken = await _account.forceRelogin(token);
+          if (newToken == null) {
+            return ServiceResult.failure('Failed to refresh expired token');
+          }
+          try {
+            client = await _account.createClient(newToken);
+          } catch (e, stack) {
+            logError(
+              'Failed to create client after token refresh',
+              error: e,
+              stackTrace: stack,
+              tag: _tag,
+            );
+            return ServiceResult.failure(
+              'Failed to create client after token refresh',
+            );
+          }
+          logError(
+            'Failed to create client for existing token',
+            error: e,
+            stackTrace: stack,
+            tag: _tag,
+          );
+        }
+
         _clients[key] = client;
         return ServiceResult.success(data: key);
 

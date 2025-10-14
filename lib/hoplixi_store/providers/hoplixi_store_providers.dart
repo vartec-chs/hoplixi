@@ -1,6 +1,9 @@
 library;
 
+import 'dart:async';
+
 import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/password_manager/new_cloud_sync/providers/cloud_sync_provider.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -126,25 +129,44 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   /// Закрыть текущую базу
   Future<void> closeDatabase() async {
     try {
-      state = const AsyncValue.loading();
+      final path = state.asData?.value.path;
       final modifiedAtBeforeOpen =
           state.asData?.value.modifiedAt ?? DateTime.now();
+      state = const AsyncValue.loading();
+
       final modifiedAtCurrent = DateTime.fromMillisecondsSinceEpoch(
         await currentDatabase.getModifiedAt(),
       );
       final isModified = modifiedAtCurrent.isAfter(modifiedAtBeforeOpen);
-      final metaDataForSync = _manager.getDatabaseMetaForSync();
+      logDebug(
+        'Database modified check: isModified=$isModified, modifiedAtBeforeOpen=$modifiedAtBeforeOpen, modifiedAtCurrent=$modifiedAtCurrent',
+        tag: 'DatabaseAsyncNotifier',
+      );
+      final metaDataForSync = await _manager.getDatabaseMetaForSync();
+
       final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud);
       await _manager.closeDatabase();
 
-      // if (isModified && isCloudSyncEnabled && metaDataForSync != null) {
-      //   // Запускаем синхронизацию в фоне
-      //   unawaited(
-      //     ref
-      //         .read(cloudSyncProvider.notifier)
-      //         .syncDatabaseIfNeeded(metaDataForSync),
-      //   );
-      // }
+      if (isModified && isCloudSyncEnabled! && metaDataForSync != null) {
+        logInfo(
+          'Database modified at $modifiedAtCurrent, before open at $modifiedAtBeforeOpen. Starting cloud sync...',
+          tag: 'DatabaseAsyncNotifier',
+          data: {
+            'storageId': metaDataForSync.id,
+            'storageName': metaDataForSync.name,
+            'path': path,
+          },
+        );
+        // Запускаем синхронизацию в фоне
+        unawaited(
+          ref
+              .read(cloudSyncProvider.notifier)
+              .exportToDropbox(
+                metadata: metaDataForSync,
+                pathToDbFolder: p.dirname(path ?? ''),
+              ),
+        );
+      }
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.cleanup();
       state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));
