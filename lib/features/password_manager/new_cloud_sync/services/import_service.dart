@@ -1,0 +1,330 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+
+import 'package:archive/archive_io.dart';
+import 'package:hoplixi/core/app_paths.dart';
+import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/core/lib/dropbox_api/dropbox_api.dart';
+import 'package:hoplixi/core/services/cloud_sync_data_service.dart';
+import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
+import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
+
+class ServiceResult<T> {
+  final bool success;
+  final String? message;
+  final T? data;
+
+  const ServiceResult._(this.success, this.message, this.data);
+
+  factory ServiceResult.success({T? data, String? message}) {
+    return ServiceResult._(true, message, data);
+  }
+
+  factory ServiceResult.failure(String message) {
+    return ServiceResult._(false, message, null);
+  }
+}
+
+class ImportDropboxService {
+  CloudSyncDataService get _cloudSyncDataService => CloudSyncDataService();
+
+  final OAuth2AccountService _accountService;
+  final String tag = 'ImportDropboxService';
+  final String storagesRoot = '/${MainConstants.appFolderName}/storages';
+
+  ImportDropboxService(this._accountService);
+
+  late final DropboxApi _dropbox;
+
+  /// Импорт базы данных из Dropbox
+  ///
+  /// [metadata] - метаданные базы данных для синхронизации
+  /// [pathToDbFolder] - путь к папке с БД
+  /// [encryptionKeyArchive] - опциональный ключ шифрования архива
+  Future<ServiceResult<void>> importFromDropbox({
+    required DatabaseMetaForSync metadata,
+    required String pathToDbFolder,
+    required String clientKey,
+    String? encryptionKeyArchive,
+    void Function(double progress, String message)? onProgress,
+    void Function(double progress, String message)? onFileProgress,
+    void Function(String error)? onError,
+  }) async {
+    final account = _accountService.clients[clientKey];
+    if (account == null) {
+      final errorMsg = 'No Dropbox account found for the key';
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    }
+    _dropbox = DropboxRestApi(account);
+
+    onProgress?.call(0.1, 'Проверка папок в облаке...');
+
+    // Создаём корневую папку для хранилищ (игнорируем если уже существует)
+    try {
+      await _dropbox.createFolder(storagesRoot);
+      // Если выполнилось без исключения — считаем это ненормальным
+      final errorMsg =
+          'Ожидался ответ 409 (папка уже существует), но createFolder завершился успешно';
+      logError(
+        'Непредвиденное создание папки',
+        tag: tag,
+        data: {'path': storagesRoot},
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    } catch (e, st) {
+      if (e.toString().contains('409') || e.toString().contains('Conflict')) {
+        // нормальный путь — получили 409
+        logInfo(
+          'Корневая папка для хранилищ уже существует (409)',
+          tag: tag,
+          data: {'path': storagesRoot},
+        );
+      } else {
+        // любые другие ошибки — логируем / реройзим, в зависимости от логики
+        logError(
+          'Ошибка при создании корневой папки',
+          error: e,
+          stackTrace: st,
+          tag: tag,
+          data: {'path': storagesRoot},
+        );
+        onError?.call(e.toString());
+        rethrow;
+      }
+    }
+
+    onProgress?.call(0.15, 'Создание папки для хранилища...');
+
+    final storeFolderName =
+        '${metadata.name.replaceAll(' ', '_')}_${metadata.id}';
+    final exportCloudPath = '$storagesRoot/$storeFolderName';
+
+    // Создаём папку для конкретного хранилища (игнорируем если уже существует)
+    try {
+      await _dropbox.createFolder(exportCloudPath);
+      // Если выполнилось без исключения — считаем это ненормальным
+      final errorMsg =
+          'Ожидался ответ 409 (папка уже существует), но createFolder завершился успешно';
+      logError(
+        'Непредвиденное создание папки',
+        tag: tag,
+        data: {'path': exportCloudPath},
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    } catch (e, st) {
+      if (e.toString().contains('409') || e.toString().contains('Conflict')) {
+        // нормальный путь — получили 409
+        logInfo(
+          'Папка для хранилища уже существует (409)',
+          tag: tag,
+          data: {'path': exportCloudPath},
+        );
+      } else {
+        // любые другие ошибки — логируем / реройзим, в зависимости от логики
+        logError(
+          'Ошибка при создании папки для хранилища',
+          error: e,
+          stackTrace: st,
+          tag: tag,
+          data: {'path': exportCloudPath},
+        );
+        onError?.call(e.toString());
+        rethrow;
+      }
+    }
+
+    onProgress?.call(0.2, 'Получение списка файлов в облаке...');
+
+    // Получаем список файлов в папке хранилища
+    DropboxFolderContents cloudFiles;
+    try {
+      cloudFiles = await _dropbox.listFolder(exportCloudPath);
+      logInfo(
+        'Список файлов в облаке получен',
+        tag: tag,
+        data: {'path': exportCloudPath, 'fileCount': cloudFiles.entries.length},
+      );
+    } catch (e, st) {
+      final errorMsg = 'Ошибка при получении списка файлов из облака: $e';
+      logError(
+        'Ошибка при listFiles',
+        error: e,
+        stackTrace: st,
+        tag: tag,
+        data: {'path': exportCloudPath},
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    }
+
+    // file naming 1760473744499894.zip timestamp
+
+    // Ищем самый новый файл по имени
+    cloudFiles.entries.sort((a, b) => b.name.compareTo(a.name));
+    final DateTime timestampLastExporting = DateTime.fromMicrosecondsSinceEpoch(
+      int.parse(cloudFiles.entries.first.name.split('_').last.split('.').first),
+    );
+
+    final exportingEntry = await _cloudSyncDataService.getItem(metadata.id);
+
+    if (!exportingEntry.success) {
+      final errorMsg =
+          'Ошибка при получении данных синхронизации из локальной БД: ${exportingEntry.message}';
+      logError(
+        'Ошибка при поиске записи CloudSyncData',
+        tag: tag,
+        data: {'name': metadata.name},
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    }
+
+    if (exportingEntry.data != null &&
+        exportingEntry.data!.exportedAt != null &&
+        !timestampLastExporting.isAfter(exportingEntry.data!.exportedAt!)) {
+      final msg =
+          'В облаке нет новых версий базы данных для импорта (последняя локальная: ${exportingEntry.data!.exportedAt}, последняя в облаке: $timestampLastExporting)';
+      logInfo(
+        'Нет новых версий для импорта',
+        tag: tag,
+        data: {
+          'localLast': exportingEntry.data!.exportedAt.toString(),
+          'cloudLast': timestampLastExporting.toString(),
+        },
+      );
+      onError?.call(msg);
+      return ServiceResult.failure(msg);
+    }
+
+    onProgress?.call(0.25, 'Скачивание файла из облака...');
+
+    // Скачиваем файл
+    final storagesDir = await AppPaths.appStoragePath;
+    final fileName =
+        '${metadata.name.replaceAll(' ', '_')}_${metadata.id}_download.zip';
+
+    final downloadPath = p.join(storagesDir, fileName);
+    Stream<List<int>> fileStream;
+    try {
+      fileStream = await _dropbox.download(
+        '${exportCloudPath}/${cloudFiles.entries.first.name}',
+      );
+      logInfo(
+        'Файл успешно скачан из облака',
+        tag: tag,
+        data: {'path': downloadPath},
+      );
+    } catch (e, st) {
+      final errorMsg = 'Ошибка при скачивании файла из облака: $e';
+      logError(
+        'Ошибка при downloadFile',
+        error: e,
+        stackTrace: st,
+        tag: tag,
+        data: {'path': downloadPath},
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    }
+
+    // Сохраняем файл локально
+    final file = File(downloadPath);
+    final sink = file.openWrite();
+    int downloadedBytes = 0;
+    final completer = Completer<void>();
+    fileStream.listen(
+      (data) {
+        downloadedBytes += data.length;
+        sink.add(data);
+        onFileProgress?.call(
+          0.25 + (downloadedBytes / (1024 * 1024)) * 0.5,
+          'Скачивание файла из облака... ${(downloadedBytes / (1024 * 1024)).toStringAsFixed(2)} МБ',
+        );
+      },
+      onDone: () async {
+        await sink.flush();
+        await sink.close();
+        completer.complete();
+      },
+      onError: (e) {
+        completer.completeError(e);
+      },
+      cancelOnError: true,
+    );
+
+    try {
+      await completer.future;
+      logInfo(
+        'Файл успешно сохранён локально',
+        tag: tag,
+        data: {'path': downloadPath},
+      );
+    } catch (e, st) {
+      final errorMsg = 'Ошибка при сохранении файла локально: $e';
+      logError(
+        'Ошибка при сохранении файла',
+        error: e,
+        stackTrace: st,
+        tag: tag,
+        data: {'path': downloadPath},
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    }
+
+    onProgress?.call(0.8, 'Распаковка архива...');
+
+    // Распаковываем архив
+    try {
+      final bytes = file.readAsBytesSync();
+      final archive = ZipDecoder().decodeBytes(bytes);
+
+      for (final file in archive) {
+        final filename = p.basename(file.name);
+        final filePath = p.join(pathToDbFolder, filename);
+        if (file.isFile) {
+          final outFile = File(filePath);
+          await outFile.create(recursive: true);
+          await outFile.writeAsBytes(file.content as List<int>);
+          logInfo(
+            'Файл из архива успешно распакован',
+            tag: tag,
+            data: {'path': filePath},
+          );
+        } else {
+          final dir = Directory(filePath);
+          await dir.create(recursive: true);
+          logInfo(
+            'Папка из архива успешно создана',
+            tag: tag,
+            data: {'path': filePath},
+          );
+        }
+      }
+      logInfo(
+        'Архив успешно распакован',
+        tag: tag,
+        data: {'path': pathToDbFolder},
+      );
+    } catch (e, st) {
+      final errorMsg = 'Ошибка при распаковке архива: $e';
+      logError(
+        'Ошибка при распаковке архива',
+        error: e,
+        stackTrace: st,
+        tag: tag,
+        data: {'path': pathToDbFolder},
+      );
+      onError?.call(errorMsg);
+      return ServiceResult.failure(errorMsg);
+    }
+
+    onProgress?.call(1.0, 'Импорт завершён');
+    return ServiceResult.success();
+  }
+}
