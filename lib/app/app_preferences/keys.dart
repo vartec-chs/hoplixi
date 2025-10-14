@@ -49,13 +49,13 @@ class Keys {
     isCanEdit: true,
   );
 
-   static const PrefKey<String> autoSyncCloud = PrefKey<String>(
+  static const PrefKey<bool> autoSyncCloud = PrefKey<bool>(
     'auto_sync_cloud',
     isHiddenUI: false,
     isCanEdit: true,
   );
 
-  // list auto sync providers 
+  // list auto sync providers
   static const PrefKey<List<String>> autoSyncProviders = PrefKey<List<String>>(
     'auto_sync_providers',
     isHiddenUI: false,

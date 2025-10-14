@@ -157,6 +157,13 @@ class CredentialService {
         }
       }
 
+      // Сортируем: встроенные сверху
+      credentials.sort((a, b) {
+        if (a.isBuiltin && !b.isBuiltin) return -1;
+        if (!a.isBuiltin && b.isBuiltin) return 1;
+        return 0;
+      });
+
       return ServiceResult.success(data: credentials);
     } catch (e, stack) {
       logError('Failed to get all credentials', error: e, stackTrace: stack);
@@ -324,6 +331,7 @@ class CredentialService {
             type: type,
             clientId: clientId,
             clientSecret: clientSecret,
+            isBuiltin: true,
           );
           builtinCredentials.add(builtinCredential);
         }

@@ -5,8 +5,6 @@ part 'credential_app.g.dart';
 
 enum CredentialOAuthType { google, onedrive, dropbox, yandex, icloud, other }
 
-
-
 extension CredentialOAuthTypeX on CredentialOAuthType {
   String get name {
     switch (this) {
@@ -86,6 +84,7 @@ abstract class CredentialApp with _$CredentialApp {
     required CredentialOAuthType type,
     required String clientId,
     required String clientSecret,
+    @Default(false) bool isBuiltin,
   }) = _CredentialApp;
 
   factory CredentialApp.fromJson(Map<String, dynamic> json) =>

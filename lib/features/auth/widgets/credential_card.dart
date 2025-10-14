@@ -20,7 +20,7 @@ class CredentialCard extends StatelessWidget {
     return Card(
       elevation: 0,
       child: InkWell(
-        onTap: onEdit,
+        onTap: credential.isBuiltin ? null : onEdit,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -28,6 +28,7 @@ class CredentialCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                spacing: 4,
                 children: [
                   _buildIcon(context),
                   const SizedBox(width: 12),
@@ -72,11 +73,31 @@ class CredentialCard extends StatelessWidget {
                         style: theme.textTheme.bodySmall,
                       ),
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: onDelete,
-                    color: theme.colorScheme.error,
-                  ),
+                  if (credential.isBuiltin)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.1,
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        'Встроенный',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  if (!credential.isBuiltin)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: onDelete,
+                      color: theme.colorScheme.error,
+                    ),
                 ],
               ),
               const SizedBox(height: 12),

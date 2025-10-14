@@ -5,6 +5,7 @@ import 'package:hoplixi/core/providers/biometric_auto_open_provider.dart';
 import 'package:hoplixi/core/providers/biometric_provider.dart';
 import 'package:hoplixi/shared/widgets/index.dart';
 import 'package:hoplixi/core/services/biometric_service.dart';
+import 'package:hoplixi/features/auth/models/sync_providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -15,10 +16,12 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   BiometricStatus? _biometricStatus;
+  List<String> _selectedProviders = [];
 
   @override
   void initState() {
     super.initState();
+    _selectedProviders = Prefs.get<List<String>>(Keys.autoSyncProviders) ?? [];
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadBiometricStatus();
     });
@@ -190,6 +193,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         context,
                         labelText: 'Режим домашнего экрана',
                       ),
+                    ),
+
+                    // Провайдер для авто-синхронизации
+                    SwitchListTile(
+                      title: const Text(
+                        'Включить авто-синхронизацию с облаком',
+                      ),
+                      value: Prefs.get<bool>(Keys.autoSyncCloud) ?? false,
+                      onChanged: (value) {
+                        Prefs.set(Keys.autoSyncCloud, value);
+                        setState(() {});
+                      },
+                    ),
+
+                    // Провайдеры для синхронизации
+                    ExpansionTile(
+                      title: const Text('Провайдеры для синхронизации'),
+                      children: ProviderType.values
+                          .where((p) => p != ProviderType.unknown)
+                          .map((provider) {
+                            return CheckboxListTile(
+                              title: Text(provider.name),
+                              value: _selectedProviders.contains(provider.name),
+                              onChanged: (value) {
+                                setState(() {
+                                  if (value == true) {
+                                    _selectedProviders.add(provider.name);
+                                  } else {
+                                    _selectedProviders.remove(provider.name);
+                                  }
+                                  Prefs.set(
+                                    Keys.autoSyncProviders,
+                                    _selectedProviders,
+                                  );
+                                });
+                              },
+                            );
+                          })
+                          .toList(),
                     ),
 
                     // Настройки уведомлений
