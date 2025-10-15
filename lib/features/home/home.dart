@@ -161,48 +161,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           }
         });
 
-        // Отслеживаем состояние синхронизации с облаком
-        ref.listen(cloudSyncProvider, (previous, next) {
-          next.map(
-            idle: (_) {
-              // Закрываем диалог если он был открыт и предыдущее состояние не было success/error
-              if (_isSyncDialogShown &&
-                  previous != null &&
-                  previous.maybeMap(
-                    success: (_) => false,
-                    error: (_) => false,
-                    orElse: () => true,
-                  )) {
-                _isSyncDialogShown = false;
-                _closeSyncDialog();
-              }
-            },
-            exporting: (_) {
-              // Показываем диалог при начале экспорта
-              if (!_isSyncDialogShown) {
-                _isSyncDialogShown = true;
-                _showSyncDialog();
-              }
-            },
-            importing: (_) {
-              // Показываем диалог при начале импорта
-              if (!_isSyncDialogShown) {
-                _isSyncDialogShown = true;
-                _showSyncDialog();
-              }
-            },
-            success: (_) {
-              // Диалог останется открытым, покажет успех с кнопкой закрытия
-              // Пользователь должен сам закрыть диалог
-            },
-            error: (_) {
-              // Диалог останется открытым, покажет ошибку с кнопкой закрытия
-              // Пользователь должен сам закрыть диалог
-            },
-            checking: (_) {},
-          );
-        });
-
         return Scaffold(body: SafeArea(child: _buildHomeView()));
       },
     );
@@ -765,27 +723,5 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
   void _navigateToDatabase() {
     context.go(AppRoutes.dashboard);
-  }
-
-  /// Показывает диалог прогресса синхронизации
-  void _showSyncDialog() {
-    if (!mounted) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        CloudSyncProgressDialog.show(context);
-      }
-    });
-  }
-
-  /// Закрывает диалог прогресса синхронизации
-  void _closeSyncDialog() {
-    if (!mounted) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-    });
   }
 }

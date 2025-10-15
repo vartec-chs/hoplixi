@@ -24,9 +24,7 @@ import 'package:hoplixi/features/password_manager/qr_scaner/qr_scaner_screen.dar
 import 'package:hoplixi/features/password_manager/qr_scaner/qr_test_screen.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
-import 'package:hoplixi/features/password_manager/sync/screens/export_screen.dart';
-import 'package:hoplixi/features/password_manager/sync/screens/export_confirm_screen.dart';
-import 'package:hoplixi/features/password_manager/sync/screens/import_screen.dart';
+
 import 'package:hoplixi/features/password_manager/new_cloud_sync/screens/process_imported_store.dart';
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/features/settings/screens/settings_screen.dart';
@@ -196,10 +194,7 @@ final List<GoRoute> appRoutes = [
     },
   ),
 
-  GoRoute(
-    path: AppRoutes.exportStorage,
-    builder: (context, state) => const ExportScreen(),
-  ),
+ 
 
   GoRoute(
     path: AppRoutes.passwordMigration,
@@ -211,30 +206,9 @@ final List<GoRoute> appRoutes = [
     builder: (context, state) => const ManageCredentialScreen(),
   ),
 
-  GoRoute(
-    path: AppRoutes.exportConfirm,
-    builder: (context, state) {
-      if (state.extra is Map<String, dynamic>) {
-        final data = state.extra as Map<String, dynamic>;
-        final path = data['path'] as String?;
-        final name = data['name'] as String?;
+ 
 
-        if (path != null && name != null) {
-          return ExportConfirmScreen(storagePath: path, storageName: name);
-        }
-      }
-      return const InfoScreen(
-        title: 'Ошибка: нет данных',
-        info: 'Не переданы данные о хранилище.',
-        type: InfoType.error,
-      );
-    },
-  ),
-
-  GoRoute(
-    path: AppRoutes.importStorage,
-    builder: (context, state) => const ImportScreen(),
-  ),
+  
 
   GoRoute(
     path: AppRoutes.processImportedStore,
