@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:hoplixi/core/lib/oauth2restclient/src/exception/oauth2_exception.dart';
+import 'package:hoplixi/core/lib/oauth2restclient/src/exception/oauth2_exception_type.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:archive/archive_io.dart';
@@ -84,6 +86,17 @@ class ImportDropboxService {
           data: {'path': storagesRoot},
         );
       } else {
+        if (e is OAuth2ExceptionF) {
+          logError(
+            'OAuth2Exception при создании корневой папки',
+            error: e,
+            stackTrace: st,
+            tag: tag,
+            data: {'path': storagesRoot, 'type': e.type.toString()},
+          );
+          onError?.call(e.message ?? e.toString());
+          return ServiceResult.failure(e.message ?? e.toString());
+        }
         // любые другие ошибки — логируем / реройзим, в зависимости от логики
         logError(
           'Ошибка при создании корневой папки',

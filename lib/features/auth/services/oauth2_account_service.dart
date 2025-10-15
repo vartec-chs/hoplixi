@@ -116,16 +116,19 @@ class OAuth2AccountService {
     logInfo('Authorizing with existing token', tag: _tag);
     final provider = ProviderTypeX.fromKey(tokenInfo.key);
     final TokenOAuth tokenOAuth = tokenInfo.token;
-    final OAuth2Token token = OAuth2TokenF.fromJsonString(tokenOAuth.tokenJson);
+    OAuth2Token token = OAuth2TokenF.fromJsonString(tokenOAuth.tokenJson);
 
     switch (provider) {
       case ProviderType.dropbox:
         final key = tokenInfo.key;
         late OAuth2RestClient client;
         try {
+          if (token?.timeToLogin ?? false) {
+            token = await _account.forceRelogin(token) as OAuth2Token;
+          }
           client = await _account.createClient(token);
         } catch (e, stack) {
-          final newToken = await _account.forceRelogin(token);
+          final newToken = await _account.refreshToken(token);
           if (newToken == null) {
             return ServiceResult.failure('Failed to refresh expired token');
           }

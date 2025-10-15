@@ -29,6 +29,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isSyncDialogShown = false;
+  bool _syncDialogDismissedManually = false;
 
   @override
   void initState() {
@@ -58,31 +59,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               orElse: () => false,
             );
             if (!wasSuccessOrError) {
-              _isSyncDialogShown = false;
               _closeSyncDialog();
             }
           }
+          _syncDialogDismissedManually = false;
         },
         exporting: (_) {
-          // Показываем диалог при начале экспорта
+          // Показываем диалог при начале экспорта, если пользователь не закрыл его вручную
+          if (_syncDialogDismissedManually) return;
           if (!_isSyncDialogShown) {
-            _isSyncDialogShown = true;
             _showSyncDialog();
           }
         },
         importing: (_) {
-          // Показываем диалог при начале импорта
+          // Показываем диалог при начале импорта, если пользователь не закрыл его вручную
+          if (_syncDialogDismissedManually) return;
           if (!_isSyncDialogShown) {
-            _isSyncDialogShown = true;
             _showSyncDialog();
           }
         },
         success: (_) async {
+          _syncDialogDismissedManually = false;
           await ref.read(clearAllProvider.notifier).clearAll();
           await dbNotifier.deleteCurrentDatabase();
           if (context.mounted) context.go(AppRoutes.openStore);
         },
         error: (_) {
+          _syncDialogDismissedManually = false;
           // Диалог останется открытым, покажет ошибку с кнопкой закрытия
           // Пользователь должен сам закрыть диалог
         },
@@ -328,11 +331,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void _showSyncDialog() {
     if (!mounted) return;
 
+    _isSyncDialogShown = true;
+    _syncDialogDismissedManually = false;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         CloudSyncProgressDialog.show(
           context,
-          onClose: () => _isSyncDialogShown = false,
+          onClose: () => _handleSyncDialogClosed(byUser: true),
         );
       }
     });
@@ -343,9 +349,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (!mounted) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
+      if (!mounted) return;
+
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        _handleSyncDialogClosed(byUser: false);
+        navigator.pop();
       }
     });
+  }
+
+  void _handleSyncDialogClosed({required bool byUser}) {
+    _isSyncDialogShown = false;
+    if (byUser) {
+      final isSyncActive = ref
+          .read(cloudSyncProvider)
+          .maybeWhen(
+            exporting: (_) => true,
+            importing: (_) => true,
+            orElse: () => false,
+          );
+      _syncDialogDismissedManually = isSyncActive;
+    } else {
+      _syncDialogDismissedManually = false;
+    }
   }
 }
