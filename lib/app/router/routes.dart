@@ -25,7 +25,6 @@ import 'package:hoplixi/features/password_manager/qr_scaner/qr_test_screen.dart'
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
 
-import 'package:hoplixi/features/password_manager/new_cloud_sync/screens/process_imported_store.dart';
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/features/settings/screens/settings_screen.dart';
 import 'package:hoplixi/features/global/screens/image_crop_screen.dart';
@@ -210,10 +209,7 @@ final List<GoRoute> appRoutes = [
 
   
 
-  GoRoute(
-    path: AppRoutes.processImportedStore,
-    builder: (context, state) => const ProcessImportedStoreScreen(),
-  ),
+ 
 ];
 
 enum InfoType { info, warning, error }

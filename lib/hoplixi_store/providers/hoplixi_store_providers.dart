@@ -3,7 +3,7 @@ library;
 import 'dart:async';
 
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/password_manager/new_cloud_sync/providers/cloud_sync_provider.dart';
+
 import 'package:path/path.dart' as p;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
