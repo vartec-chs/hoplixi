@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 
-class CredentialCard extends StatelessWidget {
-  final CredentialApp credential;
+class AuthClientCard extends StatelessWidget {
+  final AuthClientConfig credential;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const CredentialCard({
+  const AuthClientCard({
     super.key,
     required this.credential,
     required this.onEdit,
@@ -124,43 +125,68 @@ class CredentialCard extends StatelessWidget {
   }
 
   Widget _buildIcon(BuildContext context) {
-    IconData icon;
-    Color color;
+    // Map each provider type to an SVG asset and whether it should be tinted.
+    String assetName;
+    Color? tintColor;
+    bool preserveColor = false;
 
     switch (credential.type) {
-      case CredentialOAuthType.google:
-        icon = Icons.cloud;
-        color = Colors.blue;
+      case AuthClientType.google:
+        assetName = 'assets/auth_img/google-color-svgrepo-com.svg';
+        preserveColor = true;
+        tintColor = null;
         break;
-      case CredentialOAuthType.onedrive:
-        icon = Icons.cloud_circle;
-        color = Colors.lightBlue;
+      case AuthClientType.onedrive:
+        assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
+        preserveColor = false;
+        tintColor = Colors.lightBlue;
         break;
-      case CredentialOAuthType.dropbox:
-        icon = Icons.cloud_queue;
-        color = Colors.indigo;
+      case AuthClientType.dropbox:
+        assetName = 'assets/auth_img/dropbox-color-svgrepo-com.svg';
+        preserveColor = true;
+        tintColor = null;
         break;
-      case CredentialOAuthType.icloud:
-        icon = Icons.cloud_done;
-        color = Colors.cyan;
+      case AuthClientType.icloud:
+        assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
+        preserveColor = false;
+        tintColor = Colors.cyan;
         break;
-      case CredentialOAuthType.yandex:
-        icon = Icons.cloud_sync;
-        color = Colors.orange;
+      case AuthClientType.yandex:
+        assetName = 'assets/auth_img/yandex-ru-svgrepo-com.svg';
+        preserveColor = true;
+        tintColor = null;
         break;
-      case CredentialOAuthType.other:
-        icon = Icons.cloud_outlined;
-        color = Colors.grey;
+      case AuthClientType.other:
+        assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
+        preserveColor = false;
+        tintColor = Colors.grey;
         break;
     }
+
+    final bgColor = (tintColor ?? Theme.of(context).colorScheme.surface)
+        .withOpacity(0.08);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: bgColor,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(icon, color: color, size: 28),
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: SvgPicture.asset(
+          assetName,
+          // If asset has its own colors (brand icons), don't override them.
+          colorFilter: preserveColor
+              ? null
+              : ColorFilter.mode(
+                  tintColor ?? Theme.of(context).colorScheme.onSurface,
+                  BlendMode.srcIn,
+                ),
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
 

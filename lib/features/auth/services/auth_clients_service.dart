@@ -1,32 +1,18 @@
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:hoplixi/core/services/cloud_sync_data_service.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:uuid/uuid.dart';
 
-/// Результат операции сервиса
-class ServiceResult<T> {
-  final bool success;
-  final String? message;
-  final T? data;
 
-  ServiceResult({required this.success, this.message, this.data});
 
-  factory ServiceResult.success({T? data, String? message}) {
-    return ServiceResult(success: true, data: data, message: message);
-  }
-
-  factory ServiceResult.failure(String message) {
-    return ServiceResult(success: false, message: message);
-  }
-}
-
-/// Сервис для управления credential приложениями
-class CredentialService {
-  static const String _boxName = 'credential_apps';
+/// Сервис для управления auth клиентами
+class AuthClientsService {
+  static const String _boxName = 'auth_clients';
   final BoxManager _boxManager;
-  BoxDB<CredentialApp>? _db;
+  BoxDB<AuthClientConfig>? _db;
 
-  CredentialService(this._boxManager);
+  AuthClientsService(this._boxManager);
 
   /// Инициализация бокса
   Future<ServiceResult<void>> _ensureInitialized() async {
@@ -37,9 +23,9 @@ class CredentialService {
 
       // Пытаемся открыть существующий бокс
       try {
-        _db = await _boxManager.openBox<CredentialApp>(
+        _db = await _boxManager.openBox<AuthClientConfig>(
           name: _boxName,
-          fromJson: CredentialApp.fromJson,
+          fromJson: AuthClientConfig.fromJson,
           toJson: (credential) => credential.toJson(),
           getId: (credential) => credential.id,
         );
@@ -47,9 +33,9 @@ class CredentialService {
         // Если не удалось открыть, создаём новый
         final key = await EncryptionService.generate();
         logInfo('Creating new credentials box');
-        _db = await _boxManager.createBox<CredentialApp>(
+        _db = await _boxManager.createBox<AuthClientConfig>(
           name: _boxName,
-          fromJson: CredentialApp.fromJson,
+          fromJson: AuthClientConfig.fromJson,
           toJson: (credential) => credential.toJson(),
           getId: (credential) => credential.id,
           password: await key.exportKey(),
@@ -70,8 +56,8 @@ class CredentialService {
   }
 
   /// Создать новый credential
-  Future<ServiceResult<CredentialApp>> createCredential({
-    required CredentialOAuthType type,
+  Future<ServiceResult<AuthClientConfig>> createCredential({
+    required AuthClientType type,
     required String clientId,
     required String name,
     required String clientSecret,
@@ -95,7 +81,7 @@ class CredentialService {
         return ServiceResult.failure(initResult.message!);
       }
 
-      final credential = CredentialApp(
+      final credential = AuthClientConfig(
         id: const Uuid().v4(),
         type: type,
         name: name,
@@ -117,7 +103,7 @@ class CredentialService {
   }
 
   /// Получить credential по ID
-  Future<ServiceResult<CredentialApp>> getCredential(String id) async {
+  Future<ServiceResult<AuthClientConfig>> getCredential(String id) async {
     try {
       final initResult = await _ensureInitialized();
       if (!initResult.success) {
@@ -138,7 +124,7 @@ class CredentialService {
   }
 
   /// Получить все credentials
-  Future<ServiceResult<List<CredentialApp>>> getAllCredentials() async {
+  Future<ServiceResult<List<AuthClientConfig>>> getAllCredentials() async {
     try {
       final initResult = await _ensureInitialized();
       if (!initResult.success) {
@@ -172,8 +158,8 @@ class CredentialService {
   }
 
   /// Получить credentials по типу
-  Future<ServiceResult<List<CredentialApp>>> getCredentialsByType(
-    CredentialOAuthType type,
+  Future<ServiceResult<List<AuthClientConfig>>> getCredentialsByType(
+    AuthClientType type,
   ) async {
     try {
       final result = await getAllCredentials();
@@ -199,8 +185,8 @@ class CredentialService {
   }
 
   /// Обновить credential
-  Future<ServiceResult<CredentialApp>> updateCredential(
-    CredentialApp credential,
+  Future<ServiceResult<AuthClientConfig>> updateCredential(
+    AuthClientConfig credential,
   ) async {
     try {
       // Валидация входных данных
@@ -307,11 +293,11 @@ class CredentialService {
   }
 
   /// Получить встроенные credentials из env
-  Future<List<CredentialApp>> _getBuiltinCredentials() async {
-    final builtinCredentials = <CredentialApp>[];
+  Future<List<AuthClientConfig>> _getBuiltinCredentials() async {
+    final builtinCredentials = <AuthClientConfig>[];
 
-    for (final type in CredentialOAuthType.values) {
-      if (type == CredentialOAuthType.other) continue;
+    for (final type in AuthClientType.values) {
+      if (type == AuthClientType.other) continue;
 
       final enabledKey = '${type.identifier.toUpperCase()}_BUILTIN_ENABLED';
       if (dotenv.env[enabledKey] == 'true') {
@@ -325,7 +311,7 @@ class CredentialService {
         final clientSecret = dotenv.env[clientSecretKey];
 
         if (appName != null && clientId != null && clientSecret != null) {
-          final builtinCredential = CredentialApp(
+          final builtinCredential = AuthClientConfig(
             id: 'builtin_${type.identifier}',
             name: appName,
             type: type,
@@ -343,7 +329,7 @@ class CredentialService {
 
   /// Валидация данных учетных данных
   Future<ServiceResult<void>> _validateCredentialData({
-    required CredentialOAuthType type,
+    required AuthClientType type,
     required String clientId,
     required String clientSecret,
 
@@ -377,7 +363,7 @@ class CredentialService {
 
     // Специфическая валидация для разных типов
     switch (type) {
-      case CredentialOAuthType.dropbox:
+      case AuthClientType.dropbox:
         // Для Dropbox clientId должен быть в определенном формате
         if (clientId.length < 10) {
           return ServiceResult.failure(
@@ -391,14 +377,14 @@ class CredentialService {
         }
         break;
 
-      case CredentialOAuthType.google:
+      case AuthClientType.google:
         // Для Google проверяем что redirectUri содержит google
         // if (!redirectUri.contains('google')) {
         //   logInfo('Предупреждение: Redirect URI не содержит "google"');
         // }
         break;
 
-      case CredentialOAuthType.onedrive:
+      case AuthClientType.onedrive:
         // Для OneDrive проверяем что redirectUri содержит microsoft
         // if (!redirectUri.contains('microsoft') &&
         //     !redirectUri.contains('live.com')) {

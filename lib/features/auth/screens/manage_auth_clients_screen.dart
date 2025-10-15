@@ -2,34 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
-import 'package:hoplixi/features/auth/providers/credential_provider.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
+import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
 import 'package:hoplixi/features/auth/screens/token_list_screen.dart';
 import 'package:hoplixi/features/auth/widgets/auth_modal.dart';
 import 'package:hoplixi/features/auth/widgets/credential_form_dialog.dart';
-import 'package:hoplixi/features/auth/widgets/credential_card.dart';
+import 'package:hoplixi/features/auth/widgets/auth_client_card.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
 
-class ManageCredentialScreen extends ConsumerWidget {
-  const ManageCredentialScreen({super.key});
+class ManageAuthClientsScreen extends ConsumerWidget {
+  const ManageAuthClientsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncValue = ref.watch(credentialListProvider);
+    final asyncValue = ref.watch(authClientsListProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Управление учётными данными'),
+        title: const Text('Управление клиентами авторизации'),
         actions: [
-          // if (asyncValue.hasValue && asyncValue.value!.isNotEmpty)
-          //   IconButton(
-          //     icon: const Icon(Icons.refresh),
-          //     onPressed: () {
-          //       ref.read(credentialListProvider.notifier).refresh();
-          //     },
-          //     tooltip: 'Обновить',
-          //   ),
+          if (asyncValue.hasValue && asyncValue.value!.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                ref.read(authClientsListProvider.notifier).refresh();
+              },
+              tooltip: 'Обновить',
+            ),
           IconButton(
             onPressed: () => showAuthModal(context),
             icon: const Icon(Icons.login),
@@ -66,7 +66,7 @@ class ManageCredentialScreen extends ConsumerWidget {
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<List<CredentialApp>> asyncValue,
+    AsyncValue<List<AuthClientConfig>> asyncValue,
   ) {
     return asyncValue.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -89,7 +89,7 @@ class ManageCredentialScreen extends ConsumerWidget {
             SmoothButton(
               label: 'Повторить',
               onPressed: () {
-                ref.read(credentialListProvider.notifier).refresh();
+                ref.read(authClientsListProvider.notifier).refresh();
               },
             ),
           ],
@@ -127,7 +127,7 @@ class ManageCredentialScreen extends ConsumerWidget {
         }
 
         return RefreshIndicator(
-          onRefresh: () => ref.read(credentialListProvider.notifier).refresh(),
+          onRefresh: () => ref.read(authClientsListProvider.notifier).refresh(),
           child: ListView.builder(
             padding: const EdgeInsets.all(8),
             itemCount: credentials.length,
@@ -135,7 +135,7 @@ class ManageCredentialScreen extends ConsumerWidget {
               final credential = credentials[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: CredentialCard(
+                child: AuthClientCard(
                   credential: credential,
                   onEdit: () =>
                       _showEditCredentialDialog(context, ref, credential),
@@ -166,7 +166,7 @@ class ManageCredentialScreen extends ConsumerWidget {
   Future<void> _showEditCredentialDialog(
     BuildContext context,
     WidgetRef ref,
-    CredentialApp credential,
+    AuthClientConfig credential,
   ) async {
     final result = await showDialog<bool>(
       context: context,
@@ -181,7 +181,7 @@ class ManageCredentialScreen extends ConsumerWidget {
   Future<void> _confirmDelete(
     BuildContext context,
     WidgetRef ref,
-    CredentialApp credential,
+    AuthClientConfig credential,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -208,8 +208,8 @@ class ManageCredentialScreen extends ConsumerWidget {
 
     if (confirmed == true) {
       final success = await ref
-          .read(credentialListProvider.notifier)
-          .deleteCredential(credential.id);
+          .read(authClientsListProvider.notifier)
+          .delete(credential.id);
 
       if (success && context.mounted) {
         ToastHelper.success(title: 'Учётные данные удалены');

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
-import 'package:hoplixi/features/auth/providers/credential_provider.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
+import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
 import 'package:hoplixi/features/auth/providers/oauth2_account_provider.dart';
 import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
 
@@ -15,9 +16,9 @@ class AuthModal extends ConsumerStatefulWidget {
 }
 
 class _AuthModalState extends ConsumerState<AuthModal> {
-  final Map<CredentialOAuthType, bool> _loadedButtons = {};
+  final Map<AuthClientType, bool> _loadedButtons = {};
   bool _isAuthorizing = false;
-  CredentialOAuthType? _authorizingType;
+  AuthClientType? _authorizingType;
 
   @override
   void initState() {
@@ -27,7 +28,7 @@ class _AuthModalState extends ConsumerState<AuthModal> {
 
   /// Постепенная загрузка кнопок
   void _startLoadingButtons() {
-    final types = CredentialOAuthType.values;
+    final types = AuthClientType.values;
     int index = 0;
 
     // Загружаем кнопки по одной с анимацией
@@ -48,7 +49,7 @@ class _AuthModalState extends ConsumerState<AuthModal> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final credentialsAsync = ref.watch(credentialListProvider);
+    final credentialsAsync = ref.watch(authClientsListProvider);
     final accountServiceAsync = ref.watch(oauth2AccountProvider);
 
     return Dialog(
@@ -93,7 +94,7 @@ class _AuthModalState extends ConsumerState<AuthModal> {
 
                   // Группируем credentials по типам
                   final credentialsByType =
-                      <CredentialOAuthType, List<CredentialApp>>{};
+                      <AuthClientType, List<AuthClientConfig>>{};
                   for (final cred in credentials) {
                     credentialsByType
                         .putIfAbsent(cred.type, () => [])
@@ -132,13 +133,13 @@ class _AuthModalState extends ConsumerState<AuthModal> {
 
   Widget _buildProvidersList(
     BuildContext context,
-    Map<CredentialOAuthType, List<CredentialApp>> credentialsByType,
+    Map<AuthClientType, List<AuthClientConfig>> credentialsByType,
     OAuth2AccountService service,
   ) {
     return ListView(
       shrinkWrap: true,
       padding: const EdgeInsets.all(8),
-      children: CredentialOAuthType.values.map((type) {
+      children: AuthClientType.values.map((type) {
         final credentials = credentialsByType[type] ?? [];
         final isLoaded = _loadedButtons[type] ?? false;
         final hasCredentials = credentials.isNotEmpty;
@@ -166,8 +167,8 @@ class _AuthModalState extends ConsumerState<AuthModal> {
 
   Widget _buildProviderCard(
     BuildContext context,
-    CredentialOAuthType type,
-    List<CredentialApp> credentials,
+    AuthClientType type,
+    List<AuthClientConfig> credentials,
     OAuth2AccountService service,
   ) {
     final theme = Theme.of(context);
@@ -278,12 +279,12 @@ class _AuthModalState extends ConsumerState<AuthModal> {
 
   Future<void> _handleAuthorization(
     BuildContext context,
-    CredentialOAuthType type,
-    List<CredentialApp> credentials,
+    AuthClientType type,
+    List<AuthClientConfig> credentials,
     OAuth2AccountService service,
   ) async {
     // Если несколько credentials для этого типа, показываем выбор
-    CredentialApp? selectedCredential;
+    AuthClientConfig? selectedCredential;
 
     if (credentials.length == 1) {
       selectedCredential = credentials.first;
@@ -348,11 +349,11 @@ class _AuthModalState extends ConsumerState<AuthModal> {
     }
   }
 
-  Future<CredentialApp?> _showCredentialPicker(
+  Future<AuthClientConfig?> _showCredentialPicker(
     BuildContext context,
-    List<CredentialApp> credentials,
+    List<AuthClientConfig> credentials,
   ) async {
-    return await showDialog<CredentialApp>(
+    return await showDialog<AuthClientConfig>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Выберите учётные данные'),
@@ -384,44 +385,68 @@ class _AuthModalState extends ConsumerState<AuthModal> {
     );
   }
 
-  Widget _getProviderIcon(CredentialOAuthType type) {
-    IconData icon;
-    Color color;
+  Widget _getProviderIcon(AuthClientType type) {
+    // Map each provider type to an SVG asset and whether it should be tinted.
+    String assetName;
+    Color? tintColor;
+    bool preserveColor = false;
 
     switch (type) {
-      case CredentialOAuthType.google:
-        icon = Icons.cloud;
-        color = Colors.blue;
+      case AuthClientType.google:
+        assetName = 'assets/auth_img/google-color-svgrepo-com.svg';
+        preserveColor = true;
+        tintColor = null;
         break;
-      case CredentialOAuthType.onedrive:
-        icon = Icons.cloud_circle;
-        color = Colors.lightBlue;
+      case AuthClientType.onedrive:
+        assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
+        preserveColor = false;
+        tintColor = Colors.lightBlue;
         break;
-      case CredentialOAuthType.dropbox:
-        icon = Icons.cloud_queue;
-        color = Colors.indigo;
+      case AuthClientType.dropbox:
+        assetName = 'assets/auth_img/dropbox-color-svgrepo-com.svg';
+        preserveColor = true;
+        tintColor = null;
         break;
-      case CredentialOAuthType.icloud:
-        icon = Icons.cloud_done;
-        color = Colors.cyan;
+      case AuthClientType.icloud:
+        assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
+        preserveColor = false;
+        tintColor = Colors.cyan;
         break;
-      case CredentialOAuthType.yandex:
-        icon = Icons.cloud_upload;
-        color = Colors.red;
+      case AuthClientType.yandex:
+        assetName = 'assets/auth_img/yandex-ru-svgrepo-com.svg';
+        preserveColor = true;
+        tintColor = null;
         break;
-      case CredentialOAuthType.other:
-        icon = Icons.cloud_outlined;
-        color = Colors.grey;
+      case AuthClientType.other:
+        assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
+        preserveColor = false;
+        tintColor = Colors.grey;
         break;
     }
+
+    final bgColor = (tintColor ?? Theme.of(context).colorScheme.surface)
+        .withOpacity(0.08);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: bgColor,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(icon, color: color, size: 28),
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: SvgPicture.asset(
+          assetName,
+          colorFilter: preserveColor
+              ? null
+              : ColorFilter.mode(
+                  tintColor ?? Theme.of(context).colorScheme.onSurface,
+                  BlendMode.srcIn,
+                ),
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
 

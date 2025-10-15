@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app/constants/main_constants.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
-import 'package:hoplixi/features/auth/providers/credential_provider.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
+import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/shared/widgets/text_field.dart';
 
 class CredentialFormDialog extends ConsumerStatefulWidget {
-  final CredentialApp? credential;
+  final AuthClientConfig? credential;
 
   const CredentialFormDialog({super.key, this.credential});
 
@@ -19,7 +19,7 @@ class CredentialFormDialog extends ConsumerStatefulWidget {
 
 class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  late CredentialOAuthType _selectedType;
+  late AuthClientType _selectedType;
   late TextEditingController _clientIdController;
   late TextEditingController _clientSecretController;
   late TextEditingController _nameController;
@@ -28,7 +28,7 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedType = widget.credential?.type ?? CredentialOAuthType.dropbox;
+    _selectedType = widget.credential?.type ?? AuthClientType.dropbox;
     _clientIdController = TextEditingController(
       text: widget.credential?.clientId ?? '',
     );
@@ -168,10 +168,10 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
   }
 
   Widget _buildTypeSelector() {
-    return DropdownButtonFormField<CredentialOAuthType>(
+    return DropdownButtonFormField<AuthClientType>(
       initialValue: _selectedType,
       decoration: primaryInputDecoration(context, labelText: 'Тип'),
-      items: CredentialOAuthType.values
+      items: AuthClientType.values
           .map(
             (type) => DropdownMenuItem(
               value: type,
@@ -291,17 +291,16 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
           clientSecret: _clientSecretController.text.trim(),
         );
         success = await ref
-            .read(credentialListProvider.notifier)
-            .updateCredential(updated);
+            .read(authClientsListProvider.notifier)
+            .updateAuthClient(updated);
       } else {
         success = await ref
-            .read(credentialListProvider.notifier)
-            .createCredential(
+            .read(authClientsListProvider.notifier)
+            .createAuthClient(
               name: _nameController.text.trim(),
               type: _selectedType,
               clientId: _clientIdController.text.trim(),
               clientSecret: _clientSecretController.text.trim(),
-              
             );
       }
 
@@ -326,19 +325,19 @@ class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
     }
   }
 
-  IconData _getTypeIcon(CredentialOAuthType type) {
+  IconData _getTypeIcon(AuthClientType type) {
     switch (type) {
-      case CredentialOAuthType.google:
+      case AuthClientType.google:
         return Icons.cloud;
-      case CredentialOAuthType.onedrive:
+      case AuthClientType.onedrive:
         return Icons.cloud_circle;
-      case CredentialOAuthType.dropbox:
+      case AuthClientType.dropbox:
         return Icons.cloud_queue;
-      case CredentialOAuthType.icloud:
+      case AuthClientType.icloud:
         return Icons.cloud_done;
-      case CredentialOAuthType.yandex:
+      case AuthClientType.yandex:
         return Icons.cloud_sync;
-      case CredentialOAuthType.other:
+      case AuthClientType.other:
         return Icons.cloud_outlined;
     }
   }

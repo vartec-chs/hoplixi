@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
-import 'package:hoplixi/features/auth/services/credential_service.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
+import 'package:hoplixi/features/auth/services/auth_clients_service.dart';
 import 'package:hoplixi/core/providers/box_db_provider.dart';
 
 /// Провайдер сервиса credential
-final credentialServiceProvider = FutureProvider<CredentialService>((
+final authClientsServiceProvider = FutureProvider<AuthClientsService>((
   ref,
 ) async {
   final boxManager = await ref.watch(boxDbProvider.future);
 
-  final service = CredentialService(boxManager);
+  final service = AuthClientsService(boxManager);
 
   ref.onDispose(() {
     service.dispose();
@@ -19,23 +19,23 @@ final credentialServiceProvider = FutureProvider<CredentialService>((
 });
 
 /// Состояние списка credentials
-class CredentialListState {
-  final List<CredentialApp> credentials;
+class AuthClientsListState {
+  final List<AuthClientConfig> credentials;
   final bool isLoading;
   final String? error;
 
-  CredentialListState({
+  AuthClientsListState({
     this.credentials = const [],
     this.isLoading = false,
     this.error,
   });
 
-  CredentialListState copyWith({
-    List<CredentialApp>? credentials,
+  AuthClientsListState copyWith({
+    List<AuthClientConfig>? credentials,
     bool? isLoading,
     String? error,
   }) {
-    return CredentialListState(
+    return AuthClientsListState(
       credentials: credentials ?? this.credentials,
       isLoading: isLoading ?? this.isLoading,
       error: error,
@@ -44,16 +44,16 @@ class CredentialListState {
 }
 
 /// Notifier для управления списком credentials
-class CredentialListNotifier extends AsyncNotifier<List<CredentialApp>> {
-  late CredentialService _service;
+class AuthClientsListNotifier extends AsyncNotifier<List<AuthClientConfig>> {
+  late AuthClientsService _service;
 
   @override
-  Future<List<CredentialApp>> build() async {
-    _service = await ref.read(credentialServiceProvider.future);
+  Future<List<AuthClientConfig>> build() async {
+    _service = await ref.read(authClientsServiceProvider.future);
     return await _loadCredentials();
   }
 
-  Future<List<CredentialApp>> _loadCredentials() async {
+  Future<List<AuthClientConfig>> _loadCredentials() async {
     final result = await _service.getAllCredentials();
     if (result.success) {
       return result.data ?? [];
@@ -73,12 +73,11 @@ class CredentialListNotifier extends AsyncNotifier<List<CredentialApp>> {
   }
 
   /// Создать новый credential
-  Future<bool> createCredential({
-    required CredentialOAuthType type,
+  Future<bool> createAuthClient({
+    required AuthClientType type,
     required String clientId,
     required String clientSecret,
     required String name,
-  
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -87,7 +86,6 @@ class CredentialListNotifier extends AsyncNotifier<List<CredentialApp>> {
         clientId: clientId,
         name: name,
         clientSecret: clientSecret,
-  
       );
 
       if (result.success) {
@@ -107,7 +105,7 @@ class CredentialListNotifier extends AsyncNotifier<List<CredentialApp>> {
   }
 
   /// Обновить credential
-  Future<bool> updateCredential(CredentialApp credential) async {
+  Future<bool> updateAuthClient(AuthClientConfig credential) async {
     state = const AsyncValue.loading();
     try {
       final result = await _service.updateCredential(credential);
@@ -129,7 +127,7 @@ class CredentialListNotifier extends AsyncNotifier<List<CredentialApp>> {
   }
 
   /// Удалить credential
-  Future<bool> deleteCredential(String id) async {
+  Future<bool> delete(String id) async {
     state = const AsyncValue.loading();
     try {
       final result = await _service.deleteCredential(id);
@@ -174,16 +172,16 @@ class CredentialListNotifier extends AsyncNotifier<List<CredentialApp>> {
 }
 
 /// Провайдер списка credentials
-final credentialListProvider =
-    AsyncNotifierProvider<CredentialListNotifier, List<CredentialApp>>(
-      CredentialListNotifier.new,
+final authClientsListProvider =
+    AsyncNotifierProvider<AuthClientsListNotifier, List<AuthClientConfig>>(
+      AuthClientsListNotifier.new,
     );
 
 /// Провайдер для фильтрации по активным типам
-final activeCredentialsProvider = Provider<AsyncValue<List<CredentialApp>>>((
+final activeAuthClientsProvider = Provider<AsyncValue<List<AuthClientConfig>>>((
   ref,
 ) {
-  final asyncValue = ref.watch(credentialListProvider);
+  final asyncValue = ref.watch(authClientsListProvider);
   return asyncValue.when(
     data: (credentials) => AsyncValue.data(
       credentials.where((credential) => credential.type.isActive).toList(),
@@ -194,12 +192,12 @@ final activeCredentialsProvider = Provider<AsyncValue<List<CredentialApp>>>((
 });
 
 /// Провайдер для группировки по типам
-final credentialsByTypeProvider =
-    Provider<AsyncValue<Map<CredentialOAuthType, List<CredentialApp>>>>((ref) {
-      final asyncValue = ref.watch(credentialListProvider);
+final authClientsByTypeProvider =
+    Provider<AsyncValue<Map<AuthClientType, List<AuthClientConfig>>>>((ref) {
+      final asyncValue = ref.watch(authClientsListProvider);
       return asyncValue.when(
         data: (credentials) {
-          final grouped = <CredentialOAuthType, List<CredentialApp>>{};
+          final grouped = <AuthClientType, List<AuthClientConfig>>{};
           for (final credential in credentials) {
             grouped.putIfAbsent(credential.type, () => []).add(credential);
           }

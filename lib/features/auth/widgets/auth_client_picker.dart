@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
-import 'package:hoplixi/features/auth/providers/credential_provider.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
+import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
 import 'package:hoplixi/shared/widgets/text_field.dart';
 
 /// Текстовое поле, позволяющее выбрать credential из списка.
-class CredentialPicker extends ConsumerStatefulWidget {
+class AuthClientPicker extends ConsumerStatefulWidget {
   /// Выбранный credential.
-  final CredentialApp? selected;
+  final AuthClientConfig? selected;
 
   /// Колбэк при выборе credential.
-  final ValueChanged<CredentialApp> onSelect;
+  final ValueChanged<AuthClientConfig> onSelect;
 
   /// Текст подсказки в поле.
   final String? hintText;
@@ -24,7 +24,7 @@ class CredentialPicker extends ConsumerStatefulWidget {
   /// Показывать только активные credentials.
   final bool onlyActive;
 
-  const CredentialPicker({
+  const AuthClientPicker({
     super.key,
     required this.onSelect,
     this.selected,
@@ -35,10 +35,10 @@ class CredentialPicker extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<CredentialPicker> createState() => _CredentialPickerState();
+  ConsumerState<AuthClientPicker> createState() => _CredentialPickerState();
 }
 
-class _CredentialPickerState extends ConsumerState<CredentialPicker> {
+class _CredentialPickerState extends ConsumerState<AuthClientPicker> {
   late final TextEditingController _controller;
 
   @override
@@ -48,7 +48,7 @@ class _CredentialPickerState extends ConsumerState<CredentialPicker> {
   }
 
   @override
-  void didUpdateWidget(covariant CredentialPicker oldWidget) {
+  void didUpdateWidget(covariant AuthClientPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selected?.id != widget.selected?.id) {
       _controller.text = _currentValueText;
@@ -66,7 +66,7 @@ class _CredentialPickerState extends ConsumerState<CredentialPicker> {
   Future<void> _openPicker() async {
     if (!widget.enabled) return;
 
-    final selected = await showModalBottomSheet<CredentialApp>(
+    final selected = await showModalBottomSheet<AuthClientConfig>(
       context: context,
       useSafeArea: true,
       isScrollControlled: true,
@@ -108,8 +108,8 @@ class _CredentialSelectionSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final credentials = onlyActive
-        ? ref.watch(activeCredentialsProvider)
-        : ref.watch(credentialListProvider);
+        ? ref.watch(activeAuthClientsProvider)
+        : ref.watch(authClientsListProvider);
 
     final theme = Theme.of(context);
 

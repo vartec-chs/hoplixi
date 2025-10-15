@@ -158,6 +158,9 @@ flutter:
     - assets/
     - assets/img/
     - .env
+    - assets/auth_img/
+
+
   
 
   # To add assets to your application, add an assets section, like this:

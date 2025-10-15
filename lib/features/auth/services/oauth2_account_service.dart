@@ -5,7 +5,7 @@ import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/services/cloud_sync_data_service.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
 import 'package:hoplixi/features/auth/models/token_oauth.dart';
 import 'package:hoplixi/features/auth/providers/token_provider.dart';
@@ -50,11 +50,11 @@ class OAuth2AccountService {
 
   // общий метод авторизации
   Future<ServiceResult<String>> authorize(
-    CredentialApp credential, {
+    AuthClientConfig credential, {
     void Function(String error)? onError,
   }) async {
     switch (credential.type) {
-      case CredentialOAuthType.dropbox:
+      case AuthClientType.dropbox:
         final token = await _tokenServices.findOneBySuffix(
           ProviderType.dropbox.name.toLowerCase(),
         );
@@ -78,7 +78,7 @@ class OAuth2AccountService {
         }
 
         return await authorizeWithDropbox(credential, onError: onError);
-      case CredentialOAuthType.yandex:
+      case AuthClientType.yandex:
         final token = await _tokenServices.findOneBySuffix(
           ProviderType.yandex.name.toLowerCase(),
         );
@@ -101,10 +101,10 @@ class OAuth2AccountService {
           );
         }
         return await authorizeWithYandex(credential, onError: onError);
-      case CredentialOAuthType.google:
-      case CredentialOAuthType.onedrive:
-      case CredentialOAuthType.icloud:
-      case CredentialOAuthType.other:
+      case AuthClientType.google:
+      case AuthClientType.onedrive:
+      case AuthClientType.icloud:
+      case AuthClientType.other:
         return ServiceResult.failure(
           'Авторизация для ${credential.type.name} не реализована',
         );
@@ -175,11 +175,11 @@ class OAuth2AccountService {
   }
 
   Future<ServiceResult<String>> authorizeWithDropbox(
-    CredentialApp credential, {
+    AuthClientConfig credential, {
     void Function(String error)? onError,
   }) async {
     try {
-      if (credential.type != CredentialOAuthType.dropbox) {
+      if (credential.type != AuthClientType.dropbox) {
         return ServiceResult.failure('Указан неверный тип учётных данных');
       }
 
@@ -237,11 +237,11 @@ class OAuth2AccountService {
 
   // with Yandex
   Future<ServiceResult<String>> authorizeWithYandex(
-    CredentialApp credential, {
+    AuthClientConfig credential, {
     void Function(String error)? onError,
   }) async {
     try {
-      if (credential.type != CredentialOAuthType.yandex) {
+      if (credential.type != AuthClientType.yandex) {
         return ServiceResult.failure('Указан неверный тип учётных данных');
       }
 
