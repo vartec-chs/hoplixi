@@ -199,6 +199,7 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
               // Диалог останется открытым, покажет ошибку с кнопкой закрытия
               // Пользователь должен сам закрыть диалог
             },
+            checking: (_) {},
           );
         });
 

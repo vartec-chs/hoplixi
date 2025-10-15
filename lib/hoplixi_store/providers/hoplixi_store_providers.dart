@@ -102,25 +102,25 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
 
       final metaDataForSync = await _manager.getDatabaseMetaForSync();
 
-      if (isCloudSyncEnabled == true &&
-          metaDataForSync != null &&
-          newState.isOpen) {
-        logInfo(
-          'База данных открыта с включённой облачной синхронизацией',
-          tag: 'DatabaseAsyncNotifier',
-          data: {
-            'storageId': metaDataForSync.id,
-            'storageName': metaDataForSync.name,
-            'path': dto.path,
-          },
-        );
-        // Запускаем синхронизацию в фоне
-        unawaited(
-          ref
-              .read(cloudSyncProvider.notifier)
-              .importFromDropbox(metadata: metaDataForSync),
-        );
-      }
+      // if (isCloudSyncEnabled == true &&
+      //     metaDataForSync != null &&
+      //     newState.isOpen) {
+      //   logInfo(
+      //     'База данных открыта с включённой облачной синхронизацией',
+      //     tag: 'DatabaseAsyncNotifier',
+      //     data: {
+      //       'storageId': metaDataForSync.id,
+      //       'storageName': metaDataForSync.name,
+      //       'path': dto.path,
+      //     },
+      //   );
+      //   // Запускаем проверку новой версии в фоне
+      //   unawaited(
+      //     ref
+      //         .read(cloudSyncProvider.notifier)
+      //         .checkForNewVersion(metadata: metaDataForSync),
+      //   );
+      // }
 
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.initialize();
@@ -172,29 +172,29 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud);
       await _manager.closeDatabase();
 
-      if (isModified &&
-          isCloudSyncEnabled! &&
-          metaDataForSync != null &&
-          (imported == null || imported == false)) {
-        logInfo(
-          'Database modified at $modifiedAtCurrent, before open at $modifiedAtBeforeOpen. Starting cloud sync...',
-          tag: 'DatabaseAsyncNotifier',
-          data: {
-            'storageId': metaDataForSync.id,
-            'storageName': metaDataForSync.name,
-            'path': path,
-          },
-        );
-        // Запускаем синхронизацию в фоне
-        unawaited(
-          ref
-              .read(cloudSyncProvider.notifier)
-              .exportToDropbox(
-                metadata: metaDataForSync,
-                pathToDbFolder: p.dirname(path ?? ''),
-              ),
-        );
-      }
+      // if (isModified &&
+      //     isCloudSyncEnabled! &&
+      //     metaDataForSync != null &&
+      //     (imported == null || imported == false)) {
+      //   logInfo(
+      //     'Database modified at $modifiedAtCurrent, before open at $modifiedAtBeforeOpen. Starting cloud sync...',
+      //     tag: 'DatabaseAsyncNotifier',
+      //     data: {
+      //       'storageId': metaDataForSync.id,
+      //       'storageName': metaDataForSync.name,
+      //       'path': path,
+      //     },
+      //   );
+      //   // Запускаем синхронизацию в фоне
+      //   unawaited(
+      //     ref
+      //         .read(cloudSyncProvider.notifier)
+      //         .exportToDropbox(
+      //           metadata: metaDataForSync,
+      //           pathToDbFolder: p.dirname(path ?? ''),
+      //         ),
+      //   );
+      // }
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.cleanup();
       state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));

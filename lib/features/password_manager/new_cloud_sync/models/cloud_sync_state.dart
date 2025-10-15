@@ -25,6 +25,10 @@ abstract class CloudSyncState with _$CloudSyncState {
     required CloudSyncProgress progress,
   }) = _Importing;
 
+  /// Проверка наличия новой версии (без показа диалога)
+  const factory CloudSyncState.checking({required CloudSyncProgress progress}) =
+      _Checking;
+
   const factory CloudSyncState.success({required String message}) = _Success;
 
   const factory CloudSyncState.error({required String message}) = _Error;

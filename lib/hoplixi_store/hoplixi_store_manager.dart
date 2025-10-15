@@ -300,7 +300,7 @@ class HoplixiStoreManager {
       password: dto.masterPassword,
     );
 
-    await DatabaseConnectionService.initializeDatabaseMetadata(
+     await DatabaseConnectionService.initializeDatabaseMetadata(
       database: database,
       name: dto.name,
       description: dto.description ?? '',

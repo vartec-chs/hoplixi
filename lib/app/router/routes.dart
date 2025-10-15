@@ -27,6 +27,7 @@ import 'package:hoplixi/features/password_manager/before_opening/open_store/open
 import 'package:hoplixi/features/password_manager/sync/screens/export_screen.dart';
 import 'package:hoplixi/features/password_manager/sync/screens/export_confirm_screen.dart';
 import 'package:hoplixi/features/password_manager/sync/screens/import_screen.dart';
+import 'package:hoplixi/features/password_manager/new_cloud_sync/screens/process_imported_store.dart';
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/features/settings/screens/settings_screen.dart';
 import 'package:hoplixi/features/global/screens/image_crop_screen.dart';
@@ -233,6 +234,11 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.importStorage,
     builder: (context, state) => const ImportScreen(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.processImportedStore,
+    builder: (context, state) => const ProcessImportedStoreScreen(),
   ),
 ];
 

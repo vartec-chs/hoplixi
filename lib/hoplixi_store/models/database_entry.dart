@@ -2,6 +2,7 @@
 /// Модель записи истории базы данных
 class DatabaseEntry {
   final String path;
+  
   final String name;
   final String? description;
   final String? masterPassword;

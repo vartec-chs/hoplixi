@@ -52,6 +52,13 @@ class CloudSyncProgressDialog extends ConsumerWidget {
             ),
             success: (message) => _buildSuccessState(context, theme, message),
             error: (message) => _buildErrorState(context, theme, message),
+            checking: (progress) => _buildProgressState(
+              context,
+              theme,
+              progress,
+              'Проверка обновлений',
+              Icons.cloud_sync,
+            ),
           ),
         ),
       ),

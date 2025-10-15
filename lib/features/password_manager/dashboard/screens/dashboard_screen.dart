@@ -71,18 +71,56 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             _showSyncDialog();
           }
         },
-        importing: (_) {
-          // Показываем диалог при начале импорта, если пользователь не закрыл его вручную
-          if (_syncDialogDismissedManually) return;
-          if (!_isSyncDialogShown) {
-            _showSyncDialog();
-          }
+        checking: (_) {
+          // НЕ показываем диалог при проверке версии - это фоновая операция
+          logDebug('Проверка новой версии...', tag: 'DashboardScreen');
         },
-        success: (_) async {
+        importing: (_) {
+          // НЕ показываем диалог при импорте - навигация на отдельный экран
+          // Диалог используется только для экспорта
+        },
+        success: (message) async {
           _syncDialogDismissedManually = false;
-          await ref.read(clearAllProvider.notifier).clearAll();
-          await dbNotifier.deleteCurrentDatabase();
-          if (context.mounted) context.go(AppRoutes.openStore);
+
+          // Проверяем тип операции по предыдущему состоянию
+          final wasChecking =
+              previous?.maybeWhen(checking: (_) => true, orElse: () => false) ??
+              false;
+          final wasImporting =
+              previous?.maybeWhen(
+                importing: (_) => true,
+                orElse: () => false,
+              ) ??
+              false;
+
+          if (wasChecking && message.contains('Найдена новая версия')) {
+            // Найдена новая версия при проверке - навигируем на экран импорта
+            if (context.mounted) {
+              context.go(AppRoutes.processImportedStore);
+            }
+          } else if (wasChecking) {
+            // Проверка завершена, но новой версии нет
+            logInfo(
+              'Проверка обновлений завершена: новая версия не найдена',
+              tag: 'DashboardScreen',
+            );
+          } else if (wasImporting && message.contains('Найдена новая версия')) {
+            // Найдена новая версия при ручном импорте - навигируем на экран импорта
+            if (context.mounted) {
+              context.go(AppRoutes.processImportedStore);
+            }
+          } else if (wasImporting) {
+            // Проверка импорта завершена, но новой версии нет
+            logInfo(
+              'Проверка обновлений завершена: новая версия не найдена',
+              tag: 'DashboardScreen',
+            );
+          } else {
+            // Успешный экспорт - закрываем БД и переходим к списку
+            await ref.read(clearAllProvider.notifier).clearAll();
+            await dbNotifier.deleteCurrentDatabase();
+            if (context.mounted) context.go(AppRoutes.openStore);
+          }
         },
         error: (_) {
           _syncDialogDismissedManually = false;
