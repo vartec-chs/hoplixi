@@ -31,14 +31,17 @@ class TokenListScreen extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Статистика
-            _buildStatisticsCard(context, countAsync),
-            const SizedBox(height: 8),
-            // Список токенов
-            Expanded(child: _buildBody(context, ref, asyncValue)),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              // Статистика
+              _buildStatisticsCard(context, countAsync),
+              const SizedBox(height: 8),
+              // Список токенов
+              Expanded(child: _buildBody(context, ref, asyncValue)),
+            ],
+          ),
         ),
       ),
       floatingActionButton: countAsync.maybeWhen(
@@ -63,7 +66,7 @@ class TokenListScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Card(
-      margin: const EdgeInsets.all(8),
+      // margin: const EdgeInsets.all(8),
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Row(
@@ -179,7 +182,7 @@ class TokenListScreen extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => ref.read(tokenListProvider.notifier).refresh(),
           child: ListView.builder(
-            padding: const EdgeInsets.all(8),
+            // padding: const EdgeInsets.all(8),
             itemCount: tokens.length,
             itemBuilder: (context, index) {
               final tokenInfo = tokens[index];
