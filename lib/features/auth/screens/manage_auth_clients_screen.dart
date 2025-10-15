@@ -6,7 +6,7 @@ import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
 import 'package:hoplixi/features/auth/screens/token_list_screen.dart';
 import 'package:hoplixi/features/auth/widgets/auth_modal.dart';
-import 'package:hoplixi/features/auth/widgets/credential_form_dialog.dart';
+import 'package:hoplixi/features/auth/widgets/auth_client_form_dialog.dart';
 import 'package:hoplixi/features/auth/widgets/auth_client_card.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
@@ -155,7 +155,7 @@ class ManageAuthClientsScreen extends ConsumerWidget {
   ) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => const CredentialFormDialog(),
+      builder: (context) => const AuthClientFormDialog(),
     );
 
     if (result == true && context.mounted) {
@@ -170,7 +170,7 @@ class ManageAuthClientsScreen extends ConsumerWidget {
   ) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => CredentialFormDialog(credential: credential),
+      builder: (context) => AuthClientFormDialog(credential: credential),
     );
 
     if (result == true && context.mounted) {

@@ -7,17 +7,17 @@ import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/shared/widgets/text_field.dart';
 
-class CredentialFormDialog extends ConsumerStatefulWidget {
+class AuthClientFormDialog extends ConsumerStatefulWidget {
   final AuthClientConfig? credential;
 
-  const CredentialFormDialog({super.key, this.credential});
+  const AuthClientFormDialog({super.key, this.credential});
 
   @override
-  ConsumerState<CredentialFormDialog> createState() =>
-      _CredentialFormDialogState();
+  ConsumerState<AuthClientFormDialog> createState() =>
+      _AuthClientFormDialogState();
 }
 
-class _CredentialFormDialogState extends ConsumerState<CredentialFormDialog> {
+class _AuthClientFormDialogState extends ConsumerState<AuthClientFormDialog> {
   final _formKey = GlobalKey<FormState>();
   late AuthClientType _selectedType;
   late TextEditingController _clientIdController;

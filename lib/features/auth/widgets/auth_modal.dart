@@ -7,6 +7,15 @@ import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
 import 'package:hoplixi/features/auth/providers/oauth2_account_provider.dart';
 import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
 
+/// Вспомогательная функция для показа модального окна
+/// Возвращает ключ клиента или null, если отменено
+Future<String?> showAuthModal(BuildContext context) async {
+  return await showDialog<String>(
+    context: context,
+    builder: (context) => const AuthModal(),
+  );
+}
+
 /// Модальное окно для выбора OAuth провайдера и авторизации
 class AuthModal extends ConsumerStatefulWidget {
   const AuthModal({super.key});
@@ -467,12 +476,4 @@ class _AuthModalState extends ConsumerState<AuthModal> {
     }
     return '${value.substring(0, 4)}...${value.substring(value.length - 4)}';
   }
-}
-
-/// Вспомогательная функция для показа модального окна
-Future<String?> showAuthModal(BuildContext context) async {
-  return await showDialog<String>(
-    context: context,
-    builder: (context) => const AuthModal(),
-  );
 }

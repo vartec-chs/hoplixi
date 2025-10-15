@@ -48,6 +48,10 @@ class OAuth2AccountService {
 
   OAuth2Account get account => _account;
 
+  OAuth2RestClient? getClient(String key) {
+    return _clients[key];
+  }
+
   // общий метод авторизации
   Future<ServiceResult<String>> authorize(
     AuthClientConfig credential, {

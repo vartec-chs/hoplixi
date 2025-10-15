@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
 import 'package:hoplixi/features/auth/providers/token_provider.dart';
-import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 
 /// Экран для отображения всех OAuth токенов
@@ -42,14 +41,18 @@ class TokenListScreen extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: asyncValue.hasValue && asyncValue.value!.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: () => _confirmClearAll(context, ref),
-              icon: const Icon(Icons.delete_sweep),
-              label: const Text('Очистить всё'),
-              backgroundColor: Colors.redAccent,
-            )
-          : null,
+      floatingActionButton: countAsync.maybeWhen(
+        data: (count) => count > 0
+            ? FloatingActionButton.extended(
+                onPressed: () => _confirmClearAll(context, ref),
+                icon: const Icon(Icons.delete_sweep),
+                label: const Text('Очистить всё'),
+                backgroundColor: Colors.redAccent,
+              )
+            : null,
+
+        orElse: () => null,
+      ),
     );
   }
 
