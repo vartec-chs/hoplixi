@@ -105,6 +105,7 @@ class OAuth2ProviderF implements OAuth2Provider {
         if (request.uri.path == path) {
           // 코드 파라미터 추출
           var code = request.uri.queryParameters['code'];
+
           final response = await exchangeCode(code);
 
           if (response == null) {
@@ -229,6 +230,7 @@ class OAuth2ProviderF implements OAuth2Provider {
     );
 
     if (response.statusCode == 200) return response.body;
+    debugPrint('Failed to exchange code: ${response.body}');
     return null;
   }
 

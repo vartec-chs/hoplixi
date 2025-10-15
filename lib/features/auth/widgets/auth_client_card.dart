@@ -110,12 +110,14 @@ class AuthClientCard extends StatelessWidget {
                 _maskString(credential.clientId),
               ),
               const SizedBox(height: 4),
-              _buildInfoRow(
-                context,
-                'Client Secret',
-                _maskString(credential.clientSecret),
-                selectable: true,
-              ),
+              if (credential.clientSecret != null &&
+                  credential.clientSecret!.isNotEmpty)
+                _buildInfoRow(
+                  context,
+                  'Client Secret',
+                  _maskString(credential.clientSecret!),
+                  selectable: true,
+                ),
               const SizedBox(height: 4),
             ],
           ),

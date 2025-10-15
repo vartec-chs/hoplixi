@@ -29,6 +29,40 @@ const List<String> _yandexScopes = <String>[
   'cloud_api:disk.info',
 ];
 
+final List<String> _googleScopes = <String>[
+  'https://www.googleapis.com/auth/drive.appdata',
+  'https://www.googleapis.com/auth/drive.appfolder',
+  'https://www.googleapis.com/auth/drive.install',
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.apps.readonly',
+  'https://www.googleapis.com/auth/drive',
+  'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/drive.activity',
+  'https://www.googleapis.com/auth/drive.activity.readonly',
+  'https://www.googleapis.com/auth/drive.meet.readonly',
+  'https://www.googleapis.com/auth/drive.metadata',
+  'https://www.googleapis.com/auth/drive.metadata.readonly',
+  'https://www.googleapis.com/auth/drive.scripts',
+
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+];
+
+final List<String> _microsoftScopes = <String>[
+  'User.Read',
+  'User.ReadBasic.All',
+  'email',
+  'openid',
+  'profile',
+  'Files.Read',
+  'Files.Read.All',
+  'Files.ReadWrite',
+  'Files.ReadWrite.All',
+  'Files.ReadWrite.AppFolder',
+  'Files.SelectedOperations.Selected',
+  'offline_access',
+];
+
 class OAuth2AccountService {
   static const String _tag = 'OAuth2AccountService';
 
@@ -106,7 +140,51 @@ class OAuth2AccountService {
         }
         return await authorizeWithYandex(credential, onError: onError);
       case AuthClientType.google:
+        final token = await _tokenServices.findOneBySuffix(
+          ProviderType.google.name.toLowerCase(),
+        );
+
+        try {
+          if (token != null) {
+            logInfo(
+              'Found existing Google token, attempting to use it',
+              tag: _tag,
+            );
+            final tokenInfo = TokenInfo(key: token.id, token: token);
+            return await authorizeWithToken(tokenInfo);
+          }
+        } catch (e, stack) {
+          logError(
+            'Failed to authorize with existing Google token',
+            error: e,
+            stackTrace: stack,
+            tag: _tag,
+          );
+        }
+        return await authorizeWithGoogle(credential, onError: onError);
       case AuthClientType.onedrive:
+        final token = await _tokenServices.findOneBySuffix(
+          ProviderType.microsoft.name.toLowerCase(),
+        );
+
+        try {
+          if (token != null) {
+            logInfo(
+              'Found existing Microsoft token, attempting to use it',
+              tag: _tag,
+            );
+            final tokenInfo = TokenInfo(key: token.id, token: token);
+            return await authorizeWithToken(tokenInfo);
+          }
+        } catch (e, stack) {
+          logError(
+            'Failed to authorize with existing Microsoft token',
+            error: e,
+            stackTrace: stack,
+            tag: _tag,
+          );
+        }
+        return await authorizeWithMicrosoft(credential, onError: onError);
       case AuthClientType.icloud:
       case AuthClientType.other:
         return ServiceResult.failure(
@@ -162,15 +240,110 @@ class OAuth2AccountService {
         return ServiceResult.success(data: key);
 
       case ProviderType.google:
+        final key = tokenInfo.key;
+        late OAuth2RestClient client;
+        try {
+          if (token?.timeToLogin ?? false) {
+            token = await _account.forceRelogin(token) as OAuth2Token;
+          }
+          client = await _account.createClient(token);
+        } catch (e, stack) {
+          final newToken = await _account.refreshToken(token);
+          if (newToken == null) {
+            return ServiceResult.failure('Failed to refresh expired token');
+          }
+          try {
+            client = await _account.createClient(newToken);
+          } catch (e, stack) {
+            logError(
+              'Failed to create client after token refresh',
+              error: e,
+              stackTrace: stack,
+              tag: _tag,
+            );
+            return ServiceResult.failure(
+              'Failed to create client after token refresh',
+            );
+          }
+          logError(
+            'Failed to create client for existing token',
+            error: e,
+            stackTrace: stack,
+            tag: _tag,
+          );
+        }
         return ServiceResult.failure('Not implemented');
 
       case ProviderType.microsoft:
-        return ServiceResult.failure('Not implemented');
+        final key = tokenInfo.key;
+        late OAuth2RestClient client;
+        try {
+          if (token?.timeToLogin ?? false) {
+            token = await _account.forceRelogin(token) as OAuth2Token;
+          }
+          client = await _account.createClient(token);
+        } catch (e, stack) {
+          final newToken = await _account.refreshToken(token);
+          if (newToken == null) {
+            return ServiceResult.failure('Failed to refresh expired token');
+          }
+          try {
+            client = await _account.createClient(newToken);
+          } catch (e, stack) {
+            logError(
+              'Failed to create client after token refresh',
+              error: e,
+              stackTrace: stack,
+              tag: _tag,
+            );
+            return ServiceResult.failure(
+              'Failed to create client after token refresh',
+            );
+          }
+          logError(
+            'Failed to create client for existing token',
+            error: e,
+            stackTrace: stack,
+            tag: _tag,
+          );
+        }
+
+        return ServiceResult.success(data: key);
 
       case ProviderType.yandex:
         final key = tokenInfo.key;
-        final client = await _account.createClient(token);
-        _clients[key] = client;
+        late OAuth2RestClient client;
+
+        try {
+          if (token?.timeToLogin ?? false) {
+            token = await _account.forceRelogin(token) as OAuth2Token;
+          }
+          client = await _account.createClient(token);
+        } catch (e, stack) {
+          final newToken = await _account.refreshToken(token);
+          if (newToken == null) {
+            return ServiceResult.failure('Failed to refresh expired token');
+          }
+          try {
+            client = await _account.createClient(newToken);
+          } catch (e, stack) {
+            logError(
+              'Failed to create client after token refresh',
+              error: e,
+              stackTrace: stack,
+              tag: _tag,
+            );
+            return ServiceResult.failure(
+              'Failed to create client after token refresh',
+            );
+          }
+          logError(
+            'Failed to create client for existing token',
+            error: e,
+            stackTrace: stack,
+            tag: _tag,
+          );
+        }
         return ServiceResult.success(data: key);
 
       case ProviderType.unknown:
@@ -195,7 +368,7 @@ class OAuth2AccountService {
 
       late Dropbox dropboxProvider;
 
-      if (credential.clientSecret.isNotEmpty) {
+      if (credential.clientSecret != null && credential.clientSecret!.isNotEmpty) {
         dropboxProvider = Dropbox(
           clientId: credential.clientId,
           clientSecret: credential.clientSecret,
@@ -257,7 +430,7 @@ class OAuth2AccountService {
 
       late Yandex yandexProvider;
 
-      if (credential.clientSecret.isNotEmpty) {
+      if (credential.clientSecret != null && credential.clientSecret!.isNotEmpty) {
         yandexProvider = Yandex(
           clientId: credential.clientId,
           clientSecret: credential.clientSecret,
@@ -301,8 +474,130 @@ class OAuth2AccountService {
     }
   }
 
-  String _resolveRedirectUri() {
-    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+  // with Google
+  Future<ServiceResult<String>> authorizeWithGoogle(
+    AuthClientConfig credential, {
+    void Function(String error)? onError,
+  }) async {
+    try {
+      if (credential.type != AuthClientType.google) {
+        return ServiceResult.failure('Указан неверный тип учётных данных');
+      }
+      if (!credential.type.isActive) {
+        return ServiceResult.failure('Поддержка Google сейчас недоступна');
+      }
+
+      final redirectUri = _resolveRedirectUri(disabledMobile: true);
+
+      late Google googleProvider;
+
+      if (credential.clientSecret != null && credential.clientSecret!.isNotEmpty) {
+        googleProvider = Google(
+          clientId: credential.clientId,
+          clientSecret: credential.clientSecret,
+          redirectUri: redirectUri,
+          scopes: _googleScopes,
+        );
+      } else {
+        googleProvider = Google(
+          clientId: credential.clientId,
+          redirectUri: redirectUri,
+          scopes: _googleScopes,
+        );
+      }
+
+      _account.addProvider(googleProvider);
+
+      final token = await _account.newLogin(
+        googleProvider.name,
+        errorCallback: onError,
+      );
+
+      if (token == null) {
+        return ServiceResult.failure('Авторизация Google не завершена');
+      }
+
+      final key = _account.keyFor(googleProvider.name, token.userName);
+
+      final client = await _account.createClient(token);
+
+      _clients[key] = client;
+
+      return ServiceResult.success(data: key);
+    } catch (e, stack) {
+      logError(
+        'Не удалось выполнить авторизацию Google',
+        error: e,
+        stackTrace: stack,
+        tag: _tag,
+      );
+      return ServiceResult.failure('Ошибка авторизации Google');
+    }
+  }
+
+  // auth with Microsoft
+  Future<ServiceResult<String>> authorizeWithMicrosoft(
+    AuthClientConfig credential, {
+    void Function(String error)? onError,
+  }) async {
+    try {
+      if (credential.type != AuthClientType.onedrive) {
+        return ServiceResult.failure('Указан неверный тип учётных данных');
+      }
+      if (!credential.type.isActive) {
+        return ServiceResult.failure('Поддержка OneDrive сейчас недоступна');
+      }
+
+      final redirectUri = _resolveRedirectUri(disabledMobile: true);
+
+      late Microsoft microsoftProvider;
+
+      if (credential.clientSecret != null && credential.clientSecret!.isNotEmpty) {
+        microsoftProvider = Microsoft(
+          clientId: credential.clientId,
+          clientSecret: credential.clientSecret,
+          redirectUri: redirectUri,
+          scopes: _microsoftScopes,
+        );
+      } else {
+        microsoftProvider = Microsoft(
+          clientId: credential.clientId,
+          redirectUri: redirectUri,
+          scopes: _microsoftScopes,
+        );
+      }
+
+      _account.addProvider(microsoftProvider);
+
+      final token = await _account.newLogin(
+        microsoftProvider.name,
+        errorCallback: onError,
+      );
+
+      if (token == null) {
+        return ServiceResult.failure('Авторизация Microsoft не завершена');
+      }
+
+      final key = _account.keyFor(microsoftProvider.name, token.userName);
+
+      final client = await _account.createClient(token);
+
+      _clients[key] = client;
+
+      return ServiceResult.success(data: key);
+    } catch (e, stack) {
+      logError(
+        'Не удалось выполнить авторизацию Microsoft',
+        error: e,
+        stackTrace: stack,
+        tag: _tag,
+      );
+      return ServiceResult.failure('Ошибка авторизации Microsoft');
+    }
+  }
+
+  String _resolveRedirectUri({bool disabledMobile = false}) {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS) && !disabledMobile) {
       return AuthConstants.redirectUriMobile;
     }
 

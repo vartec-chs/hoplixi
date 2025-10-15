@@ -61,9 +61,9 @@ extension AuthClientTypeX on AuthClientType {
   bool get isActive {
     switch (this) {
       case AuthClientType.google:
-        return false;
+        return true;
       case AuthClientType.onedrive:
-        return false;
+        return true;
       case AuthClientType.dropbox:
         return true;
       case AuthClientType.icloud:
@@ -83,7 +83,7 @@ sealed class AuthClientConfig with _$AuthClientConfig {
     required String name,
     required AuthClientType type,
     required String clientId,
-    required String clientSecret,
+    String? clientSecret,
     @Default(false) bool isBuiltin,
   }) = _AuthClientConfig;
 

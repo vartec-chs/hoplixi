@@ -4,8 +4,6 @@ import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:uuid/uuid.dart';
 
-
-
 /// Сервис для управления auth клиентами
 class AuthClientsService {
   static const String _boxName = 'auth_clients';
@@ -310,13 +308,13 @@ class AuthClientsService {
         final clientId = dotenv.env[clientIdKey];
         final clientSecret = dotenv.env[clientSecretKey];
 
-        if (appName != null && clientId != null && clientSecret != null) {
+        if (appName != null && clientId != null) {
           final builtinCredential = AuthClientConfig(
             id: 'builtin_${type.identifier}',
             name: appName,
             type: type,
             clientId: clientId,
-            clientSecret: clientSecret,
+            clientSecret: clientSecret ?? '',
             isBuiltin: true,
           );
           builtinCredentials.add(builtinCredential);
@@ -331,7 +329,7 @@ class AuthClientsService {
   Future<ServiceResult<void>> _validateCredentialData({
     required AuthClientType type,
     required String clientId,
-    required String clientSecret,
+    String? clientSecret,
 
     bool isUpdate = false,
     String? existingId,
@@ -339,10 +337,6 @@ class AuthClientsService {
     // Проверка обязательных полей
     if (clientId.trim().isEmpty) {
       return ServiceResult.failure('Client ID не может быть пустым');
-    }
-
-    if (clientSecret.trim().isEmpty) {
-      return ServiceResult.failure('Client Secret не может быть пустым');
     }
 
     // Проверка уникальности clientId (только для новых записей или при изменении)
@@ -370,11 +364,7 @@ class AuthClientsService {
             'Client ID Dropbox должен содержать минимум 10 символов',
           );
         }
-        if (clientSecret.length < 10) {
-          return ServiceResult.failure(
-            'Client Secret Dropbox должен содержать минимум 10 символов',
-          );
-        }
+
         break;
 
       case AuthClientType.google:
