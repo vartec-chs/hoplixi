@@ -12,8 +12,10 @@ import 'package:hoplixi/features/auth/services/base_oauth_provider_service.dart'
 class MicrosoftAuthService extends BaseOAuthProviderService {
   static const String _tag = 'MicrosoftAuthService';
 
-  MicrosoftAuthService(OAuth2Account account)
-    : super(account: account, tag: _tag);
+  MicrosoftAuthService(
+    OAuth2Account account,
+    Map<String, OAuth2RestClient> clients,
+  ) : super(account: account, tag: _tag, clients: clients);
 
   /// Выполнить авторизацию через Microsoft
   Future<ServiceResult<String>> authorizeWithMicrosoft(

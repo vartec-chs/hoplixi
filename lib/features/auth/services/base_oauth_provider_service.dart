@@ -8,8 +8,13 @@ import 'package:hoplixi/features/auth/models/token_oauth.dart';
 abstract class BaseOAuthProviderService {
   final OAuth2Account account;
   final String tag;
+  final Map<String, OAuth2RestClient> clients;
 
-  BaseOAuthProviderService({required this.account, required this.tag});
+  BaseOAuthProviderService({
+    required this.account,
+    required this.tag,
+    required this.clients,
+  });
 
   /// Получить или обновить токен и создать клиент
   Future<ServiceResult<OAuth2RestClient>> getOrRefreshClient(
@@ -71,13 +76,14 @@ abstract class BaseOAuthProviderService {
       );
 
       if (token == null) {
-        return ServiceResult.failure(
-          'Авторизация ${provider.name} не завершена',
-        );
+        return ServiceResult.failure('Авторизация прервана пользователем');
       }
 
       final key = account.keyFor(provider.name, token.userName);
-      await account.createClient(token);
+      final client = await account.createClient(token);
+
+      // Сохраняем клиент в общий кэш
+      clients[key] = client;
 
       logInfo('Authorization successful for ${provider.name}', tag: tag);
       return ServiceResult.success(data: key);

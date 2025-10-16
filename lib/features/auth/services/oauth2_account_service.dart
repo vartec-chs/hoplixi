@@ -36,10 +36,10 @@ class OAuth2AccountService {
     );
 
     // Инициализация специализированных сервисов
-    _dropboxService = DropboxAuthService(_account);
-    _yandexService = YandexAuthService(_account);
-    _googleService = GoogleAuthService(_account);
-    _microsoftService = MicrosoftAuthService(_account);
+    _dropboxService = DropboxAuthService(_account, _clients);
+    _yandexService = YandexAuthService(_account, _clients);
+    _googleService = GoogleAuthService(_account, _clients);
+    _microsoftService = MicrosoftAuthService(_account, _clients);
     _tokenAuthService = TokenAuthService(account: _account, clients: _clients);
   }
 

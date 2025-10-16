@@ -6,6 +6,7 @@ import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
 import 'package:hoplixi/features/auth/providers/oauth2_account_provider.dart';
 import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
 
 /// Вспомогательная функция для показа модального окна
 /// Возвращает ключ клиента или null, если отменено
@@ -64,7 +65,7 @@ class _AuthModalState extends ConsumerState<AuthModal> {
     return Dialog(
       insetPadding: const EdgeInsets.all(8),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -85,9 +86,7 @@ class _AuthModalState extends ConsumerState<AuthModal> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: _isAuthorizing
-                        ? null
-                        : () => Navigator.of(context).pop(),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
@@ -364,29 +363,32 @@ class _AuthModalState extends ConsumerState<AuthModal> {
     return await showDialog<AuthClientConfig>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Выберите учётные данные'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: credentials.length,
-            itemBuilder: (context, index) {
-              final credential = credentials[index];
-              return ListTile(
-                title: Text(credential.name),
-                subtitle: Text(
-                  '${credential.type.name} • ID: ${_maskString(credential.clientId)}${credential.isBuiltin ? ' (Встроенный)' : ''}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                onTap: () => Navigator.of(context).pop(credential),
-              );
-            },
+        insetPadding: const EdgeInsets.all(12),
+        title: const Text('Выберите провайдера'),
+
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 550, maxHeight: 400),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: credentials.map((credential) {
+                return ListTile(
+                  title: Text(credential.name),
+                  subtitle: Text(
+                    '${credential.type.name} • ID: ${_maskString(credential.clientId)}${credential.isBuiltin ? ' (Встроенный)' : ''}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  onTap: () => Navigator.of(context).pop(credential),
+                );
+              }).toList(),
+            ),
           ),
         ),
         actions: [
-          TextButton(
+          SmoothButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
+            label: 'Отмена',
+            type: SmoothButtonType.text,
           ),
         ],
       ),

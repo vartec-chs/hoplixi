@@ -12,7 +12,10 @@ import 'package:hoplixi/features/auth/services/base_oauth_provider_service.dart'
 class YandexAuthService extends BaseOAuthProviderService {
   static const String _tag = 'YandexAuthService';
 
-  YandexAuthService(OAuth2Account account) : super(account: account, tag: _tag);
+  YandexAuthService(
+    OAuth2Account account,
+    Map<String, OAuth2RestClient> clients,
+  ) : super(account: account, tag: _tag, clients: clients);
 
   /// Выполнить авторизацию через Yandex
   Future<ServiceResult<String>> authorizeWithYandex(
