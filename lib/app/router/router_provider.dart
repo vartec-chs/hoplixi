@@ -37,17 +37,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final databaseLocked = ref.read(databaseLockedProvider);
       final dataCleared = ref.read(dataClearedProvider);
 
-      // Проверяем, идет ли процесс авторизации
+      // Проверяем, идет ли процесс авторизации или есть ошибка
       final authState = ref.read(authorizationProvider);
       final isAuthorizing = authState.isLoading;
+      final hasAuthError = authState.maybeWhen(
+        failure: (_, __, ___) => true,
+        orElse: () => false,
+      );
 
-      // Если идет авторизация и мы не на экране авторизации - блокируем переход
-      if (isAuthorizing &&
+      // Если идет авторизация или есть ошибка, и мы не на экране авторизации - блокируем переход
+      if ((isAuthorizing || hasAuthError) &&
           state.matchedLocation != AppRoutes.authorizationProgress) {
         logInfo(
-          'Блокировка навигации - идет процесс авторизации',
+          'Блокировка навигации - идет процесс авторизации или есть ошибка',
           tag: 'GoRouter',
-          data: {'currentPath': state.fullPath},
+          data: {'currentPath': state.fullPath, 'hasError': hasAuthError},
         );
         return AppRoutes.authorizationProgress;
       }

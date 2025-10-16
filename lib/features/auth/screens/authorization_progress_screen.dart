@@ -57,7 +57,7 @@ class _AuthorizationProgressScreenState
           // Ошибка авторизации - показываем сообщение
           ToastHelper.error(title: 'Ошибка авторизации', description: error);
 
-          // Остаемся на экране, чтобы пользователь мог повторить
+          // Остаемся на экране, чтобы пользователь мог повторить или вернуться
         },
         cancelled: (returnPath) {
           // Авторизация отменена - возвращаемся на returnPath
@@ -217,6 +217,12 @@ class _AuthorizationProgressScreenState
     String error,
     String providerName,
   ) {
+    final authState = ref.watch(authorizationProvider);
+    final returnPath = authState.maybeWhen(
+      failure: (_, __, path) => path,
+      orElse: () => '/',
+    );
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -251,8 +257,10 @@ class _AuthorizationProgressScreenState
             Expanded(
               child: SmoothButton(
                 label: 'Назад',
-                onPressed: () {
-                  ref.read(authorizationProvider.notifier).cancel();
+                onPressed: () async {
+                  // Сбрасываем состояние и возвращаемся на returnPath
+                  ref.read(authorizationProvider.notifier).reset();
+                  context.go(returnPath);
                 },
                 icon: const Icon(Icons.arrow_back),
                 type: SmoothButtonType.outlined,
