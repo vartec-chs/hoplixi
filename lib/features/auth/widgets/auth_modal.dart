@@ -329,11 +329,6 @@ class _AuthModalState extends ConsumerState<AuthModal> {
 
       if (!mounted) return;
 
-      setState(() {
-        _isAuthorizing = false;
-        _authorizingType = null;
-      });
-
       if (result.success) {
         Navigator.of(context).pop(result.data);
         ToastHelper.success(
@@ -341,6 +336,10 @@ class _AuthModalState extends ConsumerState<AuthModal> {
           description: 'Ключ: ${result.data}',
         );
       } else {
+        setState(() {
+          _isAuthorizing = false;
+          _authorizingType = null;
+        });
         ToastHelper.error(
           title: 'Ошибка авторизации',
           description: result.message,
@@ -376,7 +375,7 @@ class _AuthModalState extends ConsumerState<AuthModal> {
               return ListTile(
                 title: Text(credential.name),
                 subtitle: Text(
-                  'ID: ${_maskString(credential.clientId)}',
+                  '${credential.type.name} • ID: ${_maskString(credential.clientId)}${credential.isBuiltin ? ' (Встроенный)' : ''}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 onTap: () => Navigator.of(context).pop(credential),
