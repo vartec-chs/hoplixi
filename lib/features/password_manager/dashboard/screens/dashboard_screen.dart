@@ -14,7 +14,6 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_f
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
 
-
 /// Главный экран дашборда с полнофункциональным SliverAppBar
 /// Управляет отображением паролей, заметок и OTP с фильтрацией и поиском
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -174,7 +173,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             }
           },
           child: SensitiveContent(
-            sensitivity: ContentSensitivity.sensitive,
+            sensitivity: ContentSensitivity.autoSensitive,
             child: Scaffold(
               backgroundColor: Theme.of(context).colorScheme.surface,
               key: _scaffoldKey,

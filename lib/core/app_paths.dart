@@ -23,9 +23,7 @@ Future<Directory> _getAppPath() async {
   // final appDir = await getApplicationSupportDirectory();
   Directory appDir;
   if (Platform.isAndroid) {
-    appDir =
-        await getExternalStorageDirectory() ??
-        await getApplicationSupportDirectory();
+    appDir = await getApplicationSupportDirectory();
   } else if (Platform.isIOS) {
     appDir = await getApplicationSupportDirectory();
   } else {

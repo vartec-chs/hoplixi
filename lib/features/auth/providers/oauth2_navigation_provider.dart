@@ -191,8 +191,8 @@ class OAuth2NavigationNotifier
 }
 
 /// Провайдер для управления навигацией OAuth2
-final oauth2NavigationProvider =
-    AsyncNotifierProvider<
-      OAuth2NavigationNotifier,
-      OAuth2NavigationState
-    >(OAuth2NavigationNotifier.new);
+// final oauth2NavigationProvider =
+//     AsyncNotifierProvider<
+//       OAuth2NavigationNotifier,
+//       OAuth2NavigationState
+//     >(OAuth2NavigationNotifier.new);
