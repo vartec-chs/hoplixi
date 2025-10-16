@@ -3,11 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
+import 'package:hoplixi/features/auth/providers/authorization_notifier_provider.dart';
 
 /// Notifier для управления состоянием router refresh
 class RouterRefreshNotifier extends Notifier<int> with ChangeNotifier {
   @override
   int build() {
+    // Слушаем изменения состояния авторизации
+    ref.listen(authorizationProvider, (previous, next) {
+      // При изменении состояния авторизации обновляем router
+      if (previous != next) {
+        logInfo(
+          'Состояние авторизации изменилось, обновляем router',
+          tag: 'RouterRefreshNotifier',
+        );
+        notifyListeners();
+      }
+    });
+
     // Слушаем изменения состояния блокировки БД
     ref.listen<bool>(databaseLockedProvider, (previous, next) {
       if (next == true && previous == false) {

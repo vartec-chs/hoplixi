@@ -8,6 +8,7 @@ import 'package:hoplixi/features/auth/screens/token_list_screen.dart';
 import 'package:hoplixi/features/auth/widgets/auth_modal.dart';
 import 'package:hoplixi/features/auth/widgets/auth_client_form_dialog.dart';
 import 'package:hoplixi/features/auth/widgets/auth_client_card.dart';
+import 'package:hoplixi/features/auth/widgets/auth_modal_new.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
 
@@ -31,7 +32,10 @@ class ManageAuthClientsScreen extends ConsumerWidget {
               tooltip: 'Обновить',
             ),
           IconButton(
-            onPressed: () => showAuthModal(context),
+            onPressed: () => showNewAuthModal(
+              context,
+              returnPath: AppRoutes.manageCredential,
+            ),
             icon: const Icon(Icons.login),
           ),
           const SizedBox(width: 8),

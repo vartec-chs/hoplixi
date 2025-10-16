@@ -9,6 +9,8 @@ import 'package:go_transitions/go_transitions.dart';
 import 'package:hoplixi/app/router/router_refresh_provider.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
+import 'package:hoplixi/features/auth/models/auth_state.dart';
+import 'package:hoplixi/features/auth/providers/authorization_notifier_provider.dart';
 
 import 'package:hoplixi/features/global/screens/error_screen.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
@@ -29,12 +31,26 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: ref.watch(routerRefreshProvider.notifier),
 
     redirect: (context, state) {
-
       // log current path for debugging
       logInfo('Current path: ${state.fullPath}', tag: 'GoRouterPath');
       final dbState = ref.read(hoplixiStoreProvider).asData?.value;
       final databaseLocked = ref.read(databaseLockedProvider);
       final dataCleared = ref.read(dataClearedProvider);
+
+      // Проверяем, идет ли процесс авторизации
+      final authState = ref.read(authorizationProvider);
+      final isAuthorizing = authState.isLoading;
+
+      // Если идет авторизация и мы не на экране авторизации - блокируем переход
+      if (isAuthorizing &&
+          state.matchedLocation != AppRoutes.authorizationProgress) {
+        logInfo(
+          'Блокировка навигации - идет процесс авторизации',
+          tag: 'GoRouter',
+          data: {'currentPath': state.fullPath},
+        );
+        return AppRoutes.authorizationProgress;
+      }
 
       // Если база данных заблокирована (проверяем по флагу из lifecycle), перенаправляем на экран блокировки
       if (databaseLocked == true &&

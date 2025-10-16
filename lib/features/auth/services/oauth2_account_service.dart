@@ -128,4 +128,54 @@ class OAuth2AccountService {
   Future<ServiceResult<String>> authorizeWithToken(TokenInfo tokenInfo) async {
     return await _tokenAuthService.authorizeWithToken(tokenInfo);
   }
+
+  /// Валидация и использование существующего токена для провайдера
+  Future<ServiceResult<String>> validateAndUseExistingToken(
+    AuthClientConfig credential,
+  ) async {
+    final providerType = _getProviderTypeFromCredential(credential);
+    if (providerType == null) {
+      return ServiceResult.failure(
+        'Неподдерживаемый тип провайдера: ${credential.type.name}',
+      );
+    }
+
+    final token = await _tokenServices.findOneBySuffix(
+      providerType.name.toLowerCase(),
+    );
+
+    if (token == null) {
+      return ServiceResult.failure('Токен не найден');
+    }
+
+    try {
+      logInfo('Validating existing ${providerType.name} token', tag: _tag);
+      final tokenInfo = TokenInfo(key: token.id, token: token);
+      return await _tokenAuthService.authorizeWithToken(tokenInfo);
+    } catch (e, stack) {
+      logError(
+        'Failed to validate existing ${providerType.name} token',
+        error: e,
+        stackTrace: stack,
+        tag: _tag,
+      );
+      return ServiceResult.failure('Токен невалиден: ${e.toString()}');
+    }
+  }
+
+  /// Получение типа провайдера из credential
+  ProviderType? _getProviderTypeFromCredential(AuthClientConfig credential) {
+    switch (credential.type) {
+      case AuthClientType.dropbox:
+        return ProviderType.dropbox;
+      case AuthClientType.yandex:
+        return ProviderType.yandex;
+      case AuthClientType.google:
+        return ProviderType.google;
+      case AuthClientType.onedrive:
+        return ProviderType.microsoft;
+      default:
+        return null;
+    }
+  }
 }
