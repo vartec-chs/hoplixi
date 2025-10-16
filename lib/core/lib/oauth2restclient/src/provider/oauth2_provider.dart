@@ -10,6 +10,7 @@ import '../token/oauth2_token.dart';
 import 'pkce.dart';
 
 HttpServer? _server;
+Completer<void>? _cancellationCompleter;
 
 abstract interface class OAuth2Provider {
   String get name;
@@ -48,7 +49,8 @@ class OAuth2ProviderF implements OAuth2Provider {
   });
 
   String get _authUrl {
-    codeVerifier ??= PKCE.generateCodeVerifier();
+    // Всегда генерируем новый codeVerifier для каждой попытки авторизации
+    codeVerifier = PKCE.generateCodeVerifier();
     var cc = PKCE.generateCodeChallenge(codeVerifier!);
 
     if (additionalBeforeParameters != null) {
@@ -88,7 +90,16 @@ class OAuth2ProviderF implements OAuth2Provider {
   Future<OAuth2Token?> loginFromDesktop(
     void Function(String error)? errorCallback,
   ) async {
+    HttpServer? localServer;
+
     try {
+      // Закрываем предыдущий сервер, если он был открыт
+      await _server?.close(force: true);
+      _server = null;
+
+      // Создаём новый Completer для отмены
+      _cancellationCompleter = Completer<void>();
+
       var uri = Uri.parse(_authUrl);
       await launchUrl(uri); // ✅ automatically opens the browser
 
@@ -97,80 +108,115 @@ class OAuth2ProviderF implements OAuth2Provider {
       final port = bindUri.port; // 8080 (or specified port)
       final path = bindUri.path; // '/callback'
 
-      await _server?.close();
-      _server = await HttpServer.bind(host, port);
+      localServer = await HttpServer.bind(host, port);
+      _server = localServer;
 
-      await for (final request in _server!) {
-        // callback 경로 확인
-        if (request.uri.path == path) {
-          // 코드 파라미터 추출
-          var code = request.uri.queryParameters['code'];
+      // Добавляем тайм-аут на случай если пользователь закроет браузер
+      final serverFuture = _processServerRequests(
+        localServer,
+        path,
+        errorCallback,
+      );
 
-          final response = await exchangeCode(code);
+      // Ждём либо успешной авторизации, либо отмены, либо тайм-аута (5 минут)
+      final result =
+          await Future.any([
+            serverFuture,
+            _cancellationCompleter!.future.then((_) => null),
+          ]).timeout(
+            const Duration(minutes: 5),
+            onTimeout: () {
+              debugPrint('Authorization timeout - user likely cancelled');
+              return null;
+            },
+          );
 
-          if (response == null) {
-            errorCallback?.call("Failed to exchange code");
-            request.response.headers.contentType = ContentType.html;
-            final errorContent =
-                errorHtml ??
-                '''
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <title>Login Error</title>
-                <style>
-                  body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
-                  h1 { color: #e74c3c; }
-                  p { font-size: 16px; }
-                </style>
-              </head>
-              <body>
-                <h1>Login Error</h1>
-                <p>Login information is not available. Please close this window and return to the app.</p>
-              </body>
-              </html>
-            ''';
-            request.response.write(errorContent);
-            await request.response.close();
-          } else {
-            // 성공 메시지를 브라우저에 표시
-            request.response.headers.contentType = ContentType.html;
-            final successContent =
-                successHtml ??
-                '''
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <title>Login Success</title>
-                <style>
-                  body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
-                  h1 { color: #2ecc71; }
-                  p { font-size: 16px; }
-                </style>
-              </head>
-              <body>
-                <h1>Login Success!</h1>
-                <p>Login information has been successfully obtained. Please close this window and return to the app.</p>
-              </body>
-              </html>
-            ''';
-            request.response.write(successContent);
-            await request.response.close();
-
-            return OAuth2TokenF.fromJsonString(response);
-          }
-        } else {
-          // 404 code
-          request.response.statusCode = HttpStatus.notFound;
-          await request.response.close();
-        }
-      }
+      return result;
     } catch (e) {
       errorCallback?.call(e.toString());
-      debugPrint(e.toString());
+      debugPrint('Authorization error: $e');
     } finally {
-      await _server?.close();
+      await localServer?.close(force: true);
+      await _server?.close(force: true);
       _server = null;
+      _cancellationCompleter = null;
+    }
+
+    return null;
+  }
+
+  Future<OAuth2Token?> _processServerRequests(
+    HttpServer server,
+    String callbackPath,
+    void Function(String error)? errorCallback,
+  ) async {
+    await for (final request in server) {
+      // callback 경로 확인
+      if (request.uri.path == callbackPath) {
+        // 코드 파라미터 추출
+        var code = request.uri.queryParameters['code'];
+
+        final response = await exchangeCode(code);
+
+        if (response == null) {
+          errorCallback?.call("Failed to exchange code");
+          request.response.headers.contentType = ContentType.html;
+          final errorContent =
+              errorHtml ??
+              '''
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Login Error</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+                h1 { color: #e74c3c; }
+                p { font-size: 16px; }
+              </style>
+            </head>
+            <body>
+              <h1>Login Error</h1>
+              <p>Login information is not available. Please close this window and return to the app.</p>
+            </body>
+            </html>
+          ''';
+          request.response.write(errorContent);
+          await request.response.close();
+
+          // Закрываем сервер и возвращаем null
+          return null;
+        } else {
+          // 성공 메시지를 브라우저에 표시
+          request.response.headers.contentType = ContentType.html;
+          final successContent =
+              successHtml ??
+              '''
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Login Success</title>
+              <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+                h1 { color: #2ecc71; }
+                p { font-size: 16px; }
+              </style>
+            </head>
+            <body>
+              <h1>Login Success!</h1>
+              <p>Login information has been successfully obtained. Please close this window and return to the app.</p>
+            </body>
+            </html>
+          ''';
+          request.response.write(successContent);
+          await request.response.close();
+
+          return OAuth2TokenF.fromJsonString(response);
+        }
+      } else {
+        // 404 code
+        request.response.statusCode = HttpStatus.notFound;
+        await request.response.close();
+      }
     }
 
     return null;
@@ -254,5 +300,22 @@ class OAuth2ProviderF implements OAuth2Provider {
     }
 
     return null;
+  }
+
+  /// Отменить текущую авторизацию
+  static Future<void> cancelAuthorization() async {
+    debugPrint('Cancelling authorization...');
+
+    // Завершаем Completer для отмены
+    if (_cancellationCompleter != null &&
+        !_cancellationCompleter!.isCompleted) {
+      _cancellationCompleter!.complete();
+    }
+
+    // Закрываем сервер
+    await _server?.close(force: true);
+    _server = null;
+
+    debugPrint('Authorization cancelled and server closed');
   }
 }

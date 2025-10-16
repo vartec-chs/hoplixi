@@ -70,31 +70,55 @@ abstract class BaseOAuthProviderService {
     void Function(String error)? onError,
   ) async {
     try {
+      logInfo('Starting authorization for ${provider.name}', tag: tag);
+
       final token = await account.newLogin(
         provider.name,
         errorCallback: onError,
       );
 
       if (token == null) {
-        return ServiceResult.failure('Авторизация прервана пользователем');
+        logInfo(
+          'Authorization cancelled or failed for ${provider.name}',
+          tag: tag,
+        );
+        return ServiceResult.failure(
+          'Авторизация отменена или не удалась. Попробуйте еще раз.',
+        );
       }
 
       final key = account.keyFor(provider.name, token.userName);
+
+      // Создаём клиент
       final client = await account.createClient(token);
 
       // Сохраняем клиент в общий кэш
       clients[key] = client;
 
-      logInfo('Authorization successful for ${provider.name}', tag: tag);
+      logInfo(
+        'Authorization successful for ${provider.name}, key: $key',
+        tag: tag,
+      );
       return ServiceResult.success(data: key);
     } catch (e, stack) {
       logError(
-        'Не удалось выполнить авторизацию ${provider.name}',
+        'Failed to authorize ${provider.name}',
         error: e,
         stackTrace: stack,
         tag: tag,
       );
-      return ServiceResult.failure('Ошибка авторизации ${provider.name}');
+
+      // Более детальное сообщение об ошибке
+      String errorMessage = 'Ошибка авторизации';
+      if (e.toString().contains('cancelled')) {
+        errorMessage = 'Авторизация отменена пользователем';
+      } else if (e.toString().contains('network')) {
+        errorMessage = 'Ошибка сети. Проверьте подключение к интернету';
+      } else {
+        errorMessage = 'Ошибка авторизации: ${e.toString()}';
+      }
+
+      return ServiceResult.failure(errorMessage);
     }
   }
 }

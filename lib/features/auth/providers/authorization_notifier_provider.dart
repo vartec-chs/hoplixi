@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// ignore: implementation_imports
+import 'package:hoplixi/core/lib/oauth2restclient/src/provider/oauth2_provider.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:hoplixi/features/auth/models/auth_state.dart';
@@ -149,10 +151,13 @@ class AuthorizationNotifier extends Notifier<AuthState> {
   }
 
   /// Отмена авторизации
-  void cancel() {
+  Future<void> cancel() async {
     logInfo('Authorization cancelled', tag: _tag);
 
     final currentReturnPath = state.returnPath ?? '/';
+
+    // Отменяем OAuth2 авторизацию (закрываем сервер)
+    await OAuth2ProviderF.cancelAuthorization();
 
     state = AuthState.cancelled(returnPath: currentReturnPath);
 

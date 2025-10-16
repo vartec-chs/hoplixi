@@ -305,8 +305,8 @@ class _AuthorizationProgressScreenState
   Widget _buildCancelButton(ThemeData theme) {
     return SmoothButton(
       label: 'Отменить',
-      onPressed: () {
-        ref.read(authorizationProvider.notifier).cancel();
+      onPressed: () async {
+        await ref.read(authorizationProvider.notifier).cancel();
       },
       icon: const Icon(Icons.close),
       type: SmoothButtonType.outlined,
