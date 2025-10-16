@@ -8,6 +8,18 @@ import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
 class RouterRefreshNotifier extends Notifier<int> with ChangeNotifier {
   @override
   int build() {
+    // Слушаем изменения состояния блокировки БД
+    ref.listen<bool>(databaseLockedProvider, (previous, next) {
+      if (next == true && previous == false) {
+        logInfo(
+          'БД заблокирована, уведомляем router о необходимости refresh',
+          tag: 'RouterRefreshNotifier',
+        );
+        // Уведомляем router об изменении состояния
+        notifyListeners();
+      }
+    });
+
     // Слушаем изменения состояния очистки данных
     ref.listen<bool>(dataClearedProvider, (previous, next) {
       if (next == true && previous == false) {

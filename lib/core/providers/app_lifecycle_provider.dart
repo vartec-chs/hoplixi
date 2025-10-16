@@ -25,24 +25,30 @@ class AppLifecycleStateData {
     this.timerActive = false,
     this.remainingTime = 0,
     this.dataCleared = false,
+    this.databaseLocked = false,
   });
 
   final bool isActive;
   final bool timerActive;
   final int remainingTime; // в секундах
-  final bool dataCleared; // флаг того, что данные были очищены
+  final bool
+  dataCleared; // флаг того, что данные были очищены (полное закрытие)
+  final bool
+  databaseLocked; // флаг того, что БД заблокирована (но не закрыта полностью)
 
   AppLifecycleStateData copyWith({
     bool? isActive,
     bool? timerActive,
     int? remainingTime,
     bool? dataCleared,
+    bool? databaseLocked,
   }) {
     return AppLifecycleStateData(
       isActive: isActive ?? this.isActive,
       timerActive: timerActive ?? this.timerActive,
       remainingTime: remainingTime ?? this.remainingTime,
       dataCleared: dataCleared ?? this.dataCleared,
+      databaseLocked: databaseLocked ?? this.databaseLocked,
     );
   }
 }
@@ -184,14 +190,13 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
       }
     });
 
-    // Основной таймер для очистки данных
+    // Основной таймер для блокировки базы данных
     _inactivityTimer = Timer(Duration(seconds: _inactivityTimeoutSeconds), () {
       logInfo(
-        'Таймер неактивности истек, очищаем данные',
+        'Таймер неактивности истек, блокируем базу данных',
         tag: 'AppLifecycleNotifier',
       );
-      _clearAllData();
-      // _clearAllData();
+      _lockDatabase();
     });
   }
 
@@ -227,6 +232,46 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   void stopTimer() {
     logInfo('Принудительная остановка таймера', tag: 'AppLifecycleNotifier');
     _stopInactivityTimer();
+  }
+
+  /// Блокирует базу данных вместо полного закрытия
+  Future<void> _lockDatabase() async {
+    try {
+      logInfo('Начинаем блокировку базы данных', tag: 'AppLifecycleNotifier');
+
+      // Останавливаем таймер
+      _stopInactivityTimer();
+
+      try {
+        // Блокируем базу данных (сохраняем path и name, закрываем соединение)
+        await ref.read(hoplixiStoreProvider.notifier).lockDatabase();
+
+        // Обновляем состояние - помечаем что БД заблокирована (НЕ используем dataCleared)
+        state = state.copyWith(
+          databaseLocked: true,
+          timerActive: false,
+          dataCleared: false,
+        );
+
+        logInfo(
+          'База данных успешно заблокирована',
+          tag: 'AppLifecycleNotifier',
+        );
+      } catch (e) {
+        logError(
+          'Ошибка при блокировке базы данных',
+          error: e,
+          tag: 'AppLifecycleNotifier',
+        );
+      }
+    } catch (e, s) {
+      logError(
+        'Критическая ошибка в _lockDatabase',
+        error: e,
+        stackTrace: s,
+        tag: 'AppLifecycleNotifier',
+      );
+    }
   }
 
   /// Очищает все данные приложения
@@ -290,6 +335,12 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
     state = state.copyWith(dataCleared: false);
   }
 
+  /// Сбрасывает флаг блокировки БД (вызывается после разблокировки)
+  void resetDatabaseLockedFlag() {
+    logInfo('Сброс флага блокировки БД', tag: 'AppLifecycleNotifier');
+    state = state.copyWith(databaseLocked: false);
+  }
+
   /// Освобождение ресурсов при уничтожении провайдера
   void cleanup() {
     logInfo(
@@ -328,6 +379,13 @@ final isAppActiveProvider = Provider<bool>((ref) {
 /// Провайдер для отслеживания состояния очистки данных (для router'а)
 final dataClearedProvider = Provider<bool>((ref) {
   return ref.watch(appLifecycleProvider.select((state) => state.dataCleared));
+});
+
+/// Провайдер для отслеживания блокировки БД (для router'а)
+final databaseLockedProvider = Provider<bool>((ref) {
+  return ref.watch(
+    appLifecycleProvider.select((state) => state.databaseLocked),
+  );
 });
 
 /// Провайдер для проверки нахождения в защищённом маршруте

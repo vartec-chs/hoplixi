@@ -7,6 +7,7 @@ import 'package:hoplixi/app/theme/index.dart';
 import 'package:hoplixi/core/providers/biometric_auto_open_provider.dart';
 import 'package:hoplixi/core/providers/biometric_provider.dart';
 import 'package:hoplixi/core/services/biometric_service.dart';
+import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
@@ -42,6 +43,24 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     // Инициализация с задержкой для плавной анимации
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fabAnimationController.forward();
+      if (!mounted) return;
+      // Инициализируем hoplixiStoreManagerProvider заранее
+      ref
+          .read(hoplixiStoreManagerProvider.future)
+          .then((_) {
+            logInfo(
+              'HoplixiStoreManager инициализирован на home экране',
+              tag: 'ModernHomeScreen',
+            );
+          })
+          .catchError((error, stackTrace) {
+            logError(
+              'Ошибка инициализации HoplixiStoreManager на home экране',
+              error: error,
+              stackTrace: stackTrace,
+              tag: 'ModernHomeScreen',
+            );
+          });
     });
   }
 

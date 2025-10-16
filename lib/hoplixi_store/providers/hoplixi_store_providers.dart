@@ -46,7 +46,13 @@ final isDatabaseOpenProvider = Provider<bool>((ref) {
   );
 });
 
-
+final isDatabaseLockedProvider = Provider<bool>((ref) {
+  return ref.watch(
+    hoplixiStoreProvider.select(
+      (async) => async.asData?.value.isLocked ?? false,
+    ),
+  );
+});
 
 final stateProvider = Provider<DatabaseState?>((ref) {
   return ref.watch(hoplixiStoreProvider).asData?.value;
@@ -147,6 +153,41 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
           : DatabaseError.unknown(
               message: 'Unknown database error',
               stackTrace: st,
+              details: e.toString(),
+            );
+      state = AsyncValue.error(dbError, st);
+      rethrow;
+    }
+  }
+
+  /// Заблокировать текущую базу (сохраняет path и name, закрывает соединение)
+  Future<void> lockDatabase() async {
+    try {
+      state = const AsyncValue.loading();
+      final newState = await _manager.lockDatabase();
+      state = AsyncValue.data(newState);
+
+      logInfo(
+        'База данных заблокирована успешно',
+        tag: 'DatabaseAsyncNotifier',
+        data: {
+          'path': newState.path,
+          'name': newState.name,
+          'status': newState.status.toString(),
+        },
+      );
+    } catch (e, st) {
+      logError(
+        'Ошибка блокировки базы данных',
+        error: e,
+        stackTrace: st,
+        tag: 'DatabaseAsyncNotifier',
+      );
+      final dbError = e is DatabaseError
+          ? e
+          : DatabaseError.operationFailed(
+              operation: 'lockDatabase',
+              message: e.toString(),
               details: e.toString(),
             );
       state = AsyncValue.error(dbError, st);

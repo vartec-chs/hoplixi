@@ -6,9 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:go_transitions/go_transitions.dart';
+import 'package:hoplixi/app/router/router_refresh_provider.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
-import 'package:hoplixi/core/providers/notification_providers.dart';
 
 import 'package:hoplixi/features/global/screens/error_screen.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
@@ -26,11 +26,37 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoutes.splash,
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
     observers: [GoTransition.observer, LoggingRouteObserver()],
-    refreshListenable: ref.watch(databaseCloseProvider.notifier),
+    refreshListenable: ref.watch(routerRefreshProvider.notifier),
 
-    redirect: (context, state) async {
-      // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
-      final dataCleared = ref.watch(dataClearedProvider);
+    redirect: (context, state) {
+      final dbState = ref.read(hoplixiStoreProvider).asData?.value;
+      final databaseLocked = ref.read(databaseLockedProvider);
+      final dataCleared = ref.read(dataClearedProvider);
+
+      // Если база данных заблокирована (проверяем по флагу из lifecycle), перенаправляем на экран блокировки
+      if (databaseLocked == true &&
+          state.matchedLocation != AppRoutes.lockedDb) {
+        logInfo(
+          'База данных заблокирована (lifecycle), перенаправляем на экран блокировки',
+          tag: 'GoRouter',
+          data: {'currentPath': state.fullPath},
+        );
+
+        return AppRoutes.lockedDb;
+      }
+
+      // Альтернативная проверка по состоянию БД
+      if (dbState?.isLocked == true &&
+          state.matchedLocation != AppRoutes.lockedDb &&
+          databaseLocked == false) {
+        logInfo(
+          'База данных заблокирована (dbState), перенаправляем на экран блокировки',
+          tag: 'GoRouter',
+          data: {'currentPath': state.fullPath},
+        );
+
+        return AppRoutes.lockedDb;
+      }
 
       // Если данные были очищены, перенаправляем на home
       if (dataCleared == true) {
@@ -39,17 +65,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           tag: 'GoRouter',
           data: {'currentPath': state.fullPath},
         );
-
-        try {
-          await ref
-              .read(notificationProvider.notifier)
-              .showSecurityAlert(
-                'Безопасность',
-                'Бд была автоматический закрыта из-за неактивности',
-              );
-        } catch (e) {
-          logWarning('Не удалось отправить уведомление безопасности: $e');
-        }
 
         ref.read(appLifecycleProvider.notifier).cleanup();
 
