@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:archive/archive_io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:path/path.dart' as path;
 
@@ -67,6 +68,8 @@ class BoxManager {
     final encryption = await EncryptionService.generate();
     final exportedKey = await encryption.exportKey();
 
+    debugPrint('Generated encryption key for box "$name": $exportedKey');
+
     // Сохраняем в SecureStorage для будущего использования
     await _secureStorage.write('box_password_$name', exportedKey);
 
@@ -102,6 +105,8 @@ class BoxManager {
 
     // Загрузить ключ из SecureStorage
     final storedPassword = await _secureStorage.read('box_password_$name');
+
+    debugPrint('Loaded encryption key for box "$name": $storedPassword');
 
     // Если ключа нет в SecureStorage, БД будет использовать ключ из meta.json
     // (который был сохранён при создании без пароля)
@@ -178,7 +183,15 @@ class BoxManager {
 
   /// Проверить наличие сохранённого ключа для БД
   Future<bool> hasBoxKey(String name) async {
-    return await _secureStorage.containsKey('box_key_$name');
+    // Проверяем оба возможных ключа (box_password и box_key)
+    final hasPassword = await _secureStorage.containsKey('box_password_$name');
+    final hasKey = await _secureStorage.containsKey('box_key_$name');
+
+    // Также проверяем, существует ли директория бокса
+    final boxDir = Directory(path.join(basePath, name));
+    final boxExists = await boxDir.exists();
+
+    return (hasPassword || hasKey) && boxExists;
   }
 
   /// Очистить все сохранённые ключи

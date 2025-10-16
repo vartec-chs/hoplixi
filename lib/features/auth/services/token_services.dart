@@ -9,6 +9,7 @@ class TokenServices implements OAuth2TokenStorage {
 
   final BoxManager _boxManager;
   BoxDB<TokenOAuth>? _db;
+  Future<void>? _initFuture;
 
   TokenServices(this._boxManager);
 
@@ -17,33 +18,50 @@ class TokenServices implements OAuth2TokenStorage {
 
   /// Инициализация базы данных
   Future<void> _ensureInitialized() async {
+    // Если уже инициализировано, выходим
     if (_db != null) return;
 
+    // Если инициализация уже идёт, ждём её завершения
+    if (_initFuture != null) {
+      return _initFuture;
+    }
+
+    // Начинаем новую инициализацию
+    _initFuture = _initialize();
     try {
-      // Попробовать открыть существующую БД
-      _db = await _boxManager.openBox<TokenOAuth>(
-        name: _boxName,
-        fromJson: (json) => TokenOAuth.fromJson(json),
-        toJson: (data) => data.toJson(),
-        getId: (data) => data.id,
-      );
-      logInfo('Token storage opened successfully', tag: _tag);
-    } catch (e) {
-      // Если БД не существует, создать новую
-      try {
-        // final key = await EncryptionService.generate();
+      await _initFuture;
+    } finally {
+      _initFuture = null;
+    }
+  }
+
+  Future<void> _initialize() async {
+    // Проверить, существует ли уже БД
+    final boxExists = await _boxManager.hasBoxKey(_boxName);
+
+    try {
+      if (boxExists) {
+        // Открыть существующую БД
+        _db = await _boxManager.openBox<TokenOAuth>(
+          name: _boxName,
+          fromJson: (json) => TokenOAuth.fromJson(json),
+          toJson: (data) => data.toJson(),
+          getId: (data) => data.id,
+        );
+        logInfo('Token storage opened successfully', tag: _tag);
+      } else {
+        // Создать новую БД
         _db = await _boxManager.createBox<TokenOAuth>(
           name: _boxName,
           fromJson: (json) => TokenOAuth.fromJson(json),
           toJson: (data) => data.toJson(),
           getId: (data) => data.id,
-          // password: await key.exportKey(),
         );
         logInfo('Token storage created successfully', tag: _tag);
-      } catch (createError) {
-        logError('Failed to create token storage: $createError', tag: _tag);
-        rethrow;
       }
+    } catch (e) {
+      logError('Failed to initialize token storage: $e', tag: _tag);
+      rethrow;
     }
   }
 
