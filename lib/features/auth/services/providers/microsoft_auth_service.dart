@@ -30,7 +30,7 @@ class MicrosoftAuthService extends BaseOAuthProviderService {
       return ServiceResult.failure('Поддержка OneDrive сейчас недоступна');
     }
 
-    final redirectUri = _resolveRedirectUri(disabledMobile: true);
+    final redirectUri = _resolveRedirectUri();
 
     late Microsoft microsoftProvider;
 

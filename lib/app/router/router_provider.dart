@@ -29,6 +29,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: ref.watch(routerRefreshProvider.notifier),
 
     redirect: (context, state) {
+
+      // log current path for debugging
+      logInfo('Current path: ${state.fullPath}', tag: 'GoRouterPath');
       final dbState = ref.read(hoplixiStoreProvider).asData?.value;
       final databaseLocked = ref.read(databaseLockedProvider);
       final dataCleared = ref.read(dataClearedProvider);
