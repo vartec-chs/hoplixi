@@ -36,7 +36,7 @@ class AuthClientsService {
           fromJson: AuthClientConfig.fromJson,
           toJson: (credential) => credential.toJson(),
           getId: (credential) => credential.id,
-          password: await key.exportKey(),
+          // password: await key.exportKey(),
         );
       }
 

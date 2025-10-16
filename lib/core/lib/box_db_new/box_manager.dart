@@ -50,11 +50,10 @@ class BoxManager {
 
   /// Создать новую базу данных
   ///
-  /// Если [password] не указан, генерируется случайный ключ
+  /// Автоматически генерируется случайный ключ шифрования
   /// и сохраняется в SecureStorage.
   Future<BoxDB<T>> createBox<T>({
     required String name,
-    String? password,
     required T Function(Map<String, dynamic>) fromJson,
     required Map<String, dynamic> Function(T) toJson,
     required String Function(T) getId,
@@ -64,28 +63,18 @@ class BoxManager {
       throw BoxManagerException('БД "$name" уже открыта');
     }
 
-    // Если пароль не указан, генерируем и сохраняем в SecureStorage
-    String? actualPassword = password;
-    if (actualPassword == null) {
-      // Генерируем случайный ключ
-      final encryption = await EncryptionService.generate();
-      final exportedKey = await encryption.exportKey();
+    // Генерируем случайный ключ
+    final encryption = await EncryptionService.generate();
+    final exportedKey = await encryption.exportKey();
 
-      // Сохраняем в SecureStorage для будущего использования
-      await _secureStorage.write('box_password_$name', exportedKey);
+    // Сохраняем в SecureStorage для будущего использования
+    await _secureStorage.write('box_password_$name', exportedKey);
 
-      // Не передаём пароль, чтобы BoxDB сам сгенерировал и сохранил в meta.json
-      actualPassword = null;
-    } else if (password != null) {
-      // Если пароль указан, сохраняем его тоже (опционально)
-      await _secureStorage.write('box_password_$name', password);
-    }
-
-    // Создать БД
+    // Создать БД (без пароля, чтобы BoxDB сам сгенерировал и сохранил в meta.json)
     final db = await BoxDB.create<T>(
       name: name,
       basePath: basePath,
-      password: actualPassword,
+      password: exportedKey,
       fromJson: fromJson,
       toJson: toJson,
       getId: getId,
@@ -99,10 +88,9 @@ class BoxManager {
 
   /// Открыть существующую базу данных
   ///
-  /// Если [password] не указан, ключ будет загружен из SecureStorage.
+  /// Ключ автоматически загружается из SecureStorage.
   Future<BoxDB<T>> openBox<T>({
     required String name,
-    String? password,
     required T Function(Map<String, dynamic>) fromJson,
     required Map<String, dynamic> Function(T) toJson,
     required String Function(T) getId,
@@ -112,18 +100,17 @@ class BoxManager {
       return _openBoxes[name] as BoxDB<T>;
     }
 
-    // Если пароль не указан, попробовать загрузить из SecureStorage
-    String? actualPassword = password;
-    actualPassword ??= await _secureStorage.read('box_password_$name');
+    // Загрузить ключ из SecureStorage
+    final storedPassword = await _secureStorage.read('box_password_$name');
 
-    // Если пароля нет, БД будет использовать ключ из meta.json
+    // Если ключа нет в SecureStorage, БД будет использовать ключ из meta.json
     // (который был сохранён при создании без пароля)
 
     // Открыть БД
     final db = await BoxDB.open<T>(
       name: name,
       basePath: basePath,
-      password: actualPassword,
+      password: storedPassword,
       fromJson: fromJson,
       toJson: toJson,
       getId: getId,
