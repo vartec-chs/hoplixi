@@ -9,7 +9,6 @@ class TokenServices implements OAuth2TokenStorage {
 
   final BoxManager _boxManager;
   BoxDB<TokenOAuth>? _db;
-  Future<void>? _initFuture;
 
   TokenServices(this._boxManager);
 
@@ -18,24 +17,8 @@ class TokenServices implements OAuth2TokenStorage {
 
   /// Инициализация базы данных
   Future<void> _ensureInitialized() async {
-    // Если уже инициализировано, выходим
     if (_db != null) return;
 
-    // Если инициализация уже идёт, ждём её завершения
-    if (_initFuture != null) {
-      return _initFuture;
-    }
-
-    // Начинаем новую инициализацию
-    _initFuture = _initialize();
-    try {
-      await _initFuture;
-    } finally {
-      _initFuture = null;
-    }
-  }
-
-  Future<void> _initialize() async {
     // Проверить, существует ли уже БД
     final boxExists = await _boxManager.hasBoxKey(_boxName);
 

@@ -45,6 +45,7 @@ class BoxManager {
   final String basePath;
   final SecureStorage _secureStorage;
   final Map<String, BoxDB> _openBoxes = {};
+  final Map<String, Future<BoxDB>> _initializingBoxes = {};
 
   BoxManager({required this.basePath, SecureStorage? secureStorage})
     : _secureStorage = secureStorage ?? FlutterSecureStorageImpl();
@@ -61,20 +62,53 @@ class BoxManager {
   }) async {
     // Проверить, не открыта ли уже БД
     if (_openBoxes.containsKey(name)) {
-      throw BoxManagerException('БД "$name" уже открыта');
+      return _openBoxes[name] as BoxDB<T>;
     }
 
+    // Проверить, не инициализируется ли уже БД
+    if (_initializingBoxes.containsKey(name)) {
+      return await _initializingBoxes[name] as BoxDB<T>;
+    }
+
+    // Создать Future для инициализации
+    final initFuture = _createBoxInternal<T>(
+      name: name,
+      fromJson: fromJson,
+      toJson: toJson,
+      getId: getId,
+    );
+
+    _initializingBoxes[name] = initFuture;
+
+    try {
+      final db = await initFuture;
+      _openBoxes[name] = db;
+      return db;
+    } finally {
+      _initializingBoxes.remove(name);
+    }
+  }
+
+  /// Внутренний метод создания БД
+  Future<BoxDB<T>> _createBoxInternal<T>({
+    required String name,
+    required T Function(Map<String, dynamic>) fromJson,
+    required Map<String, dynamic> Function(T) toJson,
+    required String Function(T) getId,
+  }) async {
     // Генерируем случайный ключ
     final encryption = await EncryptionService.generate();
     final exportedKey = await encryption.exportKey();
 
-    debugPrint('Generated encryption key for box "$name": $exportedKey');
+    if (kDebugMode) {
+      debugPrint('Generated encryption key for box "$name": $exportedKey');
+    }
 
     // Сохраняем в SecureStorage для будущего использования
     await _secureStorage.write('box_password_$name', exportedKey);
 
-    // Создать БД (без пароля, чтобы BoxDB сам сгенерировал и сохранил в meta.json)
-    final db = await BoxDB.create<T>(
+    // Создать БД
+    return await BoxDB.create<T>(
       name: name,
       basePath: basePath,
       password: exportedKey,
@@ -82,11 +116,6 @@ class BoxManager {
       toJson: toJson,
       getId: getId,
     );
-
-    // Сохранить в списке открытых
-    _openBoxes[name] = db;
-
-    return db;
   }
 
   /// Открыть существующую базу данных
@@ -103,16 +132,49 @@ class BoxManager {
       return _openBoxes[name] as BoxDB<T>;
     }
 
+    // Проверить, не инициализируется ли уже БД
+    if (_initializingBoxes.containsKey(name)) {
+      return await _initializingBoxes[name] as BoxDB<T>;
+    }
+
+    // Создать Future для инициализации
+    final initFuture = _openBoxInternal<T>(
+      name: name,
+      fromJson: fromJson,
+      toJson: toJson,
+      getId: getId,
+    );
+
+    _initializingBoxes[name] = initFuture;
+
+    try {
+      final db = await initFuture;
+      _openBoxes[name] = db;
+      return db;
+    } finally {
+      _initializingBoxes.remove(name);
+    }
+  }
+
+  /// Внутренний метод открытия БД
+  Future<BoxDB<T>> _openBoxInternal<T>({
+    required String name,
+    required T Function(Map<String, dynamic>) fromJson,
+    required Map<String, dynamic> Function(T) toJson,
+    required String Function(T) getId,
+  }) async {
     // Загрузить ключ из SecureStorage
     final storedPassword = await _secureStorage.read('box_password_$name');
 
-    debugPrint('Loaded encryption key for box "$name": $storedPassword');
+    if (kDebugMode) {
+      debugPrint('Loaded encryption key for box "$name": $storedPassword');
+    }
 
     // Если ключа нет в SecureStorage, БД будет использовать ключ из meta.json
     // (который был сохранён при создании без пароля)
 
     // Открыть БД
-    final db = await BoxDB.open<T>(
+    return await BoxDB.open<T>(
       name: name,
       basePath: basePath,
       password: storedPassword,
@@ -120,11 +182,6 @@ class BoxManager {
       toJson: toJson,
       getId: getId,
     );
-
-    // Сохранить в списке открытых
-    _openBoxes[name] = db;
-
-    return db;
   }
 
   /// Получить открытую БД по имени
