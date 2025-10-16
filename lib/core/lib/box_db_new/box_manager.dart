@@ -72,7 +72,7 @@ class BoxManager {
       final exportedKey = await encryption.exportKey();
 
       // Сохраняем в SecureStorage для будущего использования
-      await _secureStorage.write('box_key_$name', exportedKey);
+      await _secureStorage.write('box_password_$name', exportedKey);
 
       // Не передаём пароль, чтобы BoxDB сам сгенерировал и сохранил в meta.json
       actualPassword = null;

@@ -3,7 +3,6 @@ import 'package:hoplixi/core/lib/oauth2restclient/src/token/oauth2_token_storage
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/auth/models/token_oauth.dart';
 
-
 class TokenServices implements OAuth2TokenStorage {
   static const String _boxName = 'oauth2_tokens';
   static const String _tag = 'TokenServices';
@@ -32,13 +31,13 @@ class TokenServices implements OAuth2TokenStorage {
     } catch (e) {
       // Если БД не существует, создать новую
       try {
-        final key = await EncryptionService.generate();
+        // final key = await EncryptionService.generate();
         _db = await _boxManager.createBox<TokenOAuth>(
           name: _boxName,
           fromJson: (json) => TokenOAuth.fromJson(json),
           toJson: (data) => data.toJson(),
           getId: (data) => data.id,
-          password: await key.exportKey(),
+          // password: await key.exportKey(),
         );
         logInfo('Token storage created successfully', tag: _tag);
       } catch (createError) {
@@ -214,6 +213,19 @@ class TokenServices implements OAuth2TokenStorage {
       await _boxManager.closeBox(_boxName);
       _db = null;
       logInfo('Token storage closed', tag: _tag);
+    }
+  }
+
+  // get all tokens
+  Future<List<TokenOAuth>> getAllTokens() async {
+    try {
+      await _ensureInitialized();
+      final allTokens = await _db!.getAll();
+      logDebug('Retrieved ${allTokens.length} tokens', tag: _tag);
+      return allTokens;
+    } catch (e) {
+      logError('Failed to retrieve all tokens: $e', tag: _tag);
+      return [];
     }
   }
 

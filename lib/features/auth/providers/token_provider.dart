@@ -19,9 +19,8 @@ class TokenListNotifier extends AsyncNotifier<List<TokenInfo>> {
 
   @override
   Future<List<TokenInfo>> build() async {
-    state = const AsyncValue.loading();
     _service = await ref.read(tokenServicesProvider.future);
-
+    state = const AsyncValue.loading();
     try {
       final tokens = await _loadTokens();
       state = AsyncValue.data(tokens);
@@ -37,19 +36,7 @@ class TokenListNotifier extends AsyncNotifier<List<TokenInfo>> {
 
   Future<List<TokenInfo>> _loadTokens() async {
     try {
-      // Ensure the underlying TokenServices has initialized its DB.
-      // TokenServices._ensureInitialized is private, so call a public
-      // method that performs initialization as a side-effect.
-      await _service.count();
-
-      // Получаем базу данных напрямую для доступа к TokenOAuth
-      final db = _service.db;
-      if (db == null) {
-        logWarning('Token database not initialized', tag: _tag);
-        return [];
-      }
-
-      final allTokens = await db.getAll();
+      final allTokens = await _service.getAllTokens();
 
       return allTokens
           .map((token) => TokenInfo(key: token.id, token: token))
