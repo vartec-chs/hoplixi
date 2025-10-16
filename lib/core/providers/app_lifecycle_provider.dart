@@ -243,6 +243,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
       _stopInactivityTimer();
 
       try {
+        await ref.read(clearAllProvider.notifier).clearAll();
         // Блокируем базу данных (сохраняем path и name, закрываем соединение)
         await ref.read(hoplixiStoreProvider.notifier).lockDatabase();
 

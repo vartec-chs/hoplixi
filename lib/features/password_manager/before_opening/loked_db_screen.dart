@@ -7,6 +7,7 @@ import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
+import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/shared/widgets/text_field.dart';
 
@@ -201,6 +202,7 @@ class _LockedDbScreenState extends ConsumerState<LockedDbScreen> {
 
       // Затем закрываем БД
       await ref.read(hoplixiStoreProvider.notifier).closeDatabase();
+      
 
       if (mounted) {
         logInfo(
