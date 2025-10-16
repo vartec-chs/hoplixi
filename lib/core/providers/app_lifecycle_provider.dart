@@ -52,7 +52,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   Timer? _inactivityTimer;
   Timer? _countdownTimer;
 
-  static const int _inactivityTimeoutSeconds = 120; // 2 минуты
+  static const int _inactivityTimeoutSeconds = 5; // 2 минуты
 
   @override
   AppLifecycleStateData build() {

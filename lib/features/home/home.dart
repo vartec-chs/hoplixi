@@ -428,7 +428,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
       case HomeWidgetType.recentDatabase:
         return _buildRecentDatabaseWidget();
       case HomeWidgetType.quickActions:
-        return _buildQuickActionsWidget();
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      // return _buildQuickActionsWidget();
       case HomeWidgetType.statistics:
         return _buildStatisticsWidget();
       case HomeWidgetType.shortcuts:

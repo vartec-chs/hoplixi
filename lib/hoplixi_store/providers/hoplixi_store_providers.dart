@@ -6,6 +6,7 @@ import 'package:hoplixi/core/index.dart';
 
 import 'package:path/path.dart' as p;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -44,6 +45,8 @@ final isDatabaseOpenProvider = Provider<bool>((ref) {
     hoplixiStoreProvider.select((async) => async.asData?.value.isOpen ?? false),
   );
 });
+
+
 
 final stateProvider = Provider<DatabaseState?>((ref) {
   return ref.watch(hoplixiStoreProvider).asData?.value;
@@ -265,3 +268,44 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     return db;
   }
 }
+
+/// Нотификатор для отслеживания закрытия базы данных
+class DatabaseCloseNotifier extends Notifier<int> with ChangeNotifier {
+  @override
+  int build() {
+    // Слушаем изменения состояния базы данных
+    ref.listen<AsyncValue<DatabaseState>>(hoplixiStoreProvider, (
+      previous,
+      next,
+    ) {
+      final prevStatus = previous?.asData?.value.status;
+      final nextStatus = next.asData?.value.status;
+      if (prevStatus != DatabaseStatus.closed &&
+          nextStatus == DatabaseStatus.closed) {
+        logInfo(
+          'База данных закрыта, уведомляем слушателей',
+          tag: 'DatabaseCloseNotifier',
+        );
+        // Уведомляем слушателей об изменении состояния
+        notifyListeners();
+      }
+    });
+
+    return 0;
+  }
+
+  /// Метод для принудительного обновления
+  void refresh() {
+    logInfo(
+      'Принудительное обновление DatabaseCloseNotifier',
+      tag: 'DatabaseCloseNotifier',
+    );
+    state = state + 1;
+    notifyListeners();
+  }
+}
+
+/// Провайдер для отслеживания закрытия базы данных
+final databaseCloseProvider = NotifierProvider<DatabaseCloseNotifier, int>(
+  DatabaseCloseNotifier.new,
+);

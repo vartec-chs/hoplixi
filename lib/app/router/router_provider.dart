@@ -14,7 +14,7 @@ import 'package:hoplixi/features/global/screens/error_screen.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
 import 'package:hoplixi/global_key.dart';
 import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
-import 'package:hoplixi/app/router/router_refresh_provider.dart';
+import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 
 import 'package:universal_platform/universal_platform.dart';
 
@@ -26,7 +26,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoutes.splash,
     navigatorKey: navigatorKey, // Устанавливаем глобальный navigatorKey
     observers: [GoTransition.observer, LoggingRouteObserver()],
-    refreshListenable: ref.watch(routerRefreshProvider.notifier),
+    refreshListenable: ref.watch(databaseCloseProvider.notifier),
 
     redirect: (context, state) async {
       // final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
