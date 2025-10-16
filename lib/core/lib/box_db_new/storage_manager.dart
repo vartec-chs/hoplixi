@@ -45,25 +45,41 @@ class StorageManager {
   Future<void> createBackup() async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final backupSubDir = Directory(path.join(_backupDir.path, '$timestamp'));
-    await backupSubDir.create(recursive: true);
 
-    if (await _dataFile.exists()) {
-      final backupData = File(path.join(backupSubDir.path, 'data.jsonl'));
-      await _dataFile.copy(backupData.path);
+    try {
+      // Удалить директорию, если она уже существует
+      if (await backupSubDir.exists()) {
+        await backupSubDir.delete(recursive: true);
+      }
+
+      await backupSubDir.create(recursive: true);
+
+      if (await _dataFile.exists()) {
+        final backupData = File(path.join(backupSubDir.path, 'data.jsonl'));
+        // Используем writeAsBytes вместо copy, чтобы избежать ошибок
+        final bytes = await _dataFile.readAsBytes();
+        await backupData.writeAsBytes(bytes);
+      }
+
+      if (await _indexFile.exists()) {
+        final backupIndex = File(path.join(backupSubDir.path, 'index.json'));
+        final bytes = await _indexFile.readAsBytes();
+        await backupIndex.writeAsBytes(bytes);
+      }
+
+      if (await _metaFile.exists()) {
+        final backupMeta = File(path.join(backupSubDir.path, 'meta.json'));
+        final bytes = await _metaFile.readAsBytes();
+        await backupMeta.writeAsBytes(bytes);
+      }
+
+      // Сохранить только последние 5 бэкапов
+      await _cleanOldBackups(5);
+    } catch (e) {
+      // Если произошла ошибка при создании бэкапа, просто логируем её
+      // и продолжаем работу (бэкап не критичен)
+      print('Warning: Failed to create backup: $e');
     }
-
-    if (await _indexFile.exists()) {
-      final backupIndex = File(path.join(backupSubDir.path, 'index.json'));
-      await _indexFile.copy(backupIndex.path);
-    }
-
-    if (await _metaFile.exists()) {
-      final backupMeta = File(path.join(backupSubDir.path, 'meta.json'));
-      await _metaFile.copy(backupMeta.path);
-    }
-
-    // Сохранить только последние 5 бэкапов
-    await _cleanOldBackups(5);
   }
 
   /// Восстановить из последней резервной копии

@@ -5,6 +5,7 @@ class AppRoutes {
   static const String home = '/';
   static const String createStore = '/create-store';
   static const String openStore = '/open-store';
+  static const String lockedDb = '/locked-db';
   static const String testDemo = '/test-demo';
   static const String dashboard = '/dashboard';
   static const String baseSettings = '/base-settings';

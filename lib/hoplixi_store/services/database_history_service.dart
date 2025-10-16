@@ -62,7 +62,7 @@ class DatabaseHistoryServiceV2 {
         final key = await EncryptionService.generate();
         _historyBox = await _boxManager.createBox<DatabaseEntry>(
           name: _boxName,
-          password: await key.exportKey(),
+          // password: await key.exportKey(),
           fromJson: DatabaseEntry.fromJson,
           toJson: (entry) => entry.toJson(),
           getId: _pathToKey,

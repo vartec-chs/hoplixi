@@ -300,7 +300,7 @@ class HoplixiStoreManager {
       password: dto.masterPassword,
     );
 
-     await DatabaseConnectionService.initializeDatabaseMetadata(
+    await DatabaseConnectionService.initializeDatabaseMetadata(
       database: database,
       name: dto.name,
       description: dto.description ?? '',
@@ -404,6 +404,65 @@ class HoplixiStoreManager {
         stackTrace: s,
         details: e.toString(),
         message: 'Не удалось открыть базу данных: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<DatabaseState> lockDatabase() async {
+    const String operation = 'lockDatabase';
+    logInfo('Блокировка базы данных', tag: 'EncryptedDatabaseManager');
+
+    if (!hasOpenDatabase) {
+      logWarning(
+        'Попытка заблокировать базу данных, когда она не открыта',
+        tag: 'EncryptedDatabaseManager',
+      );
+      return const DatabaseState(status: DatabaseStatus.closed);
+    }
+
+    try {
+      // Сохраняем метаданные перед закрытием соединения
+      final meta = await _database!.getDatabaseMeta();
+      final modifiedAt = await _database!.getModifiedAt();
+      final currentPath = _currentDatabasePath;
+
+      // Закрываем активное соединение
+      await DatabaseConnectionService.closeConnection(_database);
+      _database = null;
+
+      logInfo(
+        'База данных заблокирована',
+        tag: 'EncryptedDatabaseManager',
+        data: {'path': currentPath, 'name': meta.name},
+      );
+
+      // Возвращаем состояние locked с сохранёнными метаданными
+      return DatabaseState(
+        path: currentPath,
+        name: meta.name.isNotEmpty
+            ? meta.name
+            : p.basenameWithoutExtension(currentPath ?? ''),
+        status: DatabaseStatus.locked,
+        modifiedAt: DateTime.fromMicrosecondsSinceEpoch(modifiedAt),
+      );
+    } catch (e, s) {
+      logError(
+        'Ошибка при блокировке базы данных',
+        error: e,
+        stackTrace: s,
+        tag: 'EncryptedDatabaseManager',
+      );
+
+      // В случае ошибки закрываем соединение полностью
+      _database = null;
+      _currentDatabasePath = null;
+
+      if (e is DatabaseError) rethrow;
+      throw DatabaseError.operationFailed(
+        operation: operation,
+        stackTrace: s,
+        details: e.toString(),
+        message: 'Не удалось заблокировать базу данных: ${e.toString()}',
       );
     }
   }

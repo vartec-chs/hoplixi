@@ -3,9 +3,10 @@ library;
 import 'dart:async';
 
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/password_manager/new_cloud_sync/providers/cloud_sync_provider.dart';
+
 import 'package:path/path.dart' as p;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app/errors/db_errors.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
@@ -42,6 +43,14 @@ final hoplixiStoreProvider =
 final isDatabaseOpenProvider = Provider<bool>((ref) {
   return ref.watch(
     hoplixiStoreProvider.select((async) => async.asData?.value.isOpen ?? false),
+  );
+});
+
+final isDatabaseLockedProvider = Provider<bool>((ref) {
+  return ref.watch(
+    hoplixiStoreProvider.select(
+      (async) => async.asData?.value.isLocked ?? false,
+    ),
   );
 });
 
@@ -144,6 +153,41 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
           : DatabaseError.unknown(
               message: 'Unknown database error',
               stackTrace: st,
+              details: e.toString(),
+            );
+      state = AsyncValue.error(dbError, st);
+      rethrow;
+    }
+  }
+
+  /// Заблокировать текущую базу (сохраняет path и name, закрывает соединение)
+  Future<void> lockDatabase() async {
+    try {
+      state = const AsyncValue.loading();
+      final newState = await _manager.lockDatabase();
+      state = AsyncValue.data(newState);
+
+      logInfo(
+        'База данных заблокирована успешно',
+        tag: 'DatabaseAsyncNotifier',
+        data: {
+          'path': newState.path,
+          'name': newState.name,
+          'status': newState.status.toString(),
+        },
+      );
+    } catch (e, st) {
+      logError(
+        'Ошибка блокировки базы данных',
+        error: e,
+        stackTrace: st,
+        tag: 'DatabaseAsyncNotifier',
+      );
+      final dbError = e is DatabaseError
+          ? e
+          : DatabaseError.operationFailed(
+              operation: 'lockDatabase',
+              message: e.toString(),
               details: e.toString(),
             );
       state = AsyncValue.error(dbError, st);
@@ -265,3 +309,44 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     return db;
   }
 }
+
+/// Нотификатор для отслеживания закрытия базы данных
+class DatabaseCloseNotifier extends Notifier<int> with ChangeNotifier {
+  @override
+  int build() {
+    // Слушаем изменения состояния базы данных
+    ref.listen<AsyncValue<DatabaseState>>(hoplixiStoreProvider, (
+      previous,
+      next,
+    ) {
+      final prevStatus = previous?.asData?.value.status;
+      final nextStatus = next.asData?.value.status;
+      if (prevStatus != DatabaseStatus.closed &&
+          nextStatus == DatabaseStatus.closed) {
+        logInfo(
+          'База данных закрыта, уведомляем слушателей',
+          tag: 'DatabaseCloseNotifier',
+        );
+        // Уведомляем слушателей об изменении состояния
+        notifyListeners();
+      }
+    });
+
+    return 0;
+  }
+
+  /// Метод для принудительного обновления
+  void refresh() {
+    logInfo(
+      'Принудительное обновление DatabaseCloseNotifier',
+      tag: 'DatabaseCloseNotifier',
+    );
+    state = state + 1;
+    notifyListeners();
+  }
+}
+
+/// Провайдер для отслеживания закрытия базы данных
+final databaseCloseProvider = NotifierProvider<DatabaseCloseNotifier, int>(
+  DatabaseCloseNotifier.new,
+);

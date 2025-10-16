@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/auth/screens/auth_manager_screen.dart';
-import 'package:hoplixi/features/auth/screens/manage_credential_screen.dart';
+import 'package:hoplixi/features/auth/screens/manage_auth_clients_screen.dart';
 import 'package:hoplixi/features/demo/notification_demo_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/localsend/models/connection_mode.dart';
@@ -10,6 +10,7 @@ import 'package:hoplixi/features/localsend/models/localsend_device_info.dart';
 import 'package:hoplixi/features/localsend/screens/discovery_screen.dart';
 import 'package:hoplixi/features/localsend/screens/transceive_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
+import 'package:hoplixi/features/password_manager/before_opening/loked_db_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/notes_form/notes_form.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/otp_form.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/password_migration/screens/migration_screen.dart';
@@ -24,10 +25,7 @@ import 'package:hoplixi/features/password_manager/qr_scaner/qr_scaner_screen.dar
 import 'package:hoplixi/features/password_manager/qr_scaner/qr_test_screen.dart';
 import 'package:hoplixi/features/password_manager/tags_manager/tags_management_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/open_store/open_store.dart';
-import 'package:hoplixi/features/password_manager/sync/screens/export_screen.dart';
-import 'package:hoplixi/features/password_manager/sync/screens/export_confirm_screen.dart';
-import 'package:hoplixi/features/password_manager/sync/screens/import_screen.dart';
-import 'package:hoplixi/features/password_manager/new_cloud_sync/screens/process_imported_store.dart';
+
 import 'package:hoplixi/features/setup/setup.dart';
 import 'package:hoplixi/features/settings/screens/settings_screen.dart';
 import 'package:hoplixi/features/global/screens/image_crop_screen.dart';
@@ -60,6 +58,10 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.openStore,
     builder: (context, state) => const OpenStoreScreen(),
+  ),
+  GoRoute(
+    path: AppRoutes.lockedDb,
+    builder: (context, state) => const LockedDbScreen(),
   ),
   GoRoute(
     path: AppRoutes.dashboard,
@@ -197,48 +199,13 @@ final List<GoRoute> appRoutes = [
   ),
 
   GoRoute(
-    path: AppRoutes.exportStorage,
-    builder: (context, state) => const ExportScreen(),
-  ),
-
-  GoRoute(
     path: AppRoutes.passwordMigration,
     builder: (context, state) => const MigrationScreen(),
   ),
 
   GoRoute(
     path: AppRoutes.manageCredential,
-    builder: (context, state) => const ManageCredentialScreen(),
-  ),
-
-  GoRoute(
-    path: AppRoutes.exportConfirm,
-    builder: (context, state) {
-      if (state.extra is Map<String, dynamic>) {
-        final data = state.extra as Map<String, dynamic>;
-        final path = data['path'] as String?;
-        final name = data['name'] as String?;
-
-        if (path != null && name != null) {
-          return ExportConfirmScreen(storagePath: path, storageName: name);
-        }
-      }
-      return const InfoScreen(
-        title: 'Ошибка: нет данных',
-        info: 'Не переданы данные о хранилище.',
-        type: InfoType.error,
-      );
-    },
-  ),
-
-  GoRoute(
-    path: AppRoutes.importStorage,
-    builder: (context, state) => const ImportScreen(),
-  ),
-
-  GoRoute(
-    path: AppRoutes.processImportedStore,
-    builder: (context, state) => const ProcessImportedStoreScreen(),
+    builder: (context, state) => const ManageAuthClientsScreen(),
   ),
 ];
 

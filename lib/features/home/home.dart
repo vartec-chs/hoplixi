@@ -7,8 +7,7 @@ import 'package:hoplixi/app/theme/index.dart';
 import 'package:hoplixi/core/providers/biometric_auto_open_provider.dart';
 import 'package:hoplixi/core/providers/biometric_provider.dart';
 import 'package:hoplixi/core/services/biometric_service.dart';
-import 'package:hoplixi/features/password_manager/new_cloud_sync/models/cloud_sync_state.dart';
-import 'package:hoplixi/features/password_manager/new_cloud_sync/providers/cloud_sync_provider.dart';
+import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
@@ -44,6 +43,24 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     // Инициализация с задержкой для плавной анимации
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fabAnimationController.forward();
+      if (!mounted) return;
+      // Инициализируем hoplixiStoreManagerProvider заранее
+      ref
+          .read(hoplixiStoreManagerProvider.future)
+          .then((_) {
+            logInfo(
+              'HoplixiStoreManager инициализирован на home экране',
+              tag: 'ModernHomeScreen',
+            );
+          })
+          .catchError((error, stackTrace) {
+            logError(
+              'Ошибка инициализации HoplixiStoreManager на home экране',
+              error: error,
+              stackTrace: stackTrace,
+              tag: 'ModernHomeScreen',
+            );
+          });
     });
   }
 
@@ -159,48 +176,6 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
           if (next.error != null && next.error != previous?.error) {
             ToastHelper.error(title: 'Ошибка', description: next.error!);
           }
-        });
-
-        // Отслеживаем состояние синхронизации с облаком
-        ref.listen(cloudSyncProvider, (previous, next) {
-          next.map(
-            idle: (_) {
-              // Закрываем диалог если он был открыт и предыдущее состояние не было success/error
-              if (_isSyncDialogShown &&
-                  previous != null &&
-                  previous.maybeMap(
-                    success: (_) => false,
-                    error: (_) => false,
-                    orElse: () => true,
-                  )) {
-                _isSyncDialogShown = false;
-                _closeSyncDialog();
-              }
-            },
-            exporting: (_) {
-              // Показываем диалог при начале экспорта
-              if (!_isSyncDialogShown) {
-                _isSyncDialogShown = true;
-                _showSyncDialog();
-              }
-            },
-            importing: (_) {
-              // Показываем диалог при начале импорта
-              if (!_isSyncDialogShown) {
-                _isSyncDialogShown = true;
-                _showSyncDialog();
-              }
-            },
-            success: (_) {
-              // Диалог останется открытым, покажет успех с кнопкой закрытия
-              // Пользователь должен сам закрыть диалог
-            },
-            error: (_) {
-              // Диалог останется открытым, покажет ошибку с кнопкой закрытия
-              // Пользователь должен сам закрыть диалог
-            },
-            checking: (_) {},
-          );
         });
 
         return Scaffold(body: SafeArea(child: _buildHomeView()));
@@ -472,7 +447,8 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
       case HomeWidgetType.recentDatabase:
         return _buildRecentDatabaseWidget();
       case HomeWidgetType.quickActions:
-        return _buildQuickActionsWidget();
+        return const SliverToBoxAdapter(child: SizedBox.shrink());
+      // return _buildQuickActionsWidget();
       case HomeWidgetType.statistics:
         return _buildStatisticsWidget();
       case HomeWidgetType.shortcuts:
@@ -765,27 +741,5 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
 
   void _navigateToDatabase() {
     context.go(AppRoutes.dashboard);
-  }
-
-  /// Показывает диалог прогресса синхронизации
-  void _showSyncDialog() {
-    if (!mounted) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        CloudSyncProgressDialog.show(context);
-      }
-    });
-  }
-
-  /// Закрывает диалог прогресса синхронизации
-  void _closeSyncDialog() {
-    if (!mounted) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-    });
   }
 }

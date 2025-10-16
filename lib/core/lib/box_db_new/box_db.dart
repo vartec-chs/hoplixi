@@ -60,10 +60,10 @@ class BoxDB<T> {
     await db._initialize();
 
     // Сохранить ключ шифрования в мета (если не используется пароль)
-    if (password == null) {
-      final exportedKey = await encryption.exportKey();
-      await db._storage.updateMeta({'encryption_key': exportedKey});
-    }
+    // if (password == null) {
+    //   final exportedKey = await encryption.exportKey();
+    //   await db._storage.updateMeta({'encryption_key': exportedKey});
+    // }
 
     return db;
   }

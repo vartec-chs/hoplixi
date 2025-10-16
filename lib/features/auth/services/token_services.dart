@@ -3,22 +3,6 @@ import 'package:hoplixi/core/lib/oauth2restclient/src/token/oauth2_token_storage
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/auth/models/token_oauth.dart';
 
-class ServiceResult<T> {
-  final bool success;
-  final String? message;
-  final T? data;
-
-  ServiceResult({required this.success, this.message, this.data});
-
-  factory ServiceResult.success({T? data, String? message}) {
-    return ServiceResult(success: true, data: data, message: message);
-  }
-
-  factory ServiceResult.failure(String message) {
-    return ServiceResult(success: false, message: message);
-  }
-}
-
 class TokenServices implements OAuth2TokenStorage {
   static const String _boxName = 'oauth2_tokens';
   static const String _tag = 'TokenServices';
@@ -35,31 +19,32 @@ class TokenServices implements OAuth2TokenStorage {
   Future<void> _ensureInitialized() async {
     if (_db != null) return;
 
+    // Проверить, существует ли уже БД
+    final boxExists = await _boxManager.hasBoxKey(_boxName);
+
     try {
-      // Попробовать открыть существующую БД
-      _db = await _boxManager.openBox<TokenOAuth>(
-        name: _boxName,
-        fromJson: (json) => TokenOAuth.fromJson(json),
-        toJson: (data) => data.toJson(),
-        getId: (data) => data.id,
-      );
-      logInfo('Token storage opened successfully', tag: _tag);
-    } catch (e) {
-      // Если БД не существует, создать новую
-      try {
-        final key = await EncryptionService.generate();
+      if (boxExists) {
+        // Открыть существующую БД
+        _db = await _boxManager.openBox<TokenOAuth>(
+          name: _boxName,
+          fromJson: (json) => TokenOAuth.fromJson(json),
+          toJson: (data) => data.toJson(),
+          getId: (data) => data.id,
+        );
+        logInfo('Token storage opened successfully', tag: _tag);
+      } else {
+        // Создать новую БД
         _db = await _boxManager.createBox<TokenOAuth>(
           name: _boxName,
           fromJson: (json) => TokenOAuth.fromJson(json),
           toJson: (data) => data.toJson(),
           getId: (data) => data.id,
-          password: await key.exportKey(),
         );
         logInfo('Token storage created successfully', tag: _tag);
-      } catch (createError) {
-        logError('Failed to create token storage: $createError', tag: _tag);
-        rethrow;
       }
+    } catch (e) {
+      logError('Failed to initialize token storage: $e', tag: _tag);
+      rethrow;
     }
   }
 
@@ -229,6 +214,19 @@ class TokenServices implements OAuth2TokenStorage {
       await _boxManager.closeBox(_boxName);
       _db = null;
       logInfo('Token storage closed', tag: _tag);
+    }
+  }
+
+  // get all tokens
+  Future<List<TokenOAuth>> getAllTokens() async {
+    try {
+      await _ensureInitialized();
+      final allTokens = await _db!.getAll();
+      logDebug('Retrieved ${allTokens.length} tokens', tag: _tag);
+      return allTokens;
+    } catch (e) {
+      logError('Failed to retrieve all tokens: $e', tag: _tag);
+      return [];
     }
   }
 

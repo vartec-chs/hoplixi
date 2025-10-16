@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
 import 'package:hoplixi/features/auth/providers/token_provider.dart';
-import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 
 /// Экран для отображения всех OAuth токенов
@@ -32,24 +31,31 @@ class TokenListScreen extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Статистика
-            _buildStatisticsCard(context, countAsync),
-            const SizedBox(height: 8),
-            // Список токенов
-            Expanded(child: _buildBody(context, ref, asyncValue)),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              // Статистика
+              _buildStatisticsCard(context, countAsync),
+              const SizedBox(height: 8),
+              // Список токенов
+              Expanded(child: _buildBody(context, ref, asyncValue)),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: asyncValue.hasValue && asyncValue.value!.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: () => _confirmClearAll(context, ref),
-              icon: const Icon(Icons.delete_sweep),
-              label: const Text('Очистить всё'),
-              backgroundColor: Colors.redAccent,
-            )
-          : null,
+      floatingActionButton: countAsync.maybeWhen(
+        data: (count) => count > 0
+            ? FloatingActionButton.extended(
+                onPressed: () => _confirmClearAll(context, ref),
+                icon: const Icon(Icons.delete_sweep),
+                label: const Text('Очистить всё'),
+                backgroundColor: Colors.redAccent,
+              )
+            : null,
+
+        orElse: () => null,
+      ),
     );
   }
 
@@ -60,7 +66,7 @@ class TokenListScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Card(
-      margin: const EdgeInsets.all(8),
+      // margin: const EdgeInsets.all(8),
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Row(
@@ -176,7 +182,7 @@ class TokenListScreen extends ConsumerWidget {
         return RefreshIndicator(
           onRefresh: () => ref.read(tokenListProvider.notifier).refresh(),
           child: ListView.builder(
-            padding: const EdgeInsets.all(8),
+            // padding: const EdgeInsets.all(8),
             itemCount: tokens.length,
             itemBuilder: (context, index) {
               final tokenInfo = tokens[index];

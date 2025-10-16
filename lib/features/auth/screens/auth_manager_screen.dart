@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/features/auth/models/credential_app.dart';
+import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:hoplixi/features/auth/providers/oauth2_account_provider.dart';
 import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
-import 'package:hoplixi/features/auth/widgets/credential_picker.dart';
+import 'package:hoplixi/features/auth/widgets/auth_client_picker.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 
 /// Экран для добавления OAuth авторизаций
@@ -16,7 +16,7 @@ class AuthManagerScreen extends ConsumerStatefulWidget {
 }
 
 class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
-  CredentialApp? _selectedCredential;
+  AuthClientConfig? _selectedAuthClient;
   bool _isAuthorizing = false;
   String? _authResult;
 
@@ -41,9 +41,9 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
               // Выбор credential
               _buildCredentialSelector(),
 
-              // Информация о выбранном credential
-              if (_selectedCredential != null) ...[
-                _buildSelectedCredentialInfo(theme),
+              // Информация о выбранном auth клиенте
+              if (_selectedAuthClient != null) ...[
+                _buildSelectedAuthClientInfo(theme),
               ],
 
               // Кнопка авторизации
@@ -103,11 +103,11 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
   }
 
   Widget _buildCredentialSelector() {
-    return CredentialPicker(
-      selected: _selectedCredential,
+    return AuthClientPicker(
+      selected: _selectedAuthClient,
       onSelect: (credential) {
         setState(() {
-          _selectedCredential = credential;
+          _selectedAuthClient = credential;
           _authResult = null;
         });
       },
@@ -118,8 +118,8 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
     );
   }
 
-  Widget _buildSelectedCredentialInfo(ThemeData theme) {
-    final credential = _selectedCredential!;
+  Widget _buildSelectedAuthClientInfo(ThemeData theme) {
+    final credential = _selectedAuthClient!;
 
     return Card(
       child: Padding(
@@ -159,7 +159,7 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
   }
 
   Widget _buildAuthButton(OAuth2AccountService service) {
-    final canAuthorize = _selectedCredential != null && !_isAuthorizing;
+    final canAuthorize = _selectedAuthClient != null && !_isAuthorizing;
 
     return SmoothButton(
       label: 'Авторизовать',
@@ -313,7 +313,7 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
   }
 
   Future<void> _handleAuthorization(OAuth2AccountService service) async {
-    if (_selectedCredential == null) return;
+    if (_selectedAuthClient == null) return;
 
     setState(() {
       _isAuthorizing = true;
@@ -322,7 +322,7 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
 
     try {
       final result = await service.authorize(
-        _selectedCredential!,
+        _selectedAuthClient!,
         onError: (error) {
           if (mounted) {
             setState(() {
@@ -395,32 +395,32 @@ class _AuthManagerScreenState extends ConsumerState<AuthManagerScreen> {
     }
   }
 
-  Widget _getProviderIcon(CredentialOAuthType type, ThemeData theme) {
+  Widget _getProviderIcon(AuthClientType type, ThemeData theme) {
     IconData icon;
     Color color;
 
     switch (type) {
-      case CredentialOAuthType.google:
+      case AuthClientType.google:
         icon = Icons.cloud;
         color = Colors.blue;
         break;
-      case CredentialOAuthType.onedrive:
+      case AuthClientType.onedrive:
         icon = Icons.cloud_circle;
         color = Colors.lightBlue;
         break;
-      case CredentialOAuthType.dropbox:
+      case AuthClientType.dropbox:
         icon = Icons.cloud_queue;
         color = Colors.indigo;
         break;
-      case CredentialOAuthType.icloud:
+      case AuthClientType.icloud:
         icon = Icons.cloud_done;
         color = Colors.cyan;
         break;
-      case CredentialOAuthType.yandex:
+      case AuthClientType.yandex:
         icon = Icons.cloud_sync;
         color = Colors.orange;
         break;
-      case CredentialOAuthType.other:
+      case AuthClientType.other:
         icon = Icons.cloud_outlined;
         color = Colors.grey;
         break;
