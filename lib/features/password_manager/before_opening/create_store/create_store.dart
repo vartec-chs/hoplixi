@@ -162,32 +162,43 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
 
               // Контент текущего шага
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(8.0),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    transitionBuilder: (child, animation) {
-                      final isForward =
-                          formState.previousStep == null ||
-                          formState.previousStep! < currentStep;
-                      final curvedAnimation = CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeInOutCubic,
-                      );
-                      return SlideTransition(
-                        position: Tween<Offset>(
-                          begin: isForward
-                              ? const Offset(1.0, 0.0)
-                              : const Offset(-1.0, 0.0),
-                          end: Offset.zero,
-                        ).animate(curvedAnimation),
-                        child: FadeTransition(
-                          opacity: curvedAnimation,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: _buildStepContent(currentStep),
+                child: ClipRect(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(8.0),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      transitionBuilder: (child, animation) {
+                        final isForward =
+                            formState.previousStep == null ||
+                            formState.previousStep! < currentStep;
+                        final curvedAnimation = CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeInOutCubic,
+                        );
+                        return SlideTransition(
+                          position: Tween<Offset>(
+                            begin: isForward
+                                ? const Offset(1.0, 0.0)
+                                : const Offset(-1.0, 0.0),
+                            end: Offset.zero,
+                          ).animate(curvedAnimation),
+                          child: FadeTransition(
+                            opacity: curvedAnimation,
+                            child: child,
+                          ),
+                        );
+                      },
+                      layoutBuilder: (currentChild, previousChildren) {
+                        return Stack(
+                          alignment: Alignment.topCenter,
+                          children: <Widget>[
+                            ...previousChildren,
+                            if (currentChild != null) currentChild,
+                          ],
+                        );
+                      },
+                      child: _buildStepContent(currentStep),
+                    ),
                   ),
                 ),
               ),
