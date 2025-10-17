@@ -54,6 +54,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           data: {'currentPath': state.fullPath, 'hasError': hasAuthError},
         );
         return AppRoutes.authorizationProgress;
+      } else if (!isAuthorizing &&
+          !hasAuthError &&
+          state.matchedLocation == AppRoutes.authorizationProgress) {
+        // Если авторизация завершена и мы на экране авторизации - возвращаем назад
+        logInfo(
+          'Авторизация завершена, возвращаемся с экрана авторизации',
+          tag: 'GoRouter',
+          data: {'currentPath': state.fullPath},
+        );
+        return authState.returnPath; // GoRouter вернет нас назад автоматически
       }
 
       // Если база данных заблокирована (проверяем по флагу из lifecycle), перенаправляем на экран блокировки

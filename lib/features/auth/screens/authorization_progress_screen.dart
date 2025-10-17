@@ -50,14 +50,13 @@ class _AuthorizationProgressScreenState
           // Сбрасываем состояние
           ref.read(authorizationProvider.notifier).reset();
 
-           if (context.canPop()) {
+          if (context.canPop()) {
             context.pop();
           } else {
             context.go(returnPath);
           }
 
           // Переходим на целевой путь
-          
         },
         failure: (error, credential, returnPath) {
           // Ошибка авторизации - показываем сообщение
