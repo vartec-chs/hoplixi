@@ -203,7 +203,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
 
   Widget _buildStepIndicator(int currentStep) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       decoration: BoxDecoration(
         // color: Theme.of(context).colorScheme.surfaceContainerHighest,
         border: Border(
@@ -272,7 +272,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: isActive
-                                  ? Theme.of(context).colorScheme.primary
+                                  ? Theme.of(context).colorScheme.onPrimary
                                   : Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
@@ -347,7 +347,7 @@ class _CreateStoreScreenState extends ConsumerState<CreateStoreScreen> {
     return Container(
       padding: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        // color: Theme.of(context).colorScheme.surface,
         border: Border(
           top: BorderSide(
             color: Theme.of(context).colorScheme.outlineVariant,

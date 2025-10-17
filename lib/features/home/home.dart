@@ -12,6 +12,7 @@ import 'package:universal_platform/universal_platform.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
 import 'home_controller.dart';
+import 'providers/database_open_provider.dart';
 import 'widgets/index.dart';
 
 bool _hasShownAutoOpenDialog = false;
@@ -27,7 +28,6 @@ class ModernHomeScreen extends ConsumerStatefulWidget {
 class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late AnimationController _fabAnimationController;
-  bool _isSyncDialogShown = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -152,25 +152,29 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     return Consumer(
       builder: (context, ref, child) {
         // Проверяем возможность автооткрытия после инициализации
-        ref.listen<AsyncValue<bool>>(canAutoOpenWithSettingsProvider, (
-          previous,
-          next,
-        ) {
-          next.whenOrNull(
-            data: (canAutoOpen) {
-              if (canAutoOpen &&
-                  !_hasShownAutoOpenDialog &&
-                  mounted &&
-                  GoRouter.of(context).state.matchedLocation ==
-                      AppRoutes.home) {
-                _hasShownAutoOpenDialog = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _showAutoOpenDialog();
-                });
-              }
+        final recentDatabase = ref.watch(recentDatabaseProvider);
+
+        if (recentDatabase != null) {
+          ref.listen<AsyncValue<bool>>(
+            canAutoOpenWithSettingsProvider(recentDatabase),
+            (previous, next) {
+              next.whenOrNull(
+                data: (canAutoOpen) {
+                  if (canAutoOpen &&
+                      !_hasShownAutoOpenDialog &&
+                      mounted &&
+                      GoRouter.of(context).state.matchedLocation ==
+                          AppRoutes.home) {
+                    _hasShownAutoOpenDialog = true;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _showAutoOpenDialog();
+                    });
+                  }
+                },
+              );
             },
           );
-        });
+        }
 
         ref.listen<HomeState>(homeControllerProvider, (previous, next) {
           if (next.error != null && next.error != previous?.error) {
@@ -446,145 +450,27 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     switch (widget.type) {
       case HomeWidgetType.recentDatabase:
         return _buildRecentDatabaseWidget();
-      case HomeWidgetType.quickActions:
-        return const SliverToBoxAdapter(child: SizedBox.shrink());
-      // return _buildQuickActionsWidget();
-      case HomeWidgetType.statistics:
-        return _buildStatisticsWidget();
-      case HomeWidgetType.shortcuts:
-        return _buildShortcutsWidget();
-      case HomeWidgetType.notifications:
-        return _buildNotificationsWidget();
-      case HomeWidgetType.customWidget:
-        return _buildCustomWidget(widget);
     }
   }
 
   /// Создает виджет недавней базы данных
   Widget _buildRecentDatabaseWidget() {
-    return SliverToBoxAdapter(
-      child: Consumer(
-        builder: (context, ref, child) {
-          final homeState = ref.watch(homeControllerProvider);
+    final recentDatabase = ref.watch(recentDatabaseProvider);
+    if (recentDatabase == null) return const SizedBox.shrink();
 
-          if (!homeState.hasRecentDatabase) {
-            return const SizedBox.shrink();
-          }
-
-          return Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RecentDatabaseCard(
-                  database: homeState.recentDatabase!,
-                  isLoading: homeState.isLoading,
-                  isAutoOpening: homeState.isAutoOpening,
-                  onOpenAuto: _handleAutoOpen,
-                  onOpenManual: _handleManualOpen,
-                  onRemove: _handleRemove,
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+    final isOpening = ref.watch(
+      databaseOpenControllerProvider.select((state) => state.isOpening),
     );
-  }
 
-  /// Создает виджет статистики
-  Widget _buildStatisticsWidget() {
-    return SliverToBoxAdapter(
-      child: Consumer(
-        builder: (context, ref, child) {
-          final historyStats = ref.watch(historyStatsProvider);
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Статистика',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    historyStats.when(
-                      data: (stats) => Column(
-                        children: [
-                          _buildStatItem(
-                            'Всего записей',
-                            stats['totalEntries'].toString(),
-                          ),
-                          _buildStatItem(
-                            'С сохраненными паролями',
-                            stats['entriesWithSavedPasswords'].toString(),
-                          ),
-                        ],
-                      ),
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (error, stack) => Text(
-                        'Ошибка загрузки статистики',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickActionsWidget() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildQuickActionCard(
-                icon: Icons.archive,
-                label: 'Экспорт хранилища',
-                onTap: () => context.push(AppRoutes.exportStorage),
-                isPrimary: false,
-                description: 'Создать архив хранилища для резервной копии',
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildQuickActionCard(
-                icon: Icons.download,
-                label: 'Импорт хранилища',
-                onTap: () => context.push(AppRoutes.importStorage),
-                isPrimary: false,
-                description: 'Восстановить хранилище из архива',
-              ),
-            ),
-          ],
+        padding: const EdgeInsets.all(8),
+        child: RecentDatabaseCard(
+          database: recentDatabase,
+          isOpening: isOpening,
+          onOpenAuto: _handleAutoOpen,
+          onOpenManual: _handleManualOpen,
+          onRemove: _handleRemove,
         ),
       ),
     );
@@ -621,25 +507,15 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     );
   }
 
-  /// Заглушки для остальных виджетов
-  Widget _buildShortcutsWidget() {
-    return const SliverToBoxAdapter(child: SizedBox.shrink());
-  }
-
-  Widget _buildNotificationsWidget() {
-    return const SliverToBoxAdapter(child: SizedBox.shrink());
-  }
-
-  Widget _buildCustomWidget(HomeWidgetData widget) {
-    return const SliverToBoxAdapter(child: SizedBox.shrink());
-  }
-
   Widget buildAppBar() {
     return SliverAppBar(pinned: true, title: const Text(MainConstants.appName));
   }
 
   // Обработчики событий
   Future<void> _handleAutoOpen() async {
+    final recentDatabase = ref.read(recentDatabaseProvider);
+    if (recentDatabase == null) return;
+
     // Проверяем настройку биометрии
     final biometricEnabled = await ref.read(biometricAutoOpenProvider.future);
 
@@ -674,29 +550,33 @@ class _ModernHomeScreenState extends ConsumerState<ModernHomeScreen>
     }
 
     // Продолжаем с открытием базы данных
-    final controller = ref.read(homeControllerProvider.notifier);
-    final result = await controller.autoOpenRecentDatabase();
+    final openController = ref.read(databaseOpenControllerProvider.notifier);
+    final result = await openController.autoOpenDatabase(recentDatabase);
+
     if (result != null && context.mounted) {
+      // Обновляем историю после успешного открытия
+      ref.read(homeControllerProvider.notifier).reloadHistory();
       _navigateToDatabase();
     }
   }
 
   Future<void> _handleManualOpen() async {
-    final hasRecentDatabase = ref.read(hasRecentDatabaseProvider);
-    if (!hasRecentDatabase) return;
-
     final recentDatabase = ref.read(recentDatabaseProvider);
-    final result = await DatabasePasswordDialog.show(context, recentDatabase!);
+    if (recentDatabase == null) return;
+
+    final result = await DatabasePasswordDialog.show(context, recentDatabase);
 
     if (result != null && context.mounted) {
-      final controller = ref.read(homeControllerProvider.notifier);
-      final dbResult = result.savePassword
-          ? await controller.openRecentDatabaseWithPasswordAndSave(
-              result.password,
-            )
-          : await controller.openRecentDatabaseWithPassword(result.password);
+      final openController = ref.read(databaseOpenControllerProvider.notifier);
+      final dbResult = await openController.openDatabaseWithPassword(
+        recentDatabase,
+        result.password,
+        savePassword: result.savePassword,
+      );
 
       if (dbResult != null && context.mounted) {
+        // Обновляем историю после успешного открытия
+        ref.read(homeControllerProvider.notifier).reloadHistory();
         _navigateToDatabase();
       }
     }

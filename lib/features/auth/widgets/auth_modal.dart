@@ -1,25 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:hoplixi/core/index.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hoplixi/app/router/routes_path.dart';
 import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
-import 'package:hoplixi/features/auth/providers/oauth2_account_provider.dart';
-import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
-import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:hoplixi/features/auth/providers/authorization_notifier_provider.dart';
 
 /// Вспомогательная функция для показа модального окна
+/// Принимает returnPath - путь для возврата после авторизации
 /// Возвращает ключ клиента или null, если отменено
-Future<String?> showAuthModal(BuildContext context) async {
+Future<String?> showNewAuthModal(
+  BuildContext context, {
+  required String returnPath,
+}) async {
   return await showDialog<String>(
     context: context,
-    builder: (context) => const AuthModal(),
+    barrierDismissible: false,
+    builder: (context) => AuthModal(returnPath: returnPath),
   );
 }
 
 /// Модальное окно для выбора OAuth провайдера и авторизации
 class AuthModal extends ConsumerStatefulWidget {
-  const AuthModal({super.key});
+  final String returnPath;
+
+  const AuthModal({super.key, required this.returnPath});
 
   @override
   ConsumerState<AuthModal> createState() => _AuthModalState();
@@ -27,8 +33,6 @@ class AuthModal extends ConsumerStatefulWidget {
 
 class _AuthModalState extends ConsumerState<AuthModal> {
   final Map<AuthClientType, bool> _loadedButtons = {};
-  bool _isAuthorizing = false;
-  AuthClientType? _authorizingType;
 
   @override
   void initState() {
@@ -41,7 +45,6 @@ class _AuthModalState extends ConsumerState<AuthModal> {
     final types = AuthClientType.values;
     int index = 0;
 
-    // Загружаем кнопки по одной с анимацией
     void loadNext() {
       if (index < types.length && mounted) {
         setState(() {
@@ -52,7 +55,6 @@ class _AuthModalState extends ConsumerState<AuthModal> {
       }
     }
 
-    // Начинаем загрузку после небольшой задержки
     Future.delayed(const Duration(milliseconds: 100), loadNext);
   }
 
@@ -60,7 +62,6 @@ class _AuthModalState extends ConsumerState<AuthModal> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final credentialsAsync = ref.watch(authClientsListProvider);
-    final accountServiceAsync = ref.watch(oauth2AccountProvider);
 
     return Dialog(
       insetPadding: const EdgeInsets.all(8),
@@ -70,28 +71,51 @@ class _AuthModalState extends ConsumerState<AuthModal> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Заголовок
-            Padding(
-              padding: const EdgeInsets.all(24),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.cloud, color: theme.colorScheme.primary, size: 32),
-                  const SizedBox(width: 16),
+                  Icon(
+                    Icons.cloud_sync,
+                    color: theme.colorScheme.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      'Выберите провайдер',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Выберите провайдера',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Для синхронизации данных',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Закрыть',
                   ),
                 ],
               ),
             ),
-            const Divider(height: 1),
+
             // Список провайдеров
             Flexible(
               child: credentialsAsync.when(
@@ -100,29 +124,15 @@ class _AuthModalState extends ConsumerState<AuthModal> {
                     return _buildEmptyState(context);
                   }
 
-                  // Группируем credentials по типам
                   final credentialsByType =
                       <AuthClientType, List<AuthClientConfig>>{};
-                  for (final cred in credentials) {
+                  for (final credential in credentials) {
                     credentialsByType
-                        .putIfAbsent(cred.type, () => [])
-                        .add(cred);
+                        .putIfAbsent(credential.type, () => [])
+                        .add(credential);
                   }
 
-                  return accountServiceAsync.when(
-                    data: (service) => _buildProvidersList(
-                      context,
-                      credentialsByType,
-                      service,
-                    ),
-                    loading: () => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
-                    error: (error, _) => _buildErrorState(context, error),
-                  );
+                  return _buildProvidersList(context, credentialsByType);
                 },
                 loading: () => const Center(
                   child: Padding(
@@ -142,7 +152,6 @@ class _AuthModalState extends ConsumerState<AuthModal> {
   Widget _buildProvidersList(
     BuildContext context,
     Map<AuthClientType, List<AuthClientConfig>> credentialsByType,
-    OAuth2AccountService service,
   ) {
     return ListView(
       shrinkWrap: true,
@@ -152,7 +161,6 @@ class _AuthModalState extends ConsumerState<AuthModal> {
         final isLoaded = _loadedButtons[type] ?? false;
         final hasCredentials = credentials.isNotEmpty;
 
-        // Показываем только провайдеры с credentials
         if (!hasCredentials) {
           return const SizedBox.shrink();
         }
@@ -163,10 +171,7 @@ class _AuthModalState extends ConsumerState<AuthModal> {
           child: AnimatedSlide(
             offset: isLoaded ? Offset.zero : const Offset(0, 0.2),
             duration: const Duration(milliseconds: 300),
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildProviderCard(context, type, credentials, service),
-            ),
+            child: _buildProviderCard(context, type, credentials),
           ),
         );
       }).toList(),
@@ -177,18 +182,14 @@ class _AuthModalState extends ConsumerState<AuthModal> {
     BuildContext context,
     AuthClientType type,
     List<AuthClientConfig> credentials,
-    OAuth2AccountService service,
   ) {
     final theme = Theme.of(context);
-    final isAuthorizing = _isAuthorizing && _authorizingType == type;
 
     return Card(
       elevation: 0,
       color: theme.colorScheme.surfaceContainerHighest,
       child: InkWell(
-        onTap: isAuthorizing || _isAuthorizing
-            ? null
-            : () => _handleAuthorization(context, type, credentials, service),
+        onTap: () => _handleProviderSelection(context, type, credentials),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -201,12 +202,11 @@ class _AuthModalState extends ConsumerState<AuthModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      type.name,
+                      type.name.toUpperCase(),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
                     Text(
                       '${credentials.length} ${_pluralizeCredentials(credentials.length)}',
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -216,18 +216,11 @@ class _AuthModalState extends ConsumerState<AuthModal> {
                   ],
                 ),
               ),
-              if (isAuthorizing)
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
+              ),
             ],
           ),
         ),
@@ -252,10 +245,8 @@ class _AuthModalState extends ConsumerState<AuthModal> {
           Text('Нет доступных провайдеров', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
-            'Сначала добавьте учётные данные OAuth',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.6),
-            ),
+            'Добавьте учетные данные провайдера в настройках',
+            style: theme.textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
         ],
@@ -271,27 +262,21 @@ class _AuthModalState extends ConsumerState<AuthModal> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.redAccent),
+          Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
           const SizedBox(height: 16),
           Text('Ошибка загрузки', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          Text(
-            error.toString(),
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.redAccent),
-            textAlign: TextAlign.center,
-          ),
+          Text(error.toString(), style: theme.textTheme.bodySmall),
         ],
       ),
     );
   }
 
-  Future<void> _handleAuthorization(
+  Future<void> _handleProviderSelection(
     BuildContext context,
     AuthClientType type,
     List<AuthClientConfig> credentials,
-    OAuth2AccountService service,
   ) async {
-    // Если несколько credentials для этого типа, показываем выбор
     AuthClientConfig? selectedCredential;
 
     if (credentials.length == 1) {
@@ -302,58 +287,24 @@ class _AuthModalState extends ConsumerState<AuthModal> {
 
     if (selectedCredential == null) return;
 
-    setState(() {
-      _isAuthorizing = true;
-      _authorizingType = type;
-    });
+    // Закрываем модальное окно
+    if (!mounted) return;
+    Navigator.of(context).pop();
 
-    try {
-      final result = await service.authorize(
-        selectedCredential,
-        onError: (error) {
-          logError('OAuth authorization error', error: error, tag: 'AuthModal');
-          if (!mounted) return;
+    // Переходим на экран прогресса авторизации
+    if (!mounted) return;
+    context.go(AppRoutes.authorizationProgress);
 
-          ToastHelper.error(
-            title: 'Ошибка авторизации',
-            description: error.toString(),
+    // Запускаем процесс авторизации через провайдер
+    // Делаем это ПОСЛЕ навигации, чтобы AuthorizationProgressScreen уже слушал изменения
+    await Future.microtask(() {
+      ref
+          .read(authorizationProvider.notifier)
+          .startAuthorization(
+            credential: selectedCredential!,
+            returnPath: widget.returnPath,
           );
-
-          setState(() {
-            _isAuthorizing = false;
-            _authorizingType = null;
-          });
-        },
-      );
-
-      if (!mounted) return;
-
-      if (result.success) {
-        Navigator.of(context).pop(result.data);
-        ToastHelper.success(
-          title: 'Авторизация успешна',
-          description: 'Ключ: ${result.data}',
-        );
-      } else {
-        setState(() {
-          _isAuthorizing = false;
-          _authorizingType = null;
-        });
-        ToastHelper.error(
-          title: 'Ошибка авторизации',
-          description: result.message,
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _isAuthorizing = false;
-        _authorizingType = null;
-      });
-
-      ToastHelper.error(title: 'Ошибка авторизации', description: e.toString());
-    }
+    });
   }
 
   Future<AuthClientConfig?> _showCredentialPicker(
@@ -365,19 +316,15 @@ class _AuthModalState extends ConsumerState<AuthModal> {
       builder: (context) => AlertDialog(
         insetPadding: const EdgeInsets.all(12),
         title: const Text('Выберите провайдера'),
-
         content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 550, maxHeight: 400),
+          constraints: const BoxConstraints(maxHeight: 300),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: credentials.map((credential) {
                 return ListTile(
                   title: Text(credential.name),
-                  subtitle: Text(
-                    '${credential.type.name} • ID: ${_maskString(credential.clientId)}${credential.isBuiltin ? ' (Встроенный)' : ''}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  subtitle: Text(_maskString(credential.clientId)),
                   onTap: () => Navigator.of(context).pop(credential),
                 );
               }).toList(),
@@ -385,10 +332,9 @@ class _AuthModalState extends ConsumerState<AuthModal> {
           ),
         ),
         actions: [
-          SmoothButton(
+          TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            label: 'Отмена',
-            type: SmoothButtonType.text,
+            child: const Text('Отмена'),
           ),
         ],
       ),
@@ -396,7 +342,6 @@ class _AuthModalState extends ConsumerState<AuthModal> {
   }
 
   Widget _getProviderIcon(AuthClientType type) {
-    // Map each provider type to an SVG asset and whether it should be tinted.
     String assetName;
     Color? tintColor;
     bool preserveColor = false;
@@ -405,31 +350,25 @@ class _AuthModalState extends ConsumerState<AuthModal> {
       case AuthClientType.google:
         assetName = 'assets/auth_img/google-color-svgrepo-com.svg';
         preserveColor = true;
-        tintColor = null;
         break;
       case AuthClientType.onedrive:
         assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
-        preserveColor = false;
         tintColor = Colors.lightBlue;
         break;
       case AuthClientType.dropbox:
         assetName = 'assets/auth_img/dropbox-color-svgrepo-com.svg';
         preserveColor = true;
-        tintColor = null;
         break;
       case AuthClientType.icloud:
         assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
-        preserveColor = false;
         tintColor = Colors.cyan;
         break;
       case AuthClientType.yandex:
         assetName = 'assets/auth_img/yandex-ru-svgrepo-com.svg';
         preserveColor = true;
-        tintColor = null;
         break;
       case AuthClientType.other:
         assetName = 'assets/auth_img/microsoft-svgrepo-com.svg';
-        preserveColor = false;
         tintColor = Colors.grey;
         break;
     }
@@ -451,7 +390,7 @@ class _AuthModalState extends ConsumerState<AuthModal> {
           colorFilter: preserveColor
               ? null
               : ColorFilter.mode(
-                  tintColor ?? Theme.of(context).colorScheme.onSurface,
+                  tintColor ?? Theme.of(context).colorScheme.primary,
                   BlendMode.srcIn,
                 ),
           fit: BoxFit.contain,

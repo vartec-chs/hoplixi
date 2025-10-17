@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/app/router/router_provider.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:hoplixi/features/auth/providers/auth_clients_provider.dart';
@@ -8,7 +9,6 @@ import 'package:hoplixi/features/auth/screens/token_list_screen.dart';
 import 'package:hoplixi/features/auth/widgets/auth_modal.dart';
 import 'package:hoplixi/features/auth/widgets/auth_client_form_dialog.dart';
 import 'package:hoplixi/features/auth/widgets/auth_client_card.dart';
-import 'package:hoplixi/features/auth/widgets/auth_modal_new.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
 
@@ -21,6 +21,7 @@ class ManageAuthClientsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: BackButton(onPressed: () => navigateBack(context)),
         title: const Text('Управление клиентами авторизации'),
         actions: [
           if (asyncValue.hasValue && asyncValue.value!.isNotEmpty)

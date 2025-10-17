@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:hoplixi/hoplixi_store/models/database_entry.dart';
 import 'package:hoplixi/shared/widgets/button.dart';
+import 'package:path/path.dart' as p;
 
 /// Виджет для отображения недавно открытой базы данных
 class RecentDatabaseCard extends StatelessWidget {
   final DatabaseEntry database;
-  final bool isLoading;
-  final bool isAutoOpening;
+  final bool isOpening;
   final VoidCallback? onOpenAuto;
   final VoidCallback? onOpenManual;
   final VoidCallback? onRemove;
 
   const RecentDatabaseCard({
     required this.database,
-    this.isLoading = false,
-    this.isAutoOpening = false,
+    this.isOpening = false,
     this.onOpenAuto,
     this.onOpenManual,
     this.onRemove,
@@ -57,8 +56,8 @@ class RecentDatabaseCard extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Кнопки действий
-            if (isAutoOpening)
-              _buildAutoOpeningIndicator(context)
+            if (isOpening)
+              _buildOpeningIndicator(context)
             else
               _buildActionButtons(context),
           ],
@@ -154,7 +153,7 @@ class RecentDatabaseCard extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                database.path,
+                p.dirname(database.path),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontFamily: 'monospace',
@@ -203,10 +202,10 @@ class RecentDatabaseCard extends StatelessWidget {
           SmoothButton(
             type: SmoothButtonType.filled,
             isFullWidth: true,
-            onPressed: isLoading ? null : onOpenAuto,
+            onPressed: isOpening ? null : onOpenAuto,
             label: 'Открыть',
             icon: const Icon(Icons.lock_open, size: 18),
-            loading: isLoading,
+            loading: isOpening,
           ),
 
         Row(
@@ -215,7 +214,7 @@ class RecentDatabaseCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             SmoothButton(
-              onPressed: isLoading ? null : onOpenManual,
+              onPressed: isOpening ? null : onOpenManual,
               type: canAutoOpen
                   ? SmoothButtonType.text
                   : SmoothButtonType.filled,
@@ -225,7 +224,7 @@ class RecentDatabaseCard extends StatelessWidget {
 
             // Кнопка удаления из истории
             IconButton(
-              onPressed: isLoading ? null : onRemove,
+              onPressed: isOpening ? null : onRemove,
               icon: const Icon(Icons.delete, size: 20),
               tooltip: 'Удалить из истории',
               style: IconButton.styleFrom(foregroundColor: Colors.redAccent),
@@ -238,14 +237,14 @@ class RecentDatabaseCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAutoOpeningIndicator(BuildContext context) {
+  Widget _buildOpeningIndicator(BuildContext context) {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
+        color: theme.colorScheme.primaryContainer.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [

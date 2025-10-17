@@ -50,8 +50,14 @@ class _AuthorizationProgressScreenState
           // Сбрасываем состояние
           ref.read(authorizationProvider.notifier).reset();
 
+           if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(returnPath);
+          }
+
           // Переходим на целевой путь
-          context.go(returnPath);
+          
         },
         failure: (error, credential, returnPath) {
           // Ошибка авторизации - показываем сообщение
@@ -66,7 +72,11 @@ class _AuthorizationProgressScreenState
             description: 'Вы отменили процесс авторизации',
           );
 
-          context.go(returnPath);
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(returnPath);
+          }
         },
       );
     });
