@@ -1,190 +1,391 @@
-// result.dart
 import 'dart:async';
 
-/// Универсальный Result<T, E>
-/// E по умолчанию — Object (можно использовать Exception, String и т.д.)
-abstract class Result<T, E extends Object> {
-  const Result();
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  bool get isSuccess;
-  bool get isFailure => !isSuccess;
+part 'result.freezed.dart';
 
-  /// Pattern-match
-  R when<R>({
-    required R Function(T value) success,
-    required R Function(E error, StackTrace? stackTrace) failure,
-  });
+/// Production-ready Result Pattern implementation using freezed sealed classes.
+/// Covers all common scenarios for error and success handling.
+///
+/// Usage:
+/// ```dart
+/// Result<User, AppError> result = await userRepository.getUser(id);
+/// result.when(
+///   success: (user) => print('Got user: ${user.name}'),
+///   failure: (error) => print('Error: ${error.message}'),
+/// );
+/// ```
+@freezed
+sealed class Result<T, E> with _$Result<T, E> {
+  /// Success state with data
+  const factory Result.success(T data) = Success<T, E>;
 
-  /// Map успеха
-  Result<R, E> map<R>(R Function(T value) f) {
-    return when(
-      success: (v) {
-        try {
-          return Success<R, E>(f(v));
-        } catch (e, st) {
-          return Failure<R, E>(e as E, st); // cast: caller chooses E type
-        }
-      },
-      failure: (err, st) => Failure<R, E>(err, st),
-    );
-  }
+  /// Failure state with error
+  const factory Result.failure(E error) = Failure<T, E>;
 
-  /// Map ошибки
-  Result<T, F> mapError<F extends Object>(F Function(E error, StackTrace? st) f) {
-    return when(
-      success: (v) => Success<T, F>(v),
-      failure: (err, st) {
-        try {
-          return Failure<T, F>(f(err, st), st);
-        } catch (e, st2) {
-          return Failure<T, F>(e as F, st2);
-        }
-      },
-    );
-  }
+  const Result._();
 
-  /// FlatMap (sync)
-  Result<R, E> flatMap<R>(Result<R, E> Function(T value) f) {
-    return when(
-      success: (v) {
-        try {
-          return f(v);
-        } catch (e, st) {
-          return Failure<R, E>(e as E, st);
-        }
-      },
-      failure: (err, st) => Failure<R, E>(err, st),
-    );
-  }
+  /// Returns true if this is a success result
+  bool get isSuccess => this is Success<T, E>;
 
-  /// FlatMap (async)
-  Future<Result<R, E>> asyncFlatMap<R>(Future<Result<R, E>> Function(T value) f) async {
-    return await when(
-      success: (v) async {
-        try {
-          return await f(v);
-        } catch (e, st) {
-          return Failure<R, E>(e as E, st);
-        }
-      },
-      failure: (err, st) async => Failure<R, E>(err, st),
-    );
-  }
+  /// Returns true if this is a failure result
+  bool get isFailure => this is Failure<T, E>;
 
-  /// Fold to value
-  R fold<R>(R Function(T v) onSuccess, R Function(E err, StackTrace? st) onFailure) {
-    return when(success: onSuccess, failure: onFailure);
-  }
+  /// Gets the success data or null
+  T? get dataOrNull => switch (this) {
+    Success(data: final data) => data,
+    Failure() => null,
+  };
 
-  /// Получить значение или дефолт
-  T getOrElse(T Function() orElse) {
-    return when(success: (v) => v, failure: (_, __) => orElse());
-  }
+  /// Gets the error or null
+  E? get errorOrNull => switch (this) {
+    Success() => null,
+    Failure(error: final error) => error,
+  };
 
-  /// Получить значение или бросить ошибку (если failure)
-  T getOrThrow() {
-    return when(
-      success: (v) => v,
-      failure: (err, st) {
-        if (err is Error) {
-          // preserve stack
-          throw err;
-        } else {
-          throw _ResultException(err, st);
-        }
-      },
-    );
-  }
+  /// Gets the success data or throws the error
+  T getOrThrow() => switch (this) {
+    Success(data: final data) => data,
+    Failure(error: final error) => throw error as Object,
+  };
 
-  /// Преобразовать Future<T> в Future<Result<T, E>> с ловлей ошибок
-  static Future<Result<T, E>> fromFuture<T, E extends Object>(Future<T> future) async {
-    try {
-      final v = await future;
-      return Success<T, E>(v);
-    } catch (e, st) {
-      return Failure<T, E>(e as E, st);
+  /// Gets the success data or returns the default value
+  T getOrElse(T Function(E error) defaultValue) => switch (this) {
+    Success(data: final data) => data,
+    Failure(error: final error) => defaultValue(error),
+  };
+
+  /// Gets the success data or returns the default value
+  T getOrDefault(T defaultValue) => switch (this) {
+    Success(data: final data) => data,
+    Failure() => defaultValue,
+  };
+
+  /// Maps the success value to a new type
+  Result<R, E> map<R>(R Function(T data) transform) => switch (this) {
+    Success(data: final data) => Result.success(transform(data)),
+    Failure(error: final error) => Result.failure(error),
+  };
+
+  /// Maps the error value to a new type
+  Result<T, R> mapError<R>(R Function(E error) transform) => switch (this) {
+    Success(data: final data) => Result.success(data),
+    Failure(error: final error) => Result.failure(transform(error)),
+  };
+
+  /// Flat maps the success value to a new Result
+  Result<R, E> flatMap<R>(Result<R, E> Function(T data) transform) =>
+      switch (this) {
+        Success(data: final data) => transform(data),
+        Failure(error: final error) => Result.failure(error),
+      };
+
+  /// Flat maps the error value to a new Result
+  Result<T, R> flatMapError<R>(Result<T, R> Function(E error) transform) =>
+      switch (this) {
+        Success(data: final data) => Result.success(data),
+        Failure(error: final error) => transform(error),
+      };
+
+  /// Executes an action if this is a success
+  Result<T, E> onSuccess(void Function(T data) action) {
+    if (this case Success(data: final data)) {
+      action(data);
     }
+    return this;
   }
 
-  /// Выполнить синхронную функцию и поймать исключение
-  static Result<T, Object> guardSync<T>(T Function() fn) {
-    try {
-      return Success<T, Object>(fn());
-    } catch (e, st) {
-      return Failure<T, Object>(e as Object, st);
+  /// Executes an action if this is a failure
+  Result<T, E> onFailure(void Function(E error) action) {
+    if (this case Failure(error: final error)) {
+      action(error);
     }
+    return this;
   }
 
-  /// Выполнить асинхронную функцию и поймать исключение
-  static Future<Result<T, Object>> guardAsync<T>(Future<T> Function() fn) async {
-    try {
-      final v = await fn();
-      return Success<T, Object>(v);
-    } catch (e, st) {
-      return Failure<T, Object>(e as Object, st);
+  /// Folds the result into a single value
+  R fold<R>({
+    required R Function(T data) onSuccess,
+    required R Function(E error) onFailure,
+  }) => switch (this) {
+    Success(data: final data) => onSuccess(data),
+    Failure(error: final error) => onFailure(error),
+  };
+
+  /// Recovers from failure by providing an alternative value
+  Result<T, E> recover(T Function(E error) recovery) => switch (this) {
+    Success() => this,
+    Failure(error: final error) => Result.success(recovery(error)),
+  };
+
+  /// Recovers from failure by providing an alternative Result
+  Result<T, E> recoverWith(Result<T, E> Function(E error) recovery) =>
+      switch (this) {
+        Success() => this,
+        Failure(error: final error) => recovery(error),
+      };
+
+  /// Swaps success and failure
+  Result<E, T> swap() => switch (this) {
+    Success(data: final data) => Result.failure(data),
+    Failure(error: final error) => Result.success(error),
+  };
+
+  /// Converts to nullable value (null for failure)
+  T? toNullable() => dataOrNull;
+
+  /// Converts to nullable error (null for success)
+  E? toNullableError() => errorOrNull;
+}
+
+/// Extension for working with Future<Result>
+extension FutureResultExtension<T, E> on Future<Result<T, E>> {
+  /// Maps the success value asynchronously
+  /// Accepts both sync and async transformers via FutureOr
+  Future<Result<R, E>> mapAsync<R>(
+    FutureOr<R> Function(T data) transform,
+  ) async {
+    final result = await this;
+    return switch (result) {
+      Success(data: final data) => Result.success(await transform(data)),
+      Failure(error: final error) => Result.failure(error),
+    };
+  }
+
+  /// Flat maps the success value asynchronously
+  Future<Result<R, E>> flatMapAsync<R>(
+    Future<Result<R, E>> Function(T data) transform,
+  ) async {
+    final result = await this;
+    return switch (result) {
+      Success(data: final data) => await transform(data),
+      Failure(error: final error) => Result.failure(error),
+    };
+  }
+
+  /// Maps the error value asynchronously
+  /// Accepts both sync and async transformers via FutureOr
+  Future<Result<T, R>> mapErrorAsync<R>(
+    FutureOr<R> Function(E error) transform,
+  ) async {
+    final result = await this;
+    return switch (result) {
+      Success(data: final data) => Result.success(data),
+      Failure(error: final error) => Result.failure(await transform(error)),
+    };
+  }
+
+  /// Executes an action if this is a success
+  Future<Result<T, E>> onSuccessAsync(
+    Future<void> Function(T data) action,
+  ) async {
+    final result = await this;
+    if (result case Success(data: final data)) {
+      await action(data);
     }
+    return result;
   }
 
-  /// Агрегировать список результатов — вернёт первый Failure или Success со списком значений.
-  static Result<List<T>, E> sequence<T, E extends Object>(List<Result<T, E>> items) {
-    final List<T> values = <T>[];
-    for (final r in items) {
-      if (r.isFailure) {
-        return r.when(
-          success: (_) => throw StateError('unreachable'),
-          failure: (err, st) => Failure<List<T>, E>(err, st),
-        );
-      } else {
-        final v = r.when(success: (v) => v, failure: (_, __) => throw StateError('unreachable'));
-        values.add(v);
+  /// Executes an action if this is a failure
+  Future<Result<T, E>> onFailureAsync(
+    Future<void> Function(E error) action,
+  ) async {
+    final result = await this;
+    if (result case Failure(error: final error)) {
+      await action(error);
+    }
+    return result;
+  }
+
+  /// Recovers from failure asynchronously
+  Future<Result<T, E>> recoverAsync(
+    Future<T> Function(E error) recovery,
+  ) async {
+    final result = await this;
+    return switch (result) {
+      Success() => result,
+      Failure(error: final error) => Result.success(await recovery(error)),
+    };
+  }
+
+  /// Recovers from failure with alternative Result asynchronously
+  Future<Result<T, E>> recoverWithAsync(
+    Future<Result<T, E>> Function(E error) recovery,
+  ) async {
+    final result = await this;
+    return switch (result) {
+      Success() => result,
+      Failure(error: final error) => await recovery(error),
+    };
+  }
+
+  /// Gets the data or throws asynchronously
+  Future<T> getOrThrowAsync() async {
+    final result = await this;
+    return result.getOrThrow();
+  }
+
+  /// Gets the data or returns default asynchronously
+  Future<T> getOrElseAsync(T Function(E error) defaultValue) async {
+    final result = await this;
+    return result.getOrElse(defaultValue);
+  }
+
+  /// Gets the data or null asynchronously
+  Future<T?> toNullableAsync() async {
+    final result = await this;
+    return result.toNullable();
+  }
+}
+
+/// Extension for working with Iterable<Result>
+extension IterableResultExtension<T, E> on Iterable<Result<T, E>> {
+  /// Collects all successes, returns failure if any
+  Result<List<T>, E> sequence() {
+    final results = <T>[];
+    for (final result in this) {
+      switch (result) {
+        case Success(data: final data):
+          results.add(data);
+        case Failure(error: final error):
+          return Result.failure(error);
       }
     }
-    return Success<List<T>, E>(values);
+    return Result.success(results);
+  }
+
+  /// Collects all successes, ignoring failures
+  List<T> collectSuccesses() {
+    return whereType<Success<T, E>>().map((s) => s.data).toList();
+  }
+
+  /// Collects all failures, ignoring successes
+  List<E> collectFailures() {
+    return whereType<Failure<T, E>>().map((f) => f.error).toList();
+  }
+
+  /// Partitions into successes and failures
+  ({List<T> successes, List<E> failures}) partition() {
+    final successes = <T>[];
+    final failures = <E>[];
+    for (final result in this) {
+      switch (result) {
+        case Success(data: final data):
+          successes.add(data);
+        case Failure(error: final error):
+          failures.add(error);
+      }
+    }
+    return (successes: successes, failures: failures);
   }
 }
 
-class Success<T, E extends Object> extends Result<T, E> {
-  final T value;
-  const Success(this.value);
+/// Helper functions for creating Results
+extension ResultConstructors on Result {
+  /// Creates a Result from a nullable value
+  static Result<T, E> fromNullable<T, E>(T? value, E Function() errorProvider) {
+    return value != null
+        ? Result.success(value)
+        : Result.failure(errorProvider());
+  }
 
-  @override
-  bool get isSuccess => true;
+  /// Catches exceptions and converts to Result
+  static Result<T, E> tryCatch<T, E>(
+    T Function() operation,
+    E Function(Object error, StackTrace stackTrace) errorMapper,
+  ) {
+    try {
+      return Result.success(operation());
+    } catch (error, stackTrace) {
+      return Result.failure(errorMapper(error, stackTrace));
+    }
+  }
 
-  @override
-  R when<R>({
-    required R Function(T value) success,
-    required R Function(E error, StackTrace? stackTrace) failure,
-  }) =>
-      success(value);
+  /// Catches exceptions asynchronously and converts to Result
+  static Future<Result<T, E>> tryCatchAsync<T, E>(
+    Future<T> Function() operation,
+    E Function(Object error, StackTrace stackTrace) errorMapper,
+  ) async {
+    try {
+      return Result.success(await operation());
+    } catch (error, stackTrace) {
+      return Result.failure(errorMapper(error, stackTrace));
+    }
+  }
 
-  @override
-  String toString() => 'Success($value)';
+  /// Combines two Results
+  static Result<(T1, T2), E> combine2<T1, T2, E>(
+    Result<T1, E> result1,
+    Result<T2, E> result2,
+  ) {
+    return switch ((result1, result2)) {
+      (Success(data: final d1), Success(data: final d2)) => Result.success((
+        d1,
+        d2,
+      )),
+      (Failure(error: final e), _) => Result.failure(e),
+      (_, Failure(error: final e)) => Result.failure(e),
+    };
+  }
+
+  /// Combines three Results
+  static Result<(T1, T2, T3), E> combine3<T1, T2, T3, E>(
+    Result<T1, E> result1,
+    Result<T2, E> result2,
+    Result<T3, E> result3,
+  ) {
+    return switch ((result1, result2, result3)) {
+      (
+        Success(data: final d1),
+        Success(data: final d2),
+        Success(data: final d3),
+      ) =>
+        Result.success((d1, d2, d3)),
+      (Failure(error: final e), _, _) => Result.failure(e),
+      (_, Failure(error: final e), _) => Result.failure(e),
+      (_, _, Failure(error: final e)) => Result.failure(e),
+    };
+  }
+
+  /// Combines four Results
+  static Result<(T1, T2, T3, T4), E> combine4<T1, T2, T3, T4, E>(
+    Result<T1, E> result1,
+    Result<T2, E> result2,
+    Result<T3, E> result3,
+    Result<T4, E> result4,
+  ) {
+    return switch ((result1, result2, result3, result4)) {
+      (
+        Success(data: final d1),
+        Success(data: final d2),
+        Success(data: final d3),
+        Success(data: final d4),
+      ) =>
+        Result.success((d1, d2, d3, d4)),
+      (Failure(error: final e), _, _, _) => Result.failure(e),
+      (_, Failure(error: final e), _, _) => Result.failure(e),
+      (_, _, Failure(error: final e), _) => Result.failure(e),
+      (_, _, _, Failure(error: final e)) => Result.failure(e),
+    };
+  }
 }
 
-class Failure<T, E extends Object> extends Result<T, E> {
-  final E error;
-  final StackTrace? stackTrace;
-  const Failure(this.error, [this.stackTrace]);
-
-  @override
-  bool get isSuccess => false;
-
-  @override
-  R when<R>({
-    required R Function(T value) success,
-    required R Function(E error, StackTrace? stackTrace) failure,
-  }) =>
-      failure(error, stackTrace);
-
-  @override
-  String toString() => 'Failure($error, stackTrace: ${stackTrace ?? 'null'})';
+/// Extension for converting from other types to Result
+extension ToResultExtension<T> on T {
+  /// Converts value to Success
+  Result<T, E> toSuccess<E>() => Result.success(this);
 }
 
-class _ResultException implements Exception {
-  final Object error;
-  final StackTrace? stackTrace;
-  _ResultException(this.error, this.stackTrace);
+extension ToResultErrorExtension<E> on E {
+  /// Converts error to Failure
+  Result<T, E> toFailure<T>() => Result.failure(this);
+}
 
-  @override
-  String toString() => 'ResultException: $error\n${stackTrace ?? ''}';
+extension NullableToResultExtension<T> on T? {
+  /// Converts nullable to Result
+  Result<T, E> toResult<E>(E Function() errorProvider) {
+    return this != null
+        ? Result.success(this as T)
+        : Result.failure(errorProvider());
+  }
 }

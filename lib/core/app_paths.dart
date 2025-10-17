@@ -16,6 +16,8 @@ class AppPaths {
       await _getAppCrashReportsPath();
   static Future<String> get exportStoragesPath async =>
       await _getExportStoragesPath();
+  static Future<String> get cloudSyncFilePath async =>
+      await _getCloudSyncFilePath();
 }
 
 /// Получение пути к директории приложения
@@ -80,7 +82,15 @@ Future<String> _getApplicationStoragePath() async {
   return basePath;
 }
 
-// export storages path
+/// Cloud sync file json
+Future<String> _getCloudSyncFilePath() async {
+  final appDir = Directory(await _getApplicationStoragePath());
+  final basePath = p.join(appDir.path, 'cloud_sync.json');
+
+  return basePath;
+}
+
+/// Export storages path
 Future<String> _getExportStoragesPath() async {
   final appDir = Directory(await _getApplicationStoragePath());
   final basePath = p.join(appDir.path, 'exports');

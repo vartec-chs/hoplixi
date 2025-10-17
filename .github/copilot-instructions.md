@@ -1,45 +1,62 @@
-## Hoplixi — Быстрый онбординг для AI
-Flutter пароль-менеджер на SQLCipher + Drift + Riverpod v3. Все секреты шифруются локально и никогда не попадают в логи.
+## Hoplixi — Coding Playbook
+- Flutter пароль-менеджер (`lib/main.dart` → `App`) использует Riverpod 3, GoRouter и Drift+SQLCipher; все секреты остаются локальными и не пишутся в логи.
+- Глобальные настройки, темы и маршруты находятся в `lib/app/...` (`router_provider.dart`, `routes.dart`, `theme/index.dart`); обновляя навигацию, регистрируйте экраны и провайдеры в этих файлах.
+- UI-модули живут в `lib/features/<domain>/`; компоненты общего назначения берите из `lib/common/` (напр. `SmoothButton`, `PasswordField`, `SliderButton`).
 
-### Архитектура и данные
-- UI в `lib/features/...` работает только через провайдеры (`<Domain><Role>Provider`) на базе Notifier/AsyncNotifier/StreamNotifier.
-- Провайдеры вызывают сервисы `lib/hoplixi_store/repository/*.dart`, которые оборачивают операции в `ServiceResult<T>` и логируют через `core/logger/app_logger.dart`.
-- Сервисы обращаются к DAO (`lib/hoplixi_store/dao`) и `hoplixi_store.dart`; SQL триггеры из `lib/hoplixi_store/sql/` ведут аудит изменений.
-- UUID v4 (`hoplixi_store/utils/uuid_generator.dart`) обязательны для идентификаторов; секреты не возвращаются наружу и не логируются.
-- Для полей с секретами используйте новые примитивы `core/lib/box_db_new/`.
+### Data & Error Handling
+- `lib/hoplixi_store/hoplixi_store.dart` описывает Drift-схему; любые новые таблицы регистрируйте там и синхронизируйте с `lib/hoplixi_store/sql/triggers.dart` для аудита.
+- DAOs располагаются в `lib/hoplixi_store/dao/`; сервисы поверх них — в `lib/hoplixi_store/repository/`, возвращают `Result<T, E>` (см. `lib/core/utils/result_pattern/`). В legacy-сервисах (`password_service.dart`) всё ещё встречается `ServiceResult` — при доработках переводите на `Result`.
+- Используйте `hoplixi_store/utils/uuid_generator.dart` для идентификаторов и `core/lib/box_db_new/` для работы с зашифрованными полями.
+- Логирование делайте через `core/logger/app_logger.dart` (`logInfo/logDebug/logError` с тегом компонента); не выводите в логи сырой текст секретов.
 
-### UI и взаимодействие
-- Общие компоненты (`SmoothButton`, `PasswordField`, `SliderButton`) лежат в `lib/common/` и предпочтительны вместо чистого Material.
-- Навигация централизована в GoRouter (`lib/router`); новые экраны регистрируются там и подписываются на провайдеры.
-- Уведомления и ошибки выводите через `core/utils/toastification.dart` и `core/utils/scaffold_messenger_manager/`.
+### State & Providers
+- Провайдеры для БД и сервисов объявлены в `lib/hoplixi_store/providers/service_providers.dart` и `hoplixi_store_providers.dart`; UI-слои подписываются только на эти провайдеры.
+- Состояние экранов оформляйте через Notifier/AsyncNotifier/StreamNotifier (`lib/features/...`), возвращая `Result` в сервисах и преобразуя в UI-состояния.
+- Для уведомлений и ошибок используйте `core/utils/toastification.dart`, `core/utils/scaffold_messenger_manager/`, а также `ToastManager` из `lib/core/utils/toast/toast_manager.dart`.
 
-### Расширение доменных сущностей
-1. Таблица: `lib/hoplixi_store/tables/<entity>.dart`, затем зарегистрировать в `@DriftDatabase` (`hoplixi_store.dart`).
-2. DAO: `lib/hoplixi_store/dao/<entity>_dao.dart`, ориентируясь на `passwords_dao.dart`/`totps_dao.dart` для потоков и фильтров.
-3. Сервис: `lib/hoplixi_store/repository/<entity>_service.dart`, оборачивая транзакции и проверки в `ServiceResult`.
-4. При необходимости обновить триггеры (`lib/hoplixi_store/sql/triggers.dart`) и истории.
+### Security & Platform Concerns
+- SQLCipher и пути БД управляются сервисами (`hoplixi_store_manager.dart`, `core/lib/box_db_new/storage_manager.dart`); UI не открывает соединения напрямую.
+- При работе с вложениями и экспортом опирайтесь на `features/password_manager/dashboard/...` и `features/password_manager/cloud_sync/` (есть план-конспекты и README для протоколов).
+- Любые сетевые или файловые операции должны переводить ошибки в `AppError/DbError/...` (см. `lib/app/errors/`).
 
-### Логирование и безопасность
-- Используйте `logInfo/logDebug/logError` с тегом компонента; исключения не пробрасываются наружу, а переводятся в `ServiceResult.failure`.
-- UI получает только безопасные сообщения без plaintext секретов; истории и метаданные ведутся триггерами Drift.
+### Extending Domain Functionality
+- Новая сущность: таблица в `lib/hoplixi_store/tables/`, DAO, сервис и провайдер; ориентируйтесь на `passwords_*` и `totps_*` файлы. Не забудьте обновить enum/константы в `lib/hoplixi_store/enums/` и `DATABASE_SCHEMA.md`.
+- Добавляя экран, зарегистрируйте маршрут в `lib/app/router/routes.dart`, провайдеры в соответствующем feature-модуле и не обходите сервисный слой.
+- Для миграций и аудита проверяйте `assets/MIGRATION_GUIDE.md` и `lib/hoplixi_store/sql/`.
 
-### Рабочие процессы
-- Генерация: `build_runner.bat` (запускает `dart run build_runner build --delete-conflicting-outputs`) после изменений Drift/Freezed/DTO.
-- Тесты: `flutter test --no-pub` (`test/features/...`).
-- Запуск: `flutter run -d windows`; релизные сборки `flutter build apk`, `flutter build windows`, `release.bat` собирает пакет.
-- Инициализацию SQLCipher и подключений выполняют сервисы; UI не открывает соединения с БД напрямую.
+### Developer Workflow
+- Запускайте генерацию кода через `build_runner.bat` (обёртка над `dart run build_runner build --delete-conflicting-outputs`).
+- Тесты: `flutter test --no-pub`, прицельные тесты расположены в `test/features/...`.
+- Локальный запуск: `flutter run -d windows`; релиз — `flutter build apk`, `flutter build windows` или `release.bat` (fastforge пакет).
+- Логи приложения пишутся в `core/logger/file_manager.dart`; для очистки/экспорта используйте соответствующие сервисы (см. `features/settings/screens/settings_screen.dart`).
 
-### Чек перед коммитом
-- [ ] Цепочка UI → Provider → Service → DAO соблюдена, прямых DAO вызовов из UI нет.
-- [ ] Все публичные операции возвращают `ServiceResult` и корректно переводят ошибки.
-- [ ] После генерации нет устаревших `*.g.dart`/`*.freezed.dart`.
-- [ ] Логи и пользовательские сообщения проверены на отсутствие секретов.
 
-## Замечания
+### Last Checks Before Commit
+- Убедитесь, что цепочка UI → Provider → Service → DAO соблюдена и нет прямых вызовов DAO из UI.
+- Проверьте, что новые операции возвращают `Result<T, E>` и что ошибки конвертируются в типизированные `AppError`/`DbError`.
+- После генерации нет «грязных» `*.g.dart`/`*.freezed.dart`, а логи не содержат секретов.
+
+### Замечания
 
 - При создании freezed классов используйте аннотацию `@freezed`, и добавляйте классу abstract class, а не обычный класс. Это необходимо для корректной работы генерации кода и обеспечения неизменяемости объектов.
 
-## MCP Servers
+### Вспомогательная информация
+abstract class
+Ключевые особенности:
+- Нельзя создать экземпляр напрямую (new).
+- Можно наследовать или реализовывать (extends / implements).
+- Может содержать абстрактные методы, которые должны быть реализованы в наследниках.
+- Может использоваться как базовый класс для расширения иерархий.
+
+sealed class
+Ключевые особенности:
+- Также нельзя создавать экземпляр напрямую.
+- Ключевое отличие: наследоваться можно только внутри того же файла.
+- Вне этого файла sealed класс считается закрытым для расширения.
+- Используется для ограниченных иерархий типов (как enum, но с гибкостью классов).
+- Отлично работает с switch и pattern matching.
+
+### MCP Servers
 
 - Для получения актуальной документации библиотек обращайтесь к MCP серверу context7.
 - Для сложных многошаговых сценариев используйте SequentialThinking MCP (гарантия порядка, удержание долгих задач, метрики).

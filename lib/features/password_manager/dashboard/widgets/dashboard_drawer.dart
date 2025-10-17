@@ -116,20 +116,16 @@ class DashboardDrawer extends ConsumerWidget {
 
             const Divider(),
 
-            // // Синхронизация хранилища
-            // ListTile(
-            //   leading: const Icon(Icons.cloud_sync),
-            //   title: const Text('Синхронизация'),
-            //   onTap: () async {
-            //     Navigator.pop(context);
-            //     final result = await showExportStorageModal(context);
-            //     if (result == true) {
-            //       logInfo(
-            //         'DashboardScreen: Экспорт хранилища завершён успешно',
-            //       );
-            //     }
-            //   },
-            // ),
+            // Синхронизация хранилища
+            ListTile(
+              leading: const Icon(Icons.cloud_sync),
+              title: const Text('Синхронизация'),
+              onTap: () async {
+                Navigator.pop(context);
+                context.push(AppRoutes.cloudSyncSetup);
+                logInfo('DashboardScreen: Переход к настройкам синхронизации');
+              },
+            ),
             const Divider(),
 
             // Управление категориями
