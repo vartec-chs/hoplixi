@@ -1,1 +1,1 @@
-export 'local_meta_service.dart';
+export 'local_meta_crud_service.dart';

@@ -6,6 +6,7 @@
 ### Data & Error Handling
 - `lib/hoplixi_store/hoplixi_store.dart` описывает Drift-схему; любые новые таблицы регистрируйте там и синхронизируйте с `lib/hoplixi_store/sql/triggers.dart` для аудита.
 - DAOs располагаются в `lib/hoplixi_store/dao/`; сервисы поверх них — в `lib/hoplixi_store/repository/`, возвращают `Result<T, E>` (см. `lib/core/utils/result_pattern/`). В legacy-сервисах (`password_service.dart`) всё ещё встречается `ServiceResult` — при доработках переводите на `Result`.
+- AppError это глобальный тип ошибок в `lib/app/errors/app_error.dart`; для ошибок БД используйте `DbError` из `lib/hoplixi_store/errors/db_error.dart` также.
 - Используйте `hoplixi_store/utils/uuid_generator.dart` для идентификаторов и `core/lib/box_db_new/` для работы с зашифрованными полями.
 - Логирование делайте через `core/logger/app_logger.dart` (`logInfo/logDebug/logError` с тегом компонента); не выводите в логи сырой текст секретов.
 
