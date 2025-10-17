@@ -5,6 +5,7 @@ import 'package:hoplixi/core/app_paths.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/result_pattern/result.dart';
 import 'package:hoplixi/core/utils/result_pattern/common_errors.dart';
+import 'package:hoplixi/features/auth/models/sync_providers.dart';
 import 'package:hoplixi/features/password_manager/cloud_sync/models/local_meta.dart';
 import 'package:path/path.dart' as p;
 import 'package:synchronized/synchronized.dart';
@@ -298,9 +299,61 @@ class LocalMetaCrudService {
     return Result.success(results);
   }
 
+  /// Найти по providerType
+  Result<List<LocalMeta>, AppError> findByProviderType(ProviderType type) {
+    final results = _storage.values
+        .where((meta) => meta.providerType == type)
+        .toList();
+    return Result.success(results);
+  }
+
+  /// Найти по providerType и enabled
+  Result<List<LocalMeta>, AppError> findByProviderTypeAndEnabled(
+    ProviderType type,
+    bool enabled,
+  ) {
+    final results = _storage.values
+        .where((meta) => meta.providerType == type && meta.enabled == enabled)
+        .toList();
+    return Result.success(results);
+  }
+
+  /// Найти по deviceId и providerType
+  Result<List<LocalMeta>, AppError> findByDeviceIdAndProviderType(
+    String deviceId,
+    ProviderType type,
+  ) {
+    final results = _storage.values
+        .where((meta) => meta.deviceId == deviceId && meta.providerType == type)
+        .toList();
+    return Result.success(results);
+  }
+
+  /// Найти по всем критериям: deviceId, providerType и enabled
+  Result<List<LocalMeta>, AppError> findByDeviceIdProviderTypeAndEnabled(
+    String deviceId,
+    ProviderType type,
+    bool enabled,
+  ) {
+    final results = _storage.values
+        .where(
+          (meta) =>
+              meta.deviceId == deviceId &&
+              meta.providerType == type &&
+              meta.enabled == enabled,
+        )
+        .toList();
+    return Result.success(results);
+  }
+
   /// Проверить существование по dbId
   bool existsByDbId(String dbId) {
     return _storage.containsKey(dbId);
+  }
+
+  /// Проверить существование по providerType
+  bool existsByProviderType(ProviderType type) {
+    return _storage.values.any((meta) => meta.providerType == type);
   }
 
   /// Проверить существование по dbName
@@ -311,6 +364,11 @@ class LocalMetaCrudService {
   /// Проверить существование по deviceId
   bool existsByDeviceId(String deviceId) {
     return _storage.values.any((meta) => meta.deviceId == deviceId);
+  }
+
+  /// Получить количество записей по провайдеру
+  int countByProviderType(ProviderType type) {
+    return _storage.values.where((meta) => meta.providerType == type).length;
   }
 
   /// Получить количество записей

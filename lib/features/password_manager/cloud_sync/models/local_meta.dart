@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:hoplixi/features/auth/models/models.dart';
 
 part 'local_meta.freezed.dart';
 part 'local_meta.g.dart';
@@ -10,6 +11,7 @@ sealed class LocalMeta with _$LocalMeta {
     required bool enabled,
     required String dbName,
     required String deviceId,
+    required ProviderType providerType,
     DateTime? lastExportAt,
     DateTime? lastImportedAt,
   }) = _LocalMeta;
