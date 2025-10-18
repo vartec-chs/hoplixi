@@ -1,9 +1,6 @@
-
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:riverpod/riverpod.dart';
-import 'package:universal_platform/universal_platform.dart';
-import 'package:window_manager/window_manager.dart';
 
 enum AppCloseState { idle, closing, closed }
 
@@ -18,10 +15,10 @@ class AppCloseNotifier extends AsyncNotifier<AppCloseState> {
     return AppCloseState.idle;
   }
 
-  Future<void> handleAppClose() async {
+  Future<bool> handleAppClose() async {
     if (state.value == AppCloseState.closing ||
         state.value == AppCloseState.closed) {
-      return; // Already closing or closed
+      return false; // Already closing or closed
     }
     state = const AsyncValue.data(AppCloseState.closing);
 
@@ -40,12 +37,11 @@ class AppCloseNotifier extends AsyncNotifier<AppCloseState> {
 
     isDatabaseOpen ? await dbNotifier.closeDatabase() : null;
 
-    if (UniversalPlatform.isDesktop) await windowManager.close();
-
     logInfo('Приложение закрыто', tag: 'AppCloseProvider');
 
     AppLogger.instance.dispose();
 
     state = const AsyncValue.data(AppCloseState.closed);
+    return true;
   }
 }

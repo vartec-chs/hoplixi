@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
+import 'package:hoplixi/core/providers/app_close_provider.dart';
 import 'package:hoplixi/global_key.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 
@@ -74,30 +76,38 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
     return const AppLifecycleStateData();
   }
 
-  /// Обрабатывает изменение состояния жизненного цикла приложения
-  Future<void> handleLifecycleState(AppLifecycleState lifecycleState) async {
-    logInfo(
-      'Обработка состояния жизненного цикла: $lifecycleState',
-      tag: 'AppLifecycleNotifier',
-    );
+  Future<void> onDetach() async {
+    await _onDetached();
+  }
 
-    switch (lifecycleState) {
-      case AppLifecycleState.resumed:
-        await _onResumed();
-        break;
-      case AppLifecycleState.paused:
-        await _onPaused();
-        break;
-      case AppLifecycleState.inactive:
-        await _onInactive();
-        break;
-      case AppLifecycleState.hidden:
-        await _onHidden();
-        break;
-      case AppLifecycleState.detached:
-        await _onDetached();
-        break;
-    }
+  Future<void> onHide() async {
+    await _onHidden();
+  }
+
+  Future<void> onInactive() async {
+    await _onInactive();
+  }
+
+  Future<void> onPause() async {
+    await _onPaused();
+  }
+
+  Future<void> onRestart() async {
+    await _onRestarted();
+  }
+
+  Future<void> onResume() async {
+    await _onResumed();
+  }
+
+  Future<void> onShow() async {
+    await _onShown();
+  }
+
+  Future<AppExitResponse> onExitRequested() async {
+    logInfo('Запрос на выход из приложения', tag: 'AppLifecycleNotifier');
+    final result = await ref.read(appCloseProvider.notifier).handleAppClose();
+    return result ? AppExitResponse.exit : AppExitResponse.cancel;
   }
 
   /// Приложение стало активным
@@ -107,14 +117,26 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
     state = state.copyWith(isActive: true);
   }
 
+  /// Приложение показано
+  Future<void> _onShown() async {
+    logInfo('Приложение показано', tag: 'AppLifecycleNotifier');
+    _stopInactivityTimer();
+    state = state.copyWith(isActive: true);
+  }
+
+  /// Приложение перезапущено
+  Future<void> _onRestarted() async {
+    logInfo('Приложение перезапущено', tag: 'AppLifecycleNotifier');
+    _stopInactivityTimer();
+    state = state.copyWith(isActive: true);
+  }
+
   /// Приложение приостановлено
   Future<void> _onPaused() async {
     logInfo('Приложение приостановлено', tag: 'AppLifecycleNotifier');
     final context = navigatorKey.currentContext;
     if (context != null &&
-        GoRouter.of(context).state.path!.startsWith('/dashboard')) {
-      // Здесь можно выполнить действия с контекстом, если он доступен
-
+        GoRouter.of(context).state.path!.contains('dashboard')) {
       _startInactivityTimer();
     }
     state = state.copyWith(isActive: false);
@@ -126,9 +148,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
     final context = navigatorKey.currentContext;
 
     if (context != null &&
-        GoRouter.of(context).state.path!.startsWith('/dashboard')) {
-      // Здесь можно выполнить действия с контекстом, если он доступен
-
+        GoRouter.of(context).state.path!.contains('dashboard')) {
       logInfo(
         'App is inactive and in protected route, starting inactivity timer',
         tag: 'AppLifecycleNotifier',
@@ -143,7 +163,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
     logInfo('Приложение скрыто', tag: 'AppLifecycleNotifier');
     final context = navigatorKey.currentContext;
     if (context != null &&
-        GoRouter.of(context).state.path!.startsWith('/dashboard')) {
+        GoRouter.of(context).state.path!.contains('dashboard')) {
       _startInactivityTimer();
     }
     state = state.copyWith(isActive: false);

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app/constants/main_constants.dart';
@@ -9,6 +11,7 @@ import 'package:hoplixi/core/utils/toast/toast_manager.dart';
 import 'package:hoplixi/app/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 import 'package:hoplixi/app/theme/index.dart';
+import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -20,56 +23,61 @@ class App extends ConsumerStatefulWidget {
   ConsumerState<App> createState() => _AppState();
 }
 
-class _AppState extends ConsumerState<App> with WidgetsBindingObserver {
+class _AppState extends ConsumerState<App> {
+  late final AppLifecycleListener _listener;
+
   @override
   void initState() {
     super.initState();
-    // Добавляем наблюдатель жизненного цикла
-    WidgetsBinding.instance.addObserver(this);
-
-    // Инициализируем ScaffoldMessengerManager
+    _listener = AppLifecycleListener(
+      onDetach: _onDetach,
+      onHide: _onHide,
+      onInactive: _onInactive,
+      onPause: _onPause,
+      onRestart: _onRestart,
+      onResume: _onResume,
+      onShow: _onShow,
+      onExitRequested: _onExitRequested,
+    );
   }
 
   @override
   void dispose() {
-    // Удаляем наблюдатель жизненного цикла
-    WidgetsBinding.instance.removeObserver(this);
-
-    // Убираем вызов cleanup() из dispose, так как это может вызвать ошибку
-    // обращения к деактивированному виджету
     ref.read(appLifecycleProvider.notifier).cleanup();
-
+    _listener.dispose();
     super.dispose();
   }
 
-  @override
-  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
-    super.didChangeAppLifecycleState(state);
+  Future<void> _onDetach() async => {
+    await ref.read(appLifecycleProvider.notifier).onDetach(),
+  };
 
-    // Жизненный цикл приложения
-    await ref.read(appLifecycleProvider.notifier).handleLifecycleState(state);
+  Future<void> _onHide() async => {
+    await ref.read(appLifecycleProvider.notifier).onHide(),
+  };
 
-    switch (state) {
-      case AppLifecycleState.resumed:
-        logInfo("AppLifecycleState: resumed");
-        break;
-      case AppLifecycleState.paused:
-        logInfo("AppLifecycleState: paused");
-        break;
-      case AppLifecycleState.detached:
-        logInfo(
-          "AppLifecycleState: detached - resources cleared",
-          tag: 'AppLifecycle',
-        );
-        await ref.read(appCloseProvider.notifier).handleAppClose();
-        break;
-      case AppLifecycleState.inactive:
-        logInfo("AppLifecycleState: inactive");
-        break;
-      case AppLifecycleState.hidden:
-        logInfo("AppLifecycleState: hidden");
-        break;
-    }
+  Future<void> _onInactive() async => {
+    await ref.read(appLifecycleProvider.notifier).onInactive(),
+  };
+
+  Future<void> _onPause() async => {
+    await ref.read(appLifecycleProvider.notifier).onPause(),
+  };
+
+  Future<void> _onRestart() async => {
+    await ref.read(appLifecycleProvider.notifier).onRestart(),
+  };
+
+  Future<void> _onResume() async => {
+    await ref.read(appLifecycleProvider.notifier).onResume(),
+  };
+
+  Future<void> _onShow() async => {
+    await ref.read(appLifecycleProvider.notifier).onShow(),
+  };
+
+  Future<AppExitResponse> _onExitRequested() async {
+    return await ref.read(appLifecycleProvider.notifier).onExitRequested();
   }
 
   @override

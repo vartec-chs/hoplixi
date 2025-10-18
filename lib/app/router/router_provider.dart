@@ -9,6 +9,7 @@ import 'package:go_transitions/go_transitions.dart';
 import 'package:hoplixi/app/router/router_refresh_provider.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/route_observer.dart';
+import 'package:hoplixi/core/providers/app_close_provider.dart';
 import 'package:hoplixi/features/auth/models/auth_state.dart';
 import 'package:hoplixi/features/auth/providers/authorization_notifier_provider.dart';
 
@@ -120,6 +121,34 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                       ],
                     ),
                     Positioned(top: 0, left: 0, right: 0, child: TitleBar()),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final appCloseState = ref.watch(appCloseProvider);
+                        if (appCloseState.value == AppCloseState.closing) {
+                          return Container(
+                            color: Colors.black54,
+                            child: const Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'Закрытие приложения...',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                      decoration: TextDecoration.none,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
                   ],
                 );
               },
