@@ -5,8 +5,6 @@ import 'package:hoplixi/app/constants/responsive_constants.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/providers/app_close_provider.dart';
 import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
-
-// import 'package:hoplixi/core/theme/theme.dart';
 import 'package:hoplixi/core/utils/toast/toast_manager.dart';
 import 'package:hoplixi/app/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';

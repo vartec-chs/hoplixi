@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoplixi/app/router/router_provider.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
 import 'package:hoplixi/features/auth/models/auth_state.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
@@ -162,7 +163,7 @@ class _CloudSyncSetupScreenState extends ConsumerState<CloudSyncSetupScreen> {
             ),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () => context.pop(),
+              onPressed: () => navigateBack(context),
               child: const Text('Позже'),
             ),
           ],
@@ -381,7 +382,7 @@ class _CloudSyncSetupScreenState extends ConsumerState<CloudSyncSetupScreen> {
             ),
             const SizedBox(height: 48),
             FilledButton.icon(
-              onPressed: () => context.pop(),
+              onPressed: () => navigateBack(context),
               icon: const Icon(Icons.check_circle_outline),
               label: const Text('Отлично!'),
               style: FilledButton.styleFrom(
@@ -445,7 +446,7 @@ class _CloudSyncSetupScreenState extends ConsumerState<CloudSyncSetupScreen> {
             ),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () => context.pop(),
+              onPressed: () => navigateBack(context),
               child: const Text('Закрыть'),
             ),
           ],
