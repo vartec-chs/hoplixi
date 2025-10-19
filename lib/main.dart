@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,7 @@ import 'package:hoplixi/app.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/services/notification_helpers.dart';
 import 'package:toastification/toastification.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:universal_platform/universal_platform.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -94,6 +96,7 @@ Future<void> main() async {
 
       // Initialize window manager
       await WindowManager.initialize();
+      await setupTray();
 
       runApp(
         UncontrolledProviderScope(
@@ -128,4 +131,39 @@ Future<void> main() async {
       );
     },
   );
+}
+
+Future<void> setupTray() async {
+  await trayManager.setIcon(
+    Platform.isWindows
+        ? 'assets/img/logo_light.ico'
+        : 'assets/img/logo_light.png',
+  );
+  Menu menu = Menu(
+    items: [
+      MenuItem(key: 'show_window', label: 'Show Window'),
+      MenuItem.separator(),
+      MenuItem(key: 'exit_app', label: 'Exit App'),
+    ],
+  );
+  await trayManager.setContextMenu(menu);
+}
+
+enum AppTrayMenuItemKey {
+  showWindow('show_window'),
+  exitApp('exit_app');
+
+  final String key;
+  const AppTrayMenuItemKey(this.key);
+}
+
+extension AppTrayMenuItemKeyExtension on AppTrayMenuItemKey {
+  static AppTrayMenuItemKey? fromKey(String key) {
+    for (var item in AppTrayMenuItemKey.values) {
+      if (item.key == key) {
+        return item;
+      }
+    }
+    return null;
+  }
 }

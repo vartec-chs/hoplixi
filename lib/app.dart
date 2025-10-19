@@ -1,20 +1,19 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/app/constants/responsive_constants.dart';
+import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
-import 'package:hoplixi/core/providers/app_close_provider.dart';
 import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
 import 'package:hoplixi/core/utils/toast/toast_manager.dart';
 import 'package:hoplixi/app/router/router_provider.dart';
 import 'package:hoplixi/core/utils/scaffold_messenger_manager/scaffold_messenger_manager.dart';
 import 'package:hoplixi/app/theme/index.dart';
-import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
+import 'package:hoplixi/main.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:tray_manager/tray_manager.dart';
 
 class App extends ConsumerStatefulWidget {
   const App({super.key});
@@ -23,61 +22,80 @@ class App extends ConsumerStatefulWidget {
   ConsumerState<App> createState() => _AppState();
 }
 
-class _AppState extends ConsumerState<App> {
+class _AppState extends ConsumerState<App> with TrayListener {
   late final AppLifecycleListener _listener;
 
   @override
   void initState() {
+    trayManager.addListener(this);
     super.initState();
+    final appLifecycleNotifier = ref.read(appLifecycleProvider.notifier);
     _listener = AppLifecycleListener(
-      onDetach: _onDetach,
-      onHide: _onHide,
-      onInactive: _onInactive,
-      onPause: _onPause,
-      onRestart: _onRestart,
-      onResume: _onResume,
-      onShow: _onShow,
-      onExitRequested: _onExitRequested,
+      onDetach: () => appLifecycleNotifier.onDetach(),
+      onHide: () => appLifecycleNotifier.onHide(),
+      onInactive: () => appLifecycleNotifier.onInactive(),
+      onPause: () => appLifecycleNotifier.onPause(),
+      onRestart: () => appLifecycleNotifier.onRestart(),
+      onResume: () => appLifecycleNotifier.onResume(),
+      onShow: () => appLifecycleNotifier.onShow(),
+      onExitRequested: () => appLifecycleNotifier.onExitRequested(),
     );
   }
 
   @override
   void dispose() {
-    ref.read(appLifecycleProvider.notifier).cleanup();
     _listener.dispose();
+    trayManager.removeListener(this);
     super.dispose();
   }
 
-  Future<void> _onDetach() async => {
-    await ref.read(appLifecycleProvider.notifier).onDetach(),
-  };
+  @override
+  void onTrayIconMouseDown() {
+    // Handle tray icon mouse down event
+    trayManager.popUpContextMenu();
+  }
 
-  Future<void> _onHide() async => {
-    await ref.read(appLifecycleProvider.notifier).onHide(),
-  };
+  @override
+  void onTrayIconMouseUp() {
+    // Handle tray icon mouse up event
+    trayManager.popUpContextMenu();
+  }
 
-  Future<void> _onInactive() async => {
-    await ref.read(appLifecycleProvider.notifier).onInactive(),
-  };
+  @override
+  void onTrayIconRightMouseDown() {
+    // TODO: implement onTrayIconRightMouseDown
+    super.onTrayIconRightMouseDown();
+  }
 
-  Future<void> _onPause() async => {
-    await ref.read(appLifecycleProvider.notifier).onPause(),
-  };
+  @override
+  void onTrayIconRightMouseUp() {
+    // TODO: implement onTrayIconRightMouseUp
+    super.onTrayIconRightMouseUp();
+  }
 
-  Future<void> _onRestart() async => {
-    await ref.read(appLifecycleProvider.notifier).onRestart(),
-  };
-
-  Future<void> _onResume() async => {
-    await ref.read(appLifecycleProvider.notifier).onResume(),
-  };
-
-  Future<void> _onShow() async => {
-    await ref.read(appLifecycleProvider.notifier).onShow(),
-  };
-
-  Future<AppExitResponse> _onExitRequested() async {
-    return await ref.read(appLifecycleProvider.notifier).onExitRequested();
+  @override
+  void onTrayMenuItemClick(MenuItem menuItem) async {
+    if (menuItem.key == null) {
+      logWarning('Tray menu item clicked with null key', tag: 'TrayManager');
+      return;
+    }
+    final menuItemKey = AppTrayMenuItemKeyExtension.fromKey(menuItem.key!);
+    if (menuItemKey == null) {
+      logWarning(
+        'Unknown tray menu item key: ${menuItem.key}',
+        tag: 'TrayManager',
+      );
+      return;
+    }
+    switch (menuItemKey) {
+      case AppTrayMenuItemKey.showWindow:
+        await WindowManager.show();
+        break;
+      case AppTrayMenuItemKey.exitApp:
+        await WindowManager.close();
+        break;
+    }
+    super.onTrayMenuItemClick(menuItem);
   }
 
   @override
