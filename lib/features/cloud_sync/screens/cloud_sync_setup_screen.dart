@@ -7,9 +7,9 @@ import 'package:hoplixi/features/auth/models/auth_state.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
 import 'package:hoplixi/features/auth/providers/authorization_notifier_provider.dart';
 import 'package:hoplixi/features/auth/widgets/auth_modal.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/models/cloud_sync_setup_state.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/models/local_meta.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/providers/cloud_sync_setup_provider.dart';
+import 'package:hoplixi/features/cloud_sync/models/cloud_sync_setup_state.dart';
+import 'package:hoplixi/features/cloud_sync/models/local_meta.dart';
+import 'package:hoplixi/features/cloud_sync/providers/cloud_sync_setup_provider.dart';
 
 class CloudSyncSetupScreen extends ConsumerStatefulWidget {
   const CloudSyncSetupScreen({super.key});

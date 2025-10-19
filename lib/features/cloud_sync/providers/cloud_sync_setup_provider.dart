@@ -3,9 +3,9 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/logger/models.dart';
 import 'package:hoplixi/core/utils/result_pattern/common_errors.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/models/cloud_sync_setup_state.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/models/local_meta.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/providers/local_meta_crud_provider.dart';
+import 'package:hoplixi/features/cloud_sync/models/cloud_sync_setup_state.dart';
+import 'package:hoplixi/features/cloud_sync/models/local_meta.dart';
+import 'package:hoplixi/features/cloud_sync/providers/local_meta_crud_provider.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/providers/hoplixi_store_providers.dart';
 

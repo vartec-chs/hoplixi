@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/models/local_meta.dart';
+import 'package:hoplixi/features/cloud_sync/models/local_meta.dart';
 
 part 'cloud_sync_setup_state.freezed.dart';
 

@@ -12,7 +12,7 @@ import 'package:hoplixi/features/localsend/screens/discovery_screen.dart';
 import 'package:hoplixi/features/localsend/screens/transceive_screen.dart';
 import 'package:hoplixi/features/password_manager/before_opening/create_store/create_store.dart';
 import 'package:hoplixi/features/password_manager/before_opening/loked_db_screen.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/screens/cloud_sync_setup_screen.dart';
+import 'package:hoplixi/features/cloud_sync/screens/cloud_sync_setup_screen.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/notes_form/notes_form.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/otp_form/otp_form.dart';
 import 'package:hoplixi/features/password_manager/dashboard/futures/password_migration/screens/migration_screen.dart';

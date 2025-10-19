@@ -283,6 +283,50 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     }
   }
 
+  Future<void> _exportIfNeeded({
+    required bool isLock,
+    bool imported = false,
+    bool? isModified,
+  }) async {
+    try {
+      final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud) == true;
+      if (!isCloudSyncEnabled) return;
+
+      // Если закрытие (не lock) и явно передано условие модификации — проверяем
+      if (!isLock && isModified != null && !isModified) return;
+
+      final metaDataForSync = await _manager.getDatabaseMetaForSync();
+      if (metaDataForSync == null) return;
+
+      final path = state.asData?.value.path;
+      logInfo(
+        'Запуск фонового экспорта (reason=${isLock ? 'lock' : 'close'})',
+        tag: 'DatabaseAsyncNotifier',
+        data: {
+          'storageId': metaDataForSync.id,
+          'storageName': metaDataForSync.name,
+          'path': path,
+        },
+      );
+
+      // ВАЖНО: экспорт до закрытия соединения
+      // unawaited(
+      //   ref.read(cloudSyncProvider.notifier).exportToDropbox(
+      //         metadata: metaDataForSync,
+      //         pathToDbFolder: p.dirname(path ?? ''),
+      //         // Если у метода нет параметра reason — уберите этот аргумент
+      //       ),
+      // );
+    } catch (e, st) {
+      logError(
+        'Ошибка запуска экспорта при смене состояния БД',
+        error: e,
+        stackTrace: st,
+        tag: 'DatabaseAsyncNotifier',
+      );
+    }
+  }
+
   // Утилиты
   DatabaseState? get currentState => state.asData?.value;
   bool get isDatabaseOpen => state.asData?.value.isOpen ?? false;

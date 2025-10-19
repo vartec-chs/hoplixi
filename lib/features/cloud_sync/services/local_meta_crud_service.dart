@@ -6,7 +6,7 @@ import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/utils/result_pattern/result.dart';
 import 'package:hoplixi/core/utils/result_pattern/common_errors.dart';
 import 'package:hoplixi/features/auth/models/sync_providers.dart';
-import 'package:hoplixi/features/password_manager/cloud_sync/models/local_meta.dart';
+import 'package:hoplixi/features/cloud_sync/models/local_meta.dart';
 import 'package:path/path.dart' as p;
 import 'package:synchronized/synchronized.dart';
 
