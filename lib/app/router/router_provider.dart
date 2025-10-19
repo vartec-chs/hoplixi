@@ -12,6 +12,7 @@ import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/core/providers/app_close_provider.dart';
 import 'package:hoplixi/features/auth/models/auth_state.dart';
 import 'package:hoplixi/features/auth/providers/authorization_notifier_provider.dart';
+import 'package:hoplixi/features/cloud_sync/widgets/export_progress_overlay.dart';
 
 import 'package:hoplixi/features/global/screens/error_screen.dart';
 import 'package:hoplixi/features/titlebar/titlebar.dart';
@@ -111,51 +112,60 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ? [
             ShellRoute(
               builder: (context, state, child) {
-                return Stack(
-                  children: [
-                    Column(
-                      children: [
-                        SizedBox(height: 40),
-                        // TitleBar(),
-                        Expanded(child: child),
-                      ],
-                    ),
-                    Positioned(top: 0, left: 0, right: 0, child: TitleBar()),
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final appCloseState = ref.watch(appCloseProvider);
-                        if (appCloseState.value == AppCloseState.closing) {
-                          return Container(
-                            color: Colors.black54,
-                            child: const Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  CircularProgressIndicator(),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    'Закрытие приложения...',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.white,
-                                      decoration: TextDecoration.none,
+                return ExportProgressOverlay(
+                  child: Stack(
+                    children: [
+                      Column(
+                        children: [
+                          SizedBox(height: 40),
+                          // TitleBar(),
+                          Expanded(child: child),
+                        ],
+                      ),
+                      Positioned(top: 0, left: 0, right: 0, child: TitleBar()),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final appCloseState = ref.watch(appCloseProvider);
+                          if (appCloseState.value == AppCloseState.closing) {
+                            return Container(
+                              color: Colors.black54,
+                              child: const Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CircularProgressIndicator(),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'Закрытие приложения...',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                        decoration: TextDecoration.none,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    ),
-                  ],
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ],
+                  ),
                 );
               },
               routes: appRoutes,
             ),
           ]
-        : appRoutes,
+        : [
+            ShellRoute(
+              builder: (context, state, child) {
+                return ExportProgressOverlay(child: child);
+              },
+              routes: appRoutes,
+            ),
+          ],
 
     errorBuilder: (context, state) =>
         ErrorScreen(errorMessage: state.error.toString()),
@@ -201,11 +211,12 @@ const afterOpenDBPath = [
 ];
 
 void navigateBack(BuildContext context) {
+  final path = GoRouter.of(context).state.path;
   if (GoRouter.of(context).canPop()) {
     context.pop();
-  } else if (beforeOpenDBPath.contains(GoRouter.of(context).state.path)) {
-    GoRouter.of(context).go(AppRoutes.home);
-  } else {
+  } else if (path != null && !path.contains('dashboard')) {
     GoRouter.of(context).go(AppRoutes.dashboard);
+  } else {
+    GoRouter.of(context).go(AppRoutes.home);
   }
 }

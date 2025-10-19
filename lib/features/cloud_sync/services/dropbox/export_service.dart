@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:hoplixi/core/utils/result_pattern/result.dart';
-import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -9,6 +8,7 @@ import 'package:crypto/crypto.dart';
 import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/lib/dropbox_api/dropbox_api.dart';
+import 'package:hoplixi/core/lib/dropbox_api/src/models/dropbox_file.dart';
 import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
 
 class ExportSuccessData {
@@ -34,145 +34,183 @@ class DropboxExportService {
   final String storagesRootCloudPath =
       '/${MainConstants.appFolderName}/storages';
 
-  late final DropboxApi _dropbox;
+  DropboxApi? _dropbox;
 
-  Future<Result<ExportSuccessData, String>> exportToDropbox(
-    DatabaseMetaForSync metadata,
+  /// Последовательный экспорт в Dropbox
+  ///
+  /// Используйте методы в следующем порядке:
+  /// 1. [initializeDropboxConnection] - инициализация подключения
+  /// 2. [ensureRootFolder] - создание корневой папки (опционально)
+  /// 3. [ensureStorageFolder] - создание папки для хранилища
+  /// 4. [createArchive] - создание архива из хранилища
+  /// 5. [uploadArchiveToDropbox] - загрузка архива с отслеживанием прогресса
+  ///
+  /// Каждый метод возвращает [Result], проверяйте успешность перед вызовом следующего.
+  ///
+  /// Пример:
+  /// ```dart
+  /// final service = DropboxExportService(accountService);
+  /// final initResult = await service.initializeDropboxConnection(clientKey, onError);
+  /// if (initResult.isFailure) return;
+  ///
+  /// final rootResult = await service.ensureRootFolder(onError);
+  /// if (rootResult.isFailure) return;
+  ///
+  /// final storageFolderResult = await service.ensureStorageFolder(exportPath, onError);
+  /// if (storageFolderResult.isFailure) return;
+  ///
+  /// final archiveResult = await service.createArchive(
+  ///   storagePath: pathToDb,
+  ///   password: encryptionKey,
+  /// );
+  /// if (archiveResult.isFailure) return;
+  ///
+  /// final uploadResult = await service.uploadArchiveToDropbox(
+  ///   exportCloudPath: exportPath,
+  ///   exportArchivePath: archiveResult.dataOrNull!.archivePath,
+  ///   exportTime: DateTime.now().microsecondsSinceEpoch,
+  ///   onFileProgress: (percent, message) => print('$percent%: $message'),
+  /// );
+  /// ```
+
+  /// Инициализирует подключение к Dropbox API
+  Future<Result<void, String>> initializeDropboxConnection(
     String clientKey,
-    String pathToDbFolder,
-    String? encryptionKeyArchive, {
-    void Function(double progress, String message)? onProgress,
-    void Function(String progress, String message)? onFileProgress,
     void Function(String error)? onError,
-  }) async {
+  ) async {
     try {
-      onProgress?.call(0.0, 'Инициализация подключения к Dropbox...');
-
       final account = _accountService.clients[clientKey];
       if (account == null) {
         final errorMsg = 'No Dropbox account found for the key';
         onError?.call(errorMsg);
         return Result.failure(errorMsg);
       }
+      // Безопасно переинициализируем, если уже был инициализирован
       _dropbox = DropboxRestApi(account);
-
-      onProgress?.call(0.1, 'Проверка папок в облаке...');
-
-      // Создаём корневую папку для хранилищ (игнорируем если уже существует)
-      try {
-        await _dropbox.createFolder(storagesRootCloudPath);
-        logInfo(
-          'Создана корневая папка для хранилищ',
-          tag: _logTag,
-          data: {'path': storagesRootCloudPath},
-        );
-      } catch (e) {
-        // Игнорируем ошибку 409 (папка уже существует)
-        if (e.toString().contains('409') || e.toString().contains('Conflict')) {
-          logInfo(
-            'Корневая папка для хранилищ уже существует',
-            tag: _logTag,
-            data: {'path': storagesRootCloudPath},
-          );
-        } else {
-          final errorMsg = 'Ошибка создания корневой папки: ${e.toString()}';
-          logError(
-            'Ошибка создания корневой папки',
-            error: e,
-            tag: _logTag,
-            data: {'path': storagesRootCloudPath},
-          );
-          onError?.call(errorMsg);
-          rethrow;
-        }
-      }
-
-      onProgress?.call(0.15, 'Создание папки для хранилища...');
-
-      final storeFolderName =
-          '${metadata.name.replaceAll(' ', '_')}_${metadata.id}';
-      final exportCloudPath = '$storagesRootCloudPath/$storeFolderName';
-
-      // Создаём папку для конкретного хранилища (игнорируем если уже существует)
-      try {
-        await _dropbox.createFolder(exportCloudPath);
-        logInfo(
-          'Создана папка для хранилища',
-          tag: _logTag,
-          data: {'path': exportCloudPath},
-        );
-      } catch (e) {
-        // Игнорируем ошибку 409 (папка уже существует)
-        if (e.toString().contains('409') || e.toString().contains('Conflict')) {
-          logInfo(
-            'Папка для хранилища уже существует',
-            tag: _logTag,
-            data: {'path': exportCloudPath},
-          );
-        } else {
-          final errorMsg =
-              'Ошибка создания папки для хранилища: ${e.toString()}';
-          logError(
-            'Ошибка создания папки для хранилища',
-            error: e,
-            tag: _logTag,
-            data: {'path': exportCloudPath},
-          );
-          onError?.call(errorMsg);
-          rethrow;
-        }
-      }
-
-      onProgress?.call(0.2, 'Создание архива хранилища...');
-
-      final exportTime = DateTime.now().microsecondsSinceEpoch;
-
-      final exportPathDir = await AppPaths.exportStoragesPath;
-      final exportArchivePath = p.join(exportPathDir, '$exportTime.zip');
-
-      final archiveResult = await createArchive(
-        storagePath: pathToDbFolder,
-        destinationPath: exportArchivePath,
-        password: encryptionKeyArchive,
+      return Result.success(null);
+    } catch (e, st) {
+      final errorMsg = 'Ошибка инициализации Dropbox: ${e.toString()}';
+      logError(
+        'Ошибка инициализации Dropbox',
+        error: e,
+        stackTrace: st,
+        tag: _logTag,
       );
+      onError?.call(errorMsg);
+      return Result.failure(errorMsg);
+    }
+  }
 
-      if (archiveResult.isFailure) {
-        final errorMsg =
-            'Failed to create archive: ${archiveResult.errorOrNull}';
+  /// Создаёт корневую папку для хранилищ
+  Future<Result<void, String>> ensureRootFolder(
+    void Function(String error)? onError,
+  ) async {
+    try {
+      if (_dropbox == null) {
+        final errorMsg = 'Dropbox connection not initialized';
         onError?.call(errorMsg);
         return Result.failure(errorMsg);
       }
+      await _dropbox!.createFolder(storagesRootCloudPath);
+      logInfo(
+        'Создана корневая папка для хранилищ',
+        tag: _logTag,
+        data: {'path': storagesRootCloudPath},
+      );
+      return Result.success(null);
+    } catch (e) {
+      // Игнорируем ошибку 409 (папка уже существует)
+      if (e.toString().contains('409') || e.toString().contains('Conflict')) {
+        logInfo(
+          'Корневая папка для хранилищ уже существует',
+          tag: _logTag,
+          data: {'path': storagesRootCloudPath},
+        );
+        return Result.success(null);
+      } else {
+        final errorMsg = 'Ошибка создания корневой папки: ${e.toString()}';
+        logError(
+          'Ошибка создания корневой папки',
+          error: e,
+          tag: _logTag,
+          data: {'path': storagesRootCloudPath},
+        );
+        onError?.call(errorMsg);
+        return Result.failure(errorMsg);
+      }
+    }
+  }
 
-      onProgress?.call(0.5, 'Подготовка к загрузке в облако...');
+  /// Создаёт папку для конкретного хранилища
+  Future<Result<void, String>> ensureStorageFolder(
+    String folderPath,
+    void Function(String error)? onError,
+  ) async {
+    try {
+      if (_dropbox == null) {
+        final errorMsg = 'Dropbox connection not initialized';
+        onError?.call(errorMsg);
+        return Result.failure(errorMsg);
+      }
+      await _dropbox!.createFolder(folderPath);
+      logInfo(
+        'Создана папка для хранилища',
+        tag: _logTag,
+        data: {'path': folderPath},
+      );
+      return Result.success(null);
+    } catch (e) {
+      // Игнорируем ошибку 409 (папка уже существует)
+      if (e.toString().contains('409') || e.toString().contains('Conflict')) {
+        logInfo(
+          'Папка для хранилища уже существует',
+          tag: _logTag,
+          data: {'path': folderPath},
+        );
+        return Result.success(null);
+      } else {
+        final errorMsg = 'Ошибка создания папки для хранилища: ${e.toString()}';
+        logError(
+          'Ошибка создания папки для хранилища',
+          error: e,
+          tag: _logTag,
+          data: {'path': folderPath},
+        );
+        onError?.call(errorMsg);
+        return Result.failure(errorMsg);
+      }
+    }
+  }
 
+  /// Загружает архив в Dropbox с отслеживанием прогресса файла
+  Future<Result<DropboxFile, String>> uploadArchiveToDropbox({
+    required String exportCloudPath,
+    required String exportArchivePath,
+    required int exportTime,
+    void Function(String progress, String message)? onFileProgress,
+    void Function(String error)? onError,
+  }) async {
+    try {
+      if (_dropbox == null) {
+        final errorMsg = 'Dropbox connection not initialized';
+        onError?.call(errorMsg);
+        return Result.failure(errorMsg);
+      }
       final stream = File(exportArchivePath).openRead();
 
-      onProgress?.call(0.6, 'Загрузка архива в Dropbox...');
-
-      final uploadResult = await _dropbox.upload(
+      final uploadResult = await _dropbox!.upload(
         '$exportCloudPath/$exportTime.zip',
         stream,
         onProgress: (uploaded, total) {
           if (total != null && total > 0) {
-            final progress = 0.6 + (uploaded / total) * 0.3;
             final uploadedMB = (uploaded / 1024 / 1024).toStringAsFixed(2);
             final totalMB = (total / 1024 / 1024).toStringAsFixed(2);
             final percent = ((uploaded / total) * 100).toStringAsFixed(1);
 
-            onProgress?.call(
-              progress,
-              'Загрузка: $uploadedMB МБ / $totalMB МБ ($percent%)',
-            );
-
-            final fileProgress = percent;
             onFileProgress?.call(
-              fileProgress,
+              percent,
               'Загрузка: $uploadedMB МБ / $totalMB МБ ($percent%)',
             );
-          } else {
-            final progress =
-                0.6 + (uploaded / 1000000) * 0.001; // Примерный прогресс
-            onProgress?.call(progress, 'Загрузка архива в Dropbox...');
           }
         },
       );
@@ -183,34 +221,20 @@ class DropboxExportService {
         return Result.failure(errorMsg);
       }
 
-      onProgress?.call(0.9, 'Завершение экспорта...');
-
-      try {
-        await File(exportArchivePath).delete();
-      } catch (e) {
-        logError(
-          'Ошибка удаления временного архива',
-          error: e,
-          tag: _logTag,
-          data: {'path': exportArchivePath},
-        );
-      }
-
       logInfo(
-        'Cloud sync item exported to Dropbox',
+        'Архив успешно загружен в Dropbox',
         tag: _logTag,
-        data: {'id': metadata.id},
+        data: {
+          'remotePath': '$exportCloudPath/$exportTime.zip',
+          'fileName': uploadResult.name,
+        },
       );
 
-      onProgress?.call(1.0, 'Экспорт успешно завершён');
-
-      return Result.success(
-        ExportSuccessData(fileName: uploadResult.name, exportTime: exportTime),
-      );
+      return Result.success(uploadResult);
     } catch (e, st) {
-      final errorMsg = 'Ошибка при экспорте в Dropbox: ${e.toString()}';
+      final errorMsg = 'Ошибка при загрузке архива: ${e.toString()}';
       logError(
-        'Ошибка при экспорте в Dropbox',
+        'Ошибка при загрузке архива',
         error: e,
         stackTrace: st,
         tag: _logTag,

@@ -3,6 +3,7 @@ library;
 import 'dart:async';
 
 import 'package:hoplixi/core/index.dart';
+import 'package:hoplixi/features/cloud_sync/providers/cloud_export_provider.dart';
 
 import 'package:path/path.dart' as p;
 
@@ -163,7 +164,18 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
   /// Заблокировать текущую базу (сохраняет path и name, закрывает соединение)
   Future<void> lockDatabase() async {
     try {
+      final path = state.asData?.value.path;
+      final modifiedAtBeforeOpen =
+          state.asData?.value.modifiedAt ?? DateTime.now();
       state = const AsyncValue.loading();
+      final modifiedAtCurrent = DateTime.fromMillisecondsSinceEpoch(
+        await currentDatabase.getModifiedAt(),
+      );
+      final isModified = modifiedAtCurrent.isAfter(modifiedAtBeforeOpen);
+
+      if (isModified && path != null) {
+        await _exportIfNeeded(p.dirname(path));
+      }
       final newState = await _manager.lockDatabase();
       state = AsyncValue.data(newState);
 
@@ -211,9 +223,11 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
         'Database modified check: isModified=$isModified, modifiedAtBeforeOpen=$modifiedAtBeforeOpen, modifiedAtCurrent=$modifiedAtCurrent',
         tag: 'DatabaseAsyncNotifier',
       );
-      final metaDataForSync = await _manager.getDatabaseMetaForSync();
 
-      final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud);
+      if (isModified && path != null) {
+        await _exportIfNeeded(p.dirname(path));
+      }
+
       await _manager.closeDatabase();
 
       // if (isModified &&
@@ -283,40 +297,18 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
     }
   }
 
-  Future<void> _exportIfNeeded({
-    required bool isLock,
-    bool imported = false,
-    bool? isModified,
-  }) async {
+  Future<void> _exportIfNeeded(String path) async {
     try {
       final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud) == true;
       if (!isCloudSyncEnabled) return;
 
-      // Если закрытие (не lock) и явно передано условие модификации — проверяем
-      if (!isLock && isModified != null && !isModified) return;
-
       final metaDataForSync = await _manager.getDatabaseMetaForSync();
-      if (metaDataForSync == null) return;
-
-      final path = state.asData?.value.path;
-      logInfo(
-        'Запуск фонового экспорта (reason=${isLock ? 'lock' : 'close'})',
-        tag: 'DatabaseAsyncNotifier',
-        data: {
-          'storageId': metaDataForSync.id,
-          'storageName': metaDataForSync.name,
-          'path': path,
-        },
+      
+      unawaited(
+        ref
+            .read(cloudExportProvider.notifier)
+            .exportToDropbox(metaDataForSync, path),
       );
-
-      // ВАЖНО: экспорт до закрытия соединения
-      // unawaited(
-      //   ref.read(cloudSyncProvider.notifier).exportToDropbox(
-      //         metadata: metaDataForSync,
-      //         pathToDbFolder: p.dirname(path ?? ''),
-      //         // Если у метода нет параметра reason — уберите этот аргумент
-      //       ),
-      // );
     } catch (e, st) {
       logError(
         'Ошибка запуска экспорта при смене состояния БД',

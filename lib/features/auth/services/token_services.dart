@@ -77,7 +77,7 @@ class TokenServices implements OAuth2TokenStorage {
 
       final allIds = await _db!.getAllIndex();
       final matchedId = allIds.firstWhere(
-        (id) => id.contains(suffix),
+        (id) => id.contains(suffix.toLowerCase()),
         orElse: () => '',
       );
 
