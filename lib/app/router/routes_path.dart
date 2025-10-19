@@ -19,6 +19,7 @@ class AppRoutes {
   static const String tagCreate = 'tags-manager/create';
   static const String passwordFormPath = 'password-form';
   static const String cloudSyncSetupPath = 'cloud-sync-setup';
+  static const String cloudImportProgressPath = 'cloud-import-progress';
   static const String passwordHistoryPath = 'password-history';
   static const String otpFormPath = 'otp-form';
   static const String notesFormPath = 'notes-form';
@@ -31,6 +32,7 @@ class AppRoutes {
   static const String tagsManager = '/dashboard/tags-manager';
   static const String passwordForm = '/dashboard/password-form';
   static const String cloudSyncSetup = '/dashboard/cloud-sync-setup';
+  static const String cloudImportProgress = '/dashboard/cloud-import-progress';
   static const String passwordHistory = '/dashboard/password-history';
   static const String otpForm = '/dashboard/otp-form';
   static const String notesForm = '/dashboard/notes-form';

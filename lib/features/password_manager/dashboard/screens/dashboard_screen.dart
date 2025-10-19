@@ -13,6 +13,10 @@ import 'package:hoplixi/features/password_manager/dashboard/widgets/entity_list_
 import 'package:hoplixi/features/password_manager/dashboard/widgets/expandable_fab.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 import 'package:hoplixi/app/router/routes_path.dart';
+import 'package:hoplixi/features/password_manager/cloud_sync/models/cloud_sync_state.dart';
+import 'package:hoplixi/features/password_manager/cloud_sync/providers/cloud_import_provider.dart';
+import 'package:hoplixi/features/password_manager/cloud_sync/providers/active_client_key_provider.dart';
+import 'package:hoplixi/core/index.dart';
 
 /// Главный экран дашборда с полнофункциональным SliverAppBar
 /// Управляет отображением паролей, заметок и OTP с фильтрацией и поиском
@@ -26,12 +30,49 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isSyncDialogShown = false;
-  bool _syncDialogDismissedManually = false;
 
   @override
   void initState() {
     super.initState();
+    // Проверяем наличие новой версии при входе на Dashboard
+    _checkForNewVersion();
+  }
+
+  /// Проверяет наличие новой версии в облаке
+  void _checkForNewVersion() {
+    // Проверяем, включена ли облачная синхронизация
+    final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud);
+    if (isCloudSyncEnabled != true) {
+      logDebug(
+        'Облачная синхронизация отключена, пропускаем проверку версии',
+        tag: 'DashboardScreen',
+      );
+      return;
+    }
+
+    // Запускаем проверку после инициализации экрана
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      try {
+        // Получаем активный clientKey для текущей БД
+        final clientKey = await ref.read(activeClientKeyProvider.future);
+
+        if (clientKey != null) {
+          // Запускаем проверку новой версии
+          await ref
+              .read(cloudImportProvider.notifier)
+              .checkForNewVersion(clientKey: clientKey);
+        }
+      } catch (e, st) {
+        logError(
+          'Ошибка при проверке новой версии',
+          error: e,
+          stackTrace: st,
+          tag: 'DashboardScreen',
+        );
+      }
+    });
   }
 
   @override
@@ -44,6 +85,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final isDatabaseOpen = ref.watch(isDatabaseOpenProvider);
     final dbNotifier = ref.read(hoplixiStoreProvider.notifier);
+
+    // Слушаем изменения состояния импорта для показа уведомлений
+    ref.listen<ImportState>(cloudImportProvider, (previous, next) {
+      if (!mounted) return;
+
+      next.maybeMap(
+        newVersionAvailable: (state) {
+          // Показываем SnackBar с предложением обновить
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Доступна новая версия: ${state.versionInfo.fileName}',
+              ),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              duration: const Duration(seconds: 10),
+              action: SnackBarAction(
+                label: 'Обновить',
+                textColor: Colors.white,
+                onPressed: () {
+                  // Переходим на экран импорта
+                  context.push(AppRoutes.cloudImportProgress);
+                },
+              ),
+            ),
+          );
+        },
+        failure: (state) {
+          // Показываем ошибку только если это не просто "нет новой версии"
+          if (!state.error.contains('не найден') &&
+              !state.error.contains('not found')) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Ошибка проверки обновлений: ${state.error}'),
+                backgroundColor: Theme.of(context).colorScheme.error,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+        },
+        orElse: () {},
+      );
+    });
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{

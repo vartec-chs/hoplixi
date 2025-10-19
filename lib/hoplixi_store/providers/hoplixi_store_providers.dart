@@ -15,6 +15,8 @@ import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store.dart';
 import 'package:hoplixi/hoplixi_store/hoplixi_store_manager.dart';
 import 'package:hoplixi/hoplixi_store/models/db_state.dart';
+import 'package:hoplixi/features/password_manager/cloud_sync/providers/cloud_export_provider.dart';
+import 'package:hoplixi/features/password_manager/cloud_sync/providers/active_client_key_provider.dart';
 
 final hoplixiStoreManagerProvider = FutureProvider<HoplixiStoreManager>((
   ref,
@@ -214,33 +216,59 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       final metaDataForSync = await _manager.getDatabaseMetaForSync();
 
       final isCloudSyncEnabled = Prefs.get(Keys.autoSyncCloud);
+
+      // Запускаем экспорт в облако если БД была изменена и включена синхронизация
+      // Примечание: Для показа диалога прогресса экспорта используйте CloudExportProgressDialog
+      // в UI-слое перед вызовом closeDatabase() или через listen на cloudExportProvider
+      if (isModified &&
+          isCloudSyncEnabled == true &&
+          (imported == null || imported == false)) {
+        logInfo(
+          'База данных изменена, запускается экспорт в облако перед закрытием',
+          tag: 'DatabaseAsyncNotifier',
+          data: {
+            'storageId': metaDataForSync.id,
+            'storageName': metaDataForSync.name,
+            'path': path,
+            'modifiedAt': modifiedAtCurrent.toIso8601String(),
+          },
+        );
+
+        try {
+          // Получаем активный clientKey для текущей БД
+          final clientKey = await ref.read(activeClientKeyProvider.future);
+
+          if (clientKey != null) {
+            // Запускаем экспорт в фоне (unawaited для неблокирующего выполнения)
+            // Для синхронного выполнения с блокировкой UI используйте await
+            // Если нужен диалог прогресса - показывайте CloudExportProgressDialog в UI-слое
+            unawaited(
+              ref
+                  .read(cloudExportProvider.notifier)
+                  .exportCurrentStorage(
+                    clientKey: clientKey,
+                    encryptionKeyArchive: null,
+                  ),
+            );
+          } else {
+            logWarning(
+              'Не удалось получить clientKey для экспорта, пропускаем',
+              tag: 'DatabaseAsyncNotifier',
+            );
+          }
+        } catch (exportError, exportSt) {
+          logError(
+            'Ошибка при запуске экспорта в облако',
+            error: exportError,
+            stackTrace: exportSt,
+            tag: 'DatabaseAsyncNotifier',
+          );
+          // Не прерываем закрытие БД из-за ошибки экспорта
+        }
+      }
+
       await _manager.closeDatabase();
 
-      // if (isModified &&
-      //     isCloudSyncEnabled! &&
-      //     metaDataForSync != null &&
-      //     (imported == null || imported == false)) {
-      //   logInfo(
-      //     'Database modified at $modifiedAtCurrent, before open at $modifiedAtBeforeOpen. Starting cloud sync...',
-      //     tag: 'DatabaseAsyncNotifier',
-      //     data: {
-      //       'storageId': metaDataForSync.id,
-      //       'storageName': metaDataForSync.name,
-      //       'path': path,
-      //     },
-      //   );
-      //   // Запускаем синхронизацию в фоне
-      //   unawaited(
-      //     ref
-      //         .read(cloudSyncProvider.notifier)
-      //         .exportToDropbox(
-      //           metadata: metaDataForSync,
-      //           pathToDbFolder: p.dirname(path ?? ''),
-      //         ),
-      //   );
-      // }
-      // final manager = ref.read(fileEncryptorProvider.notifier);
-      // await manager.cleanup();
       state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));
       logInfo('База данных закрыта успешно', tag: 'DatabaseAsyncNotifier');
     } catch (e, st) {
