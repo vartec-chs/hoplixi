@@ -30,7 +30,7 @@ class CloudExportProvider extends AsyncNotifier<ExportState> {
     return const ExportState.idle();
   }
 
-  Future<void> exportToDropbox(
+  Future<void> export(
     DatabaseMetaForSync databaseMeta,
     String pathToDbFolderDB,
   ) async {

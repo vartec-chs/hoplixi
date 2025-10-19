@@ -307,7 +307,7 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       unawaited(
         ref
             .read(cloudExportProvider.notifier)
-            .exportToDropbox(metaDataForSync, path),
+            .export(metaDataForSync, path),
       );
     } catch (e, st) {
       logError(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/features/cloud_sync/models/cloud_export_state.dart';
 import 'package:hoplixi/features/cloud_sync/providers/cloud_export_provider.dart';
+import 'package:hoplixi/shared/widgets/button.dart';
 
 /// Модальное окно для отображения прогресса экспорта в облако
 class ExportProgressDialog extends ConsumerWidget {
@@ -14,9 +15,10 @@ class ExportProgressDialog extends ConsumerWidget {
     final exportState = ref.watch(cloudExportProvider);
 
     return Dialog(
+      insetPadding: const EdgeInsets.all(8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(18),
         constraints: const BoxConstraints(maxWidth: 500, minHeight: 200),
         child: exportState.when(
           data: (state) => state.when(
@@ -25,12 +27,12 @@ class ExportProgressDialog extends ConsumerWidget {
             exporting: (progress, message, startedAt) =>
                 _buildExportingState(context, progress, message, startedAt),
             fileProgress: (progress, message) =>
-                _buildFileProgressState(progress, message),
+                _buildFileProgressState(progress, message, context),
             success: (fileName, exportTime) =>
                 _buildSuccessState(context, fileName, exportTime),
             failure: (error) => _buildFailureState(context, error.toString()),
             warning: (message) => _buildWarningState(context, message),
-            info: (action) => _buildInfoState(action),
+            info: (action) => _buildInfoState(action, context),
             canceled: () => _buildCanceledState(context),
           ),
           loading: () => _buildLoadingState(),
@@ -52,14 +54,15 @@ class ExportProgressDialog extends ConsumerWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),
-        TextButton(
+        SmoothButton(
+          label: 'Закрыть',
           onPressed: () {
             onClose?.call();
             if (onClose == null) {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Закрыть'),
+          type: SmoothButtonType.text,
         ),
       ],
     );
@@ -90,10 +93,12 @@ class ExportProgressDialog extends ConsumerWidget {
         ? DateTime.now().difference(startedAt).inSeconds
         : 0;
 
+    final theme = Theme.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.cloud_upload, size: 48, color: Colors.blue),
+        Icon(Icons.cloud_upload, size: 48, color: theme.primaryColor),
         const SizedBox(height: 16),
         const Text(
           'Экспорт в облако',
@@ -127,11 +132,16 @@ class ExportProgressDialog extends ConsumerWidget {
     );
   }
 
-  Widget _buildFileProgressState(String progress, String message) {
+  Widget _buildFileProgressState(
+    String progress,
+    String message,
+    BuildContext context,
+  ) {
+    final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.upload_file, size: 48, color: Colors.blue),
+        Icon(Icons.upload_file, size: 48, color: theme.primaryColor),
         const SizedBox(height: 16),
         const Text(
           'Загрузка файла',
@@ -166,7 +176,7 @@ class ExportProgressDialog extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.check_circle, size: 48, color: Colors.green),
+        const Icon(Icons.check_circle, size: 48, color: Colors.greenAccent),
         const SizedBox(height: 16),
         const Text(
           'Экспорт завершён',
@@ -179,14 +189,15 @@ class ExportProgressDialog extends ConsumerWidget {
           style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 24),
-        ElevatedButton(
+        SmoothButton(
+          label: 'Закрыть',
           onPressed: () {
             onClose?.call();
             if (onClose == null) {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Закрыть'),
+          type: SmoothButtonType.filled,
         ),
       ],
     );
@@ -196,7 +207,7 @@ class ExportProgressDialog extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.error, size: 48, color: Colors.red),
+        const Icon(Icons.error, size: 48, color: Colors.redAccent),
         const SizedBox(height: 16),
         const Text(
           'Ошибка экспорта',
@@ -216,19 +227,15 @@ class ExportProgressDialog extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextButton(
-              onPressed: () {
-                onClose?.call();
-                if (onClose == null) {
-                  Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Закрыть'),
-            ),
-          ],
+        SmoothButton(
+          label: 'Закрыть',
+          onPressed: () {
+            onClose?.call();
+            if (onClose == null) {
+              Navigator.of(context).pop();
+            }
+          },
+          type: SmoothButtonType.text,
         ),
       ],
     );
@@ -238,7 +245,7 @@ class ExportProgressDialog extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.warning, size: 48, color: Colors.orange),
+        const Icon(Icons.warning, size: 48, color: Colors.amber),
         const SizedBox(height: 16),
         const Text(
           'Предупреждение',
@@ -251,24 +258,26 @@ class ExportProgressDialog extends ConsumerWidget {
           style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(height: 24),
-        TextButton(
+        SmoothButton(
+          label: 'Закрыть',
           onPressed: () {
             onClose?.call();
             if (onClose == null) {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Закрыть'),
+          type: SmoothButtonType.text,
         ),
       ],
     );
   }
 
-  Widget _buildInfoState(String action) {
+  Widget _buildInfoState(String action, BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.info, size: 48, color: Colors.blue),
+        Icon(Icons.info, size: 48, color: theme.primaryColor),
         const SizedBox(height: 16),
         Text(
           action,
@@ -290,14 +299,15 @@ class ExportProgressDialog extends ConsumerWidget {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),
-        TextButton(
+        SmoothButton(
+          label: 'Закрыть',
           onPressed: () {
             onClose?.call();
             if (onClose == null) {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Закрыть'),
+          type: SmoothButtonType.text,
         ),
       ],
     );
