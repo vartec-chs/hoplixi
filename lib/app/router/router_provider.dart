@@ -179,6 +179,8 @@ class ProtectedRoutes {
     AppRoutes.notesForm,
     AppRoutes.otpForm,
     AppRoutes.importOtpCodes,
+    AppRoutes.cloudSyncSetup,
+    AppRoutes.passwordMigration,
     // Добавьте другие защищённые маршруты сюда
   ];
 }

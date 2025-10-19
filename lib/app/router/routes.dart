@@ -68,45 +68,73 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.dashboard,
     builder: (context, state) => const DashboardScreen(),
+    routes: [
+      GoRoute(
+        path: AppRoutes.categoryManagerPath,
+        builder: (context, state) => const CategoriesManagerScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.iconManagerPath,
+        builder: (context, state) => const IconsManagementScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.tagsManagerPath,
+        builder: (context, state) => const TagsManagementScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordFormPath,
+        builder: (context, state) => const PasswordFormScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.passwordFormPath}/:passwordId',
+        builder: (context, state) {
+          final passwordId = state.pathParameters['passwordId'];
+          return PasswordFormScreen(passwordId: passwordId);
+        },
+      ),
+      GoRoute(
+        path: '${AppRoutes.passwordHistoryPath}/:passwordId',
+        builder: (context, state) {
+          if (state.pathParameters['passwordId'] == null) {
+            return const SplashScreen(title: 'Ошибка: нет ID пароля');
+          }
+          final passwordId = state.pathParameters['passwordId'];
+          return PasswordHistoryScreen(passwordId: passwordId!);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.notesFormPath,
+        builder: (context, state) => NotesFormScreen(),
+      ),
+      GoRoute(
+        path: '${AppRoutes.notesFormPath}/:noteId',
+        builder: (context, state) {
+          final noteId = state.pathParameters['noteId'];
+          return NotesFormScreen(id: noteId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.importOtpCodesPath,
+        builder: (context, state) => const ImportOtpScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.otpFormPath,
+        builder: (context, state) => const OtpForm(),
+      ),
+      GoRoute(
+        path: AppRoutes.passwordMigrationPath,
+        builder: (context, state) => const MigrationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.cloudSyncSetupPath,
+        builder: (context, state) => const CloudSyncSetupScreen(),
+      ),
+    ],
   ),
 
-  GoRoute(
-    path: AppRoutes.categoryManager,
-    builder: (context, state) => const CategoriesManagerScreen(),
-  ),
-  GoRoute(
-    path: AppRoutes.iconManager,
-    builder: (context, state) => const IconsManagementScreen(),
-  ),
-  GoRoute(
-    path: AppRoutes.tagsManager,
-    builder: (context, state) => const TagsManagementScreen(),
-  ),
-  GoRoute(
-    path: AppRoutes.passwordForm,
-    builder: (context, state) => const PasswordFormScreen(),
-  ),
-  GoRoute(
-    path: '${AppRoutes.passwordForm}/:passwordId',
-    builder: (context, state) {
-      final passwordId = state.pathParameters['passwordId'];
-      return PasswordFormScreen(passwordId: passwordId);
-    },
-  ),
   GoRoute(
     path: AppRoutes.localSend,
     builder: (context, state) => const DiscoveryScreen(),
-  ),
-
-  GoRoute(
-    path: '${AppRoutes.passwordHistory}/:passwordId',
-    builder: (context, state) {
-      if (state.pathParameters['passwordId'] == null) {
-        return const SplashScreen(title: 'Ошибка: нет ID пароля');
-      }
-      final passwordId = state.pathParameters['passwordId'];
-      return PasswordHistoryScreen(passwordId: passwordId!);
-    },
   ),
 
   GoRoute(
@@ -117,19 +145,6 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.demoNotification,
     builder: (context, state) => const NotificationDemoScreen(),
-  ),
-
-  GoRoute(
-    path: AppRoutes.notesForm,
-    builder: (context, state) => NotesFormScreen(),
-  ),
-
-  GoRoute(
-    path: '${AppRoutes.notesForm}/:noteId',
-    builder: (context, state) {
-      final noteId = state.pathParameters['noteId'];
-      return NotesFormScreen(id: noteId);
-    },
   ),
 
   GoRoute(
@@ -145,11 +160,6 @@ final List<GoRoute> appRoutes = [
 
       return const QrScannerScreen();
     },
-  ),
-
-  GoRoute(
-    path: AppRoutes.importOtpCodes,
-    builder: (context, state) => const ImportOtpScreen(),
   ),
 
   GoRoute(
@@ -176,11 +186,6 @@ final List<GoRoute> appRoutes = [
   ),
 
   GoRoute(
-    path: AppRoutes.otpForm,
-    builder: (context, state) => const OtpForm(),
-  ),
-
-  GoRoute(
     path: AppRoutes.settings,
     builder: (context, state) => const SettingsScreen(),
   ),
@@ -201,11 +206,6 @@ final List<GoRoute> appRoutes = [
   ),
 
   GoRoute(
-    path: AppRoutes.passwordMigration,
-    builder: (context, state) => const MigrationScreen(),
-  ),
-
-  GoRoute(
     path: AppRoutes.manageCredential,
     builder: (context, state) => const ManageAuthClientsScreen(),
   ),
@@ -213,11 +213,6 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.authorizationProgress,
     builder: (context, state) => const AuthorizationProgressScreen(),
-  ),
-
-  GoRoute(
-    path: AppRoutes.cloudSyncSetup,
-    builder: (context, state) => const CloudSyncSetupScreen(),
   ),
 ];
 
