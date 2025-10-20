@@ -195,7 +195,7 @@ class LocalMetaCrudService {
 
       return saveResult.map((_) {
         logDebug('Удалён LocalMeta: dbId=$dbId', tag: _tag);
-        return null;
+        return;
       });
     });
   }
@@ -213,7 +213,7 @@ class LocalMetaCrudService {
 
       return saveResult.map((_) {
         logInfo('Все записи LocalMeta очищены', tag: _tag);
-        return null;
+        return;
       });
     });
   }

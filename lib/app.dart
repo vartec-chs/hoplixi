@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hoplixi/app/constants/main_constants.dart';
-import 'package:hoplixi/app/constants/responsive_constants.dart';
 import 'package:hoplixi/core/index.dart';
-import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
 import 'package:hoplixi/core/utils/toast/toast_manager.dart';
 import 'package:hoplixi/app/router/router_provider.dart';

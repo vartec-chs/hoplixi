@@ -12,7 +12,7 @@
 /// ```
 ///
 /// See [README.MD] for comprehensive documentation and examples.
-library result_pattern;
+library;
 
 export 'result.dart';
 export 'common_errors.dart';

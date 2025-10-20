@@ -26,8 +26,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final ScrollController _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isSyncDialogShown = false;
-  bool _syncDialogDismissedManually = false;
+  final bool _isSyncDialogShown = false;
+  final bool _syncDialogDismissedManually = false;
 
   @override
   void initState() {

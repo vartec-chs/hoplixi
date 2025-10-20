@@ -209,7 +209,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                     // Выбор провайдера для синхронизации
                     DropdownButtonFormField<String>(
-                      value: _selectedProvider.isNotEmpty
+                      initialValue: _selectedProvider.isNotEmpty
                           ? _selectedProvider
                           : null,
                       items: ProviderType.values

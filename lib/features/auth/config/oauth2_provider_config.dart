@@ -1,5 +1,6 @@
 /// Конфигурация OAuth2 провайдеров
 /// Содержит списки scopes для различных облачных сервисов
+library;
 
 class OAuth2ProviderConfig {
   OAuth2ProviderConfig._();

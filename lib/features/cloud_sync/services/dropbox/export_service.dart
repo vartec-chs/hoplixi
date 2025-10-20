@@ -5,10 +5,8 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
-import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/lib/dropbox_api/dropbox_api.dart';
-import 'package:hoplixi/core/lib/dropbox_api/src/models/dropbox_file.dart';
 import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
 
 class ExportSuccessData {

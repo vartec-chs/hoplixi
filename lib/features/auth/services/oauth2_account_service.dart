@@ -2,7 +2,6 @@ import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/services/cloud_sync_data_service.dart';
-import 'package:hoplixi/features/auth/models/auth_client_config.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
 import 'package:hoplixi/features/auth/providers/token_provider.dart';
 import 'package:hoplixi/features/auth/services/providers/dropbox_auth_service.dart';

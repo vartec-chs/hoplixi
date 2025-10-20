@@ -6,7 +6,6 @@ import 'package:hoplixi/core/utils/result_pattern/result.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:archive/archive_io.dart';
-import 'package:hoplixi/core/app_paths.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/lib/dropbox_api/dropbox_api.dart';
 import 'package:hoplixi/core/services/cloud_sync_data_service.dart';

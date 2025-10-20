@@ -1,4 +1,5 @@
 /// Экспорт всех компонентов OAuth2
+library;
 export 'base_oauth_provider_service.dart';
 export 'oauth2_account_service.dart';
 export 'token_auth_service.dart';
