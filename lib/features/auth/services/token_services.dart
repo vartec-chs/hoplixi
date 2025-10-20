@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/src/token/oauth2_token_storage.dart';
 import 'package:hoplixi/core/index.dart';
@@ -108,18 +110,23 @@ class TokenServices implements OAuth2TokenStorage {
         return null;
       }
 
-      // Преобразуем TokenOAuth обратно в OAuth2TokenF JSON строку
-      final token = OAuth2TokenF({
-        'access_token': tokenData.accessToken,
-        'refresh_token': tokenData.refreshToken,
-        'id_token':
-            '', // OAuth2TokenF попытается декодировать, но для userName/iss используем прямые значения
-        'expiry': '9999-12-31T23:59:59.999Z', // Значения по умолчанию
-        'refresh_token_expiry': '9999-12-31T23:59:59.999Z',
-      });
+      // Если tokenJson не содержит iss/user_name, обогащаем его
+      final jsonMap = jsonDecode(tokenData.tokenJson) as Map<String, dynamic>;
+
+      // Гарантируем наличие iss и user_name
+      if ((jsonMap['iss'] == null || jsonMap['iss'] == '') &&
+          tokenData.iss.isNotEmpty) {
+        jsonMap['iss'] = tokenData.iss;
+      }
+      if ((jsonMap['user_name'] == null || jsonMap['user_name'] == '') &&
+          tokenData.userName.isNotEmpty) {
+        jsonMap['user_name'] = tokenData.userName;
+      }
+
+      final enrichedJson = jsonEncode(jsonMap);
 
       logDebug('Token loaded for key: $key', tag: _tag);
-      return token.toJsonString();
+      return enrichedJson;
     } catch (e) {
       logError('Failed to load token for key "$key": $e', tag: _tag);
       return null;
@@ -140,16 +147,19 @@ class TokenServices implements OAuth2TokenStorage {
           continue;
         }
 
-        // Преобразуем TokenOAuth обратно в OAuth2TokenF JSON строку
-        final token = OAuth2TokenF({
-          'access_token': tokenData.accessToken,
-          'refresh_token': tokenData.refreshToken,
-          'id_token': '',
-          'expiry': '9999-12-31T23:59:59.999Z',
-          'refresh_token_expiry': '9999-12-31T23:59:59.999Z',
-        });
+        // Обогащаем tokenJson, если нужно
+        final jsonMap = jsonDecode(tokenData.tokenJson) as Map<String, dynamic>;
 
-        result[tokenData.id] = token.toJsonString();
+        if ((jsonMap['iss'] == null || jsonMap['iss'] == '') &&
+            tokenData.iss.isNotEmpty) {
+          jsonMap['iss'] = tokenData.iss;
+        }
+        if ((jsonMap['user_name'] == null || jsonMap['user_name'] == '') &&
+            tokenData.userName.isNotEmpty) {
+          jsonMap['user_name'] = tokenData.userName;
+        }
+
+        result[tokenData.id] = jsonEncode(jsonMap);
       }
 
       logDebug(
@@ -168,17 +178,44 @@ class TokenServices implements OAuth2TokenStorage {
     try {
       await _ensureInitialized();
 
+      // log o save new token and all data
+      logInfo('Saving token for key: $key', tag: _tag, data: {'value': value});
+
       final OAuth2TokenF data = OAuth2TokenF.fromJsonString(value);
+
+      // Извлекаем iss и userName из ключа, если они пустые в токене
+      // Формат ключа: "Hoplixi-OAUTH2ACCOUNT107-{service}-{userName}"
+      String iss = data.iss;
+      String userName = data.userName;
+
+      if (iss.isEmpty || userName.isEmpty) {
+        final parts = key.split('-');
+        if (parts.length >= 4) {
+          if (iss.isEmpty) {
+            iss = parts[2]; // service name (например, "yandex", "dropbox")
+          }
+          if (userName.isEmpty) {
+            userName = parts[3]; // userName
+          }
+        }
+      }
+
+      // Гарантируем, что iss и userName сохранены в JSON
+      final jsonMap = jsonDecode(value) as Map<String, dynamic>;
+      jsonMap['iss'] = iss;
+      jsonMap['user_name'] = userName;
+      final enrichedJson = jsonEncode(jsonMap);
+
       final TokenOAuth tokenData = TokenOAuth(
         id: key,
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
-        userName: data.userName,
-        iss: data.iss,
+        userName: userName,
+        iss: iss,
         timeToRefresh: data.timeToRefresh,
         canRefresh: data.canRefresh,
         timeToLogin: data.timeToLogin,
-        tokenJson: value,
+        tokenJson: enrichedJson, // Сохраняем обогащённый JSON
       );
 
       final exists = await _db!.exists(key);

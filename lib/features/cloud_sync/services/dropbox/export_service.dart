@@ -1,4 +1,8 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:hoplixi/core/lib/oauth2restclient/src/exception/oauth2_exception.dart';
+import 'package:hoplixi/core/lib/oauth2restclient/src/exception/oauth2_exception_type.dart';
+import 'package:hoplixi/core/utils/result_pattern/common_errors.dart';
 import 'package:hoplixi/core/utils/result_pattern/result.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -100,13 +104,10 @@ class DropboxExportService {
   }
 
   /// Создаёт корневую папку для хранилищ
-  Future<Result<void, String>> ensureRootFolder(
-    void Function(String error)? onError,
-  ) async {
+  Future<Result<void, String>> ensureRootFolder() async {
     try {
       if (_dropbox == null) {
         final errorMsg = 'Dropbox connection not initialized';
-        onError?.call(errorMsg);
         return Result.failure(errorMsg);
       }
       await _dropbox!.createFolder(storagesRootCloudPath);
@@ -117,6 +118,25 @@ class DropboxExportService {
       );
       return Result.success(null);
     } catch (e) {
+      if (e is OAuth2ExceptionF) {
+        if (e.type == OAuth2ExceptionType.canceled) {
+          logInfo(
+            'Создание корневой папки отменено пользователем',
+            tag: _logTag,
+            data: {'path': storagesRootCloudPath},
+          );
+          return Result.success(null);
+        } else if (e.type == OAuth2ExceptionType.unauthorized) {
+          final errorMsg = 'Unauthorized access while creating root folder';
+          logError(
+            'Ошибка авторизации при создании корневой папки',
+            error: e,
+            tag: _logTag,
+            data: {'path': storagesRootCloudPath},
+          );
+          return Result.failure(errorMsg);
+        }
+      }
       // Игнорируем ошибку 409 (папка уже существует)
       if (e.toString().contains('409') || e.toString().contains('Conflict')) {
         logInfo(
@@ -133,7 +153,7 @@ class DropboxExportService {
           tag: _logTag,
           data: {'path': storagesRootCloudPath},
         );
-        onError?.call(errorMsg);
+
         return Result.failure(errorMsg);
       }
     }

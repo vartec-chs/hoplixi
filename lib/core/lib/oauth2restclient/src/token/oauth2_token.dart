@@ -27,12 +27,11 @@ class OAuth2TokenF implements OAuth2Token {
   void _parseToken(Map<String, dynamic> json) {
     if (!json.containsKey("expiry")) {
       if (json.containsKey("expires_in")) {
-        json["expiry"] =
-            DateTime.now()
-                .toUtc()
-                .add(Duration(seconds: json["expires_in"]))
-                .subtract(Duration(minutes: 5))
-                .toIso8601String();
+        json["expiry"] = DateTime.now()
+            .toUtc()
+            .add(Duration(seconds: json["expires_in"]))
+            .subtract(Duration(minutes: 5))
+            .toIso8601String();
       } else {
         json["expiry"] = "9999-12-31T23:59:59.999Z";
       }
@@ -40,12 +39,11 @@ class OAuth2TokenF implements OAuth2Token {
 
     if (!json.containsKey("refresh_token_expiry")) {
       if (json.containsKey("refresh_token_expires_in")) {
-        json["refresh_token_expiry"] =
-            DateTime.now()
-                .toUtc()
-                .add(Duration(seconds: json["refresh_token_expires_in"]))
-                .subtract(Duration(minutes: 5))
-                .toIso8601String();
+        json["refresh_token_expiry"] = DateTime.now()
+            .toUtc()
+            .add(Duration(seconds: json["refresh_token_expires_in"]))
+            .subtract(Duration(minutes: 5))
+            .toIso8601String();
       } else {
         json["refresh_token_expiry"] = "9999-12-31T23:59:59.999Z";
       }
@@ -90,7 +88,7 @@ class OAuth2TokenF implements OAuth2Token {
 
   @override
   bool get timeToLogin {
-    return timeToRefresh && !canRefresh;
+    return timeToRefresh && canRefresh;
   }
 
   factory OAuth2TokenF.fromJsonString(String jsonResponse) {
@@ -110,10 +108,16 @@ class OAuth2TokenF implements OAuth2Token {
   String get refreshToken => json["refresh_token"] ?? "";
 
   @override
-  String get iss => idToken?["iss"] ?? "";
+  String get iss => json["iss"] ?? idToken?["iss"] ?? "";
 
   @override
-  String get userName => idToken?["email"] ?? idToken?["sub"] ?? "";
+  String get userName =>
+      json["user_name"] ??
+      idToken?["email"] ??
+      idToken?["sub"] ??
+      json["uid"] ?? // Yandex использует uid
+      json["account_id"] ?? // Dropbox использует account_id
+      "";
 
   @override
   OAuth2Token mergeToken(OAuth2Token newToken) {
@@ -123,6 +127,17 @@ class OAuth2TokenF implements OAuth2Token {
       ...json, // 기존 값 유지
       ...newJson, // 새로운 값 덮어쓰기
     };
+
+    // Гарантируем, что iss и userName ВСЕГДА присутствуют
+    final currentIss = json['iss'] ?? iss;
+    final currentUserName = json['user_name'] ?? userName;
+
+    if (currentIss.isNotEmpty) {
+      mergedToken['iss'] = currentIss;
+    }
+    if (currentUserName.isNotEmpty) {
+      mergedToken['user_name'] = currentUserName;
+    }
 
     return OAuth2TokenF(mergedToken);
   }

@@ -36,43 +36,62 @@ class TokenAuthService {
 
   /// Получить или обновить токен и создать клиент
   Future<ServiceResult<OAuth2RestClient>> _getOrRefreshClient(
-    OAuth2Token token,
+    OAuth2Token mainToken,
   ) async {
+    logInfo(
+      'Getting or refreshing client for token',
+      tag: _tag,
+      data: {'token': mainToken.toJsonString()},
+    );
+    OAuth2Token token = mainToken;
     try {
-      if (token.timeToLogin) {
-        logInfo('Token expired, attempting to relogin', tag: _tag);
-        token = await _account.forceRelogin(token) as OAuth2Token;
+      // timeToRefresh: access token истёк и нужен рефреш
+      if (token.timeToRefresh) {
+        logInfo(
+          'Access token expired, attempting to refresh',
+          tag: _tag,
+          data: {'iss': token.iss, 'userName': token.userName},
+        );
+        final refreshed = await _account.refreshToken(token);
+        logInfo(
+          'Refresh token result',
+          tag: _tag,
+          data: {
+            'refreshed': refreshed?.toJsonString(),
+            'iss': token.iss,
+            'userName': token.userName,
+          },
+        );
+        if (refreshed == null) {
+          // Refresh token тоже истёк - нужна переавторизация
+          logInfo(
+            'Refresh token expired, attempting to relogin',
+            tag: _tag,
+            data: {'iss': token.iss, 'userName': token.userName},
+          );
+          final relogin = await _account.forceRelogin(token);
+          if (relogin == null) {
+            return ServiceResult.failure('Failed to refresh or relogin');
+          }
+          token = relogin;
+        } else {
+          token = refreshed;
+        }
       }
 
       final client = await _account.createClient(token);
       return ServiceResult.success(data: client);
     } catch (e, stack) {
       logError(
-        'Failed to create client, attempting token refresh',
+        'Failed to get or refresh client',
         error: e,
         stackTrace: stack,
         tag: _tag,
+        data: {'tokenIss': token.iss, 'tokenUserName': token.userName},
       );
-
-      try {
-        final newToken = await _account.refreshToken(token);
-        if (newToken == null) {
-          return ServiceResult.failure('Failed to refresh expired token');
-        }
-
-        final client = await _account.createClient(newToken);
-        return ServiceResult.success(data: client);
-      } catch (e, stack) {
-        logError(
-          'Failed to create client after token refresh',
-          error: e,
-          stackTrace: stack,
-          tag: _tag,
-        );
-        return ServiceResult.failure(
-          'Failed to create client after token refresh',
-        );
-      }
+      return ServiceResult.failure(
+        'Failed to get or refresh client: ${e.toString()}',
+      );
     }
   }
 }

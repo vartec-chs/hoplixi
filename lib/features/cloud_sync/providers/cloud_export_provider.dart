@@ -92,11 +92,7 @@ class CloudExportProvider extends AsyncNotifier<ExportState> {
           startedAt: startedAt,
         ),
       );
-      final rootFolderResult = await _dropboxExportService.ensureRootFolder(
-        (error) => state = AsyncData(
-          ExportState.failure(ExportException.unknown(error)),
-        ),
-      );
+      final rootFolderResult = await _dropboxExportService.ensureRootFolder();
       if (rootFolderResult.isFailure) {
         state = AsyncData(
           ExportState.failure(

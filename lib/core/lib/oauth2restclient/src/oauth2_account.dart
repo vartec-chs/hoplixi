@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 
-
 import 'provider/oauth2_provider.dart';
 import 'rest_client/http_oauth2_rest_client.dart';
 import 'token/oauth2_token_storage.dart';
@@ -167,16 +166,19 @@ class OAuth2Account {
 
   Future<OAuth2Token?> _doRefreshToken(OAuth2Token token) async {
     var provider = getProvider(token.iss);
-    if (provider == null) return null;
+    if (provider == null) {
+      debugPrint('Provider not found for iss: "${token.iss}"');
+      return null;
+    }
 
     //String service, String userName
     var savedToken = await loadAccount(provider.name, token.userName);
     if (savedToken == null) return null;
 
-    var newToken = await provider.refreshToken(savedToken.refreshToken);
+    var newToken = await provider.refreshToken(token.refreshToken);
     if (newToken == null) return null;
 
-    var mergedToken = savedToken.mergeToken(newToken);
+    var mergedToken = token.mergeToken(newToken);
 
     await saveAccount(provider.name, mergedToken.userName, mergedToken);
     return mergedToken;

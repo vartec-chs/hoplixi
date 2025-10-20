@@ -1,7 +1,11 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hoplixi/app/constants/main_constants.dart';
 import 'package:hoplixi/core/lib/oauth2restclient/oauth2restclient.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/services/cloud_sync_data_service.dart';
+import 'package:hoplixi/features/auth/config/oauth2_provider_config.dart';
 import 'package:hoplixi/features/auth/models/models.dart';
 import 'package:hoplixi/features/auth/providers/token_provider.dart';
 import 'package:hoplixi/features/auth/services/providers/dropbox_auth_service.dart';
@@ -55,32 +59,39 @@ class OAuth2AccountService {
   }) async {
     switch (credential.type) {
       case AuthClientType.dropbox:
+        final redirectUri = _resolveRedirectUri();
+        final dropboxProvider = _createDropboxProvider(credential, redirectUri);
+        _account.addProvider(dropboxProvider);
         return await _authorizeWithExistingOrNew(
           ProviderType.dropbox,
-          () => _dropboxService.authorizeWithDropbox(
-            credential,
-            onError: onError,
-          ),
+          () => _dropboxService.authorize(dropboxProvider, onError),
         );
       case AuthClientType.yandex:
+        final redirectUri = _resolveRedirectUri();
+        final yandexProvider = _createYandexProvider(credential, redirectUri);
+        _account.addProvider(yandexProvider);
         return await _authorizeWithExistingOrNew(
           ProviderType.yandex,
-          () =>
-              _yandexService.authorizeWithYandex(credential, onError: onError),
+          () => _yandexService.authorize(yandexProvider, onError),
         );
       case AuthClientType.google:
+        final redirectUri = _resolveRedirectUri(disabledMobile: true);
+        final googleProvider = _createGoogleProvider(credential, redirectUri);
+        _account.addProvider(googleProvider);
         return await _authorizeWithExistingOrNew(
           ProviderType.google,
-          () =>
-              _googleService.authorizeWithGoogle(credential, onError: onError),
+          () => _googleService.authorize(googleProvider, onError),
         );
       case AuthClientType.onedrive:
+        final redirectUri = _resolveRedirectUri();
+        final microsoftProvider = _createMicrosoftProvider(
+          credential,
+          redirectUri,
+        );
+        _account.addProvider(microsoftProvider);
         return await _authorizeWithExistingOrNew(
           ProviderType.microsoft,
-          () => _microsoftService.authorizeWithMicrosoft(
-            credential,
-            onError: onError,
-          ),
+          () => _microsoftService.authorize(microsoftProvider, onError),
         );
       case AuthClientType.icloud:
         return ServiceResult.failure(
@@ -90,6 +101,102 @@ class OAuth2AccountService {
         return ServiceResult.failure(
           'Авторизация для ${credential.type.name} не реализована',
         );
+    }
+  }
+
+  /// Разрешить redirect URI в зависимости от платформы
+  String _resolveRedirectUri({bool disabledMobile = false}) {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS) && !disabledMobile) {
+      return AuthConstants.redirectUriMobile;
+    }
+    return AuthConstants.redirectUriDesktop;
+  }
+
+  /// Создать провайдер Dropbox
+  Dropbox _createDropboxProvider(
+    AuthClientConfig credential,
+    String redirectUri,
+  ) {
+    if (credential.clientSecret != null &&
+        credential.clientSecret!.isNotEmpty) {
+      return Dropbox(
+        clientId: credential.clientId,
+        clientSecret: credential.clientSecret,
+        redirectUri: redirectUri,
+        scopes: OAuth2ProviderConfig.dropboxScopes,
+      );
+    } else {
+      return Dropbox(
+        clientId: credential.clientId,
+        redirectUri: redirectUri,
+        scopes: OAuth2ProviderConfig.dropboxScopes,
+      );
+    }
+  }
+
+  /// Создать провайдер Yandex
+  Yandex _createYandexProvider(
+    AuthClientConfig credential,
+    String redirectUri,
+  ) {
+    if (credential.clientSecret != null &&
+        credential.clientSecret!.isNotEmpty) {
+      return Yandex(
+        clientId: credential.clientId,
+        clientSecret: credential.clientSecret,
+        redirectUri: redirectUri,
+        scopes: OAuth2ProviderConfig.yandexScopes,
+      );
+    } else {
+      return Yandex(
+        clientId: credential.clientId,
+        redirectUri: redirectUri,
+        scopes: OAuth2ProviderConfig.yandexScopes,
+      );
+    }
+  }
+
+  /// Создать провайдер Google
+  Google _createGoogleProvider(
+    AuthClientConfig credential,
+    String redirectUri,
+  ) {
+    if (credential.clientSecret != null &&
+        credential.clientSecret!.isNotEmpty) {
+      return Google(
+        clientId: credential.clientId,
+        clientSecret: credential.clientSecret,
+        redirectUri: redirectUri,
+        scopes: OAuth2ProviderConfig.googleScopes,
+      );
+    } else {
+      return Google(
+        clientId: credential.clientId,
+        redirectUri: redirectUri,
+        scopes: OAuth2ProviderConfig.googleScopes,
+      );
+    }
+  }
+
+  /// Создать провайдер Microsoft
+  Microsoft _createMicrosoftProvider(
+    AuthClientConfig credential,
+    String redirectUri,
+  ) {
+    if (credential.clientSecret != null &&
+        credential.clientSecret!.isNotEmpty) {
+      return Microsoft(
+        clientId: credential.clientId,
+        clientSecret: credential.clientSecret,
+        redirectUri: redirectUri,
+        scopes: OAuth2ProviderConfig.microsoftScopes,
+      );
+    } else {
+      return Microsoft(
+        clientId: credential.clientId,
+        redirectUri: redirectUri,
+        scopes: OAuth2ProviderConfig.microsoftScopes,
+      );
     }
   }
 

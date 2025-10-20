@@ -214,7 +214,7 @@ void navigateBack(BuildContext context) {
   final path = GoRouter.of(context).state.path;
   if (GoRouter.of(context).canPop()) {
     context.pop();
-  } else if (path != null && !path.contains('dashboard')) {
+  } else if (path != null && path.contains('dashboard')) {
     GoRouter.of(context).go(AppRoutes.dashboard);
   } else {
     GoRouter.of(context).go(AppRoutes.home);

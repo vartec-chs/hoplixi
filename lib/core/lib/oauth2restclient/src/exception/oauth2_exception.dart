@@ -11,7 +11,7 @@ abstract interface class OAuth2Exception {
   OAuth2ExceptionType get type; // Enum 타입 사용
 }
 
-// 구체적인 구현 클래스
+
 class OAuth2ExceptionF implements OAuth2Exception {
   @override
   final String? message;

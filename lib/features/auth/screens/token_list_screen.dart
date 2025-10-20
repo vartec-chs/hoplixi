@@ -473,7 +473,7 @@ class _TokenDetailsDialog extends StatelessWidget {
     return Dialog(
       insetPadding: const EdgeInsets.all(8),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -517,6 +517,8 @@ class _TokenDetailsDialog extends StatelessWidget {
                     token.refreshToken,
                   ),
                 ],
+                const SizedBox(height: 16),
+                _buildCopyableField(context, 'Token JSON', token.tokenJson),
                 const SizedBox(height: 24),
                 Row(
                   children: [
