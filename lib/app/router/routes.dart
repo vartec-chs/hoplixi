@@ -4,6 +4,7 @@ import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/auth/screens/auth_manager_screen.dart';
 import 'package:hoplixi/features/auth/screens/authorization_progress_screen.dart';
 import 'package:hoplixi/features/auth/screens/manage_auth_clients_screen.dart';
+import 'package:hoplixi/features/cloud_sync/screens/cloud_import_progress_screen.dart';
 import 'package:hoplixi/features/demo/notification_demo_screen.dart';
 import 'package:hoplixi/features/home/home.dart';
 import 'package:hoplixi/features/localsend/models/connection_mode.dart';
@@ -213,6 +214,11 @@ final List<GoRoute> appRoutes = [
   GoRoute(
     path: AppRoutes.authorizationProgress,
     builder: (context, state) => const AuthorizationProgressScreen(),
+  ),
+
+  GoRoute(
+    path: AppRoutes.importingStore,
+    builder: (context, state) => const CloudImportProgressScreen(),
   ),
 ];
 

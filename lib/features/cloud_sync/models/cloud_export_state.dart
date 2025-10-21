@@ -4,7 +4,7 @@ import 'package:hoplixi/features/cloud_sync/models/cloud_sync_exceptions.dart';
 part 'cloud_export_state.freezed.dart';
 
 @freezed
-class ExportState with _$ExportState {
+sealed class ExportState with _$ExportState {
   const factory ExportState.idle() = ExportStateIdle;
   const factory ExportState.checking(String message) = ExportStateChecking;
   const factory ExportState.exporting({

@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/features/cloud_sync/providers/cloud_export_provider.dart';
+import 'package:hoplixi/features/cloud_sync/providers/cloud_import_provider.dart';
 
 import 'package:path/path.dart' as p;
 
@@ -111,25 +112,23 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
 
       final metaDataForSync = await _manager.getDatabaseMetaForSync();
 
-      // if (isCloudSyncEnabled == true &&
-      //     metaDataForSync != null &&
-      //     newState.isOpen) {
-      //   logInfo(
-      //     'База данных открыта с включённой облачной синхронизацией',
-      //     tag: 'DatabaseAsyncNotifier',
-      //     data: {
-      //       'storageId': metaDataForSync.id,
-      //       'storageName': metaDataForSync.name,
-      //       'path': dto.path,
-      //     },
-      //   );
-      //   // Запускаем проверку новой версии в фоне
-      //   unawaited(
-      //     ref
-      //         .read(cloudSyncProvider.notifier)
-      //         .checkForNewVersion(metadata: metaDataForSync),
-      //   );
-      // }
+      if (isCloudSyncEnabled == true &&
+          metaDataForSync != null &&
+          newState.isOpen) {
+        logInfo(
+          'База данных открыта с включённой облачной синхронизацией',
+          tag: 'DatabaseAsyncNotifier',
+          data: {
+            'storageId': metaDataForSync.id,
+            'storageName': metaDataForSync.name,
+            'path': dto.path,
+          },
+        );
+        // Запускаем проверку новой версии в фоне
+        unawaited(
+          ref.read(cloudImportProvider.notifier).import(metaDataForSync),
+        );
+      }
 
       // final manager = ref.read(fileEncryptorProvider.notifier);
       // await manager.initialize();
@@ -228,32 +227,6 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       }
 
       await _manager.closeDatabase();
-
-      // if (isModified &&
-      //     isCloudSyncEnabled! &&
-      //     metaDataForSync != null &&
-      //     (imported == null || imported == false)) {
-      //   logInfo(
-      //     'Database modified at $modifiedAtCurrent, before open at $modifiedAtBeforeOpen. Starting cloud sync...',
-      //     tag: 'DatabaseAsyncNotifier',
-      //     data: {
-      //       'storageId': metaDataForSync.id,
-      //       'storageName': metaDataForSync.name,
-      //       'path': path,
-      //     },
-      //   );
-      //   // Запускаем синхронизацию в фоне
-      //   unawaited(
-      //     ref
-      //         .read(cloudSyncProvider.notifier)
-      //         .exportToDropbox(
-      //           metadata: metaDataForSync,
-      //           pathToDbFolder: p.dirname(path ?? ''),
-      //         ),
-      //   );
-      // }
-      // final manager = ref.read(fileEncryptorProvider.notifier);
-      // await manager.cleanup();
       state = AsyncValue.data(DatabaseState(status: DatabaseStatus.closed));
       logInfo('База данных закрыта успешно', tag: 'DatabaseAsyncNotifier');
     } catch (e, st) {
@@ -302,11 +275,9 @@ class DatabaseAsyncNotifier extends AsyncNotifier<DatabaseState> {
       if (!isCloudSyncEnabled) return;
 
       final metaDataForSync = await _manager.getDatabaseMetaForSync();
-      
+
       unawaited(
-        ref
-            .read(cloudExportProvider.notifier)
-            .export(metaDataForSync, path),
+        ref.read(cloudExportProvider.notifier).export(metaDataForSync, path),
       );
     } catch (e, st) {
       logError(

@@ -8,8 +8,8 @@ import 'package:path/path.dart' as p;
 import 'package:archive/archive_io.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/lib/dropbox_api/dropbox_api.dart';
-import 'package:hoplixi/core/services/cloud_sync_data_service.dart';
 import 'package:hoplixi/features/auth/services/oauth2_account_service.dart';
+import 'package:hoplixi/features/cloud_sync/services/local_meta_crud_service.dart';
 import 'package:hoplixi/hoplixi_store/dto/db_dto.dart';
 
 class CloudVersionInfo {
@@ -31,13 +31,12 @@ class CloudVersionInfo {
 }
 
 class ImportDropboxService {
-  CloudSyncDataService get _cloudSyncDataService => CloudSyncDataService();
-
   final OAuth2AccountService _accountService;
+  final LocalMetaCrudService _localMetaCrudService;
   final String tag = 'ImportDropboxService';
   final String storagesRoot = '/${MainConstants.appFolderName}/storages';
 
-  ImportDropboxService(this._accountService);
+  ImportDropboxService(this._accountService, this._localMetaCrudService);
 
   DropboxApi? _dropbox;
 
@@ -200,30 +199,33 @@ class ImportDropboxService {
     );
 
     // Получаем информацию о последнем экспорте из локальной БД
-    final exportingEntry = await _cloudSyncDataService.getItem(metadata.id);
+    logInfo(
+      'Получение информации о последнем экспорте из локальной БД',
+      tag: tag,
+      data: {'dbId': metadata.id, 'name': metadata.name},
+    );
+    final localMetaResult = _localMetaCrudService.getByDbId(metadata.id);
 
-    if (!exportingEntry.success) {
+    if (localMetaResult.isFailure) {
       final errorMsg =
-          'Ошибка при получении данных синхронизации из локальной БД: ${exportingEntry.message}';
-      logError(
-        'Ошибка при поиске записи CloudSyncData',
-        tag: tag,
-        data: {'name': metadata.name},
-      );
+          'Ошибка при получении данных синхронизации из локальной БД: ${localMetaResult.errorOrNull}';
+      logError('$errorMsg', tag: tag, data: {'name': metadata.name});
       return Result.failure(errorMsg);
     }
 
+    final localMeta = localMetaResult.dataOrNull!;
+
     // Проверяем, есть ли более новая версия в облаке
     final bool isNewer =
-        exportingEntry.data?.exportedAt == null ||
-        timestampLastExporting.isAfter(exportingEntry.data!.exportedAt!);
+        localMeta.lastImportedAt == null ||
+        timestampLastExporting.isAfter(localMeta.lastImportedAt!);
 
     if (!isNewer) {
       logInfo(
         'В облаке нет новых версий для импорта',
         tag: tag,
         data: {
-          'localLast': exportingEntry.data?.exportedAt.toString(),
+          'localLast': localMeta.lastImportedAt.toString(),
           'cloudLast': timestampLastExporting.toString(),
         },
       );
@@ -257,16 +259,14 @@ class ImportDropboxService {
   ///
   /// [versionInfo] - информация о версии для скачивания
   /// [metadata] - метаданные базы данных
-  /// [onProgress] - callback для отслеживания прогресса скачивания
+  /// [onFileProgress] - callback для отслеживания прогресса скачивания
   ///
   /// Возвращает путь к скачанному файлу
   Future<Result<String, String>> downloadArchive({
     required CloudVersionInfo versionInfo,
     required DatabaseMetaForSync metadata,
-    void Function(double progress, String message)? onProgress,
+    void Function(String progress, String message)? onFileProgress,
   }) async {
-    onProgress?.call(0.0, 'Начало скачивания...');
-
     final storagesDir = await AppPaths.appStoragePath;
     final fileName =
         '${metadata.name.replaceAll(' ', '_')}_${metadata.id}_download.zip';
@@ -307,6 +307,7 @@ class ImportDropboxService {
 
         // Вычисляем прогресс
         final progress = totalBytes > 0 ? downloadedBytes / totalBytes : 0.0;
+        final percent = (progress * 100).toStringAsFixed(2);
         final mbDownloaded = (downloadedBytes / (1024 * 1024)).toStringAsFixed(
           2,
         );
@@ -314,7 +315,10 @@ class ImportDropboxService {
             ? (totalBytes / (1024 * 1024)).toStringAsFixed(2)
             : '?';
 
-        onProgress?.call(progress, 'Скачано $mbDownloaded МБ из $mbTotal МБ');
+        onFileProgress?.call(
+          percent,
+          'Скачано $mbDownloaded МБ из $mbTotal МБ',
+        );
       },
       onDone: () async {
         await sink.flush();
@@ -334,7 +338,6 @@ class ImportDropboxService {
         tag: tag,
         data: {'path': downloadPath, 'size': downloadedBytes},
       );
-      onProgress?.call(1.0, 'Скачивание завершено');
       return Result.success(downloadPath);
     } catch (e, st) {
       final errorMsg = 'Ошибка при сохранении файла локально: $e';
@@ -359,9 +362,9 @@ class ImportDropboxService {
   Future<Result<String, String>> replaceDatabase({
     required String downloadPath,
     required DatabaseMetaForSync metadata,
-    void Function(double progress, String message)? onProgress,
+    void Function(String message)? onProgress,
   }) async {
-    onProgress?.call(0.0, 'Начало распаковки архива...');
+    onProgress?.call('Начало распаковки архива...');
 
     final file = File(downloadPath);
     if (!await file.exists()) {
@@ -395,10 +398,11 @@ class ImportDropboxService {
 
       // Создаём новую папку с меткой времени импорта
       final storagesDir = await AppPaths.appStoragePath;
-      final timestamp = DateTime.now().microsecondsSinceEpoch;
-      final importedFolderName =
-          '$timestamp ${metadata.name.replaceAll(' ', '_')}_${metadata.id}';
-      final importedFolderPath = p.join(storagesDir, importedFolderName);
+      // final timestamp = DateTime.now().microsecondsSinceEpoch;
+      // final importedFolderName =
+      //     '$timestamp ${metadata.name.replaceAll(' ', '_')}_${metadata.id}';
+      // final importedFolderName = '${metadata.name.replaceAll(' ', '_')}';
+      final importedFolderPath = p.join(storagesDir);
 
       int filesExtracted = 0;
       final totalFiles = archive.where((f) => f.isFile).length;
@@ -437,9 +441,7 @@ class ImportDropboxService {
           filesExtracted++;
 
           // Обновляем прогресс
-          final progress = filesExtracted / totalFiles;
           onProgress?.call(
-            progress,
             'Распаковано файлов: $filesExtracted из $totalFiles',
           );
 
@@ -469,7 +471,7 @@ class ImportDropboxService {
         );
       }
 
-      onProgress?.call(1.0, 'Распаковка завершена');
+      onProgress?.call('Распаковка завершена');
       return Result.success(importedFolderPath);
     } catch (e, st) {
       final errorMsg = 'Ошибка при распаковке архива: $e';

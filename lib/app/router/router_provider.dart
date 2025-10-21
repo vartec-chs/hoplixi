@@ -12,6 +12,8 @@ import 'package:hoplixi/core/logger/route_observer.dart';
 import 'package:hoplixi/core/providers/app_close_provider.dart';
 import 'package:hoplixi/features/auth/models/auth_state.dart';
 import 'package:hoplixi/features/auth/providers/authorization_notifier_provider.dart';
+import 'package:hoplixi/features/cloud_sync/models/cloud_import_state.dart';
+import 'package:hoplixi/features/cloud_sync/providers/cloud_import_provider.dart';
 import 'package:hoplixi/features/cloud_sync/widgets/export_progress_overlay.dart';
 
 import 'package:hoplixi/features/global/screens/error_screen.dart';
@@ -38,6 +40,35 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final dbState = ref.read(hoplixiStoreProvider).asData?.value;
       final databaseLocked = ref.read(databaseLockedProvider);
       final dataCleared = ref.read(dataClearedProvider);
+
+      // Проверяем состояние импорта
+      final importState = ref.read(cloudImportStateProvider);
+
+      bool isImporting = false;
+      bool importCompleted = false;
+      bool importFailed = false;
+
+      importState.whenData((state) {
+        isImporting = state.maybeWhen(
+          importing: (_, __, ___) => true,
+          checking: (_) => true,
+          fileProgress: (_, __) => true,
+          orElse: () => false,
+        );
+
+        importCompleted = state.maybeWhen(
+          success: (_, __) => true,
+          orElse: () => false,
+        );
+
+        importFailed = state.maybeWhen(
+          failure: (_) => true,
+          warning: (_) => true,
+          info: (_) => true,
+          canceled: () => true,
+          orElse: () => false,
+        );
+      });
 
       // Проверяем, идет ли процесс авторизации или есть ошибка
       final authState = ref.read(authorizationProvider);
@@ -104,6 +135,37 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ref.read(appLifecycleProvider.notifier).cleanup();
 
         return AppRoutes.home;
+      }
+
+      // Если идёт импорт и мы не на экране импорта
+      if (isImporting && state.matchedLocation != AppRoutes.importingStore) {
+        logInfo(
+          'Идёт импорт базы данных, перенаправляем на экран импорта',
+          tag: 'GoRouter',
+          data: {'currentPath': state.fullPath},
+        );
+        return AppRoutes.importingStore;
+      }
+
+      // Если импорт успешно завершён и мы на экране импорта
+      if (importCompleted &&
+          state.matchedLocation == AppRoutes.importingStore) {
+        logInfo(
+          'Импорт завершён успешно, перенаправляем на openStore',
+          tag: 'GoRouter',
+          data: {'currentPath': state.fullPath},
+        );
+        return AppRoutes.openStore;
+      }
+
+      // Если импорт завершён с ошибкой/отменён и мы на экране импорта
+      if (importFailed && state.matchedLocation == AppRoutes.importingStore) {
+        logInfo(
+          'Импорт завершён с ошибкой/отменён, перенаправляем на openStore',
+          tag: 'GoRouter',
+          data: {'currentPath': state.fullPath},
+        );
+        return AppRoutes.openStore;
       }
 
       return null;

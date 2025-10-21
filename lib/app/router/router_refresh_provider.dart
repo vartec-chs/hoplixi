@@ -4,6 +4,8 @@ import 'package:hoplixi/app/app_preferences/index.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/providers/app_lifecycle_provider.dart';
 import 'package:hoplixi/features/auth/providers/authorization_notifier_provider.dart';
+import 'package:hoplixi/features/cloud_sync/models/cloud_import_state.dart';
+import 'package:hoplixi/features/cloud_sync/providers/cloud_import_provider.dart';
 
 /// Notifier для управления состоянием router refresh
 class RouterRefreshNotifier extends Notifier<int> with ChangeNotifier {
@@ -18,6 +20,67 @@ class RouterRefreshNotifier extends Notifier<int> with ChangeNotifier {
           tag: 'RouterRefreshNotifier',
         );
         notifyListeners();
+      }
+    });
+
+    // Слушаем изменения состояния импорта
+    ref.listen(cloudImportStateProvider, (previous, next) {
+      if (previous != next) {
+        next.whenData((state) {
+          state.when(
+            idle: () {
+              // Ничего не делаем в idle состоянии
+            },
+            checking: (_) {
+              // Ничего не делаем при проверке версии
+            },
+            importing: (_, __, ___) {
+              logInfo(
+                'Начался импорт базы данных, обновляем router',
+                tag: 'RouterRefreshNotifier',
+              );
+              notifyListeners();
+            },
+            fileProgress: (_, __) {
+              // Не требует обновления router
+            },
+            success: (_, __) {
+              logInfo(
+                'Импорт завершён успешно, обновляем router',
+                tag: 'RouterRefreshNotifier',
+              );
+              notifyListeners();
+            },
+            failure: (_) {
+              logInfo(
+                'Импорт завершён с ошибкой, обновляем router',
+                tag: 'RouterRefreshNotifier',
+              );
+              notifyListeners();
+            },
+            warning: (_) {
+              logInfo(
+                'Импорт: предупреждение, обновляем router',
+                tag: 'RouterRefreshNotifier',
+              );
+              notifyListeners();
+            },
+            info: (_) {
+              logInfo(
+                'Импорт: информационное состояние, обновляем router',
+                tag: 'RouterRefreshNotifier',
+              );
+              notifyListeners();
+            },
+            canceled: () {
+              logInfo(
+                'Импорт отменён, обновляем router',
+                tag: 'RouterRefreshNotifier',
+              );
+              notifyListeners();
+            },
+          );
+        });
       }
     });
 

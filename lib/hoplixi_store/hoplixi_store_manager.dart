@@ -977,7 +977,7 @@ class HoplixiStoreManager {
   }
 
   /// Удалить текущую базу данных вместе с папкой и записью из истории
-  Future<void> deleteCurrentDatabase() async {
+  Future<void> deleteCurrentDatabase({bool? deleteHistory = false}) async {
     const String operation = 'deleteCurrentDatabase';
 
     if (!hasOpenDatabase || _currentDatabasePath == null) {
@@ -1064,29 +1064,31 @@ class HoplixiStoreManager {
       }
 
       // Удаляем запись из истории
-      try {
-        final service = await getHistoryService();
-        final result = await service.removeEntry(dbFilePath);
+      if (deleteHistory == true) {
+        try {
+          final service = await getHistoryService();
+          final result = await service.removeEntry(dbFilePath);
 
-        if (result.success) {
-          logInfo(
-            'Запись удалена из истории БД',
-            tag: 'HoplixiStoreManager',
-            data: {'path': dbFilePath},
-          );
-        } else {
+          if (result.success) {
+            logInfo(
+              'Запись удалена из истории БД',
+              tag: 'HoplixiStoreManager',
+              data: {'path': dbFilePath},
+            );
+          } else {
+            logWarning(
+              'Не удалось удалить запись из истории БД (не критично): ${result.message}',
+              tag: 'HoplixiStoreManager',
+              data: {'path': dbFilePath},
+            );
+          }
+        } catch (historyError) {
           logWarning(
-            'Не удалось удалить запись из истории БД (не критично): ${result.message}',
+            'Ошибка удаления записи из истории (не критично): $historyError',
             tag: 'HoplixiStoreManager',
-            data: {'path': dbFilePath},
+            data: {'path': dbFilePath, 'error': historyError.toString()},
           );
         }
-      } catch (historyError) {
-        logWarning(
-          'Ошибка удаления записи из истории (не критично): $historyError',
-          tag: 'HoplixiStoreManager',
-          data: {'path': dbFilePath, 'error': historyError.toString()},
-        );
       }
 
       logInfo(
