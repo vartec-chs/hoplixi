@@ -12,6 +12,7 @@ sealed class LocalMeta with _$LocalMeta {
     required String dbName,
     required String deviceId,
     required ProviderType providerType,
+    required bool editingEnabled,
     DateTime? lastExportAt,
     DateTime? lastImportedAt,
   }) = _LocalMeta;

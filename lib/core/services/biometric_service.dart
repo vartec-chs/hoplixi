@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../logger/app_logger.dart';
 import '../../hoplixi_store/repository/service_results.dart';
-import 'package:local_auth/error_codes.dart' as auth_error;
+// import 'package:local_auth/error_codes.dart' as auth_error;
 
 /// Сервис для работы с биометрической аутентификацией
 class BiometricService {
@@ -124,19 +124,17 @@ class BiometricService {
   Future<ServiceResult<BiometricAuthResult>> authenticate({
     String localizedReason = 'Подтвердите свою личность',
     bool biometricOnly = false,
-    bool useErrorDialogs = true,
-    bool stickyAuth = false,
+    bool persistAcrossBackgrounding = false,
+    bool sensitiveTransaction = true,
   }) async {
     try {
       logInfo('Начало биометрической аутентификации', tag: 'BiometricService');
 
       final authenticated = await _auth.authenticate(
         localizedReason: localizedReason,
-        options: AuthenticationOptions(
-          biometricOnly: biometricOnly,
-          useErrorDialogs: useErrorDialogs,
-          stickyAuth: stickyAuth,
-        ),
+        biometricOnly: biometricOnly,
+        sensitiveTransaction: sensitiveTransaction,
+        persistAcrossBackgrounding: persistAcrossBackgrounding,
       );
 
       logInfo(
@@ -158,7 +156,7 @@ class BiometricService {
         error: e,
         tag: 'BiometricService',
       );
-      if (e.code == auth_error.lockedOut) {
+      if (e.code == LocalAuthExceptionCode.biometricLockout) {
         return ServiceResult.success(
           data: BiometricAuthResult.lockedOut,
           message:
@@ -180,14 +178,14 @@ class BiometricService {
   /// Выполняет аутентификацию только с биометрией (без PIN/пароля)
   Future<ServiceResult<BiometricAuthResult>> authenticateWithBiometrics({
     String localizedReason = 'Используйте биометрию для подтверждения',
-    bool useErrorDialogs = true,
+    bool sensitiveTransaction = true,
     bool stickyAuth = false,
   }) async {
     return authenticate(
       localizedReason: localizedReason,
       biometricOnly: true,
-      useErrorDialogs: useErrorDialogs,
-      stickyAuth: stickyAuth,
+      sensitiveTransaction: sensitiveTransaction,
+      persistAcrossBackgrounding: stickyAuth,
     );
   }
 

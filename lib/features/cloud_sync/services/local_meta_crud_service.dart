@@ -244,14 +244,22 @@ class LocalMetaCrudService {
     return Result.success(results);
   }
 
-  /// Найти все включенные
-  Result<List<LocalMeta>, AppError> findEnabled() {
-    return findByEnabled(true);
+  /// Найти по editingEnabled
+  Result<List<LocalMeta>, AppError> findByEditingEnabled(bool editingEnabled) {
+    final results = _storage.values
+        .where((meta) => meta.editingEnabled == editingEnabled)
+        .toList();
+    return Result.success(results);
   }
 
-  /// Найти все отключенные
-  Result<List<LocalMeta>, AppError> findDisabled() {
-    return findByEnabled(false);
+  /// Найти все с включенным редактированием
+  Result<List<LocalMeta>, AppError> findEditingEnabled() {
+    return findByEditingEnabled(true);
+  }
+
+  /// Найти все с отключенным редактированием
+  Result<List<LocalMeta>, AppError> findEditingDisabled() {
+    return findByEditingEnabled(false);
   }
 
   /// Найти по наличию lastExportAt (не null)
@@ -346,9 +354,52 @@ class LocalMetaCrudService {
     return Result.success(results);
   }
 
-  /// Проверить существование по dbId
-  bool existsByDbId(String dbId) {
-    return _storage.containsKey(dbId);
+  /// Найти по всем критериям: deviceId, providerType, enabled и editingEnabled
+  Result<List<LocalMeta>, AppError>
+  findByDeviceIdProviderTypeEnabledAndEditingEnabled(
+    String deviceId,
+    ProviderType type,
+    bool enabled,
+    bool editingEnabled,
+  ) {
+    final results = _storage.values
+        .where(
+          (meta) =>
+              meta.deviceId == deviceId &&
+              meta.providerType == type &&
+              meta.enabled == enabled &&
+              meta.editingEnabled == editingEnabled,
+        )
+        .toList();
+    return Result.success(results);
+  }
+
+  /// Включить редактирование для записи по dbId
+  Future<Result<LocalMeta, AppError>> enableEditing(String dbId) async {
+    return getByDbId(dbId).fold(
+      onSuccess: (meta) async {
+        if (meta.editingEnabled) {
+          return Result.success(meta); // Уже включено
+        }
+        final updatedMeta = meta.copyWith(editingEnabled: true);
+        return update(updatedMeta);
+      },
+      onFailure: (error) => Result.failure(error),
+    );
+  }
+
+  /// Отключить редактирование для записи по dbId
+  Future<Result<LocalMeta, AppError>> disableEditing(String dbId) async {
+    return getByDbId(dbId).fold(
+      onSuccess: (meta) async {
+        if (!meta.editingEnabled) {
+          return Result.success(meta); // Уже отключено
+        }
+        final updatedMeta = meta.copyWith(editingEnabled: false);
+        return update(updatedMeta);
+      },
+      onFailure: (error) => Result.failure(error),
+    );
   }
 
   /// Проверить существование по providerType

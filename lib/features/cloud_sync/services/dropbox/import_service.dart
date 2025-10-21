@@ -17,6 +17,7 @@ class CloudVersionInfo {
   final String fileName;
   final String cloudPath;
   final bool isNewer;
+
   final int? fileSize;
 
   CloudVersionInfo({
@@ -24,6 +25,7 @@ class CloudVersionInfo {
     required this.fileName,
     required this.cloudPath,
     required this.isNewer,
+
     this.fileSize,
   });
 }
@@ -39,6 +41,44 @@ class ImportDropboxService {
 
   DropboxApi? _dropbox;
 
+  /// Формирует путь к папке хранилища в облаке на основе метаданных
+  ///
+  /// [metadata] - метаданные базы данных
+  ///
+  /// Возвращает путь к папке хранилища в облаке
+  String getImportCloudPath(DatabaseMetaForSync metadata) {
+    final storeFolderName =
+        '${metadata.name.replaceAll(' ', '_')}_${metadata.id}';
+    return '$storagesRoot/$storeFolderName';
+  }
+
+  Future<Result<void, String>> initializeDropboxConnection(
+    String clientKey,
+    void Function(String error)? onError,
+  ) async {
+    try {
+      final account = _accountService.clients[clientKey];
+      if (account == null) {
+        final errorMsg = 'No Dropbox account found for the key';
+        onError?.call(errorMsg);
+        return Result.failure(errorMsg);
+      }
+      // Безопасно переинициализируем, если уже был инициализирован
+      _dropbox = DropboxRestApi(account);
+      return Result.success(null);
+    } catch (e, st) {
+      final errorMsg = 'Ошибка инициализации Dropbox: ${e.toString()}';
+      logError(
+        'Ошибка инициализации Dropbox',
+        error: e,
+        stackTrace: st,
+        tag: tag,
+      );
+      onError?.call(errorMsg);
+      return Result.failure(errorMsg);
+    }
+  }
+
   /// Проверяет наличие новой версии базы данных в облаке
   ///
   /// [metadata] - метаданные базы данных для синхронизации
@@ -49,13 +89,6 @@ class ImportDropboxService {
     required DatabaseMetaForSync metadata,
     required String clientKey,
   }) async {
-    final account = _accountService.clients[clientKey];
-    if (account == null) {
-      final errorMsg = 'No Dropbox account found for the key';
-      return Result.failure(errorMsg);
-    }
-    _dropbox = _dropbox ?? DropboxRestApi(account);
-
     // Создаём корневую папку для хранилищ (игнорируем если уже существует)
     try {
       await _dropbox!.createFolder(storagesRoot);
@@ -96,19 +129,17 @@ class ImportDropboxService {
       }
     }
 
-    final storeFolderName =
-        '${metadata.name.replaceAll(' ', '_')}_${metadata.id}';
-    final exportCloudPath = '$storagesRoot/$storeFolderName';
+    final importCloudPath = getImportCloudPath(metadata);
 
     // Создаём папку для конкретного хранилища (игнорируем если уже существует)
     try {
-      await _dropbox!.createFolder(exportCloudPath);
+      await _dropbox!.createFolder(importCloudPath);
       final errorMsg =
           'Ожидался ответ 409 (папка уже существует), но createFolder завершился успешно';
       logError(
         'Непредвиденное создание папки',
         tag: tag,
-        data: {'path': exportCloudPath},
+        data: {'path': importCloudPath},
       );
       return Result.failure(errorMsg);
     } catch (e, st) {
@@ -116,7 +147,7 @@ class ImportDropboxService {
         logInfo(
           'Папка для хранилища уже существует (409)',
           tag: tag,
-          data: {'path': exportCloudPath},
+          data: {'path': importCloudPath},
         );
       } else {
         logError(
@@ -124,7 +155,7 @@ class ImportDropboxService {
           error: e,
           stackTrace: st,
           tag: tag,
-          data: {'path': exportCloudPath},
+          data: {'path': importCloudPath},
         );
         rethrow;
       }
@@ -133,11 +164,11 @@ class ImportDropboxService {
     // Получаем список файлов в папке хранилища
     DropboxFolderContents cloudFiles;
     try {
-      cloudFiles = await _dropbox!.listFolder(exportCloudPath);
+      cloudFiles = await _dropbox!.listFolder(importCloudPath);
       logInfo(
         'Список файлов в облаке получен',
         tag: tag,
-        data: {'path': exportCloudPath, 'fileCount': cloudFiles.entries.length},
+        data: {'path': importCloudPath, 'fileCount': cloudFiles.entries.length},
       );
     } catch (e, st) {
       final errorMsg = 'Ошибка при получении списка файлов из облака: $e';
@@ -146,7 +177,7 @@ class ImportDropboxService {
         error: e,
         stackTrace: st,
         tag: tag,
-        data: {'path': exportCloudPath},
+        data: {'path': importCloudPath},
       );
       return Result.failure(errorMsg);
     }
@@ -156,7 +187,7 @@ class ImportDropboxService {
       logInfo(
         'В облаке нет файлов для импорта',
         tag: tag,
-        data: {'path': exportCloudPath},
+        data: {'path': importCloudPath},
       );
       return Result.success(null);
     }
@@ -203,8 +234,9 @@ class ImportDropboxService {
     final versionInfo = CloudVersionInfo(
       timestamp: timestampLastExporting,
       fileName: latestFile.name,
-      cloudPath: '$exportCloudPath/${latestFile.name}',
+      cloudPath: '$importCloudPath/${latestFile.name}',
       isNewer: true,
+
       fileSize: latestFile.size,
     );
 
@@ -446,6 +478,102 @@ class ImportDropboxService {
         error: e,
         stackTrace: st,
         tag: tag,
+      );
+      return Result.failure(errorMsg);
+    }
+  }
+
+  /// Проверяет существование .lock файла в облаке
+  ///
+  /// [exportCloudPath] - путь к папке хранилища в облаке
+  ///
+  /// Возвращает true если файл существует, false если нет
+  Future<Result<bool, String>> checkLockFileExists({
+    required String exportCloudPath,
+  }) async {
+    try {
+      // Получаем список файлов в папке
+      final folderContents = await _dropbox!.listFolder(exportCloudPath);
+
+      // Ищем файл с именем .lock
+      final lockFileExists = folderContents.entries.any(
+        (entry) => entry.name == '.lock' && !entry.isFolder,
+      );
+
+      if (lockFileExists) {
+        logInfo(
+          '.lock файл найден в облаке',
+          tag: tag,
+          data: {'path': '$exportCloudPath/.lock'},
+        );
+        return Result.success(true);
+      } else {
+        logInfo(
+          '.lock файл не найден в облаке',
+          tag: tag,
+          data: {'path': '$exportCloudPath/.lock'},
+        );
+        return Result.success(false);
+      }
+    } catch (e, st) {
+      final errorMsg = 'Ошибка при проверке .lock файла: $e';
+      logError(
+        'Ошибка при checkLockFileExists',
+        error: e,
+        stackTrace: st,
+        tag: tag,
+        data: {'path': '$exportCloudPath/.lock'},
+      );
+      return Result.failure(errorMsg);
+    }
+  }
+
+  /// Создаёт .lock файл в облаке с информацией об устройстве и датой
+  ///
+  /// [exportCloudPath] - путь к папке хранилища в облаке
+  /// [deviceInfo] - информация об устройстве (имя, платформа и т.д.)
+  ///
+  /// Возвращает путь к созданному файлу в облаке
+  Future<Result<String, String>> createLockFile({
+    required String exportCloudPath,
+    required String deviceInfo,
+  }) async {
+    final lockFileName = '.lock';
+    final lockFilePath = '$exportCloudPath/$lockFileName';
+
+    try {
+      // Формируем содержимое lock файла
+      final timestamp = DateTime.now().toIso8601String();
+      final lockContent = '$deviceInfo|$timestamp';
+
+      logDebug(
+        'Создание .lock файла в облаке',
+        tag: tag,
+        data: {'path': lockFilePath, 'deviceInfo': deviceInfo},
+      );
+
+      // Загружаем файл в облако
+      // Преобразуем строку в Stream<List<int>>
+      final contentBytes = lockContent.codeUnits;
+      final dataStream = Stream.fromIterable([contentBytes]);
+
+      await _dropbox!.upload(lockFilePath, dataStream, mode: 'overwrite');
+
+      logInfo(
+        '.lock файл успешно создан в облаке',
+        tag: tag,
+        data: {'path': lockFilePath, 'timestamp': timestamp},
+      );
+
+      return Result.success(lockFilePath);
+    } catch (e, st) {
+      final errorMsg = 'Ошибка при создании .lock файла: $e';
+      logError(
+        'Ошибка при createLockFile',
+        error: e,
+        stackTrace: st,
+        tag: tag,
+        data: {'path': lockFilePath},
       );
       return Result.failure(errorMsg);
     }

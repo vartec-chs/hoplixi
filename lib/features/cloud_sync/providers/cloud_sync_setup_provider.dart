@@ -105,6 +105,7 @@ class CloudSyncSetupNotifier extends AsyncNotifier<CloudSyncSetupState> {
               'dbId': dbMeta.id,
               'providerType': meta.providerType.name,
               'enabled': meta.enabled,
+              'editingEnabled': meta.editingEnabled,
             },
           );
           return CloudSyncSetupState.alreadyConfigured(meta: meta);
@@ -187,6 +188,7 @@ class CloudSyncSetupNotifier extends AsyncNotifier<CloudSyncSetupState> {
         dbName: dbName,
         deviceId: deviceId,
         providerType: providerType,
+        editingEnabled: true,
         lastExportAt: null,
         lastImportedAt: null,
       );
@@ -240,5 +242,71 @@ class CloudSyncSetupNotifier extends AsyncNotifier<CloudSyncSetupState> {
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = AsyncValue.data(await _checkSyncStatus());
+  }
+
+  /// Включить редактирование для текущей БД
+  Future<void> enableEditing() async {
+    await _toggleEditing(enabled: true);
+  }
+
+  /// Отключить редактирование для текущей БД
+  Future<void> disableEditing() async {
+    await _toggleEditing(enabled: false);
+  }
+
+  /// Переключить флаг редактирования
+  Future<void> _toggleEditing({required bool enabled}) async {
+    try {
+      // Получаем текущую БД
+      final dbState = ref.read(hoplixiStoreProvider).asData?.value;
+      if (dbState == null || !dbState.isOpen) {
+        logWarning(
+          'База данных не открыта для изменения editingEnabled',
+          tag: _tag,
+        );
+        return;
+      }
+
+      final dbMeta = await ref
+          .read(hoplixiStoreManagerProvider.future)
+          .then((manager) => manager.getDatabaseMetaForSync());
+
+      final localMetaService = await ref.read(localMetaCrudProvider.future);
+      final result = enabled
+          ? await localMetaService.enableEditing(dbMeta.id)
+          : await localMetaService.disableEditing(dbMeta.id);
+
+      result.fold(
+        onSuccess: (updatedMeta) {
+          logInfo(
+            'Флаг editingEnabled ${enabled ? 'включен' : 'отключен'} для БД: ${dbMeta.name}',
+            tag: _tag,
+            data: {
+              'dbId': dbMeta.id,
+              'editingEnabled': updatedMeta.editingEnabled,
+            },
+          );
+          // Обновляем состояние
+          state = AsyncValue.data(
+            CloudSyncSetupState.alreadyConfigured(meta: updatedMeta),
+          );
+        },
+        onFailure: (error) {
+          logError(
+            'Ошибка изменения editingEnabled',
+            error: error,
+            tag: _tag,
+            data: {'dbId': dbMeta.id, 'enabled': enabled},
+          );
+        },
+      );
+    } catch (e, stackTrace) {
+      logError(
+        'Неожиданная ошибка при изменении editingEnabled',
+        error: e,
+        stackTrace: stackTrace,
+        tag: _tag,
+      );
+    }
   }
 }
