@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hoplixi/core/index.dart';
 import 'package:hoplixi/core/providers/biometric_auto_open_provider.dart';
 import 'package:hoplixi/core/providers/biometric_provider.dart';
+import 'package:hoplixi/core/providers/auto_close_app_provider.dart';
 import 'package:hoplixi/shared/widgets/index.dart';
 import 'package:hoplixi/core/services/biometric_service.dart';
 import 'package:hoplixi/features/auth/models/sync_providers.dart';
@@ -66,6 +67,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               final biometricAutoOpenAsync = ref.watch(
                 biometricAutoOpenProvider,
               );
+              final autoCloseSettingsAsync = ref.watch(autoCloseAppProvider);
+
               return biometricAutoOpenAsync.when(
                 data: (biometricAutoOpen) => Column(
                   spacing: 8,
@@ -236,6 +239,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         labelText: 'Провайдер для синхронизации',
                       ),
                       disabledHint: const Text('Включите авто-синхронизацию'),
+                    ),
+
+                    // Автоматически закрывать бд при бездействии
+                    SwitchListTile(
+                      title: const Text(
+                        'Автоматически закрывать бд при бездействии',
+                      ),
+                      value: autoCloseSettingsAsync.maybeWhen(
+                        orElse: () => false,
+                        data: (settings) => settings.autoClose,
+                      ),
+                      onChanged: (value) {
+                        ref
+                            .read(autoCloseAppProvider.notifier)
+                            .setAutoClose(value);
+                      },
+                    ),
+
+                    // Таймаут авто-закрытия
+                    Visibility(
+                      visible: autoCloseSettingsAsync.maybeWhen(
+                        orElse: () => false,
+                        data: (settings) => settings.autoClose,
+                      ),
+                      child: TextFormField(
+                        initialValue: autoCloseSettingsAsync
+                            .maybeWhen(
+                              orElse: () => 0,
+                              data: (settings) => settings.timeout,
+                            )
+                            .toString(),
+                        keyboardType: TextInputType.number,
+                        decoration: primaryInputDecoration(
+                          context,
+                          labelText: 'Таймаут авто-закрытия (секунды)',
+                        ),
+                        onChanged: (value) {
+                          final intVal = int.tryParse(value) ?? 120;
+                          ref
+                              .read(autoCloseAppProvider.notifier)
+                              .setTimeout(intVal);
+                        },
+                      ),
                     ),
 
                     // Настройки уведомлений

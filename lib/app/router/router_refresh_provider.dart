@@ -97,7 +97,7 @@ class RouterRefreshNotifier extends Notifier<int> with ChangeNotifier {
     });
 
     // Слушаем изменения состояния очистки данных
-    ref.listen<bool>(dataClearedProvider, (previous, next) {
+    ref.listen<bool>(dataClearedProvider, (previous, next) async {
       if (next == true && previous == false) {
         logInfo(
           'Данные очищены, уведомляем router о необходимости refresh',

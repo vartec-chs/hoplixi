@@ -61,4 +61,16 @@ class Keys {
     isHiddenUI: false,
     isCanEdit: true,
   );
+
+  static const PrefKey<bool> autoCloseApp = PrefKey<bool>(
+    'auto_close_app',
+    isHiddenUI: false,
+    isCanEdit: true,
+  );
+
+  static const PrefKey<int> autoCloseAppTimeout = PrefKey<int>(
+    'auto_close_app_timeout',
+    isHiddenUI: false,
+    isCanEdit: true,
+  );
 }

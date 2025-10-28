@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hoplixi/core/logger/app_logger.dart';
 import 'package:hoplixi/core/providers/app_close_provider.dart';
+import 'package:hoplixi/core/providers/auto_close_app_provider.dart';
 import 'package:hoplixi/global_key.dart';
 import 'package:hoplixi/hoplixi_store/providers/providers.dart';
 
@@ -59,7 +60,7 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   Timer? _inactivityTimer;
   Timer? _countdownTimer;
 
-  static const int _inactivityTimeoutSeconds = 5; // 2 минуты
+  int _inactivityTimeoutSeconds = 60; // 60 секунд
 
   @override
   AppLifecycleStateData build() {
@@ -70,6 +71,21 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
         tag: 'AppLifecycleNotifier',
       );
       _stopInactivityTimer();
+    });
+
+    ref.listen<AsyncValue<AutoCloseSettings>>(autoCloseAppProvider, (
+      previous,
+      next,
+    ) {
+      Future.microtask(() {
+        if (ref.mounted) {
+          if (next is AsyncData && next.value != null) {
+            final currentState = next.value!;
+            // При изменении настроек авто-закрытия проверяем состояние приложения
+            _inactivityTimeoutSeconds = currentState.timeout;
+          }
+        }
+      });
     });
 
     return const AppLifecycleStateData();
@@ -134,8 +150,10 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   Future<void> _onPaused() async {
     logInfo('Приложение приостановлено', tag: 'AppLifecycleNotifier');
     final context = navigatorKey.currentContext;
+    final autoCloseSettingsAsync = await ref.read(autoCloseAppProvider.future);
     if (context != null &&
-        GoRouter.of(context).state.path!.contains('dashboard')) {
+        GoRouter.of(context).state.path!.contains('dashboard') &&
+        autoCloseSettingsAsync.autoClose) {
       _startInactivityTimer();
     }
     state = state.copyWith(isActive: false);
@@ -145,9 +163,10 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   Future<void> _onInactive() async {
     logInfo('Приложение неактивно', tag: 'AppLifecycleNotifier');
     final context = navigatorKey.currentContext;
-
+    final autoCloseSettingsAsync = await ref.read(autoCloseAppProvider.future);
     if (context != null &&
-        GoRouter.of(context).state.path!.contains('dashboard')) {
+        GoRouter.of(context).state.path!.contains('dashboard') &&
+        autoCloseSettingsAsync.autoClose) {
       logInfo(
         'App is inactive and in protected route, starting inactivity timer',
         tag: 'AppLifecycleNotifier',
@@ -160,9 +179,12 @@ class AppLifecycleNotifier extends Notifier<AppLifecycleStateData> {
   /// Приложение скрыто
   Future<void> _onHidden() async {
     logInfo('Приложение скрыто', tag: 'AppLifecycleNotifier');
+
     final context = navigatorKey.currentContext;
+    final autoCloseSettingsAsync = await ref.read(autoCloseAppProvider.future);
     if (context != null &&
-        GoRouter.of(context).state.path!.contains('dashboard')) {
+        GoRouter.of(context).state.path!.contains('dashboard') &&
+        autoCloseSettingsAsync.autoClose) {
       _startInactivityTimer();
     }
     state = state.copyWith(isActive: false);
